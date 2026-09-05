@@ -1,0 +1,7 @@
+# Partner settings — author verification
+
+The partner page extends the established flat green/neutral interface. Invitations and connected relationships have explicit text status. Sharing sections distinguish the viewer's controls from the other participant's read-only status; accepting leaves sharing disabled. Removing a relationship uses explicit confirmation. Three locales are implemented.
+
+Author inspected 1440px light and 390px dark captures in evidence/partners. Long synthetic email addresses wrap, sharing controls fit the mobile column, and state labels are readable without horizontal overflow. Real two-context browser evidence covers sender invite, recipient acceptance, separate sharing flags, reload persistence, true sender logout/login persistence, recipient removal, sender refresh and logout cleanup (2 cases, 10.4s). The focused PostgreSQL/HTTP evidence also covers sequential duplicate invite conflict (409), sender-side removal, and a private partner Alert excluded from Pair View.
+
+The refreshed evidence captures are `evidence/partners/1440.png`, `390.png`, `compare-1440.png`, and `compare-390.png`. Root reviewed the Partner API additions and the refreshed 390px settings / 1440px comparison captures and approved behavioral and visual acceptance on 2026-09-06. Final ticket completion remains conditional on the global typecheck gate, currently blocked by worker 44's unrelated market-state persistence changes. No aesthetic direction was changed in this pass.
