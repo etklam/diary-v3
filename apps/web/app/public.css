@@ -1,0 +1,42 @@
+.public-shell{min-height:100dvh;background:var(--canvas)}
+.public-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;padding:20px max(24px,4vw);border-bottom:1px solid var(--border);background:var(--surface)}
+.public-header .brand{color:var(--text);font-size:1.25rem;font-weight:700;text-decoration:none;white-space:nowrap}
+.public-header .brand span{display:block;font-size:.75rem;font-weight:400;margin-top:4px;color:var(--muted)}
+.public-header nav{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.public-header nav a{display:block;min-height:44px;padding:8px 10px;color:var(--text);text-decoration:none;border-radius:4px}
+.public-header nav a:hover,.public-header nav a[aria-current=page]{background:var(--selected);font-weight:650}
+.public-actions,.public-preferences{display:flex;align-items:center;gap:8px}
+.public-preferences{grid-column:1/-1;justify-content:flex-end}
+.public-preferences>.preferences{display:flex;align-items:center;gap:16px;margin:0}
+.public-preferences label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.75rem}
+.public-preferences select{width:auto;min-height:40px;padding:7px 10px;font-size:.8125rem}
+.public-shell>main{max-width:none;padding:0;outline:none}
+.public-page{width:min(1160px,100%);margin:0 auto;padding:clamp(40px,7vw,96px) max(20px,4vw) 80px}
+.public-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.8fr);align-items:start;gap:clamp(40px,8vw,120px);padding-bottom:clamp(56px,9vw,112px)}
+.public-eyebrow{margin-bottom:16px;color:var(--action);font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.public-hero h1{max-width:12ch;font-size:clamp(2.5rem,6vw,5rem);line-height:1.08;margin-bottom:28px}
+.public-hero .lede{max-width:54ch;font-size:clamp(1.05rem,1.6vw,1.25rem)}
+.public-example{margin:0;border:1px solid var(--border);border-radius:8px;padding:28px;background:var(--surface);box-shadow:0 10px 28px rgb(24 43 35 / .05)}
+.public-example figcaption{margin-bottom:24px;font-size:.8125rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.public-example-label{margin-bottom:4px;font-weight:700}
+.public-example time{display:block;margin-bottom:4px}
+.public-example small{display:block;margin-top:28px;color:var(--muted);font-size:.8rem}
+.public-section{border-top:1px solid var(--border);padding:clamp(32px,5vw,56px) 0}
+.public-section>h2{font-size:clamp(1.5rem,3vw,2.25rem);max-width:22ch;margin-bottom:32px}
+.public-steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.public-steps li{padding:20px 28px 8px 0;border-right:1px solid var(--border);margin-right:28px}
+.public-steps li:last-child{border-right:0;margin-right:0}
+.public-steps h3{font-size:1.15rem;margin-bottom:12px}
+.public-steps p{color:var(--muted)}
+.public-closing{display:flex;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid var(--border);padding-top:32px}
+.public-closing p{font-size:1.15rem;font-weight:650;margin:0}
+.public-reading{max-width:850px}
+.public-reading header{border-bottom:1px solid var(--border);padding-bottom:40px;margin-bottom:8px}
+.public-reading h1{font-size:clamp(2rem,4vw,3.5rem);max-width:18ch}
+.public-reading .public-section h2{font-size:1.5rem;margin-bottom:12px}
+.public-guide-list{list-style:none;padding:0;margin:0}
+.public-guide-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:24px;border-top:1px solid var(--border);padding:28px 0}
+.public-guide-list h2{margin-bottom:8px}
+.public-guide-list p{color:var(--muted);margin-bottom:0}
+@media(max-width:850px){.public-header{grid-template-columns:1fr auto;gap:16px}.public-header nav{grid-column:1/-1;grid-row:2}.public-actions{grid-column:2;grid-row:1}.public-preferences{grid-column:1/-1;justify-content:flex-start}.public-hero{grid-template-columns:1fr;gap:48px}.public-steps{grid-template-columns:1fr}.public-steps li{padding:20px 0;border-right:0;border-bottom:1px solid var(--border);margin:0}.public-steps li:last-child{border-bottom:0}.public-closing{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.public-header{padding:16px}.public-header .brand{font-size:1.1rem}.public-header .button{padding:8px 10px}.public-header nav{overflow-x:auto;flex-wrap:nowrap}.public-page{padding:40px 16px 56px}.public-hero h1{font-size:2.65rem}.public-example{padding:20px}.public-guide-list li{grid-template-columns:1fr}.public-guide-list .button{justify-self:start}}
