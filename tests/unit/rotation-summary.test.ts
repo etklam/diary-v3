@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { generateMarketSummary } from '../../packages/domain/src/market-rotation/summary'
 import type { SummaryInput } from '../../packages/domain/src/market-rotation/summary'
+import type { BetaAllocationResult } from '../../packages/domain/src/beta-allocation'
+
+// Default pre-computed beta for risk_on + confirming (aggressive mode).
+// Callers pass the already-computed BetaAllocationResult so the summary
+// function stays pure and decideBetaAllocation runs once per request.
+const DEFAULT_BETA: BetaAllocationResult = {
+  suggestedMode: 'aggressive',
+  suggestedBetaLevel: 1.3,
+  highBetaTargetPct: 60,
+  coreIndexTargetPct: 30,
+  cashTargetPct: 10,
+  explanation:
+    'Market is risk-on with confirming breadth. Suggested posture is aggressive: maintain high beta exposure, but avoid chasing extended names.',
+  warnings: [],
+}
+
 // Helper to build a minimal valid input with overrides
 function makeInput(overrides: Partial<SummaryInput> = {}): SummaryInput {
   return {
@@ -11,6 +27,7 @@ function makeInput(overrides: Partial<SummaryInput> = {}): SummaryInput {
     bottomWeakening: [],
     above50dRatio: 0.6,
     averageRsi: null,
+    beta: DEFAULT_BETA,
     ...overrides,
   }
 }
@@ -211,7 +228,8 @@ describe('generateMarketSummary', () => {
         ],
         above50dRatio: 0.75,
         averageRsi: 62,
-          })
+        beta: DEFAULT_BETA,
+      })
 
       // Should be multiple sentences
       const sentences = summary.split('. ').filter((s) => s.length > 0)
@@ -236,7 +254,8 @@ describe('generateMarketSummary', () => {
         bottomWeakening: [],
         above50dRatio: null,
         averageRsi: null,
-          })
+        beta: DEFAULT_BETA,
+      })
 
       expect(summary).toContain('unclear')
       expect(summary).toContain('insufficient')

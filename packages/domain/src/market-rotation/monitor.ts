@@ -2,6 +2,7 @@ import type { MarketState } from './state.js'
 import type { BreadthCondition, BreadthConfirmation } from './breadth.js'
 import type { MaStatus, RotationSignal, SignalStatus } from './signal.js'
 import type { RankScope } from './types.js'
+import type { BetaAllocationResult } from '../beta-allocation.js'
 import { getBreadthCondition, getBreadthConfirmation } from './breadth.js'
 import { getUniverseForScope } from './universe.js'
 import { roundMetric } from './round.js'
@@ -106,11 +107,12 @@ export interface MarketRotationMonitorPayload {
   topImproving: MarketRotationMonitorRow[]
   bottomWeakening: MarketRotationMonitorRow[]
   dataQuality: MarketRotationMonitorDataQuality
+  betaAllocation: BetaAllocationResult
   currentMarketSummary: string
 }
 
 /** Payload produced by the shared builder before the endpoint adds its summary text. */
-export type MarketRotationMonitorBasePayload = Omit<MarketRotationMonitorPayload, 'currentMarketSummary'>
+export type MarketRotationMonitorBasePayload = Omit<MarketRotationMonitorPayload, 'currentMarketSummary' | 'betaAllocation'>
 
 function buildRatio(rows: MarketRotationMonitorRow[], field: 'above20d' | 'above50d'): RatioMetric {
   const eligible = rows.filter(row => row[field] != null)

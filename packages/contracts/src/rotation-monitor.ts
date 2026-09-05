@@ -24,6 +24,7 @@ const rotationSignals = [
 const signalStatuses = ['complete', 'insufficient_data'] as const
 const breadthConditions = ['broad_participation', 'constructive', 'narrowing', 'weak_breadth', 'unknown'] as const
 const breadthConfirmations = ['confirming', 'mixed', 'warning', 'unknown'] as const
+const betaModes = ['aggressive', 'balanced', 'defensive', 'capital_preservation', 'unknown'] as const
 
 export const marketStateSchema = z.enum(marketStates)
 export const marketRotationMonitorQuerySchema = z.object({
@@ -86,6 +87,16 @@ const marketRotationDataQualitySchema = z.object({
   scoreVersion: z.string().trim().min(1).max(32),
 }).strict()
 
+export const betaAllocationSchema = z.object({
+  suggestedMode: z.enum(betaModes),
+  suggestedBetaLevel: finiteNullableNumber,
+  highBetaTargetPct: z.number().finite().min(0).max(100),
+  coreIndexTargetPct: z.number().finite().min(0).max(100),
+  cashTargetPct: z.number().finite().min(0).max(100),
+  explanation: z.string(),
+  warnings: z.array(z.string()).max(20),
+}).strict()
+
 export const marketRotationMonitorResponseSchema = z.object({
   asOfDate: calendarDateSchema,
   comparisonDate: calendarDateSchema.nullable(),
@@ -110,6 +121,7 @@ export const marketRotationMonitorResponseSchema = z.object({
   topImproving: z.array(marketRotationMonitorRowSchema).max(200),
   bottomWeakening: z.array(marketRotationMonitorRowSchema).max(200),
   dataQuality: marketRotationDataQualitySchema,
+  betaAllocation: betaAllocationSchema,
   currentMarketSummary: z.string(),
 }).strict()
 

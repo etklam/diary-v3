@@ -1,5 +1,6 @@
 import type { MarketState } from './state.js'
 import type { BreadthCondition, BreadthConfirmation } from './breadth.js'
+import type { BetaAllocationResult } from '../beta-allocation.js'
 
 export interface SummaryInput {
   marketState: MarketState
@@ -9,6 +10,12 @@ export interface SummaryInput {
   bottomWeakening: Array<{ symbol: string; sectorName: string | null }>
   above50dRatio: number | null
   averageRsi: number | null
+  /**
+   * Pre-computed beta allocation. Callers (e.g. the rotation-monitor handler)
+   * already invoke `decideBetaAllocation` for the `betaAllocation` response
+   * field, so we accept the result here instead of recomputing it.
+   */
+  beta: BetaAllocationResult
 }
 
 const MARKET_STATE_DESCRIPTIONS: Record<MarketState, string> = {
@@ -64,6 +71,23 @@ function formatRsi(averageRsi: number | null): string | null {
   return `Average RSI at ${Math.round(averageRsi)}.`
 }
 
+/**
+ * Build the beta suggestion sentence that integrates decideBetaAllocation()
+ * explanation + warnings into a single human-readable English sentence
+ * intended for API consumers.
+ *
+ * Keeps the summary a pure function (no I/O); mirrors the explanation
+ * produced by decideBetaAllocation, with explicit posture + mode keywords
+ * so downstream callers can grep for them.
+ */
+function formatBetaSuggestion(beta: BetaAllocationResult): string {
+  // Extract the leading posture verb from the explanation if present,
+  // otherwise fall back to the suggested mode label.
+  const modeLabel = beta.suggestedMode.replace(/_/g, ' ')
+  const sentence = `Suggested posture is ${modeLabel}: ${beta.explanation}`
+
+  return sentence
+}
 
 export function generateMarketSummary(input: SummaryInput): string {
   const parts: string[] = []
@@ -98,6 +122,8 @@ export function generateMarketSummary(input: SummaryInput): string {
     parts.push(rsi)
   }
 
+  // 7. Beta suggestion — caller passes the already-computed beta allocation
+  parts.push(formatBetaSuggestion(input.beta))
 
   return parts.join(' ')
 }

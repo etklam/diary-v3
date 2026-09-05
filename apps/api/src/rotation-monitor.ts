@@ -5,11 +5,14 @@ import type {RankScope,MarketState} from '@diary/domain/market-rotation/types';
 import {buildMarketRotationMonitorPayload,type MarketRotationMonitorRow} from '@diary/domain/market-rotation/monitor';
 import {buildNormalizedTrendSeries} from '@diary/domain/market-rotation/trend-series';
 import {generateMarketSummary} from '@diary/domain/market-rotation/summary';
+import {decideBetaAllocation} from '@diary/domain/beta-allocation';
 import {readRotationWindow} from './rotation-queries.js';
-/** Snapshot-only reader. Before persisted market-state exists, the monitor reports unknown. */
+import {getLatestBreadthSnapshot} from './market-state-queries.js';
+/** Snapshot-only reader. Market-state freshness is supplied by the persisted breadth reader. */
 export async function readRotationMonitor(db:Database,scope:RankScope,asOf:string,marketStateOverride?:MarketState){
  return db.transaction(async tx=>{
-  const marketState=marketStateOverride??'unknown';
+  const marketStateSnapshot=marketStateOverride===undefined?await getLatestBreadthSnapshot(tx,'SP500_NDX',asOf):null;
+  const marketState=marketStateOverride??marketStateSnapshot?.marketState??'unknown';
   async function readScope(selected:RankScope){
    const universe=getUniverseForScope(selected),window=await readRotationWindow(tx,selected,asOf),date=window.latestDate?.toISOString().slice(0,10);
    if(!date)return {rows:[] as MarketRotationMonitorRow[],window};
@@ -30,7 +33,8 @@ export async function readRotationMonitor(db:Database,scope:RankScope,asOf:strin
    const prices=new Map(history.map(row=>{const value=row.adjustedClose??row.lastPrice;return [`${row.symbol}:${row.date}`,value===null?null:Number(value)] as const;}));
    for(const row of rows)row.twoWeekTrend=buildNormalizedTrendSeries({symbol:row.symbol,qualifiedDates:dates,priceBySymbolDate:prices,comparisonDate});
   }
-  const payload=buildMarketRotationMonitorPayload({asOfDate:window.latestDate.toISOString().slice(0,10),comparisonDate,marketStateAsOfDate:null,summaryAsOfDate,rankScope:scope,marketState,rows,summaryRows});
-  return {payload:{...payload,currentMarketSummary:generateMarketSummary({marketState,breadthCondition:payload.breadthCondition,breadthConfirmation:payload.breadthConfirmation,topImproving:payload.topImproving,bottomWeakening:payload.bottomWeakening,above50dRatio:payload.summary.above50d.ratio,averageRsi:payload.summary.averageRsi})},marketState,lastUpdated:window.latestDate};
+  const payload=buildMarketRotationMonitorPayload({asOfDate:window.latestDate.toISOString().slice(0,10),comparisonDate,marketStateAsOfDate:marketStateSnapshot?.date??null,summaryAsOfDate,rankScope:scope,marketState,rows,summaryRows});
+  const betaAllocation=decideBetaAllocation({marketState,breadthConfirmation:payload.summary.breadthConfirmation,above50dRatio:payload.summary.above50d.ratio,averageRsi:payload.summary.averageRsi,leadership:{topImproving:payload.topImproving.map(row=>row.sectorName??row.symbol),bottomWeakening:payload.bottomWeakening.map(row=>row.sectorName??row.symbol)}});
+  return {payload:{...payload,betaAllocation,currentMarketSummary:generateMarketSummary({marketState,breadthCondition:payload.breadthCondition,breadthConfirmation:payload.breadthConfirmation,topImproving:payload.topImproving,bottomWeakening:payload.bottomWeakening,above50dRatio:payload.summary.above50d.ratio,averageRsi:payload.summary.averageRsi,beta:betaAllocation})},marketState,betaAllocation,lastUpdated:window.latestDate};
  },{isolationLevel:'repeatable read',accessMode:'read only'});
 }

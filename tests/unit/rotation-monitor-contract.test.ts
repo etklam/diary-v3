@@ -17,6 +17,10 @@ const fixture = {
   summaryCards: { above20d: ratio, above50d: ratio, averageRsi: null, marketState: 'unknown' },
   charts: { topImproving: [], bottomWeakening: [] },
   rows: [], topImproving: [], bottomWeakening: [],
+  betaAllocation: {
+    suggestedMode: 'unknown', suggestedBetaLevel: null, highBetaTargetPct: 0, coreIndexTargetPct: 50, cashTargetPct: 50,
+    explanation: 'Market regime unclear. No high-confidence allocation. Default to balanced cash position.', warnings: [],
+  },
   dataQuality: {
     asOfDate: '2026-09-04', comparisonDate: null, rankScope: 'sectors', rowCount: 0,
     completeSignalCount: 0, coverageRatio: 0, isQualified: false,
