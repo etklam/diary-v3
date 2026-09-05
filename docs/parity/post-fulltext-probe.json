@@ -1,0 +1,405 @@
+{
+  "scope": "Synthetic search-only probe using frozen generated Prisma client, source OR(title search, excerpt search), source combined full-text index; not a full legacy API run.",
+  "rows": [
+    [
+      "alpha beta",
+      "first excerpt",
+      ""
+    ],
+    [
+      "alpha",
+      "beta",
+      ""
+    ],
+    [
+      "gamma",
+      "alpha beta",
+      ""
+    ],
+    [
+      "the cat an AI",
+      "stop words",
+      ""
+    ],
+    [
+      "投資紀律",
+      "風險管理",
+      ""
+    ],
+    [
+      "投資 紀律",
+      "風險 管理",
+      ""
+    ],
+    [
+      "café résumé",
+      "accented words",
+      ""
+    ],
+    [
+      "alphabet soup",
+      "unrelated",
+      ""
+    ],
+    [
+      "unrelated",
+      "unrelated",
+      "alpha beta"
+    ]
+  ],
+  "settings": [
+    {
+      "version": "11.4.13-MariaDB-ubu2404",
+      "minToken": "3",
+      "stopwords": "1"
+    }
+  ],
+  "phases": [
+    {
+      "phase": "source-index",
+      "results": [
+        {
+          "search": "alpha",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alp",
+          "hits": []
+        },
+        {
+          "search": "al",
+          "hits": []
+        },
+        {
+          "search": "the",
+          "hits": []
+        },
+        {
+          "search": "AI",
+          "hits": []
+        },
+        {
+          "search": "+alpha +beta",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alpha beta",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alpha*",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            },
+            {
+              "id": "8",
+              "title": "alphabet soup"
+            }
+          ]
+        },
+        {
+          "search": "投資",
+          "hits": []
+        },
+        {
+          "search": "投資紀律",
+          "hits": [
+            {
+              "id": "5",
+              "title": "投資紀律"
+            }
+          ]
+        },
+        {
+          "search": "投資 紀律",
+          "hits": []
+        },
+        {
+          "search": "the alpha",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "\"alpha beta\"",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "cafe",
+          "hits": [
+            {
+              "id": "7",
+              "title": "café résumé"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "additional-individual-index-control",
+      "results": [
+        {
+          "search": "alpha",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alp",
+          "hits": []
+        },
+        {
+          "search": "al",
+          "hits": []
+        },
+        {
+          "search": "the",
+          "hits": []
+        },
+        {
+          "search": "AI",
+          "hits": []
+        },
+        {
+          "search": "+alpha +beta",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alpha beta",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "alpha*",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            },
+            {
+              "id": "8",
+              "title": "alphabet soup"
+            }
+          ]
+        },
+        {
+          "search": "投資",
+          "hits": []
+        },
+        {
+          "search": "投資紀律",
+          "hits": [
+            {
+              "id": "5",
+              "title": "投資紀律"
+            }
+          ]
+        },
+        {
+          "search": "投資 紀律",
+          "hits": []
+        },
+        {
+          "search": "the alpha",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "2",
+              "title": "alpha"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "\"alpha beta\"",
+          "hits": [
+            {
+              "id": "1",
+              "title": "alpha beta"
+            },
+            {
+              "id": "3",
+              "title": "gamma"
+            }
+          ]
+        },
+        {
+          "search": "cafe",
+          "hits": [
+            {
+              "id": "7",
+              "title": "café résumé"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "generatedQueries": [
+    "SELECT `posts`.`id`, `posts`.`title` FROM `posts` WHERE MATCH (`posts`.`excerpt`,`posts`.`title`)AGAINST (? IN BOOLEAN MODE) ORDER BY `posts`.`id` ASC"
+  ],
+  "collation": "utf8mb4_unicode_ci",
+  "sourceFiles": [
+    "server/utils/post-queries.ts",
+    "prisma/migrations/20260904090000_add_posts_fulltext_index/migration.sql"
+  ],
+  "defaultStopwordsObserved": [
+    "a",
+    "about",
+    "an",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "com",
+    "de",
+    "en",
+    "for",
+    "from",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "la",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "the",
+    "this",
+    "to",
+    "und",
+    "was",
+    "what",
+    "when",
+    "where",
+    "who",
+    "will",
+    "with",
+    "www"
+  ],
+  "prismaClientVersion": "7.5.0",
+  "prismaMariaDbAdapterVersion": "7.5.0"
+}
