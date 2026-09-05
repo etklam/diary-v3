@@ -1,0 +1,25 @@
+import { beforeAll, afterAll, expect, it } from 'vitest'
+import { provisionTestDatabase } from '../support/database'
+let database: Awaited<ReturnType<typeof provisionTestDatabase>>
+beforeAll(async () => { database = await provisionTestDatabase('etf_schema') })
+afterAll(async () => { await database?.dispose() })
+it('keeps ETF catalog/prices/watchlists distinct with exact prices and cascading ownership', async () => {
+ const { rows: [owner] } = await database.pool.query("insert into users(email,password) values ('etf-owner@example.test','synthetic') returning id")
+ for (const symbol of ['spy', ' SPY', '']) await expect(database.pool.query('insert into etfs(symbol) values ($1)', [symbol])).rejects.toMatchObject({ code: '23514' })
+ const attempts = await Promise.allSettled([database.pool.query("insert into etfs(symbol) values ('SPY') returning id"),database.pool.query("insert into etfs(symbol) values ('SPY') returning id")])
+ expect(attempts.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+ expect(attempts.find(result => result.status === 'rejected')).toMatchObject({ reason: { code: '23505' } })
+ const { rows: [etf] } = await database.pool.query("select id from etfs where symbol='SPY'")
+ const insert = (volume = '5000000000') => database.pool.query("insert into etf_prices(etf_id,date,open,high,low,close,adj_close,volume) values ($1,'2026-01-01','100.1234','102.1234','99.1234','101.1234','100.9876',$2) returning *, date::text as date", [etf.id,volume])
+ const { rows: [price] } = await insert(); expect(price).toMatchObject({ date: '2026-01-01', open: '100.1234', close: '101.1234', adj_close: '100.9876', volume: '5000000000' })
+ await expect(insert()).rejects.toMatchObject({ code: '23505' })
+ await expect(database.pool.query('update etf_prices set volume=-1 where id=$1',[price.id])).rejects.toMatchObject({ code: '23514' })
+ await database.pool.query('insert into etf_watchlists(user_id,etf_id) values ($1,$2)',[owner.id,etf.id])
+ await expect(database.pool.query('insert into etf_watchlists(user_id,etf_id) values ($1,$2)',[owner.id,etf.id])).rejects.toMatchObject({ code: '23505' })
+ await database.pool.query('delete from users where id=$1',[owner.id])
+ expect((await database.pool.query('select count(*)::int as count from etf_watchlists')).rows[0].count).toBe(0)
+ expect((await database.pool.query('select count(*)::int as count from etf_prices')).rows[0].count).toBe(1)
+ await database.pool.query('delete from etfs where id=$1',[etf.id])
+ expect((await database.pool.query('select count(*)::int as count from etf_prices')).rows[0].count).toBe(0)
+ for (const table of ['stocks','stock_watchlists','transactions']) expect((await database.pool.query(`select count(*)::int as count from ${table}`)).rows[0].count).toBe(0)
+})
