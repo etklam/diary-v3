@@ -1,0 +1,117 @@
+import { randomUUID } from 'node:crypto';
+import { test, expect } from '../support/e2e';
+for (const width of [1440, 390]) test(`Diary reminders navigation, series dismissal and recovery at ${width}px`, async ({ page, context }) => {
+  await page.setViewportSize({ width, height: 900 });
+  const email = `alerts-${randomUUID()}@example.test`, password = 'synthetic-alerts-password';
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
+  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+  expect((await page.request.put('/api/user/settings', { headers, data: { timezone: 'America/New_York' } })).status()).toBe(200);
+  const response = await page.request.post('/api/diaries', { headers, data: { title: 'Demand decision', date: '2026-03-02', content: 'Private decision body', alerts: [
+    { message: 'Recheck demand', triggerAt: '2026-03-07T12:00:00Z', recurringMode: 'WEEK' },
+    { message: 'A separate reminder with enough detail to wrap naturally on a narrow screen', triggerAt: '2020-01-01T09:00:00Z' },
+  ] } }); expect(response.status()).toBe(201); const diary = await response.json();
+  await page.getByRole('link', { name: 'Diary reminders', exact: true }).click();
+  const items = page.getByTestId('diary-reminder'); await expect(items).toHaveCount(6);
+  await expect(page.locator('main')).toContainText('America/New_York'); await expect(items.nth(1).locator('time')).toContainText('9:00 AM');
+  await expect(page.locator('main')).not.toContainText('Private decision body');
+  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  await page.locator('main').screenshot({ path: `docs/design/evidence/alerts/${width}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await items.first().getByRole('link', { name: 'Demand decision' }).click(); await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
+  await page.goto('/alerts'); await expect(items).toHaveCount(6);
+  await page.route('**/api/alerts/*/dismiss', async route => { await route.fetch(); await route.abort('failed'); });
+  await items.nth(2).getByRole('button', { name: 'Dismiss reminder', exact: true }).click();
+  await expect(page.getByRole('alert')).toBeVisible(); await expect(items).toHaveCount(6);
+  await page.unroute('**/api/alerts/*/dismiss');
+  await items.nth(2).getByRole('button', { name: 'Dismiss reminder', exact: true }).click(); await expect(items).toHaveCount(5);
+  await page.getByRole('button', { name: 'Dismiss entire series', exact: true }).click(); await expect(items).toHaveCount(1);
+  await page.route('**/api/alerts', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'alerts-retry' } }) }));
+  await page.reload(); await expect(page.getByTestId('request-id')).toHaveText('alerts-retry'); await page.unroute('**/api/alerts');
+  await page.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(items).toHaveCount(1);
+  for (const [locale, title] of [['zh-TW', '日記提醒'], ['zh-CN', '日记提醒'], ['en', 'Diary reminders']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  await page.getByRole('button', { name: 'Dismiss reminder', exact: true }).click(); await expect(page.locator('main')).toContainText('No active reminders.');
+  await page.getByTestId('sign-out').click(); await expect(items).toHaveCount(0); await expect(page.locator('main').getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login?returnTo=%2Falerts');
+});
+
+for (const width of [1440, 390]) test(`Diary reminder authoring and preservation at ${width}px`, async ({ page, context }) => {
+  await page.setViewportSize({ width, height: 900 });
+  const email = `alert-editor-${randomUUID()}@example.test`, password = 'synthetic-alert-editor-password';
+  await page.request.post('/api/auth/register', { data: { email, password } });
+  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-03-02');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Reminder from the editor');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Revisit this reasoning.');
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+  await page.getByLabel('Reminder message', { exact: true }).fill('Read the next report');
+  await page.getByLabel('Reminder time', { exact: true }).fill('2026-03-02T12:00');
+  await page.getByLabel('Repeat', { exact: true }).selectOption('WEEK');
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+  await page.getByLabel('Reminder message', { exact: true }).nth(1).fill('Monthly review');
+  await page.getByLabel('Reminder time', { exact: true }).nth(1).fill('2026-03-03T12:00');
+  await page.getByLabel('Repeat', { exact: true }).nth(1).selectOption('MONTH');
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+  await page.getByLabel('Reminder message', { exact: true }).nth(2).fill('One-off review');
+  await page.getByLabel('Reminder time', { exact: true }).nth(2).fill('2026-03-04T12:00');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const path = new URL(page.url()).pathname;
+  const original = await (await page.request.get(`/api${path}`)).json();
+  expect(original.alerts.some((row: { recurringMode: string | null }) => row.recurringMode === 'WEEK')).toBe(true);
+  expect(original.alerts.some((row: { recurringMode: string | null }) => row.recurringMode === 'MONTH')).toBe(true);
+  expect(original.alerts.some((row: { message: string; recurringMode: string | null }) => row.message === 'One-off review' && row.recurringMode === null)).toBe(true);
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+  const weeklyChild = original.alerts.find((row: { recurringMode: string | null; instanceNumber: number }) => row.recurringMode === 'WEEK' && row.instanceNumber === 2)!;
+  expect(weeklyChild).toBeDefined();
+  expect((await page.request.put(`/api/alerts/${weeklyChild.id}/dismiss`, { headers })).status()).toBe(200);
+  await page.goto(`${path}/edit`); await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(3);
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Changed title only');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`${path}$`));
+  const preserved = await (await page.request.get(`/api${path}`)).json();
+  expect(preserved.alerts.map((row: { id: string }) => row.id)).toEqual(original.alerts.map((row: { id: string }) => row.id));
+  const preservedWeeklyChild = preserved.alerts.find((row: { id: string }) => row.id === weeklyChild.id)!;
+  expect(preservedWeeklyChild).toBeDefined(); expect(preservedWeeklyChild.isDismissed).toBe(true);
+  await page.goto(`${path}/edit`); await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(3); await expect(page.getByLabel('Reminder message', { exact: true }).first()).toHaveValue('Read the next report');
+  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  await page.getByRole('group', { name: 'Diary reminders', exact: true }).screenshot({ path: `docs/design/evidence/alerts/editor-${width}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const index of [3, 2, 1]) await page.getByRole('button', { name: `Remove reminder ${index}`, exact: true }).click();
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`${path}$`));
+  expect((await (await page.request.get(`/api${path}`)).json()).alerts).toEqual([]);
+});
+
+test.describe('Reminder device timezone boundaries', () => {
+  test.use({ timezoneId: 'America/New_York' });
+  test('rejects missing DST time, selects the repeated occurrence and retains exact instant on edit', async ({ page, context }) => {
+    const email = `alert-dst-${randomUUID()}@example.test`, password = 'synthetic-alert-dst-password';
+    await page.request.post('/api/auth/register', { data: { email, password } });
+    await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+    await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+    await page.getByLabel('Diary date', { exact: true }).fill('2026-11-01');
+    await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Clock change reminder');
+    await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Synthetic clock test');
+    await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+    await page.getByLabel('Reminder message', { exact: true }).fill('Check at the second 01:30');
+    await page.getByLabel('Reminder time', { exact: true }).fill('2026-03-08T02:30');
+    await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('Check reminder messages and times');
+    await expect(page).toHaveURL(/\/diaries\/new$/);
+    await page.getByLabel('Reminder time', { exact: true }).fill('2026-11-01T01:30');
+    const choices = page.getByLabel('UTC', { exact: true });
+    await expect(choices.locator('option')).toHaveText(['—', '2026-11-01T05:30:00.000Z', '2026-11-01T06:30:00.000Z']);
+    await choices.selectOption('2026-11-01T06:30:00.000Z');
+    await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/\d+$/);
+    const path = new URL(page.url()).pathname;
+    expect((await (await page.request.get(`/api${path}`)).json()).alerts[0].triggerAt).toBe('2026-11-01T06:30:00.000Z');
+    const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+    expect((await page.request.put(`/api${path}`, { headers, data: { title: 'Exact instant', content: 'Synthetic', alerts: [{ message: 'Keep fractional second', triggerAt: '2026-11-01T06:30:42.123Z' }] } })).status()).toBe(200);
+    await page.goto(`${path}/edit`); await expect(page.getByLabel('UTC', { exact: true })).toHaveValue('2026-11-01T06:30:42.123Z');
+    await page.getByLabel('Reminder message', { exact: true }).fill('Changed message, same instant');
+    await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`${path}$`));
+    expect((await (await page.request.get(`/api${path}`)).json()).alerts[0]).toMatchObject({ message: 'Changed message, same instant', triggerAt: '2026-11-01T06:30:42.123Z' });
+  });
+});
