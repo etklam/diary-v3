@@ -1,0 +1,8 @@
+import { describe,it,expect } from 'vitest';
+import { deriveQuickTitle,mergeQuickTemplate,generateTemplateDraft,getQuickNoteReflectionMarketConditionGroups,getQuickNoteObservationTypeOptions,quickSnippets } from '@diary/domain';
+describe('shared Quick Diary composition',()=>{
+ it('keeps handwritten additions when applying a changed template',()=>{expect(mergeQuickTemplate('Old template\n\nMy evidence','New template','Old template')).toBe('New template\n\nMy evidence');expect(mergeQuickTemplate('Entirely rewritten','New template','Old template')).toBe('Entirely rewritten\n\nNew template');});
+ it('derives bounded titles from the first meaningful Markdown line',()=>{expect(deriveQuickTitle('\n## Evidence\ntext','2026/09/05 Diary')).toBe('Evidence — 2026/09/05 Diary');expect(deriveQuickTitle('x'.repeat(300),'date')).toBe("x".repeat(69)+"… — date");});
+ for(const locale of ['en','zh-TW','zh-CN'])it(`retains every template and option in ${locale}`,()=>{expect(getQuickNoteReflectionMarketConditionGroups(locale).flatMap(group=>group.options)).toHaveLength(15);expect(getQuickNoteObservationTypeOptions(locale)).toHaveLength(5);for(const templateKind of ['blank','trading','reflection','observation'] as const){const draft=generateTemplateDraft({templateKind,locale,date:'2026-09-05',templateData:{}});expect(draft.title).toContain('2026/09/05');expect(draft.content).not.toContain('undefined');}});
+ it('preserves all six original snippets including blank list markers',()=>{expect(quickSnippets).toHaveLength(6);expect(quickSnippets[1]?.content).toBe('1. \n2. \n3. ');expect(quickSnippets[5]?.content).toBe('- \n- \n- ');});
+});

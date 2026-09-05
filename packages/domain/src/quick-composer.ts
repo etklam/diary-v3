@@ -1,0 +1,3 @@
+/** Pure composition rules, usable by Web and native clients. */
+export function deriveQuickTitle(content:string,fallback:string){const line=content.split(/\r?\n/).map(value=>value.replace(/^\s*#+\s*/,'').trim()).find(Boolean);if(!line)return fallback;return `${line.length>72?`${line.slice(0,69).trimEnd()}…`:line} — ${fallback}`.slice(0,100);}
+export function mergeQuickTemplate(current:string,next:string,previous:string){const text=current.trim(),replacement=next.trim(),old=previous.trim();if(!text)return replacement;if(old&&text.includes(old))return text.replace(old,replacement).trim()||text;if(!replacement||text===replacement)return text;return [text,replacement].join('\n\n');}
