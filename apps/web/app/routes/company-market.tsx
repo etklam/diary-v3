@@ -65,7 +65,7 @@ export default function CompanyMarket(){
         <p className="market-timestamp">{text.fetched}: <time dateTime={history.fetchedAt??undefined}>{instant(history.fetchedAt)}</time></p>
       </>}
     </section><p className="muted">{text.readSource}</p></>}
-    {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<p><Link to={`/stocks/${symbol}/thesis`}>{locale==='en'?'Investment thesis':locale==='zh-CN'?'投资论点':'投資論點'}</Link></p>}
+    {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<p><Link to={`/stocks/alerts?symbol=${encodeURIComponent(symbol)}`}>{locale==='en'?'Price reminders':locale==='zh-CN'?'价格提醒':'價格提醒'}</Link>{' · '}<Link to={`/stocks/${symbol}/thesis`}>{locale==='en'?'Investment thesis':locale==='zh-CN'?'投资论点':'投資論點'}</Link></p>}
     {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<StockNotes key={`notes-${symbol}`} symbol={symbol}/>}
     {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<Evidence key={`evidence-${symbol}`} symbol={symbol}/>}
     {session.authenticated===false&&<p className="market-personal">{text.personal} <Link to="/login">{text.signIn}</Link></p>}
