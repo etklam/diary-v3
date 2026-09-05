@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '../support/e2e'
+import { test, expect, clickNav } from '../support/e2e'
 
 for (const width of [1440, 390]) {
   test(`Diary library filtering, pagination and recovery at ${width}px`, async ({ page, context }) => {
@@ -13,7 +13,7 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/diaries\/new$/)
     await page.getByTestId('locale-select').selectOption('en')
-    await page.getByRole('link', { name: 'Diary library', exact: true }).click()
+    await clickNav(page, 'Diary library')
     await expect(page.getByText('Your diary library is empty.', { exact: true })).toBeVisible()
     const csrf = (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value
     for (let day = 1; day <= 11; day++) {

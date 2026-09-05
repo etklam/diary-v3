@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, clickNav } from '../support/e2e';
 for (const width of [1440, 390]) test(`Diary reminders navigation, series dismissal and recovery at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `alerts-${randomUUID()}@example.test`, password = 'synthetic-alerts-password';
@@ -13,7 +13,7 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
     { message: 'Recheck demand', triggerAt: '2026-03-07T12:00:00Z', recurringMode: 'WEEK' },
     { message: 'A separate reminder with enough detail to wrap naturally on a narrow screen', triggerAt: '2020-01-01T09:00:00Z' },
   ] } }); expect(response.status()).toBe(201); const diary = await response.json();
-  await page.getByRole('link', { name: 'Diary reminders', exact: true }).click();
+  await clickNav(page, 'Diary reminders');
   const items = page.getByTestId('diary-reminder'); await expect(items).toHaveCount(6);
   await expect(page.locator('main')).toContainText('America/New_York'); await expect(items.nth(1).locator('time')).toContainText('9:00 AM');
   await expect(page.locator('main')).not.toContainText('Private decision body');

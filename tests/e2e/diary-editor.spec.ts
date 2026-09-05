@@ -15,7 +15,7 @@ for(const width of [1440,390]){
   await page.getByRole('button',{name:'Preview Markdown'}).click();await expect(page.getByRole('heading',{name:'Observations'})).toBeVisible();await page.getByRole('button',{name:'Edit text'}).click();
   await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const diaryUrl=page.url();
   await expect(page.getByRole('heading',{name:'Observations'})).toBeVisible();await expect(page.locator('.safe-markdown strong')).toHaveText('Demand');
-  await expect(page.locator('.diary-tags li')).toHaveText(['research, evidence','長期']);await expect(page.locator('.original-reasoning')).toContainText('Confirmation is still missing.');
+  await expect(page.locator('.diary-tags li')).toHaveText(['research, evidence','長期']);await expect(page.locator('.original-reasoning').filter({has:page.getByRole('heading',{name:'Reasoning at the time',exact:true})})).toContainText('Confirmation is still missing.');
   expect(await page.evaluate(()=>('injected' in window))).toBe(false);await expect(page.locator('.safe-markdown script,.safe-markdown img')).toHaveCount(0);await expect(page.locator('.safe-markdown a[href^="javascript:"],.safe-markdown a[href=""]')).toHaveCount(0);
   if(width===390)await page.getByTestId('theme-select').selectOption('dark');
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`docs/design/evidence/diary/reading-${width}.png`,fullPage:true});

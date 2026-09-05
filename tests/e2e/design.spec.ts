@@ -1,4 +1,4 @@
-import { test, expect } from '../support/e2e';
+import { test, expect, clickNav } from '../support/e2e';
 
 const locales = [
   { value: 'en', overview: 'Overview', company: 'Company research', review: 'Review' },
@@ -34,7 +34,7 @@ test('representative design supports languages, keyboard selection, themes and n
   await page.reload();
   await expect(page.getByTestId('theme-select')).toHaveValue('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('navigation').getByRole('link', { name: 'Start', exact: true }).click();
-  await expect(page.getByRole('navigation').getByRole('link', { name: 'Start', exact: true })).toHaveAttribute('aria-current', 'page');
+  await clickNav(page, 'Start');
+  await expect(page.locator('.public-header').getByRole('link', { name: 'Start', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('main')).toBeFocused();
 });

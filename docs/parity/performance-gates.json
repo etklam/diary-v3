@@ -1,0 +1,42 @@
+{
+  "frozenFrom": "/Users/klam/Desktop/project/diary-v3/docs/parity/performance-legacy-runtime.json",
+  "frozenAt": "2026-09-05T21:19:55.140Z",
+  "rule": "max(legacy p95 * 2, 250 ms), frozen before rebuilt-runtime measurement",
+  "legacyRuntime": "frozen diary-vue source (Nuxt/Nitro production build) + disposable MariaDB",
+  "legacyEnvironment": {
+    "node": "v26.4.0",
+    "appMode": "frozen Nuxt/Nitro build (NODE_ENV=test) served by @nuxt/test-utils",
+    "dbVersion": "11.4.13-MariaDB-ubu2404",
+    "machine": {
+      "platform": "darwin",
+      "release": "25.6.0",
+      "arch": "arm64",
+      "cpuModel": "Apple M4",
+      "cpuCount": 10,
+      "memoryTotalBytes": 17179869184,
+      "hostname": "air.falcon-degree.ts.net"
+    }
+  },
+  "workloads": {
+    "diary-read": {
+      "legacyMedianMs": 4.78,
+      "legacyP95Ms": 7.27,
+      "gateMs": 250
+    },
+    "diary-search": {
+      "legacyMedianMs": 8.61,
+      "legacyP95Ms": 14.12,
+      "gateMs": 250
+    },
+    "ledger-holdings": {
+      "legacyMedianMs": 14.36,
+      "legacyP95Ms": 23.93,
+      "gateMs": 250
+    },
+    "rotation-history": {
+      "legacyMedianMs": 9.27,
+      "legacyP95Ms": 13.96,
+      "gateMs": 250
+    }
+  }
+}
