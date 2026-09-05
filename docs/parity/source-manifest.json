@@ -1,0 +1,5737 @@
+{
+  "head": "47f8313bf29870b52582db97209bef2e1cbe41ce",
+  "status": "",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "sha256": "a2500517703a11cac6fb39a3ef50ec78dedb1e807f06a3515854adafdd0fb611",
+      "bytes": 530,
+      "tracked": true
+    },
+    {
+      "path": ".forgejo/workflows/build.yml",
+      "sha256": "a40d7a0e73146cbe5a1d643a9e7c9619f09a89adf66fdd7dc0b17855b0dbb748",
+      "bytes": 5947,
+      "tracked": true
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "7d43acdff86d76e9dda448c524e36af37ec92a5ecfde178bf548e1ee91d0413b",
+      "bytes": 398,
+      "tracked": true
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "9482cea2282fb6a28b04df24c55647633fa6139ab0b47482f2a695e6eca0e8c4",
+      "bytes": 1025,
+      "tracked": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "21da1cc2673668405a5370d925c06c3eb95261dadc59f58fe593d737f81c57d5",
+      "bytes": 9170,
+      "tracked": true
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "b04ac681cd5dda6af2b97e7c2ef20f7d2222f4749b968f570528e1a475e715dc",
+      "bytes": 19908,
+      "tracked": true
+    },
+    {
+      "path": "CONTEXT.md",
+      "sha256": "2c440e638fb6fb7510698e8abd8de6f7e73a6b9fc179c96bf028eff9a5ece838",
+      "bytes": 64385,
+      "tracked": true
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "d8bd85c6063427d867b7820c88a0f6ceb9c61040703a611c299600e3183f3e39",
+      "bytes": 12226,
+      "tracked": true
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "ee492c9a47b0d5d1d1a4fdd27d4ef85e224acc1a35f074f30bd3d74702af4b08",
+      "bytes": 15855,
+      "tracked": true
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "90bb8fb3aba1688f2c66f03e69c2f28720286414d3e13163b7806ed66151e448",
+      "bytes": 3478,
+      "tracked": true
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "17dedb06664bdded711027ba295ed4dadb36d3c494b483f098d9d47b3764961d",
+      "bytes": 4686,
+      "tracked": true
+    },
+    {
+      "path": "README.md",
+      "sha256": "43789e6ba96b7c65a04d8adbfb67d6d7d248627980ca9d48276807f981c9252b",
+      "bytes": 4762,
+      "tracked": true
+    },
+    {
+      "path": "app.vue",
+      "sha256": "51b7b55dc961900b126f321665df477779010eeb7e8e7f3dbee47d6728f22b4b",
+      "bytes": 875,
+      "tracked": true
+    },
+    {
+      "path": "assets/css/design-tokens.css",
+      "sha256": "e9de9b523a8459e50e77a52d393fbf48fc46661afe2f5308df7aec607e917a45",
+      "bytes": 3402,
+      "tracked": true
+    },
+    {
+      "path": "assets/css/main.css",
+      "sha256": "518579a1246ce936b53508de13a988a0645048588a7d13e373813080d668ebe0",
+      "bytes": 8722,
+      "tracked": true
+    },
+    {
+      "path": "assets/css/markdown.css",
+      "sha256": "3b44938edd1d438b515464c9596034fc7852c0f8ef86614652129e7bc72bea17",
+      "bytes": 1498,
+      "tracked": true
+    },
+    {
+      "path": "assets/css/mobile.css",
+      "sha256": "d03ecca5df2ba2749efad7b722c69c6626a62735654627b8ac73d9a7341be129",
+      "bytes": 806,
+      "tracked": true
+    },
+    {
+      "path": "assets/css/ui.css",
+      "sha256": "6fa863d7c546d88b70a298e99949983b99e78d112333e315af6ee71b025b9875",
+      "bytes": 3124,
+      "tracked": true
+    },
+    {
+      "path": "captain-definition",
+      "sha256": "6e063b9a9561fa3d0ed2888c73ba080e512be70daa88db0b887c173d87bbe947",
+      "bytes": 657,
+      "tracked": true
+    },
+    {
+      "path": "components/AlertNotification.vue",
+      "sha256": "d2ef22a71680678f15beea1d7ba9412cb2168604bc6ac53399cebad7121309e3",
+      "bytes": 3791,
+      "tracked": true
+    },
+    {
+      "path": "components/AppSkeleton.vue",
+      "sha256": "18a965df3ec40bbab6c2e33870d1e7b4f637096bfd9f8764a5908d2a397993ab",
+      "bytes": 6669,
+      "tracked": true
+    },
+    {
+      "path": "components/AuthLoader.vue",
+      "sha256": "ad54c3208742f918c79b9fee1fcfdf34d4d8e26d03842e44cee8d557167c162c",
+      "bytes": 493,
+      "tracked": true
+    },
+    {
+      "path": "components/BaseButton.vue",
+      "sha256": "6deb1bfb52d779c2afcc0512f049bb66cbf9fa99c9a13405d0837a8d3331fb6f",
+      "bytes": 1785,
+      "tracked": true
+    },
+    {
+      "path": "components/BlogCard.vue",
+      "sha256": "3b6c326fea797cf6a7ef29848fced3eecb24aff7a8cf679d95928e12f9b95fe7",
+      "bytes": 6257,
+      "tracked": true
+    },
+    {
+      "path": "components/BlogEditor.vue",
+      "sha256": "e05f6dbf7a113fb3a171859852320440180799bbad3f8f8bc18dbd2bb83852d0",
+      "bytes": 2496,
+      "tracked": true
+    },
+    {
+      "path": "components/BottomNavigation.vue",
+      "sha256": "e192af5def9b77b14ed3a0ef97dc1798c70228edee667c574c5e7d3aede874e9",
+      "bytes": 3344,
+      "tracked": true
+    },
+    {
+      "path": "components/Breadcrumb.vue",
+      "sha256": "2289d8a8e89f0a3f96d26f0095416ee0cc5b36aee086e07dab31e70a0316353a",
+      "bytes": 1074,
+      "tracked": true
+    },
+    {
+      "path": "components/CategoryFilter.vue",
+      "sha256": "294e2bd7454d3e5a1975503f4c61788e1f207268d0a6fb68b3872f8928446bb6",
+      "bytes": 3012,
+      "tracked": true
+    },
+    {
+      "path": "components/DecisionRecordSection.vue",
+      "sha256": "ff749eab5b1a7292f22dde87e8377cd8d1161c631cee56bd67b7a596c6732388",
+      "bytes": 773,
+      "tracked": true
+    },
+    {
+      "path": "components/DiaryEditor.vue",
+      "sha256": "dfbe6ff053f5738ad5ab039189ccdd31cf9ce00cf2845d0f31cb00af9afbddaa",
+      "bytes": 2627,
+      "tracked": true
+    },
+    {
+      "path": "components/DiaryNotePreview.vue",
+      "sha256": "3cd11b76d0eb2695bb7f6ffc2cc2e81df83f9cea900d304fabdbf0debab9800a",
+      "bytes": 1920,
+      "tracked": true
+    },
+    {
+      "path": "components/ErrorState.vue",
+      "sha256": "7d3b971d0474ed5a5fc01b48b0542f88942eaf13b5213ef7d2202ed949909e71",
+      "bytes": 1295,
+      "tracked": true
+    },
+    {
+      "path": "components/EtfMobileCard.vue",
+      "sha256": "12d27eeba80ff9248635ef99a3e7812bfe96853fb92f3c52f85e10c560c6d418",
+      "bytes": 5586,
+      "tracked": true
+    },
+    {
+      "path": "components/HoldingsDisplay.vue",
+      "sha256": "e9560a1c4ce5f679f442e2d8f8c231306e529e21e2e9b7e792617832f9f7efc5",
+      "bytes": 4306,
+      "tracked": true
+    },
+    {
+      "path": "components/LanguageSwitcher.vue",
+      "sha256": "6ace2745589f3cb1e88dfd15038b3d270d67087204d4220b85a2568c67a6efbb",
+      "bytes": 2457,
+      "tracked": true
+    },
+    {
+      "path": "components/LedgerCard.vue",
+      "sha256": "8c72609eb68680233581b9b48b56adeda6dd1d142e7f151d7409a39e69944a59",
+      "bytes": 651,
+      "tracked": true
+    },
+    {
+      "path": "components/MiniChart.vue",
+      "sha256": "8071a55e5f6a364a68fdc44c3b4d608cbae6998d6a5fd98255e5ce6e2b13c632",
+      "bytes": 2942,
+      "tracked": true
+    },
+    {
+      "path": "components/Navigation.vue",
+      "sha256": "eee35e83d3b8aa86f8fcb553b772d0aa78a66bcef1b9330efcb6ec6461d10c7d",
+      "bytes": 1533,
+      "tracked": true
+    },
+    {
+      "path": "components/NumberField.vue",
+      "sha256": "de1e8c7cce3eaa39b13ed69ea723c27a6de154e297aadad547fe1c2e36684486",
+      "bytes": 662,
+      "tracked": true
+    },
+    {
+      "path": "components/PWAInstallPrompt.vue",
+      "sha256": "36badac956fbe53422077d35d6015a92042447c03c299eb3197f7fbc456b9032",
+      "bytes": 4192,
+      "tracked": true
+    },
+    {
+      "path": "components/PWAUpdatePrompt.vue",
+      "sha256": "49d7fb56bcbaf6c9774c7473f70f330844a2b63599256453a502065564b9e0a7",
+      "bytes": 2959,
+      "tracked": true
+    },
+    {
+      "path": "components/PerformanceBreakdownTable.vue",
+      "sha256": "afcfb59488c1805d921a117be62c9532a37f071abeb06a65928017782bb3fc0b",
+      "bytes": 2241,
+      "tracked": true
+    },
+    {
+      "path": "components/PortfolioExposurePanel.vue",
+      "sha256": "7c86ff01e89e26669ab94873bf9e25b773454100302c4cf4cb13e14fdcca76eb",
+      "bytes": 9520,
+      "tracked": true
+    },
+    {
+      "path": "components/QuickDiaryModal.vue",
+      "sha256": "d4b6316abe96e428f2708fa0bb5d4ecffdfa484dd92f255771272401472ebce6",
+      "bytes": 8523,
+      "tracked": true
+    },
+    {
+      "path": "components/QuickDiaryOneLiner.vue",
+      "sha256": "e9fab478408139f2da9b6318f4feca28bb7f22a230131530411bb52303c81a82",
+      "bytes": 4311,
+      "tracked": true
+    },
+    {
+      "path": "components/QuickReminder.vue",
+      "sha256": "eeeefe95e7a6ca8dd9e3c4bcb39c8aca5d7b16aac5ab2d9192bc272891882e2e",
+      "bytes": 3614,
+      "tracked": true
+    },
+    {
+      "path": "components/QuickTags.vue",
+      "sha256": "5bf7007a90619afde7ba97241a49ac0fc4e93b3df432b90e89af0f1f7bcd9f2e",
+      "bytes": 6822,
+      "tracked": true
+    },
+    {
+      "path": "components/QuoteInput.vue",
+      "sha256": "d328774296d00d9a3e1518bfb25b20928f93c1d05f36ef356f6a4ac073e58ef1",
+      "bytes": 6331,
+      "tracked": true
+    },
+    {
+      "path": "components/ResearchCaptureModal.vue",
+      "sha256": "35655d51323eb650fbc2d29e626b2ace510e161867532aa0ca68c2e66dc2048b",
+      "bytes": 10392,
+      "tracked": true
+    },
+    {
+      "path": "components/ReviewCandidateCard.vue",
+      "sha256": "a2a634419f622486729d04914833a92272ea9782c9dc317250192fdb0b806d6b",
+      "bytes": 1860,
+      "tracked": true
+    },
+    {
+      "path": "components/ReviewSection.vue",
+      "sha256": "f8f0eae50bb69456da3878058a14af83d735339cafc2b475f09b878311e6a2f2",
+      "bytes": 5271,
+      "tracked": true
+    },
+    {
+      "path": "components/StatusBadge.vue",
+      "sha256": "208245d000c01d28eeae13b728422096c33aa1565740514aa62daf1cb707622d",
+      "bytes": 1179,
+      "tracked": true
+    },
+    {
+      "path": "components/TemplateManager.vue",
+      "sha256": "634167775679e27724b43e343fdc3d1000b598839120e77a44c7385a37a5cbec",
+      "bytes": 8048,
+      "tracked": true
+    },
+    {
+      "path": "components/TimelineModeSwitch.vue",
+      "sha256": "2f97f2d43ab4b15caf11b4541a2b5ebe168c78032f09536bcb9c671a75b33e39",
+      "bytes": 1321,
+      "tracked": true
+    },
+    {
+      "path": "components/Toast.vue",
+      "sha256": "f653157e634a7364d088b21dba727a9f262fa331394e47e20e145e781fc217ba",
+      "bytes": 3433,
+      "tracked": true
+    },
+    {
+      "path": "components/TradePlanForm.vue",
+      "sha256": "96d56405773eb0e392101a9da589a6687b6c3aeb14bbf2bd6bffc6a96abc9a1b",
+      "bytes": 6075,
+      "tracked": true
+    },
+    {
+      "path": "components/TransactionInput.vue",
+      "sha256": "47d1f8aca7b64d45e0266bee583e45ffca5a74954165d6ad95c025fe0dae6c09",
+      "bytes": 13747,
+      "tracked": true
+    },
+    {
+      "path": "components/UserMenu.vue",
+      "sha256": "bacb20ae0e3d636bc2bc383a5c64895facb985f0c4e7e141548d86b25c7afbe1",
+      "bytes": 4814,
+      "tracked": true
+    },
+    {
+      "path": "components/VoiceInput.vue",
+      "sha256": "bda1467f9e44a54c1d88289e839ac6154a8454bd11fdb468ae05e488bd53f555",
+      "bytes": 2909,
+      "tracked": true
+    },
+    {
+      "path": "components/blog/BlogEditorMarkdownPreview.vue",
+      "sha256": "3dae009b5cc0c1fa22caac97c15b311ad34134c96781528f490832805618f309",
+      "bytes": 3851,
+      "tracked": true
+    },
+    {
+      "path": "components/blog/BlogEditorMetadataForm.vue",
+      "sha256": "b825613ea6350621539499702362cf8af76e7f97b297bbad3d8161d3ccddb829",
+      "bytes": 3452,
+      "tracked": true
+    },
+    {
+      "path": "components/blog/BlogEditorToolbar.vue",
+      "sha256": "e7584dc527346313495c0981a0453ed1ed79cbfe791de10f23d5173727187002",
+      "bytes": 468,
+      "tracked": true
+    },
+    {
+      "path": "components/diaries/DiaryAuthoringForm.vue",
+      "sha256": "50fe45fe5a016e65eb3ecd8ee7534249baa535e9cc067eb56457bdc864254fc7",
+      "bytes": 13585,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineCard.vue",
+      "sha256": "134e1abbecec7623fd5ce067e36aa29d054fac71b60ed16daf174975aa26f109",
+      "bytes": 11182,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineEmptyState.vue",
+      "sha256": "73388dd7710998c51a1b7b57aceaa089b54b9d993e3c61726f25d67fcd40b028",
+      "bytes": 1161,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineForm.vue",
+      "sha256": "82ad487b03e205082cfed558b0fcd3b6afb184d4c4e784fdf596a319f60c30d9",
+      "bytes": 3168,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineHeader.vue",
+      "sha256": "4ca09522889cb39864f9ea2e1e984be6f558a0c65f7fe74e8961e38dd641f863",
+      "bytes": 1553,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineImportModal.vue",
+      "sha256": "7f7ebb185b762f60f0dbe0c938a3b6861a230bd15cff73ee39c633761c24ede4",
+      "bytes": 9032,
+      "tracked": true
+    },
+    {
+      "path": "components/discipline/DisciplineShareModal.vue",
+      "sha256": "c04c456c56a6491281007a65016a23971ed9833c8565267c9b860a3192078aff",
+      "bytes": 12281,
+      "tracked": true
+    },
+    {
+      "path": "components/etf/EtfRegimeBadge.vue",
+      "sha256": "071ec7464a2271b8fe52a89cacc44b4b89767d9fe4161360a3e520cd851804d2",
+      "bytes": 979,
+      "tracked": true
+    },
+    {
+      "path": "components/landing/LandingBadge.vue",
+      "sha256": "8bf529808115e6a8dddd152586233081fedbdf202bc8d7062527db3b0d2509ab",
+      "bytes": 478,
+      "tracked": true
+    },
+    {
+      "path": "components/landing/LandingCard.vue",
+      "sha256": "592a5b3c7ecf9f41c7ae4190e7ff9e09cec53e2b89748f6145cc13c84f86e790",
+      "bytes": 3564,
+      "tracked": true
+    },
+    {
+      "path": "components/landing/LandingSection.vue",
+      "sha256": "0f4a019e2745105a6e4071482495b46ce48012902f0c2cf6c3ad27c372a17e2c",
+      "bytes": 2062,
+      "tracked": true
+    },
+    {
+      "path": "components/layout/PageContainer.vue",
+      "sha256": "bfbe96a10ab8b3be72c020521a3f6a85347cb5dfe9d1709a079fac1129a7a148",
+      "bytes": 897,
+      "tracked": true
+    },
+    {
+      "path": "components/nav/DesktopNav.vue",
+      "sha256": "4790208ad67f61e4b7ce53211210f42312840d2214418c0cef8c4eac122a9b32",
+      "bytes": 3983,
+      "tracked": true
+    },
+    {
+      "path": "components/nav/MobileNav.vue",
+      "sha256": "40cfd20f1de49a499dea571295d95c5b2272241cb3e1309f550c1c3666fa05e5",
+      "bytes": 6502,
+      "tracked": true
+    },
+    {
+      "path": "components/nav/NavDropdown.vue",
+      "sha256": "11d25b993eb2170b5601f3cc5e0500d75c65b8078c45ba56ba23c3e9de917a1d",
+      "bytes": 5415,
+      "tracked": true
+    },
+    {
+      "path": "components/nav/NavLogo.vue",
+      "sha256": "03a1689d3ff29b6b8eb0d6ca4a07e918e1bd506a9e0ba43ba2e44b7fdfaeb85a",
+      "bytes": 523,
+      "tracked": true
+    },
+    {
+      "path": "components/nav/ThemeToggle.vue",
+      "sha256": "49f91254a126956fd42168c2a0a1733142ba210538654263d34739f31904932c",
+      "bytes": 876,
+      "tracked": true
+    },
+    {
+      "path": "components/quicknote/QuickNoteEditorCore.vue",
+      "sha256": "715c4c03413cf63ea400b15e910b57767649a61e2652e78955d604f200f2ffa2",
+      "bytes": 33725,
+      "tracked": true
+    },
+    {
+      "path": "components/quicknote/QuickNoteTemplateAssistant.vue",
+      "sha256": "7503a197fb23c6779538fdfd2cd0ddb953d6a137ea2de59bc934d52583fca066",
+      "bytes": 21532,
+      "tracked": true
+    },
+    {
+      "path": "components/sec-filings/SecCompanySearch.vue",
+      "sha256": "714a3220265d0e1fce77b98b86653b5dbf4f4a94b1bf0e54a9599d6125b6e849",
+      "bytes": 2143,
+      "tracked": true
+    },
+    {
+      "path": "components/sec-filings/SecDocumentList.vue",
+      "sha256": "d48b7b75aea1a61b421ae8169801b8684a2c6a1c4054eff8e615532ca5438a2c",
+      "bytes": 1603,
+      "tracked": true
+    },
+    {
+      "path": "components/sec-filings/SecFilingFilters.vue",
+      "sha256": "9aa93eabb0479877868b01d4d007e458f2c1d8e49721ce4eb4d63580362b310f",
+      "bytes": 2228,
+      "tracked": true
+    },
+    {
+      "path": "components/sec-filings/SecFilingList.vue",
+      "sha256": "62cff43cf0b640381622f6c2409b47e837f1a295a5d3f9567ffca51b8624a72a",
+      "bytes": 4310,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/CompanySymbolInput.vue",
+      "sha256": "89b303a93468ebfce5a4bf5438894f123ed1d778cfb9ad795455bc7985f67c55",
+      "bytes": 1780,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/InvestmentThesisPanel.vue",
+      "sha256": "4481d23c32b53627b9889f832e92069a27f00c8ceabefe19d0aa48c2386cd9ab",
+      "bytes": 12069,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockEmptyTimeline.vue",
+      "sha256": "9cbdf45c5e648ee8ac8a16541f6087048a26067935d99c84644a200ec64303d1",
+      "bytes": 468,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockNoteEditor.vue",
+      "sha256": "f40b51d5dd230d3c693d0cf37387f38c7d70d107a9387bbd43eecdf6d113276b",
+      "bytes": 3351,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockNoteItem.vue",
+      "sha256": "ca7b12fa7da008ad3d100c09074e2c9e182b968221efb5c4f0c7fdeec807d5ce",
+      "bytes": 2848,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockNoteList.vue",
+      "sha256": "6aa79ac6f98fb464168e49c932a2bccc1bf0f855e3166d3ce3722da506b1c2f4",
+      "bytes": 2856,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockSourceBadge.vue",
+      "sha256": "e523636ca57a6826e28d52fa5fa0e2ceaa1e48a2363bc0f407292e4808da2246",
+      "bytes": 1085,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockTimeline.vue",
+      "sha256": "c4941564b709bd4baa415be333e257068f8a30f521b485b14afe5da8c694f825",
+      "bytes": 563,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockTimelineItem.vue",
+      "sha256": "30db769e0763505d2b761a786649d758a29567473169d2fed4bcbe14517df31a",
+      "bytes": 2183,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockWatchlistAddForm.vue",
+      "sha256": "368cd93b430ad064194745715e739ee4879f83f7d6c93df5cfec22c8e8705a32",
+      "bytes": 1188,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockWatchlistEditModal.vue",
+      "sha256": "6a6a56aa7716a13a646e321056636e7633fadce24cdb5463c0146b2d567acdbe",
+      "bytes": 7988,
+      "tracked": true
+    },
+    {
+      "path": "components/stocks/StockWatchlistTable.vue",
+      "sha256": "47fb3f50ac046966d568bbdeb5d777997befd71e02269083394e1feddfd770b9",
+      "bytes": 3525,
+      "tracked": true
+    },
+    {
+      "path": "composables/useAlerts.ts",
+      "sha256": "fa1c3a1d7db0e7e8288a327844398ef86775a12dc0ffa702e0b5bffd0f9f525e",
+      "bytes": 8425,
+      "tracked": true
+    },
+    {
+      "path": "composables/useAppPWA.ts",
+      "sha256": "2d92ead4e330150704dd1dfa888a192bb96baaec20daceaee6941eeaae0ba09e",
+      "bytes": 3927,
+      "tracked": true
+    },
+    {
+      "path": "composables/useAppShell.ts",
+      "sha256": "dc4740469ce2b32cdd41fd5d4098613b8b7b380b04c2445a5cb35b541babc78b",
+      "bytes": 1000,
+      "tracked": true
+    },
+    {
+      "path": "composables/useAuth.ts",
+      "sha256": "590f6586d2f96045791b39b21005a1c2a1908cccec25ad82bc997b90a21be69f",
+      "bytes": 9886,
+      "tracked": true
+    },
+    {
+      "path": "composables/useAuthRecovery.ts",
+      "sha256": "94176db22be0a4e00432822d6cc1aaa6401f13b02903334e37cbdc0a767cfee4",
+      "bytes": 914,
+      "tracked": true
+    },
+    {
+      "path": "composables/useBlogDraft.ts",
+      "sha256": "22b1bcfb78f1a2fdcdbde9fb687734b6cacc8215d149188f56bd5ad9034b0a9d",
+      "bytes": 2488,
+      "tracked": true
+    },
+    {
+      "path": "composables/useCalendar.ts",
+      "sha256": "c31e7c1e4708cd7a448744d09ac6ddd50c53199327f80a7ff46da94971d56e47",
+      "bytes": 11133,
+      "tracked": true
+    },
+    {
+      "path": "composables/useDialogA11y.ts",
+      "sha256": "03f2e16625d05e833eb194c3de6caadc2a2fc37ce8404bce97952776b12dc544",
+      "bytes": 4480,
+      "tracked": true
+    },
+    {
+      "path": "composables/useDiaryMutation.ts",
+      "sha256": "2e69f49db0718202508b859854a0542323d4f88bf23a2fae88036bb34c3f3ad4",
+      "bytes": 1144,
+      "tracked": true
+    },
+    {
+      "path": "composables/useDiscipline.ts",
+      "sha256": "994c5a1fd96148b1671537923bdae8f1a958f5ee0c200ad387c4ef679fbaa694",
+      "bytes": 666,
+      "tracked": true
+    },
+    {
+      "path": "composables/useErrorI18n.ts",
+      "sha256": "5a8e59bd8751b6f82695c95d30b2a8c9fe033eedab299307867af0c1980c4f2d",
+      "bytes": 2154,
+      "tracked": true
+    },
+    {
+      "path": "composables/useEscapeKey.ts",
+      "sha256": "d78903f4215dbc2deaf07926eab311ad3465be328e4b7860778d7c4d20a937cd",
+      "bytes": 368,
+      "tracked": true
+    },
+    {
+      "path": "composables/useFinancialFreedomCalculator.ts",
+      "sha256": "aa3f1ca34cb3f81749afa92f7b48dd0fcb4a4840f21605cd987be3cabaca94a3",
+      "bytes": 3140,
+      "tracked": true
+    },
+    {
+      "path": "composables/useMobileDetection.ts",
+      "sha256": "ad6573431a8773a7a027e85277d3a9a31be715ffb55b77d1006ded9267504e59",
+      "bytes": 594,
+      "tracked": true
+    },
+    {
+      "path": "composables/useNavigation.ts",
+      "sha256": "b02769fc327eeb44c101f690269d0a5ad54c7c0465e7acfa79530be18f3c89a1",
+      "bytes": 7240,
+      "tracked": true
+    },
+    {
+      "path": "composables/usePerformance.ts",
+      "sha256": "0f54d791200435889c25978902cbfd6a185657355cbbf809e5bdd1457bbad325",
+      "bytes": 577,
+      "tracked": true
+    },
+    {
+      "path": "composables/usePortfolioExposure.ts",
+      "sha256": "7e5be0d3a060aed818ff5683bd79405120970deee46ae185c976ce31138ed3f1",
+      "bytes": 1938,
+      "tracked": true
+    },
+    {
+      "path": "composables/useQuickNoteComposer.ts",
+      "sha256": "be47ac63949d13b7bb20aec135c543ff2b0a8a0d9095a81a2971d32121147131",
+      "bytes": 19568,
+      "tracked": true
+    },
+    {
+      "path": "composables/useQuickNoteTemplates.ts",
+      "sha256": "ca00e7f3b39f8bad474e65da5796bf4bf09e2d20836876e57226fed747c871b4",
+      "bytes": 2593,
+      "tracked": true
+    },
+    {
+      "path": "composables/useResearchCapture.ts",
+      "sha256": "09056e63ce9f562093e27ec6c08860ff4ab69e325bcc7cca31ec6660833c63f1",
+      "bytes": 5758,
+      "tracked": true
+    },
+    {
+      "path": "composables/useSecFilingsTool.ts",
+      "sha256": "c9956fd6a4b6f351eda2a13b80a7a5b7c4e5a6cec303b7633358202face15fc4",
+      "bytes": 4577,
+      "tracked": true
+    },
+    {
+      "path": "composables/useSpeechRecognition.ts",
+      "sha256": "42c25976cdcc5c03641575e7c339a3f2ae8ce710a37ba7160208e89f4e173d91",
+      "bytes": 3959,
+      "tracked": true
+    },
+    {
+      "path": "composables/useStructuredData.ts",
+      "sha256": "e6ecfacd62d181bda5e5be50956de0769de858a499dc1363afca3c416b7eb842",
+      "bytes": 5791,
+      "tracked": true
+    },
+    {
+      "path": "composables/useTimelineDiaries.ts",
+      "sha256": "38cde9ee9f754e7a9b6b107df183b1ae6e18002d7cc3d4a71dcb9c22b944232a",
+      "bytes": 5993,
+      "tracked": true
+    },
+    {
+      "path": "composables/useTimezone.ts",
+      "sha256": "cc2f8c55a5cfd59b861a4a039ab636c93a3bf284364a876442f17f00f956b8d5",
+      "bytes": 6609,
+      "tracked": true
+    },
+    {
+      "path": "composables/useToast.ts",
+      "sha256": "f54ce866421a370dfad5af01a9a6bb4ed735726fd938839e434e5ab764dc3f7a",
+      "bytes": 1283,
+      "tracked": true
+    },
+    {
+      "path": "database/README.md",
+      "sha256": "afc5f20ad48e69a250b7fb0d418577bcad6fb04bb83c57e01eba3304f0ffaf4a",
+      "bytes": 1882,
+      "tracked": true
+    },
+    {
+      "path": "database/schema.sql",
+      "sha256": "d0c648afc2df34ef139ee18b44ad16b2996c7d2a4fd3916c6f1f119b05657dee",
+      "bytes": 8411,
+      "tracked": true
+    },
+    {
+      "path": "deploy.sh",
+      "sha256": "c1a22504b63cb7d125ef38210372497b493b8400835950e39c8872b72312cba7",
+      "bytes": 6080,
+      "tracked": true
+    },
+    {
+      "path": "docker-entrypoint.sh",
+      "sha256": "45c2236f828e1e3a5199541804a87815cb94c91d2a2ccd42e5a921abadb89a4f",
+      "bytes": 7356,
+      "tracked": true
+    },
+    {
+      "path": "docs/API.md",
+      "sha256": "3dea9587c9652bc64f9013fca70df130cf6ad21996b094dc267aa480c47a34b3",
+      "bytes": 18855,
+      "tracked": true
+    },
+    {
+      "path": "docs/BETA_COCKPIT.md",
+      "sha256": "f26ab596eda4f066eb6458f57668a94068f329f5b8b0c56f07024cb684a7ced3",
+      "bytes": 7415,
+      "tracked": true
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "bd628543ad917021bc17679b93c410e1320b296034b9910e1b49e7365aa7494f",
+      "bytes": 2337,
+      "tracked": true
+    },
+    {
+      "path": "docs/TESTING.md",
+      "sha256": "fab8006af83790d846e1cd1415e7597550e124af5c52eb9c09e7d05a31438e1d",
+      "bytes": 36540,
+      "tracked": true
+    },
+    {
+      "path": "docs/WORKFLOWS.md",
+      "sha256": "47ae5a906b3c2ee688714febaa5b7d04a2044edc475bbdb568def1e741224b7a",
+      "bytes": 47171,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0001-diary-first-architecture.md",
+      "sha256": "f1a593905d765da311977d3477405985bc5b9344e93c55c5445b8a3465d86505",
+      "bytes": 1368,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0002-stock-etf-separate-contexts.md",
+      "sha256": "bad91a53910d2a54221c6834e5f1bc4b2841cede437494c678eb78c8e17a151e",
+      "bytes": 1168,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0003-ai-agent-as-standard-user.md",
+      "sha256": "e2dd18ac6785cf440c4b7c002f09620f7bf40bfca9acb1bef82e1967b176e2a5",
+      "bytes": 1246,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0004-market-rotation-snapshots.md",
+      "sha256": "869fd8176ed4524d63b96f3eb269e78e84f9897731daed8cdc3532c83cd2aeab",
+      "bytes": 10139,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0005-market-state-terminology.md",
+      "sha256": "e72cb9dde3ab38af63bf6a28d784b765f2a053f2ec96c28c531a61046e4c7b3d",
+      "bytes": 2640,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0006-multi-client-credential-resolution.md",
+      "sha256": "c00388a6b37dbe4ab665f85dd848b40e0432ef61508ac698887e159b93dc2a7e",
+      "bytes": 4131,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0007-error-contract-formalization.md",
+      "sha256": "af0cbedd433f88399021b4b69d285e8612aec6d502807453e50a7f22382b7a6a",
+      "bytes": 2898,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0008-native-session-lifecycle.md",
+      "sha256": "ce26be212cca4af307378de0f2400096de2e3a3341e5851bef2d7a581a4c4eef",
+      "bytes": 2605,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0009-diary-v1-contract.md",
+      "sha256": "2c32dedd8da4c67eb085df1b894d7ea5b918ec8ab2ddc7dfc04a672700a44823",
+      "bytes": 1655,
+      "tracked": true
+    },
+    {
+      "path": "docs/adr/0010-multi-instance-readiness.md",
+      "sha256": "b52b1abb804e7d93b4dd9208968e9b2f8a483892a8d30d6927b80432341c373e",
+      "bytes": 2547,
+      "tracked": true
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "c667b0d413c5a68336928979ea99476250a0a1ddfd67c6c647715416699764c3",
+      "bytes": 845,
+      "tracked": true
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "f11a1a89f508a1bc894c4ae174579bbbd89ca97fdfa659db3098042c2bb50e5b",
+      "bytes": 980,
+      "tracked": true
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "e28bd7d87bc39defe359b2b078288654e9ecf5b67d7b765d4269bcfa1c267c4a",
+      "bytes": 833,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/backend-readiness-2026-09-01.md",
+      "sha256": "5a94a9d1aacbc104918bf18144a6972c5239b0a1e59d925af7bcee31fc69e640",
+      "bytes": 3505,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-02/2026-02-28-stocks-page-uiux-upgrade-design.md",
+      "sha256": "2fa4650821c3bb6bf9630b0bfcb749d5974891ce561b55585248e73355e2e3f5",
+      "bytes": 3917,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-02/2026-02-28-stocks-page-uiux-upgrade-implementation.md",
+      "sha256": "6e8fd8d47473bc88b6952cf1a6b97df2f262e77b959da1167d36ac300281781c",
+      "bytes": 5629,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/2026-03-03-public-etf-profile-v2-design.md",
+      "sha256": "88584c3742aacc520996842c94f91f25da7ea8385acac35c71adf699dd0ae036",
+      "bytes": 3617,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/2026-03-03-public-etf-profile-v2-implementation.md",
+      "sha256": "b4b809b29ca90de92493e573682a71194c38f656afb026979de930015f9d904d",
+      "bytes": 8961,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/2026-03-10-quick-note-center-design.md",
+      "sha256": "0228311c367da06b48034961cc7acfc1455f168ef9d7365756149f1e8f612a3d",
+      "bytes": 1461,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/2026-03-10-quick-note-center-implementation.md",
+      "sha256": "580142b183100ea58b4a3bc28a4cdb13d0f4907723b46da3da6c421d902cdcd9",
+      "bytes": 1735,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/2026-03-26-document-inventory-status-review.md",
+      "sha256": "d74193ad6b52fcd8b54be25981acecba953117566164c56d69dbebf9abaee30b",
+      "bytes": 14935,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/TIMELINE_REFACTOR_PLAN.md",
+      "sha256": "80279f63c309557b7830e3e18b52713beb599f58c85a4e2b8162e2b4b70d1b49",
+      "bytes": 8669,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/auth-session-expiry-issue.md",
+      "sha256": "3ac9cb14efa86338be0302077cb37607316c1469f43ab88b6c5ffcfa56cbb122",
+      "bytes": 2670,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-03/auth-session-expiry-log.md",
+      "sha256": "d64f44920f553844dc6ad7b2b161df9645c6b1fa76c7d0811583e69cb5482833",
+      "bytes": 1679,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/COMPLETENESS_REVIEW.md",
+      "sha256": "9afbcd45fadb2f96201b34e37c460045134aca534d670b40d1069ebb4289305a",
+      "bytes": 7679,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/PLANS_COMPLETENESS_REVIEW.md",
+      "sha256": "6915c3463ecebca4f36d88b56d1250abf87fa7cd6b642984a27111be05c0fe2c",
+      "bytes": 5989,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/REORGANIZATION_SUMMARY.md",
+      "sha256": "73f12e8f8ada6c75e0f63bb062cf6c31abf9e72307cc3f1a73ded396ddfbc46f",
+      "bytes": 2584,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/dev-plan-20260411.md",
+      "sha256": "53fa25dee3ae7878099ef42b6ccc305c1b96cc60eb7358bdf7ab2a8b5ae08e64",
+      "bytes": 51504,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/partner-shared-diary-design.md",
+      "sha256": "82e14a1a23c5f008e06d3127ba0dce22177fb642a34dad58544de38cab39760d",
+      "bytes": 8964,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-04/tech-debt.md",
+      "sha256": "838a306696909f78cf7c1ebbccea8d6104366b03a59dbc8f650daf558aacd685",
+      "bytes": 15611,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-06/beta-cockpit-plan.md",
+      "sha256": "3a353534251872ff7b98d11c92ff51b313e546caf034eb508362baa6bfb3fdd3",
+      "bytes": 32832,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-07/impeccable-full-pass.md",
+      "sha256": "55f0d4b6a77027ffb8d0d096f93432b1f1edbae858de328541abe25c624854d3",
+      "bytes": 12682,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/completed/2026-08/forgejo-ci-setup-history.md",
+      "sha256": "605f20a06ec93e1f5873f6c6c0c95a881d085a4bffe7b191e07e1d706d47df65",
+      "bytes": 7559,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/deprecated/docker-deployment-legacy-forgejo.md",
+      "sha256": "e8d56429e6114b5b710249c5c1652e0948aa4bf895e36c07efaef71fcd20c3fc",
+      "bytes": 7986,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/deprecated/improvements-pre-nuxt4.md",
+      "sha256": "65712d7a47554cf3a3d74d4a58604b8a95f8ec241da28c0709fa310ebe037667",
+      "bytes": 11631,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/deprecated/superseded-market-state-etf-integration-design.md",
+      "sha256": "6a8d17c838da5a32d7e9c0da8aae4ff05b174277c61066767b4db5467224043b",
+      "bytes": 365,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/deprecated/ui-color-system-refactor.md",
+      "sha256": "82a320f0cf17518cdc1dac3fe84d715b2d532ba6c08268c1ecfc61b17e5d22a7",
+      "bytes": 12929,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/ideas/layout-revamp-design-update-note.md",
+      "sha256": "47f3b2cd0963c52a8adc6e63060b998d7ed5fb8399271b031c3eaab82365dd80",
+      "bytes": 3118,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/ideas/layout-revamp-design.md",
+      "sha256": "39c4d251110d01b44206f3b42655d54cf10631c90460a18be771054b746f47b0",
+      "bytes": 20904,
+      "tracked": true
+    },
+    {
+      "path": "docs/archive/ideas/stock-tracking-proposal.md",
+      "sha256": "41c6bdf4e433ef584107b61ad2c889f1dbf887140114e79ab83071ac32a8fdaf",
+      "bytes": 28576,
+      "tracked": true
+    },
+    {
+      "path": "docs/backend-readiness.md",
+      "sha256": "27a43617161da790f3b25cad0f09921d7b6587c69717d7cd0701517037545ba1",
+      "bytes": 9295,
+      "tracked": true
+    },
+    {
+      "path": "docs/contracts/MARKET_ROTATION.md",
+      "sha256": "75cf1ad192955c98b9eb302b3417ca213c5fc114d956159f1f3bd3534397d634",
+      "bytes": 12505,
+      "tracked": true
+    },
+    {
+      "path": "docs/contracts/SEC_FILINGS.md",
+      "sha256": "a3ae8a328551faf0ec5ee0feee549aa4cf809152c2c400f1c3e78e8610f1019c",
+      "bytes": 17034,
+      "tracked": true
+    },
+    {
+      "path": "docs/operations/BACKUP_RESTORE.md",
+      "sha256": "9e0474d3307a16f656ec970ff768a2d5d272a8566cb041c1447fac04e0ae75d9",
+      "bytes": 3659,
+      "tracked": true
+    },
+    {
+      "path": "docs/operations/DEPLOYMENT.md",
+      "sha256": "919a42895807d9620ac10b40302afa11d4b8bc6483e7eeeb0ff9a01b7d299f2d",
+      "bytes": 26409,
+      "tracked": true
+    },
+    {
+      "path": "docs/operations/FORGEJO_CI.md",
+      "sha256": "9fd0e86d74d250a9a9c0079e20319c38a0a30039466ecfb18011a2e7df16213c",
+      "bytes": 4114,
+      "tracked": true
+    },
+    {
+      "path": "docs/operations/HEALTH_CHECK.md",
+      "sha256": "22c09e0063efe374bbb769f5adb36820bf014420e9ce28ea1511d0a06062204c",
+      "bytes": 1813,
+      "tracked": true
+    },
+    {
+      "path": "docs/plans/README.md",
+      "sha256": "cc10c639217b07400e6d0095a9edd8b949d4678564e58d2bf176b8ea1d46f8ba",
+      "bytes": 623,
+      "tracked": true
+    },
+    {
+      "path": "docs/plans/review-needed/improvement-plan-20260501.md",
+      "sha256": "3dabe9bcb77cbdec671630edf2988e6c2c9015a8b289828614fef3d5615b239d",
+      "bytes": 17742,
+      "tracked": true
+    },
+    {
+      "path": "docs/plans/review-needed/partner-shared-diary-followups.md",
+      "sha256": "4d7879d95d135172c52201b44ced5f5cbe9666ea6262321cb0f22c26cf28e7de",
+      "bytes": 6094,
+      "tracked": true
+    },
+    {
+      "path": "docs/plans/review-needed/trade-basic-enhance-plan-v2.md",
+      "sha256": "c32768e36886a62b09dcfab682726bd86621825c8ae7484977d294996d793f8e",
+      "bytes": 27816,
+      "tracked": true
+    },
+    {
+      "path": "error.vue",
+      "sha256": "38a3ead1ce73a8ae9001726bdc470ea9d762225443557a722a6cdfb54342b39d",
+      "bytes": 2135,
+      "tracked": true
+    },
+    {
+      "path": "eslint.config.mjs",
+      "sha256": "5dd782f60a648d3d3737863b0dd4d77e587f3a783933f723cd69004aac8b56e5",
+      "bytes": 1502,
+      "tracked": true
+    },
+    {
+      "path": "i18n/locales/en.json",
+      "sha256": "d601ca89f44a67b8cbd84c37ef4e6948a617a39bc980c1e6a7aa298598cd580f",
+      "bytes": 121983,
+      "tracked": true
+    },
+    {
+      "path": "i18n/locales/zh-CN.json",
+      "sha256": "1c9d585dc155c41058ed2c08d3ae3a8c4fae049125ffa094730f59914abe574b",
+      "bytes": 118191,
+      "tracked": true
+    },
+    {
+      "path": "i18n/locales/zh-TW.json",
+      "sha256": "a23e5b45c5051616aab220f3efb8cac50824cab951d581f67146a4fa7e2d6a90",
+      "bytes": 118290,
+      "tracked": true
+    },
+    {
+      "path": "k8s/00-namespace.yaml",
+      "sha256": "6e6238ad6fdb9c6288678118676b6ceda1cccb026ef05c1fdbe7cc0e28380ddc",
+      "bytes": 59,
+      "tracked": true
+    },
+    {
+      "path": "k8s/02a-mariadb-pvc.yaml",
+      "sha256": "9ec44f1276839ed87b8f9f576141ddf3cd5f0ac4777130711fb83444cb63fb90",
+      "bytes": 214,
+      "tracked": true
+    },
+    {
+      "path": "k8s/02b-mariadb-deployment.yaml",
+      "sha256": "e5522e2a3687c93569999c19d1a8b2efb61b8b125029bb3e8be289d952874f67",
+      "bytes": 1943,
+      "tracked": true
+    },
+    {
+      "path": "k8s/02c-mariadb-service.yaml",
+      "sha256": "0f8ef4d4a0bea5b4a37cbc2384f98509a18f4e993bb7bb137d29de2dbfa60ad7",
+      "bytes": 190,
+      "tracked": true
+    },
+    {
+      "path": "k8s/03-app-deployment.yaml",
+      "sha256": "8dea89faa2b9053127e44bd0abb1b1876a8e5a6e4cb1ef3c7e9b193a7856a7c8",
+      "bytes": 1932,
+      "tracked": true
+    },
+    {
+      "path": "k8s/03b-app-service.yaml",
+      "sha256": "48104bbaefa11b72c590c6f38f7ab2138b043d61db26753cd7df82a2827437e0",
+      "bytes": 174,
+      "tracked": true
+    },
+    {
+      "path": "k8s/04-ingress.yaml",
+      "sha256": "d89294f8641a423ab20d51318c5596572a58126face6338ff53b788aec55541b",
+      "bytes": 892,
+      "tracked": true
+    },
+    {
+      "path": "k8s/cron-market-rotation.yaml",
+      "sha256": "5b14c1d31bbcfc745c805638266e7defcdce78255a6d9da94998442cc2b95081",
+      "bytes": 1206,
+      "tracked": true
+    },
+    {
+      "path": "layouts/auth.vue",
+      "sha256": "1851acf388a2340254fbe621b8b3587381dcbb589ac53e88b5d95a56b2f4bb0d",
+      "bytes": 1317,
+      "tracked": true
+    },
+    {
+      "path": "layouts/default.vue",
+      "sha256": "393c7fbd696f62a9b5b1a3817349885b6f7c04e5cb034d4d5b30ca50c19976f9",
+      "bytes": 2675,
+      "tracked": true
+    },
+    {
+      "path": "layouts/mobile.vue",
+      "sha256": "c07e16f0cf6f5ed11cd114820d87c30a37f45271b8428986186da6e61e2df27a",
+      "bytes": 4967,
+      "tracked": true
+    },
+    {
+      "path": "lib/admin/blog-management.ts",
+      "sha256": "0d0809c3fa231a85d96055c3f887cf86c583813e1fb84c9145c27d9cce721e4f",
+      "bytes": 2152,
+      "tracked": true
+    },
+    {
+      "path": "lib/admin/user-management.ts",
+      "sha256": "94a9271365d6676027a01f6f2b502afa9b1749e4fed794da6827ca4538989e6a",
+      "bytes": 812,
+      "tracked": true
+    },
+    {
+      "path": "lib/api-client/index.ts",
+      "sha256": "596b1078aaa216c65dc93ae9e381d27cfa375b83370e7ad36cff58bccc9cba3e",
+      "bytes": 4900,
+      "tracked": true
+    },
+    {
+      "path": "lib/api-client/native-refresh.ts",
+      "sha256": "5a6a11add5098d9c144a274b4dcf48b739b7d486bd9d1ddb38a2f45fc2a6292e",
+      "bytes": 734,
+      "tracked": true
+    },
+    {
+      "path": "lib/auth/session-error.ts",
+      "sha256": "e05245e95c506ccfbcbcf368b7ecb1b354971b2f927190bda1ce52caf31d75b6",
+      "bytes": 1309,
+      "tracked": true
+    },
+    {
+      "path": "lib/beta-allocation/policy.ts",
+      "sha256": "781b4a1a0e026c922b5678f3c0b9ed8033645c3c7af77ea21df64e161e0b4c3f",
+      "bytes": 9329,
+      "tracked": true
+    },
+    {
+      "path": "lib/blog.ts",
+      "sha256": "170f72b62be5407dd7afaa0c38c7d4f33b7d946e18590ac90a1b4387927292fe",
+      "bytes": 2489,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/activity/index.ts",
+      "sha256": "f8b309891b8d91a42d1dec634f122ebfc0f7fbc703503c7c9eab6705659e30bf",
+      "bytes": 6177,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/alerts/index.ts",
+      "sha256": "c0f5cb9c0d6561476141fe420f7a429190aaa9e8711a446bf4418d40a28e2de2",
+      "bytes": 6451,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/auth/index.ts",
+      "sha256": "162bc681aa76ffe161dfe61f1ad083efac39f7b45de3185ec75f7f62e1623008",
+      "bytes": 2333,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/common/error-codes.ts",
+      "sha256": "2027a07d7d69c3150dc27772df07cf46e24dd00b47b8b13a4657fd7d6ac0a91d",
+      "bytes": 4069,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/common/ids.ts",
+      "sha256": "d54f9e4ccf5f4d64dc7159c06a977dbd29e402b7b7a8e36b6322ac7b70bce7f7",
+      "bytes": 1117,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/common/index.ts",
+      "sha256": "b492e06ab42b5407fca08b6dfe79d20e31618fe17ace809d217966e3885015c7",
+      "bytes": 52,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/company-hub/index.ts",
+      "sha256": "b3d5e5c111949db5b8490e315c7fce499e050cc9ea15e505be366a15f05b628e",
+      "bytes": 2798,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/diary/index.ts",
+      "sha256": "62ff50a30ed2a5847f8a2c22dfda0ad18a8ce2bdd12234d345e4b81402fd2a19",
+      "bytes": 7707,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/diary/validation.ts",
+      "sha256": "df8637468cafe7d90631c8e96aaf3c7787beee45f4d082e6de1dadffb146eb55",
+      "bytes": 179,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/index.ts",
+      "sha256": "4cc2b5b2fa414cf90b712a7a05a6504cc029449ef97b3e5fc2cebb36c51adcc4",
+      "bytes": 322,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/investment-thesis/index.ts",
+      "sha256": "94ef2fcf0b4761fb12410583af846bbc397517917452c9575e32c347520e74a7",
+      "bytes": 6202,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/market/index.ts",
+      "sha256": "b42744894fc6b75c4244894e290627c13c16d418ce320e8e11e72e663d0f734e",
+      "bytes": 6970,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/portfolio/index.ts",
+      "sha256": "7b97a760e1f63d0f01a65e0e6ebff654f78db5c51d4958c6afb60749a6902d9c",
+      "bytes": 6011,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/review/index.ts",
+      "sha256": "4e7da85930c4b110c6dd600defdd68c78e6cf878c6ce0005153958a91b2b54cf",
+      "bytes": 4537,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/stocks/index.ts",
+      "sha256": "c4d7fa7d2647ac29fa963369ccfbcdeb932161b9a8a1f5b6660b4a5503611df5",
+      "bytes": 8642,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/stocks/timeline-source.ts",
+      "sha256": "8352f803828da0c4f2d183d84ea38386f3c1f806ffbafc950c178e730438d8a4",
+      "bytes": 789,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/trade-plan/index.ts",
+      "sha256": "2021aff426a0202385b6d259d2ab4cbef833d53314fe4260df33f62467bca310",
+      "bytes": 7557,
+      "tracked": true
+    },
+    {
+      "path": "lib/contracts/trade-plan/status.ts",
+      "sha256": "5c36b315e5a85c90cce378fa4197460738224dc887f589254df439d62cb5de05",
+      "bytes": 245,
+      "tracked": true
+    },
+    {
+      "path": "lib/dates/format.ts",
+      "sha256": "6893503dccdf483c9df9736162e6c7a6c2bcfe59a8771a6ced28fb467de2d411",
+      "bytes": 6622,
+      "tracked": true
+    },
+    {
+      "path": "lib/dates/index.ts",
+      "sha256": "e15906c81d1c815aa55a4cf21871b8eb87738ab531e262e15796ff11bf16b774",
+      "bytes": 1383,
+      "tracked": true
+    },
+    {
+      "path": "lib/dates/normalize.ts",
+      "sha256": "802fb7f4f8aef1a5941e050bcd2d8dfbede78f8da83a84108e8b1f87823297b9",
+      "bytes": 4405,
+      "tracked": true
+    },
+    {
+      "path": "lib/dates/user-tz.ts",
+      "sha256": "fec0dcdf3d1e7b650126e843e7a487d51df48ea9cbb0081e3fb59bdd4bee6c90",
+      "bytes": 7898,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/date-conflict.ts",
+      "sha256": "50fc04c100ae8042e2292e4f170c19ee6594ecca181412ae59505da7a00ebc77",
+      "bytes": 6308,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/draft-guard.ts",
+      "sha256": "938b985cb541274d5ed5ea631594f67d6423ae8678432c94f4c28db4301a5415",
+      "bytes": 5253,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/hydration.ts",
+      "sha256": "ce50eb31cd990a138f3ba3a8c62d7a81036cf1b2ea198fa0bbb581a936972b5e",
+      "bytes": 4195,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/payload.ts",
+      "sha256": "9c802a5724172cda469d95e4d47c6d3d52f1a137f844f0eb5562375fcc4de7ee",
+      "bytes": 1938,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/types.ts",
+      "sha256": "81f437e0c728990517864d634fb4ecc5b5d726a9754516125834b5fc47cc9b8a",
+      "bytes": 1206,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-authoring/validation.ts",
+      "sha256": "0215a62fdee0f687d832eb4a72b8f7c49ba79360109a259b9a4dec2bd24a1242",
+      "bytes": 7270,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-excerpt.ts",
+      "sha256": "d57250df29a5f996d0ed36628b1ee505c6592a97026223b144679e755d7b5a83",
+      "bytes": 244,
+      "tracked": true
+    },
+    {
+      "path": "lib/diary-tags.ts",
+      "sha256": "01dd5e4cfc52987a945bc572d5157015b533aa9c010dfc6518222b7611d444ab",
+      "bytes": 685,
+      "tracked": true
+    },
+    {
+      "path": "lib/disciplineShare.ts",
+      "sha256": "eb5b1944ebacba9ae2696a43d311ed4236a0f842e65c495034594913e3f6b2eb",
+      "bytes": 8327,
+      "tracked": true
+    },
+    {
+      "path": "lib/error-context.ts",
+      "sha256": "22beb837e8c14324347fc86b4390432de2f410b0635c1ff43386ded589b75393",
+      "bytes": 1350,
+      "tracked": true
+    },
+    {
+      "path": "lib/errors/factory.ts",
+      "sha256": "2f66a2c8b1b89795f1d76b81f34c943a56e7416abceca9c3336a741d1116057c",
+      "bytes": 7867,
+      "tracked": true
+    },
+    {
+      "path": "lib/errors/i18n-mapping.ts",
+      "sha256": "55402cb949363fc3b945d21edc6cdf17dd920f23a871475f9d05881f4b13e881",
+      "bytes": 396,
+      "tracked": true
+    },
+    {
+      "path": "lib/financialFreedom.ts",
+      "sha256": "6f88a907f09a03c7c8b873775914ddef82e976f0726ff68a719859ae6a16622b",
+      "bytes": 9344,
+      "tracked": true
+    },
+    {
+      "path": "lib/format.ts",
+      "sha256": "ff22dd0eb0805101a22dd96d42807621cc981bb01df29c6da4510be60bbe78d4",
+      "bytes": 4658,
+      "tracked": true
+    },
+    {
+      "path": "lib/holiday-heatmap.ts",
+      "sha256": "55d67ecb615c753dcb6d716e5af880e7c304e1c17f3ced71abe14c5475440b63",
+      "bytes": 1795,
+      "tracked": true
+    },
+    {
+      "path": "lib/investment-activity.ts",
+      "sha256": "9a62259fd0ffbf884640639bdba99c875a4398e2f0bd36a32176a26e1995298c",
+      "bytes": 16467,
+      "tracked": true
+    },
+    {
+      "path": "lib/jwt.ts",
+      "sha256": "61237683a275fd60bc7a50823ce06b85dd7d65969b87b6d3bc34894c4f89339c",
+      "bytes": 2743,
+      "tracked": true
+    },
+    {
+      "path": "lib/logger.ts",
+      "sha256": "b8ed7d8a67351dd27ad52a2e5e57c1d335a3df21403752df7ccde30f600f41d5",
+      "bytes": 6048,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/cache.ts",
+      "sha256": "902fbee4b3ae72bc733809a1055c1f4c6283184d89532a511f7203a2e57bccff",
+      "bytes": 9805,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/daily-prices.ts",
+      "sha256": "e48c6152e563a7d824e1833e4024109d96f701256f31e7ac8412807e76754766",
+      "bytes": 2663,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/quote.ts",
+      "sha256": "ef2c1146ecf85d554615534ce4322bdfcd86b3b09e442f97880857c77bfb59d2",
+      "bytes": 2904,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/twse.ts",
+      "sha256": "ed2d12271d9966a29b070b2b14ec01ba305b89a49c7c2062ae0b21b6ffe4ec25",
+      "bytes": 1298,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/yahoo-request-queue.ts",
+      "sha256": "963db0a456d1a50fa7ef2a936c8ffd7f7aeaa9a563af66179755c835d4e82f8d",
+      "bytes": 4230,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-data/yahoo.ts",
+      "sha256": "6d8724c3ce03d0ae9f60d09584b3f9fa9ea16654e6b3eb45eef53efac026bd1c",
+      "bytes": 8473,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/breadth.ts",
+      "sha256": "65246d45bd3180bd14b809dc841c17c1d9850cb3aa2b2052e8c46732b54d761f",
+      "bytes": 1539,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/calculations.ts",
+      "sha256": "2ab4c8ea19bc7bae76ff52bf6be7527d2b42fedad6c441b6430a3301aa640ac2",
+      "bytes": 3721,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/comparison-enrichment.ts",
+      "sha256": "72f0c238e50c58356b8a6b6935dda2667a78e20e54cda378bac7d7c89b6c7dd1",
+      "bytes": 7007,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/decimal.ts",
+      "sha256": "e310450ca03b295952df06020c825350b877764bb520b6721f4e1c07d3825db7",
+      "bytes": 909,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/indicators.ts",
+      "sha256": "8c560fecf7025beafe1226583c5546eb2546b461032e1932d754f72454a055fd",
+      "bytes": 4815,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/monitor.ts",
+      "sha256": "12ebc7bc1627092326c23d640f83e04f76eb9d9ab6d5532e4946bce63a998c35",
+      "bytes": 6692,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/pipeline.ts",
+      "sha256": "e0d7e54c9b8d64e9ecaaff47da87a6fa9f57a6e7a0c4f5d6a8d4c0e7360dc3fe",
+      "bytes": 3630,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/qualified-date.ts",
+      "sha256": "0421d4c70820373e50f052db328629ce32fccc4feb2f9b8a32ebedeff7e82b02",
+      "bytes": 9442,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/round.ts",
+      "sha256": "371273d1eeda69b5cc7be0b0962f0bc3f2cd8c6dc9f61f09b02a2ef17c6524d9",
+      "bytes": 391,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/scope-enrichment.ts",
+      "sha256": "d91d4bff4620806cfc8fe20fa6293b5d57e2803f15fe81e9c29a0e420f0d2e1a",
+      "bytes": 4651,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/signal.ts",
+      "sha256": "b0b5c57626bd8b634bb84376ad469f58391dc7d8811a130ef040dbb419478985",
+      "bytes": 2771,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/snapshot-builder.ts",
+      "sha256": "57501465156db91f2705bc89712583ae1da499aacde61eeb05b0f12bb98a7154",
+      "bytes": 4808,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/state.ts",
+      "sha256": "c06ee485ca7222d287156d7d4ce39c73873119b30f2b090cd3a1b64ba440d249",
+      "bytes": 797,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/summary.ts",
+      "sha256": "ed00b868c00afdb7490439be66ed86570fada62ecc43911c0a7021094df6f7ff",
+      "bytes": 4502,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/trend-series.ts",
+      "sha256": "f64a4cf41ad33f8ebc62e0759c19d988820d9f691f135ce03ef676d7b11d3751",
+      "bytes": 3002,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/types.ts",
+      "sha256": "638e3bdd692cbadce2e09847fdc9e14f658c47025a47005d5cdb285734b8205e",
+      "bytes": 2283,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-rotation/universe.ts",
+      "sha256": "7c7c029e61affb309101fb262e95402619b3fe8586ab0d6a1525b214b770a653",
+      "bytes": 9365,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-state/breadth.ts",
+      "sha256": "5bda8d859e4d97d3f82b9cd9ac0f517326d48f6e02d7ac9af4ebd4507a19a6ae",
+      "bytes": 2142,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-state/regime.ts",
+      "sha256": "5121f919a185ca5f22b280484cb6e6d0fea4b561518f170440ba8180054e52e5",
+      "bytes": 1940,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-state/seed-universe-utils.ts",
+      "sha256": "daf1f02dcf23800f980996a3c5e72e0a78b246faa88df017eeb370ad4e7d72c2",
+      "bytes": 167,
+      "tracked": true
+    },
+    {
+      "path": "lib/market-state/update-breadth-utils.ts",
+      "sha256": "bd96073ade1ad0d4cb0f834466cd09c98f109392fb2bc7142c72fc162f18c316",
+      "bytes": 6137,
+      "tracked": true
+    },
+    {
+      "path": "lib/observability.ts",
+      "sha256": "eb63fc87dec0726d6ad77244ad2603e0ad48c0088ca1dfbec1a9f88b05829ae9",
+      "bytes": 2282,
+      "tracked": true
+    },
+    {
+      "path": "lib/partners/policy.ts",
+      "sha256": "5567d80b1f3b72e74b9e60bbe0b94823dc783297a1d72a62f8004ac325638151",
+      "bytes": 4731,
+      "tracked": true
+    },
+    {
+      "path": "lib/performance-stats.ts",
+      "sha256": "e1c4d9c6f0901205e5960758ed5f04b6d0c55f809028dbcd0a99aa92ce2efb75",
+      "bytes": 1954,
+      "tracked": true
+    },
+    {
+      "path": "lib/portfolio-attention.ts",
+      "sha256": "75a07929fe78b635fe1e54c0ebc517ba3ed52c2a3285200b9b5dd580eb9f988f",
+      "bytes": 7541,
+      "tracked": true
+    },
+    {
+      "path": "lib/portfolio-exposure/beta-buckets.ts",
+      "sha256": "74faeddd202c84d1dad9bad5ec76bc6d2d1c2af57b99ff583790d583922344f7",
+      "bytes": 1423,
+      "tracked": true
+    },
+    {
+      "path": "lib/portfolio-exposure/exposure.ts",
+      "sha256": "7e2bbabe561a4b49ca249a8755754ffe8a8c702a905a860961f30cad1ad0b294",
+      "bytes": 6027,
+      "tracked": true
+    },
+    {
+      "path": "lib/position-state.ts",
+      "sha256": "bfdcc1f64f782270116222e67c2bd6a410dc81474be7ef2562c03fa29616515e",
+      "bytes": 5710,
+      "tracked": true
+    },
+    {
+      "path": "lib/positionSizing.ts",
+      "sha256": "1d8269162e035895703728ae982eba27c4626a35e144ee740deffb6395269bd6",
+      "bytes": 4937,
+      "tracked": true
+    },
+    {
+      "path": "lib/prisma-client-options.ts",
+      "sha256": "a2af43b6560914ff0c87fa11a882b845057537574d925f9aa8b4b1a884d62632",
+      "bytes": 391,
+      "tracked": true
+    },
+    {
+      "path": "lib/prisma.ts",
+      "sha256": "de3ec23add548501c16b3ddb6a02987d50bf9dfa5ad2f485129a040b4305a7c2",
+      "bytes": 1622,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/editor-controller.ts",
+      "sha256": "9e87985c6347292dfaec9c334bdad71cd876194a77a99a190f4372e73c4605fa",
+      "bytes": 3626,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/generate-template-draft.ts",
+      "sha256": "e65f21c95b3968c4111e35ef12694cd46134c0f031c231c796c0fec631138ba1",
+      "bytes": 8171,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/market-session.ts",
+      "sha256": "dfdfb72bb14c7f2e33777e00dcdba937f48da8cdde2e6d1d3f513c0115a7af6a",
+      "bytes": 4366,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/modal-shell.ts",
+      "sha256": "4a31c2c70e3185004b846f0c1e6de413d1377115c3b89d101bbfad893f4dd030",
+      "bytes": 2586,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/quick-reminders.ts",
+      "sha256": "7fc59d7b0e7fdd2c49ac043683f5278c85c285cb70e1e2398924d384e1b71b3e",
+      "bytes": 1131,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/shortcut.ts",
+      "sha256": "3e51190204b259970fa7ae549d962a5f6cabe256900fb1a9370bc173a27514d8",
+      "bytes": 646,
+      "tracked": true
+    },
+    {
+      "path": "lib/quicknote/template-localization.ts",
+      "sha256": "f91477d63fcc98b9b1283c9601bcfd20b1a71622c7528177a75949328128de26",
+      "bytes": 8337,
+      "tracked": true
+    },
+    {
+      "path": "lib/rate-limiter.ts",
+      "sha256": "4f31b47409e28958d1cfbbbbd1660b69ab183fe80f865f849e08d79229adf9ea",
+      "bytes": 4005,
+      "tracked": true
+    },
+    {
+      "path": "lib/recurring-alerts.ts",
+      "sha256": "f3f76a3f530e3e6fa9aef05affa3086e6e520a812e836e06e6dd401a947e77fb",
+      "bytes": 4367,
+      "tracked": true
+    },
+    {
+      "path": "lib/relativeValue.ts",
+      "sha256": "b3fe0149a2cb345b555d0afee4b591cfa6af2e63dc6719e2b11377336f46497d",
+      "bytes": 3971,
+      "tracked": true
+    },
+    {
+      "path": "lib/routes.ts",
+      "sha256": "290e3909a43b9aa886099cb7ae49a3a80c3baeae9cb52d572c690b2721de51a1",
+      "bytes": 88,
+      "tracked": true
+    },
+    {
+      "path": "lib/stockSeasonality.ts",
+      "sha256": "b80662fbbedce029e475ce9aae655f0b4e8c2357e63fcf1cb02d6c697c58e986",
+      "bytes": 11821,
+      "tracked": true
+    },
+    {
+      "path": "lib/stocks-analytics.ts",
+      "sha256": "fe78c103e27084c73eccf4bc1e97841d9b651c48280271707d4e836266ce7b32",
+      "bytes": 2114,
+      "tracked": true
+    },
+    {
+      "path": "lib/stocks-view.ts",
+      "sha256": "93f2cf77bcde293d3962a1472aeab07219054baef03999700fe989d56a07b882",
+      "bytes": 9801,
+      "tracked": true
+    },
+    {
+      "path": "lib/stocks/note-view.ts",
+      "sha256": "d3f2a37ed562c32b361abedad6717b90d22413f7f2c9cb56fdd69997bd15cf99",
+      "bytes": 1310,
+      "tracked": true
+    },
+    {
+      "path": "lib/stocks/notes.ts",
+      "sha256": "0169a409498878aacb24ce84ea8b6530b5316dc522267c6fdb6ee47180bce9bc",
+      "bytes": 3761,
+      "tracked": true
+    },
+    {
+      "path": "lib/stocks/symbols.ts",
+      "sha256": "381ad81abf81433b27e3bbe571e2ecfd6fe10a7b1d6209a86631302d54909fef",
+      "bytes": 619,
+      "tracked": true
+    },
+    {
+      "path": "lib/trade-analytics.ts",
+      "sha256": "1b32c0db0167f8e9542eab2c5d7f0fa95745cc4ec2a1e2d229afddcc2302c3e1",
+      "bytes": 12354,
+      "tracked": true
+    },
+    {
+      "path": "lib/yahoo-finance.ts",
+      "sha256": "6c4c431abdc33761e6f8ea40089bbdbcc1cbd0125edb5804e20cde06be16f4d5",
+      "bytes": 4028,
+      "tracked": true
+    },
+    {
+      "path": "middleware/admin.ts",
+      "sha256": "f9c07e643bcb3fb6761f0baca54b8e663ffc34765f72d5926d0c89fc13a31f6e",
+      "bytes": 561,
+      "tracked": true
+    },
+    {
+      "path": "middleware/auth.ts",
+      "sha256": "cfbc13e1c5ed5af5a50b43716c74491a6b781726da964e330abee31b8fc74c40",
+      "bytes": 1120,
+      "tracked": true
+    },
+    {
+      "path": "nuxt.config.ts",
+      "sha256": "ba13c7ba2c7052d665b192943700154b148de90bb9840c85cc1239550250e114",
+      "bytes": 9522,
+      "tracked": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "9df83cb02c1f75d5dda04be94f5311951aae102672c2d8d2ff127e6c22de2b5a",
+      "bytes": 972784,
+      "tracked": true
+    },
+    {
+      "path": "package.json",
+      "sha256": "4379a4282e209f83cd9552f91521405c118775101aa36383cab7a027d503cee5",
+      "bytes": 4209,
+      "tracked": true
+    },
+    {
+      "path": "pages/about.vue",
+      "sha256": "e327a0dbe9feaf90ab40c51fe083a4394ddda9dd008d93962eb8aa5785c61dd4",
+      "bytes": 18010,
+      "tracked": true
+    },
+    {
+      "path": "pages/admin/blog/[id]/edit.vue",
+      "sha256": "e071343db40eb80a360602dc6e5bae88b59fb417efc798199af991d6ae82c67f",
+      "bytes": 7977,
+      "tracked": true
+    },
+    {
+      "path": "pages/admin/blog/index.vue",
+      "sha256": "a919fc9d693530ae8daa71f2db77cd34b552b14ed0659588a7498c9208749daf",
+      "bytes": 22270,
+      "tracked": true
+    },
+    {
+      "path": "pages/admin/blog/new.vue",
+      "sha256": "062a3c1c627922f10f613d87a5e859e88ee96e277c3f91ce8963a5e0da8950b6",
+      "bytes": 6115,
+      "tracked": true
+    },
+    {
+      "path": "pages/admin/etf.vue",
+      "sha256": "c1d6e2ed6c86f5e6a77777ee62b5ea76e67093eb196e9924a877306dd0c22d6a",
+      "bytes": 11547,
+      "tracked": true
+    },
+    {
+      "path": "pages/admin/index.vue",
+      "sha256": "70a5df46f33061eaadf960622ebc4c19d22a1e362d19dcc0090590607295fdc6",
+      "bytes": 17467,
+      "tracked": true
+    },
+    {
+      "path": "pages/alerts/index.vue",
+      "sha256": "2b36b5e624a81a86ff30f3b6ae4c46764e5df33a05da79b7eaa2a76226b94ecc",
+      "bytes": 5348,
+      "tracked": true
+    },
+    {
+      "path": "pages/articles/[slug].vue",
+      "sha256": "bcf139adb838cc2ca2d84732587466513d8eb8e6ca5d227a1a769aef1588ceb7",
+      "bytes": 20246,
+      "tracked": true
+    },
+    {
+      "path": "pages/articles/index.vue",
+      "sha256": "59982a158f85ac3566e14144c35514f9d3ce5ffa675f214bb119b77b6743fc74",
+      "bytes": 24828,
+      "tracked": true
+    },
+    {
+      "path": "pages/auth/login.vue",
+      "sha256": "4a65cd40f54d5c19f3f106150aca33baa85778eb7ce882594c83317a05f63f8a",
+      "bytes": 7743,
+      "tracked": true
+    },
+    {
+      "path": "pages/auth/register.vue",
+      "sha256": "e8e6cf115624affdd595eb502c52492b2715aa294a7925c55f63ec8e2018656a",
+      "bytes": 10097,
+      "tracked": true
+    },
+    {
+      "path": "pages/blog/[slug].vue",
+      "sha256": "ba734e4e79e96a173d4a92739838a9741cbc93ba8fdf0662a2332142edd648ce",
+      "bytes": 244,
+      "tracked": true
+    },
+    {
+      "path": "pages/blog/index.vue",
+      "sha256": "fa6c501abe9ac1aba2cf7d8294459bc85de548b3e86944e3d04a68fc5313982b",
+      "bytes": 88,
+      "tracked": true
+    },
+    {
+      "path": "pages/calendar.vue",
+      "sha256": "778ed47511e45971b85d2c63c753270679d26e6483ed7e9267b83759f1dfd0e6",
+      "bytes": 9942,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/[id]/edit.vue",
+      "sha256": "953daee7d492d69aab79aaf70bd0c24c7c89085257a258881daa8f606e4cd1b0",
+      "bytes": 4763,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/[id]/index.vue",
+      "sha256": "705b3738b495b65031f19a6bbba563641dcb6b50ef5bc5dde8f6a48b6027eef9",
+      "bytes": 20344,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/[id]/review.vue",
+      "sha256": "34d145c21f7ddac3b5c1b66aa810a497b9a326173e404d5708ea1d8bf730ad08",
+      "bytes": 12824,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/index.vue",
+      "sha256": "ab0a8aa32fe34ba9705aeb19846c74e3ae216f7041f641f6911ca0ed9427d28e",
+      "bytes": 15530,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/new.vue",
+      "sha256": "32c2757365d080d142c332e0759c433331cb0fa364bff50c4773b8d155709c33",
+      "bytes": 5046,
+      "tracked": true
+    },
+    {
+      "path": "pages/diaries/quick.vue",
+      "sha256": "49f277020fbf2bb0a456b968b78465521f0bbe912e1b76a06a6c9e1c3507f8bb",
+      "bytes": 1190,
+      "tracked": true
+    },
+    {
+      "path": "pages/discipline/index.vue",
+      "sha256": "ffaae7d16fc08b7300c52ee281a793410ca3d41c2fa78347b461cd0f3ea627c1",
+      "bytes": 8208,
+      "tracked": true
+    },
+    {
+      "path": "pages/discipline/share.vue",
+      "sha256": "57d784c66db7c9432d69d30f0b408dcbca9ad4c8ec165cf2b2c7b0bdd30db9b2",
+      "bytes": 2802,
+      "tracked": true
+    },
+    {
+      "path": "pages/how-to-use.vue",
+      "sha256": "a956ee240eb670d1d9c31b9f6a421c5dbf5c89b40687f8d8333d9286dc84465f",
+      "bytes": 22763,
+      "tracked": true
+    },
+    {
+      "path": "pages/index.vue",
+      "sha256": "0373df7ae487294b6fced71622f40f9791fa708bbdbb2145cf1b20443c4263be",
+      "bytes": 15959,
+      "tracked": true
+    },
+    {
+      "path": "pages/partners/index.vue",
+      "sha256": "de1209e69505a05af786f7a76a1be89f734ee50e5c69a45a303095c037ebd614",
+      "bytes": 30709,
+      "tracked": true
+    },
+    {
+      "path": "pages/reviews/index.vue",
+      "sha256": "db62db290c760d8d7342d5f5d335d6e7c0d8af5237680d1149346cb4c5b60276",
+      "bytes": 5402,
+      "tracked": true
+    },
+    {
+      "path": "pages/settings/index.vue",
+      "sha256": "9a4718a22fc28fb0dc7e57fdf22909db8968319448cb55f14c59244c8fd9c8e1",
+      "bytes": 16209,
+      "tracked": true
+    },
+    {
+      "path": "pages/stocks/[symbol].vue",
+      "sha256": "68cd8ee63b4a528e8e570cd7caeb8208bfea42b938e30253fb6a0454f5fa4258",
+      "bytes": 10301,
+      "tracked": true
+    },
+    {
+      "path": "pages/stocks/index.vue",
+      "sha256": "b7d8eb22ab0d3f2028c02532e2b58664fa2eebccc35771300543d306e10bf4fc",
+      "bytes": 50265,
+      "tracked": true
+    },
+    {
+      "path": "pages/stocks/watchlist.vue",
+      "sha256": "2e58ac3ff6e67b136a5c0de1f9f4570dd6f58f6b94f1da5c6cb18b69e0dd0654",
+      "bytes": 3109,
+      "tracked": true
+    },
+    {
+      "path": "pages/strategy-performance/index.vue",
+      "sha256": "acd17e3351ba8ee22aebd7a70c8ef70b5aea4d90a0e1a43008e9b9f1ad1fcd1c",
+      "bytes": 5732,
+      "tracked": true
+    },
+    {
+      "path": "pages/timeline/compare.vue",
+      "sha256": "8bb4e8b911c238e384d083faeeab4a084b64e22233dd2dabb867e731a4cfe03b",
+      "bytes": 10920,
+      "tracked": true
+    },
+    {
+      "path": "pages/timeline/index.vue",
+      "sha256": "1f272eeda58b90fcfed28a1d73e24760099debf965b2c5e372b16aa8e4ddfada",
+      "bytes": 29766,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/financial-freedom.vue",
+      "sha256": "ca1c45d8f5d3332494179955c511ebcfb8137569c7503fa8f9df4ce3abe03b7a",
+      "bytes": 30416,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/market-rotation.vue",
+      "sha256": "a6c35734bff0ef9405c7ee2d29865bd2a1668d07e3f8acb4bfa2bb14b91d890f",
+      "bytes": 52990,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/position-sizing.vue",
+      "sha256": "1335f4d0f425b4b43b8fec2c3af727f681ae12d7af9656124ed6c5e67eac4ee9",
+      "bytes": 35271,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/relative-value.vue",
+      "sha256": "b2175c8bb6ccd9bcde8c62999b9c5d68308ef622ac2e354fc2ca7449ba791408",
+      "bytes": 34405,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/seasonality.vue",
+      "sha256": "a12bdba9a1365486159f0626e671444bf5a1d66fd0fbb32b6b4461f20236362c",
+      "bytes": 22253,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/sec-filings/[cik]/[accession].vue",
+      "sha256": "bf636a6e5dea022f0701a6dbb1472d3aa726c5d59a971f993b69c790807bea38",
+      "bytes": 3282,
+      "tracked": true
+    },
+    {
+      "path": "pages/tools/sec-filings/index.vue",
+      "sha256": "ca6798a3cb533d61cf976fc3fd555e8e8808884b12f4a4dfc14c25dd0e790d45",
+      "bytes": 4488,
+      "tracked": true
+    },
+    {
+      "path": "pages/trade-plans/[id].vue",
+      "sha256": "02f4e4bba64986b14046380f50ee359f8884f5c8f387eaf8a883dfa226e1bff0",
+      "bytes": 6482,
+      "tracked": true
+    },
+    {
+      "path": "pages/trade-plans/index.vue",
+      "sha256": "ab28f76df981819c76f80a4be1e9b8434cacbe98606c699ff77fd3aeace089ac",
+      "bytes": 6541,
+      "tracked": true
+    },
+    {
+      "path": "pages/trade-plans/new.vue",
+      "sha256": "592f9d0a8676b5849f7adcd2b84771c69b25f598d119a27cc265b28481960cbd",
+      "bytes": 4818,
+      "tracked": true
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "490f45c31e5fa704a7d5d2ac7794484346621f8b92a9e35ada4a7845c956c6e5",
+      "bytes": 1306,
+      "tracked": true
+    },
+    {
+      "path": "plugins/auth.ts",
+      "sha256": "a53fd67b6eb08703c564fa9dccb52d386a1641180eed5b7ca22c61eb121f418d",
+      "bytes": 930,
+      "tracked": true
+    },
+    {
+      "path": "plugins/csrf.client.ts",
+      "sha256": "ef4fd79c3723b7da2fbb02744f43be85b8cf7f7042ebcb54410e5527a0dd3b51",
+      "bytes": 695,
+      "tracked": true
+    },
+    {
+      "path": "plugins/error-handler.ts",
+      "sha256": "218c517a1c8b31a4faf86346b71f675b661006232231ee40ee087fc0ce9df744",
+      "bytes": 581,
+      "tracked": true
+    },
+    {
+      "path": "plugins/nuxt-warn-filter.client.ts",
+      "sha256": "50cdd4d478ffbfc73363c00d2b615c85e636af330b41a5352c813ff92822de5f",
+      "bytes": 352,
+      "tracked": true
+    },
+    {
+      "path": "plugins/websocket.client.ts",
+      "sha256": "5133fc454484ec346781b84d072dc3731ee596f584b5b92886c71cf9dca83979",
+      "bytes": 8323,
+      "tracked": true
+    },
+    {
+      "path": "prisma.config.ts",
+      "sha256": "00edf74ab4683c6a8c0b8eb1e4aa995c7fe99782fa58341eb89df303de484b26",
+      "bytes": 350,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260220185912_add_token_version/migration.sql",
+      "sha256": "888e617b97a3b3ed2a9d5248b0bde4752b8abc0a5a2c002d5125dc6216cbae8c",
+      "bytes": 4828,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260220193715_add_discipline_order/migration.sql",
+      "sha256": "87ef3e4c4b937aadd37a176caab3904c6839cd4b10978a631d2dc34de825ddc0",
+      "bytes": 182,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260221105736_add_user_timezone/migration.sql",
+      "sha256": "e99469e908726d3d69eff0d854fd5e53404fe59e9dff084fe6fe0f3a28dde6d8",
+      "bytes": 100,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260221_migrate_categories/migration.sql",
+      "sha256": "b9a98c77df4226eaaee44a0c9224d96c988392ed34adf82b55991ab9b473f381",
+      "bytes": 1146,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260222173520_add_performance_indexes/migration.sql",
+      "sha256": "931f16370b37cfb4e89f53c4e321c9ce86462cf2f3613e9bdb6987b34e67b309",
+      "bytes": 398,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260223174528_add_diary_tags_and_favorite_tags/migration.sql",
+      "sha256": "0b9a6dbd23ad26d23936f34584a47ce52e64d21f14ca7ec8addfde7f366ab5a6",
+      "bytes": 154,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260223182554_add_recurring_alerts/migration.sql",
+      "sha256": "b2dd63189dcdcb1e7420bee98d035123eaae9d1c0f20b873b6d7516011d1ab8c",
+      "bytes": 315,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260225172231_add_etf_models/migration.sql",
+      "sha256": "9dc171b93dfc5c8ba32177b4190aae1ac33027f9a438c833ac5db442d088f934",
+      "bytes": 3109,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260409030000_add_partner_links_and_api_keys/migration.sql",
+      "sha256": "8825fdabf287f19c1f6700413c5127a4064f018f419f6636be5fac5ec22aa90f",
+      "bytes": 2433,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260411154724_normalize_transaction_symbols/migration.sql",
+      "sha256": "8e6d2d96139021f912273a99617449ec4029a0b35fae8441b71171d0f9196647",
+      "bytes": 345,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260411160000_extend_transaction_schema/migration.sql",
+      "sha256": "91d102a9625d51d9969894c264b07a364d201279a5d71788f1aa2c56ca03930f",
+      "bytes": 909,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260411162853_add_discipline_check_model/migration.sql",
+      "sha256": "8af86450a9917f13857e3f67701ddfea3a60cd7a8092457e901109559b46a660",
+      "bytes": 1098,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260411165111_add_portfolio_snapshot/migration.sql",
+      "sha256": "7392cde6f84b51be117e6527de646a9ff5b865af3ee4e55f48c22c7bdf82ec7b",
+      "bytes": 894,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260501093000_add_stock_tracking_models/migration.sql",
+      "sha256": "100cff3ba246829f9935af300d10eedfe37a05ae109ba13da63c01ebd74bfa26",
+      "bytes": 3681,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260501162858_add_price_alerts_table/migration.sql",
+      "sha256": "e7bded46b55e2e751bf13d3325dd440e3292b67efbb48016c8204430f8f5a12f",
+      "bytes": 925,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260502183442_add_stock_notes/migration.sql",
+      "sha256": "6cd4fdca9d3f2e324eaf2b611158a59e3cf8ff1fb1f5cc312ef7c2e63b852d44",
+      "bytes": 1065,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260504190526_add_stock_notes_sharing_to_partner_link/migration.sql",
+      "sha256": "5d45ef8d326092e7685fbe499ee09c7ba5d82108050267e287de816e88300f22",
+      "bytes": 188,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260509180545_add_telegram_bot_support/migration.sql",
+      "sha256": "b3697aba4fd37bf7ae5ee998d21a9e94b7519ed90fdcfda7b53fd387bbccaf22",
+      "bytes": 2472,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260510102158_add_verification_code_attempts/migration.sql",
+      "sha256": "bd66aeaed0750bee72e268e6619f150b8cf89120ec633756c0ea4858dfa1a4cd",
+      "bytes": 106,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260513160729_drop_discipline_checks_and_portfolio_snapshots/migration.sql",
+      "sha256": "697e71e409aa726dfbf084d0b95159abcb51f55ab1bab45f702985f5880f92c8",
+      "bytes": 780,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260605065609_add_marketbee_models/migration.sql",
+      "sha256": "747633c5a9fa5f6056b6d20ef6d7f9c596ec9bd2e911acde7260e5a59aeb97e3",
+      "bytes": 2766,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260605191941_add_diary_review_fields/migration.sql",
+      "sha256": "ade2780f724e6e755546fd51808e4910ab3c0eff2c9ca319b07f0075ef977333",
+      "bytes": 298,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260610140000_add_market_rotation_snapshot/migration.sql",
+      "sha256": "2c487edf8350a3fda351948f8160ca7ba3a26259467df3451b0ce08e76e066be",
+      "bytes": 1851,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260614020000_add_market_rotation_snapshot_run/migration.sql",
+      "sha256": "39c775f603095f38ec85acf0a80da9d9d9f500760ec50632842bd7bb10b691c2",
+      "bytes": 902,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260614182000_add_trade_plans/migration.sql",
+      "sha256": "4a055a508ae05eca30fc15ec445753b295aa4c749b884d8e1f2136e839b292c3",
+      "bytes": 1279,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260714000000_align_transaction_ownership/migration.sql",
+      "sha256": "061b25266e7fe32af69d88d6f88b615c16d4bd36e5eda2e7de98b95032949265",
+      "bytes": 601,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260807080000_add_diary_reconciliation_audit/migration.sql",
+      "sha256": "de10b7a3fc381e5ef79d31fee7d548ad2d7a6b631b4474a10d25f744512d4f91",
+      "bytes": 1043,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260807090000_enforce_diary_user_date/migration.sql",
+      "sha256": "7fe3e72b24e4457c036158763b83ffc086f7ed3cc0c908ebd841d171d0415c87",
+      "bytes": 562,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260807100000_remove_telegram_bot_support/migration.sql",
+      "sha256": "45508a7d7dbc0a7c8439cd23c1c350e3a5b51d6bb5cefbe3af787e31ceb8fa88",
+      "bytes": 302,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260809070000_add_structured_review_v1/migration.sql",
+      "sha256": "d50fed528c9c0b8c799eeb8c38a9ce73b38d87342a1cfc93ffdb7a44c6ddbadb",
+      "bytes": 197,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260811080000_add_investment_theses_and_diary_stocks/migration.sql",
+      "sha256": "f78cd2f7442af3e3ab4ce2204a4978057af2e12a376ffd7821e022ba337a6972",
+      "bytes": 3383,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260815080000_add_research_source_types/migration.sql",
+      "sha256": "986614dea27a9e74fca2fffb2586392432454672b480e8d6cf79099532bb68bd",
+      "bytes": 362,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260901090000_add_native_refresh_sessions/migration.sql",
+      "sha256": "0f08f2cb6fda6df46ddd248252555f84871397d8042b2a31fd4c609688844267",
+      "bytes": 1353,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260901090000_add_native_refresh_sessions/rollback.sql",
+      "sha256": "f5398d734b25b184447ef4f8d441c82d84ecec7c60cbfe1ac5b504218f02d04b",
+      "bytes": 755,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260901100000_diary_v1_contract/migration.sql",
+      "sha256": "4a44588ff98e5cf9c3f5a0d2230f1c4f9e6874e51ac43645563c7a44f3df997c",
+      "bytes": 2186,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260901100000_diary_v1_contract/rollback.sql",
+      "sha256": "c86dd3955a028944cb8a3387ad97c65031b785b063eca51190fe8a5f42b8f4d3",
+      "bytes": 537,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260902100000_thesis_contract_constraints/migration.sql",
+      "sha256": "11bb46e364132001d5d76ef1b111e88f433aa4ad0f0b94d365ba58b92e8c5a44",
+      "bytes": 2565,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260902100000_thesis_contract_constraints/rollback.sql",
+      "sha256": "2b5497e0ff33a214199437719d627f242cf5e95bb37beac6aed65521f678177a",
+      "bytes": 616,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260902110000_backend_v1_integrity/migration.sql",
+      "sha256": "3d8e463a3820c86d8d56facfb78dabd5618079803cb1b6bba7ebcfbf6986c67c",
+      "bytes": 7427,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260902110000_backend_v1_integrity/rollback.sql",
+      "sha256": "46300aa9722760df4ebfb701e61076f6d59c89c6b4edf0d7c989821142752252",
+      "bytes": 1075,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260904090000_add_posts_fulltext_index/migration.sql",
+      "sha256": "31b26ec126b9b1570eadf6d3e3c14bb1caec20bd3e2186346c763c523f7ccc43",
+      "bytes": 256,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/20260905000000_alert_active_trigger_index/migration.sql",
+      "sha256": "c6e075dbe9dd1f33ecbc1cb9dd129f2b57f1575526d3c3e115cb3948a14aac60",
+      "bytes": 154,
+      "tracked": true
+    },
+    {
+      "path": "prisma/migrations/migration_lock.toml",
+      "sha256": "2af88c61808da511e8e7c9473df57bfbd81684b7f0f72309a9d2bdbf8aaf2dbb",
+      "bytes": 123,
+      "tracked": true
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "sha256": "4318d50d689d2ec02bae2c5b24156d4f101c9f61d4cf98b9d5229d37be907c3a",
+      "bytes": 35222,
+      "tracked": true
+    },
+    {
+      "path": "prisma/seed.ts",
+      "sha256": "11d7fccb712a0ebe0e081b6c51764c4684737a5a0e87ad928ab8a7efd688fdc4",
+      "bytes": 16967,
+      "tracked": true
+    },
+    {
+      "path": "public/icon.svg",
+      "sha256": "e1b424b9c571b6636c59ff4ad65a08c1337fdf2c92f0d1216547f5824636ec8d",
+      "bytes": 563,
+      "tracked": true
+    },
+    {
+      "path": "public/robots.txt",
+      "sha256": "a83f0ff44c9f95a0a3ac4a084be679147e7e797b65652ec1b4a28f93a94bb77a",
+      "bytes": 70,
+      "tracked": true
+    },
+    {
+      "path": "scripts/audit-diary-contract.sql",
+      "sha256": "0a4e1be9e83e278ff2582173210331d3db9b93ae31d2ac27e6c43b4fe2097f8c",
+      "bytes": 1121,
+      "tracked": true
+    },
+    {
+      "path": "scripts/build-and-push-docker.sh",
+      "sha256": "39f8c6372c68cd79e5846943b83cf88f8489d961859703e8e5100a19caa4fb2f",
+      "bytes": 5730,
+      "tracked": true
+    },
+    {
+      "path": "scripts/build-and-push-simple.sh",
+      "sha256": "6a304075914ce0af5817446fb332a5cda742a1bef58e9457989fff64abb57862",
+      "bytes": 5769,
+      "tracked": true
+    },
+    {
+      "path": "scripts/diary-duplicate-audit.ts",
+      "sha256": "2b1887fbb85e8745717dfba6364aa9ee3f5cc0f17bdbcfa240462d3b9563c124",
+      "bytes": 2397,
+      "tracked": true
+    },
+    {
+      "path": "scripts/diary-reconcile-duplicates.ts",
+      "sha256": "f80ce28e2be9a4093c01c5a4247c9da0ccacc6761b53213f13f6a5f833d32f50",
+      "bytes": 12856,
+      "tracked": true
+    },
+    {
+      "path": "scripts/docs-health-check.ts",
+      "sha256": "ffc43fd7acd2cef88534fa8a4b7a8b4e6865200281413e02ac1b8bff2e33c115",
+      "bytes": 13436,
+      "tracked": true
+    },
+    {
+      "path": "scripts/generate-icons.js",
+      "sha256": "32ac0c23f9107bb2d35d9badf2f4cd1d338884563e518d6988a2a27b1462f0b5",
+      "bytes": 2011,
+      "tracked": true
+    },
+    {
+      "path": "scripts/generate-icons.mjs",
+      "sha256": "aacc548372c9a355bce9f36d38cf6404cf8e8ce185949b9a4830a7baa65ff268",
+      "bytes": 1417,
+      "tracked": true
+    },
+    {
+      "path": "scripts/generate-png-icons.js",
+      "sha256": "f4ecce3029ba716b3175dd80b3fa28ab41e1b6668c244014e9221f6bed7f4c7d",
+      "bytes": 1851,
+      "tracked": true
+    },
+    {
+      "path": "scripts/health-check.ts",
+      "sha256": "09ea81705e76c1907f0a0ebbb9508f9d653d20d269795d87c0064b3add28c419",
+      "bytes": 5216,
+      "tracked": true
+    },
+    {
+      "path": "scripts/map-limit.ts",
+      "sha256": "78e15dbf9f9aec43f81536bd5738296cdf342da8471f1ab818fcdca05e1b65f1",
+      "bytes": 491,
+      "tracked": true
+    },
+    {
+      "path": "scripts/market-rotation/run-batch.ts",
+      "sha256": "5e0efc833ecf3d49680b1b19dc1d850a5e011041aa98aaa9b7533321783f0faf",
+      "bytes": 6762,
+      "tracked": true
+    },
+    {
+      "path": "scripts/market-state/seed-universe.ts",
+      "sha256": "7167756ed293f50c71dc9062cb6be2e4b553274a97c8b1fe315c698dc4b56d82",
+      "bytes": 5781,
+      "tracked": true
+    },
+    {
+      "path": "scripts/market-state/update-breadth.ts",
+      "sha256": "715522a6857078305b9215837df831ca2038857ac762459353decf8e13f67a8f",
+      "bytes": 6864,
+      "tracked": true
+    },
+    {
+      "path": "scripts/openapi/check-breaking.ts",
+      "sha256": "4ff96e7df143ddc74e9cdf8e6d15f5d1bd3eda137828920eaeb7cdbf7ed45ac8",
+      "bytes": 9580,
+      "tracked": true
+    },
+    {
+      "path": "scripts/openapi/generate.ts",
+      "sha256": "2101573dd06002e756e1a75add6d56eead2afdee532521bbfd7713608e071360",
+      "bytes": 1016,
+      "tracked": true
+    },
+    {
+      "path": "scripts/openapi/registry.ts",
+      "sha256": "c029955a5eda7010ea33e21b5be33a98bd5ff20a3db9a361893fd6f8fa298495",
+      "bytes": 28028,
+      "tracked": true
+    },
+    {
+      "path": "scripts/push-to-remotes.sh",
+      "sha256": "b37cda4fbae6ca0c353da40b69a3b7e29972469283f7ae126302ec5f51c0b8af",
+      "bytes": 1354,
+      "tracked": true
+    },
+    {
+      "path": "scripts/test-backend-http-mariadb.sh",
+      "sha256": "823682690d7dcf05c70736dda65bafa2ce917b687fc1d7661bd61a6fb7f1cd99",
+      "bytes": 32647,
+      "tracked": true
+    },
+    {
+      "path": "scripts/test-database-guard.ts",
+      "sha256": "2451239e78f203774d13509119094d40768ae9e16d3fcf201de89f9ae7bfdd25",
+      "bytes": 2542,
+      "tracked": true
+    },
+    {
+      "path": "scripts/test-diary-reconciliation-mysql.sh",
+      "sha256": "86b2f33e996b8d11ca801e5cbe06eca6b21f0eb03911687a113100e141fe8c46",
+      "bytes": 2848,
+      "tracked": true
+    },
+    {
+      "path": "scripts/test-market-rotation-mariadb.sh",
+      "sha256": "ff72fdc324420226ceb6d3ccccb80ae01c10f66ec43ae8f04127ec718f3cf3ac",
+      "bytes": 2908,
+      "tracked": true
+    },
+    {
+      "path": "scripts/tsconfig.runtime.json",
+      "sha256": "4dda6ef827577b47a833b347a4ddb134b068068523cca4f35c784e8c1cd5d085",
+      "bytes": 152,
+      "tracked": true
+    },
+    {
+      "path": "scripts/verify-admin.ts",
+      "sha256": "e6a70c989b5f96de2e2cd93ca1f29f10f4eaaf52d303892deb49252cf57f75f7",
+      "bytes": 2865,
+      "tracked": true
+    },
+    {
+      "path": "server/api/__sitemap__/blog-urls.get.ts",
+      "sha256": "9e985fba7ee2ed0ec22c1493d3ef9c5778b68d4a5e23551e4773344ce0c8893f",
+      "bytes": 542,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/diaries.get.ts",
+      "sha256": "6eb3874c5225b7f9519764f18e76cae5955622ba5447cfdc131345bac6c08b6c",
+      "bytes": 672,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/etf/[id].delete.ts",
+      "sha256": "be1fee7e366619b93399ab766af0d8ce116ad908c6eb53372aaa47f2dd4b8604",
+      "bytes": 746,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/etf/[id]/initialize.post.ts",
+      "sha256": "c7b4e37b26690ccd9e1eca24df3f39ec791709959ec54efbee3e186d921c4fb8",
+      "bytes": 763,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/etf/index.get.ts",
+      "sha256": "3bfcefd03fad6fb494e6c694273082ef83299309fa5c6a6bd1c6702bcc6e83af",
+      "bytes": 833,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/etf/index.post.ts",
+      "sha256": "9a1cb0a39fbc95ae8e5ee7ee984b5ac04fe575989592ad167c66ada985852547",
+      "bytes": 770,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/etf/seed.post.ts",
+      "sha256": "4ec444e9506221cc9cdf96cb469e18bff629e380773f2821b74b09fa24856e70",
+      "bytes": 597,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/market/rotation-batch.post.ts",
+      "sha256": "3d45da787f22b4436827485c68d209e16263750a64a0cd56cf7fd83e1d4c0f46",
+      "bytes": 1796,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/stats.get.ts",
+      "sha256": "55a79fc0277c00b684e767745eb3be8aa083bd0f41dfb1a28335034cad5180d2",
+      "bytes": 568,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/users.get.ts",
+      "sha256": "fb97e43a534b9c84d48f8ffa99cfa3534f31d159a75575b04bf87203902312b4",
+      "bytes": 650,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/users/[id].delete.ts",
+      "sha256": "50bc89592d4bb60c973ea36d8cdb8ca256507a80bebdd868fadc8cf75649e743",
+      "bytes": 822,
+      "tracked": true
+    },
+    {
+      "path": "server/api/admin/users/[id]/role.put.ts",
+      "sha256": "77ce000b199359059b6a500ae2951461174e42621794369a49bf882259087f99",
+      "bytes": 906,
+      "tracked": true
+    },
+    {
+      "path": "server/api/agent/diaries.post.ts",
+      "sha256": "3843ffa23315be373773ef706e908101851f9b924d6c3735a03122e6c1a00dd8",
+      "bytes": 1334,
+      "tracked": true
+    },
+    {
+      "path": "server/api/agent/stocks/[symbol]/notes.post.ts",
+      "sha256": "544cda875caef17e8d761f631905880f593cfd15ca2e4210fc7b4fda0d01cf25",
+      "bytes": 1358,
+      "tracked": true
+    },
+    {
+      "path": "server/api/agent/stocks/records.post.ts",
+      "sha256": "21892834cac85e67be8df53558bce474f4e433ee35dcc0ac9bc5a4ce655a545a",
+      "bytes": 1179,
+      "tracked": true
+    },
+    {
+      "path": "server/api/agent/stocks/watchlist.get.ts",
+      "sha256": "443929300d9a0a20b3d4f3669e60d50f1942a9c7d872fa3f0cccd9f9c3d70a93",
+      "bytes": 629,
+      "tracked": true
+    },
+    {
+      "path": "server/api/alerts.post.ts",
+      "sha256": "977d756f3d9404020823ef141725380b8e67a9f58f006f7f3534a47860cb1c71",
+      "bytes": 886,
+      "tracked": true
+    },
+    {
+      "path": "server/api/alerts/[id]/dismiss.put.ts",
+      "sha256": "ec0b38c28619002c3621a93a1c3b0873c02398b556c3ff7ef720dedb7c7a752c",
+      "bytes": 791,
+      "tracked": true
+    },
+    {
+      "path": "server/api/alerts/index.get.ts",
+      "sha256": "b362009b9f03645078141b0c7df5d2d489325c068afc7ea851f21d65784c613a",
+      "bytes": 609,
+      "tracked": true
+    },
+    {
+      "path": "server/api/api-keys.get.ts",
+      "sha256": "f83b4a15675ac6663e0ae2a385cfa89e1b785318d3b9559a6fdce666aaccde11",
+      "bytes": 350,
+      "tracked": true
+    },
+    {
+      "path": "server/api/api-keys.post.ts",
+      "sha256": "ff66334f9a47ef20803ad2beccd3f5324b653c32f5da8e1b410140915da413b9",
+      "bytes": 980,
+      "tracked": true
+    },
+    {
+      "path": "server/api/api-keys/[id].delete.ts",
+      "sha256": "382389e0ef6d88a2e02dfc84714de98e45ae8013f5f2dea6780aabee289f324e",
+      "bytes": 635,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/login.post.ts",
+      "sha256": "7149acc7f30281ccac03c359672463c03a27c6d297c9bd54c3c9e5dce3d911a2",
+      "bytes": 2600,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/logout-all.post.ts",
+      "sha256": "aa0442b04798ab3582cea9ccdc7725d143b90c0c48da0c55abf3ed5cdf7b9d29",
+      "bytes": 650,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/logout.post.ts",
+      "sha256": "ede78f7808195af8bf2535a0a591ea41a4098e6ad90dd588138175cb0a57eb7c",
+      "bytes": 1497,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/me.get.ts",
+      "sha256": "c3f72919332b3f5b56070e14801f9a39443b9934bf54fab449dcb220abcb6885",
+      "bytes": 681,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/native/login.post.ts",
+      "sha256": "60fed55f2518d0d33003f02d96435cfdc3447d3c56e84d001e79b9429616d9ea",
+      "bytes": 1037,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/native/logout.post.ts",
+      "sha256": "7c801065fc2de963b73f5f85cbdbac9de3b461d76ed07659b87726c996f137b3",
+      "bytes": 630,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/native/refresh.post.ts",
+      "sha256": "39b803ed65e567bd32d7b775aef7a4ebbe0ef5a8360e90585b86f0e18eda5425",
+      "bytes": 1093,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/refresh.post.ts",
+      "sha256": "1dd50d797866939465b06961d72df220f64d22301df4c03b7e62e6d0b52eaf58",
+      "bytes": 2159,
+      "tracked": true
+    },
+    {
+      "path": "server/api/auth/register.post.ts",
+      "sha256": "0b253a72201914a4594ca0a113b2519d600f57e88fc385479714d1b28998adbb",
+      "bytes": 2304,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/[id].delete.ts",
+      "sha256": "798c44f52ef1929bafa2cecac2e099f23145950ce687844aa3c1312c5078372c",
+      "bytes": 663,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/[id].put.ts",
+      "sha256": "3e0f94b8da5191df6d92972d85f72d81f70dc8b39ac4779794d74dad2a518459",
+      "bytes": 825,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/[slug].get.ts",
+      "sha256": "d6b91730dcea550b7c250f683ed8541cfb3ff7f4d6bf313c5e7e57547a6f64da",
+      "bytes": 2149,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/[id].get.ts",
+      "sha256": "98081e61f1b5e7688e1a21e9c8499cf5943e9bd35a297275f8687c984077ac44",
+      "bytes": 901,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/[id]/archive.post.ts",
+      "sha256": "9139a4ff3c304fbca206d93e02c67e0a54d697a5da8a6c53bd9eb346e7f11be8",
+      "bytes": 693,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/[id]/publish.post.ts",
+      "sha256": "eabf9e9179d9b71c989b8e16232a05900ac96b40ef43c5d48c1c76dff235c176",
+      "bytes": 695,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/bulk-delete.post.ts",
+      "sha256": "e08970aca8cd5dfd8c71cb3fa4cdde9aac6d34ea8d778c7210995d6ded0cd5a5",
+      "bytes": 493,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/bulk-publish.post.ts",
+      "sha256": "ee99a03906e603c4952cd080637e85a281e264840a93110c8d4db2be625742e2",
+      "bytes": 468,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/admin/index.get.ts",
+      "sha256": "5e457ed9344a2cd0ded05594c5dd08547d4bb69b41a54c5591c9bb07c8068f47",
+      "bytes": 523,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/index.get.ts",
+      "sha256": "9bb92cbbb3e928963d92f6032b8b5adbbc8072ddc856023d83e366a30001f05d",
+      "bytes": 556,
+      "tracked": true
+    },
+    {
+      "path": "server/api/blog/index.post.ts",
+      "sha256": "3bbebf8be27ae8c1c4f7c160e2c0bab20a2fe74934b962ba1fed27a2a7ec5e98",
+      "bytes": 773,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries.get.ts",
+      "sha256": "bf3330243838e6f49735c9b40b9b6cfaddec9436fefdbecb15007f02ca7f68f5",
+      "bytes": 1358,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries.post.ts",
+      "sha256": "c36369d9dc4edf3a265f41918b58626f37e418fea75d8010236ef0ccf840ddeb",
+      "bytes": 1114,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/[id].delete.ts",
+      "sha256": "fde9a91089fde6b6a44e5dba50c4e1c384dba435fa2ec39024a6c0f1b6967f53",
+      "bytes": 751,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/[id].get.ts",
+      "sha256": "2b6eb8cca48cb7eeb3a78e7781a0cae05151a5a0a18cde7284ad628da8eed273",
+      "bytes": 949,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/[id].put.ts",
+      "sha256": "1275471847ad49d6d57157d08bd0db239dd9701ecb47f95db794093288ad551f",
+      "bytes": 1072,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/[id]/review.get.ts",
+      "sha256": "ed6f4fddad7056033ca5769218b59f557fe95f3e3dda4eeae3411540a7fae888",
+      "bytes": 726,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/[id]/review.patch.ts",
+      "sha256": "81c84d289cfa16dc5f1f40d4d530b44c39eafb284fd62d96c2876c48647bc5a8",
+      "bytes": 1068,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/activity-feed.get.ts",
+      "sha256": "93a95c455e218730b336a2a64e5ffbfc1620ca2385e271e85dc95ff0a9b6e8e7",
+      "bytes": 210,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/activity.get.ts",
+      "sha256": "eef40a1b7b1b4315912aa77bcbccdf467118b23c55c3d021c93bf92fd8f43c22",
+      "bytes": 1745,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/by-date.get.ts",
+      "sha256": "b70c0203ab1651a786f11cfdaf574dbd4f4568de52756706940708fee041a688",
+      "bytes": 1202,
+      "tracked": true
+    },
+    {
+      "path": "server/api/diaries/summary.get.ts",
+      "sha256": "52ae4222563d36e89cd61703cbfa799b8e405785c9d43883c4bd42d647ec4040",
+      "bytes": 762,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline.get.ts",
+      "sha256": "658e4e9012b9b7e02520ce0dd1a7649bc2d9c52fc5db1be96c0331524f813793",
+      "bytes": 643,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline.post.ts",
+      "sha256": "785c69126b479090632a27441c03f335b47e2daf526a03296ae88966b4fc8d86",
+      "bytes": 814,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/[id].delete.ts",
+      "sha256": "5b05f7a2a52e0b12a969474f24de2026e25b2f6d6f1afc0ba7f2c6390da625c9",
+      "bytes": 777,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/[id].put.ts",
+      "sha256": "cb277b96a7d5290261b710cf65e1f5bde2dcf950cb2a96321e89a6abdd1903e8",
+      "bytes": 909,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/export.get.ts",
+      "sha256": "528c92d599d425279b4e88b7c4b2626a7f382a3f840db0d765e546e5a6c29772",
+      "bytes": 1984,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/import.post.ts",
+      "sha256": "12b7840c8a7b94897cfd6aecb90f9fa1546c37454a0f9d7f5b8ce2587e949ce7",
+      "bytes": 1708,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/random.get.ts",
+      "sha256": "ad34ba40c2c15fb40163632473f19e827257bddf55aa40f6267205a7fb0fc8e4",
+      "bytes": 1109,
+      "tracked": true
+    },
+    {
+      "path": "server/api/discipline/reorder.patch.ts",
+      "sha256": "cbcd43134806129cd84d9ea8630caa302b643a323926e2668ed9c0ff563c2b72",
+      "bytes": 759,
+      "tracked": true
+    },
+    {
+      "path": "server/api/etf/watchlist/[id].delete.ts",
+      "sha256": "9b5e0c3ca6ea2e089f2f1231266871290044aa4072ce86e9812b12c69824c084",
+      "bytes": 706,
+      "tracked": true
+    },
+    {
+      "path": "server/api/etf/watchlist/index.get.ts",
+      "sha256": "187009f6400ca4e4a1969de62ea40f46e0189652d25e9eaef3baee226cadbedd",
+      "bytes": 673,
+      "tracked": true
+    },
+    {
+      "path": "server/api/etf/watchlist/index.post.ts",
+      "sha256": "f48d32413b1fef2bb586b3e6121341e57384a104c833a4124d5157cfd42e3231",
+      "bytes": 1261,
+      "tracked": true
+    },
+    {
+      "path": "server/api/health.get.ts",
+      "sha256": "d43f3e481aa00b5846cc12523b04260543951769b41168f1df8cebcd08273e07",
+      "bytes": 1519,
+      "tracked": true
+    },
+    {
+      "path": "server/api/holidays.get.ts",
+      "sha256": "bb1b735e7a46fa1f86de15413ce7dddb684b396a9654464335fc5a19b39fa803",
+      "bytes": 1126,
+      "tracked": true
+    },
+    {
+      "path": "server/api/investment-activity.get.ts",
+      "sha256": "f12860ba9293b7af54523fe78896638542116ab88b3ed4fea46f1fe20b0fb1f3",
+      "bytes": 1196,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/historical.get.ts",
+      "sha256": "9576944f38f42c48f94ad7c388aa4ddcde620a6be96063a112443f21140fab9e",
+      "bytes": 1477,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/quote/[symbol].get.ts",
+      "sha256": "a3885053a601ced68c7cb44b1087aaf622effa6404e104e70beb13aa2123bb2a",
+      "bytes": 1134,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/rotation-monitor.get.ts",
+      "sha256": "23a5a48be026e5163979ede6488b46d9bc8966324c3936472c3976680bfad1b8",
+      "bytes": 1602,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/spx-session.get.ts",
+      "sha256": "8ee50aeb8897d7feaf193c13014206fd0f7fa61a6734c3ac826c1a553053403f",
+      "bytes": 1098,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/state/history.get.ts",
+      "sha256": "0da235592f156968c84734e3d6c2d0cec8f9db3531bb6af5340d35d30b6a0aa1",
+      "bytes": 764,
+      "tracked": true
+    },
+    {
+      "path": "server/api/market/state/snapshot.get.ts",
+      "sha256": "25a980a81562bd2735bdf648f993868613593a4e3a458fd9fb864b71983ecff7",
+      "bytes": 968,
+      "tracked": true
+    },
+    {
+      "path": "server/api/og/discipline.svg.get.ts",
+      "sha256": "21f9802a39e18d225ee09b40fad96d404114ca7e249e6c6a8184130f61f998ac",
+      "bytes": 1833,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners.get.ts",
+      "sha256": "c7073e845012542eda00eabbccb961732ea04cbf0c3c50e997f5bebb5f83be8f",
+      "bytes": 632,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners.post.ts",
+      "sha256": "8f58b8593a2cf6c9e86d2435b0fd69035b8e4e69fc6c644e409ed30b1c57dc81",
+      "bytes": 1332,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners/[id].delete.ts",
+      "sha256": "8f9d1fab38834e945cf6616d84292fbca17e3d36bd65efccbf1729d7e41848a9",
+      "bytes": 631,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners/[id]/accept.post.ts",
+      "sha256": "16ac30e7bfa0f7dad84af0aa5ea6bd8eb791964f01c8a9d1772c5506246a0a28",
+      "bytes": 904,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners/[id]/sharing.put.ts",
+      "sha256": "284d9d96ee42e1d41b61c41f08b507d89d7d838c256af32315558e6c25674b20",
+      "bytes": 1315,
+      "tracked": true
+    },
+    {
+      "path": "server/api/partners/compare.get.ts",
+      "sha256": "dfbbb202f5bf6e3c486fa88fc9660f169dfa39d9c0831a248ae9028db88261aa",
+      "bytes": 2115,
+      "tracked": true
+    },
+    {
+      "path": "server/api/portfolio/attention.get.ts",
+      "sha256": "e573e5e820aaa5e0144d03908dc85527cd548f6b0d06d54f57a2d0cab9c15d84",
+      "bytes": 3291,
+      "tracked": true
+    },
+    {
+      "path": "server/api/reviews.get.ts",
+      "sha256": "dffa28c2e4ec403f8dc86ef63aba639d2ab07c03343d7ba7934e24d921ac42cd",
+      "bytes": 848,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stats/export-trades.get.ts",
+      "sha256": "a1ee927fc775a27b29f6b67797271f4e15a4990b88f33e03d1220cdf9f668c2c",
+      "bytes": 2595,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stats/performance.get.ts",
+      "sha256": "d523295d2b2de64fa950d80bc7a55983c85a8173d1d13858ab6a9172a9992eed",
+      "bytes": 2044,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stats/recent-trades.get.ts",
+      "sha256": "2dae15ed7b4810c8961fe4e3bbe7ee09f2d20c8534266ab18bd02da2609ea37d",
+      "bytes": 2444,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/evidence.post.ts",
+      "sha256": "c730ce4726a168aab4a54ee1ed77e616a370b177471121f3d06aecc16170081b",
+      "bytes": 1115,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/hub.get.ts",
+      "sha256": "d7f2d523e22ad628432663c62f55a7b50fe776bb2d2fa1b3255e49710979b60c",
+      "bytes": 724,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/notes/[id].delete.ts",
+      "sha256": "99f5681d18eb216a8d44b27d898a81b5410d6f1a0f323a5f0d947bbcb43f42c2",
+      "bytes": 1330,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/notes/[id].put.ts",
+      "sha256": "6558567ec9171c7e553179c7070615091de665da0adae614915c4317b9c422a5",
+      "bytes": 1590,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/notes/index.get.ts",
+      "sha256": "4a5d7654138a22b4a4d9d5d9bebe229610a1e0a887c726a07d2079caf13595b4",
+      "bytes": 2021,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/notes/index.post.ts",
+      "sha256": "40b1884913e563d19c722807c4961fbb583b4a56553f4ef6e7aa34d8d1f92887",
+      "bytes": 1157,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/thesis.get.ts",
+      "sha256": "e4243f9951407c39c0b8f4a37138e70da481f3b8ac5c1372070b24715f819b68",
+      "bytes": 1365,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/thesis.put.ts",
+      "sha256": "528f470258d16f12f827413547a6d32447c2d02554a08ca12633da27b7b20d0d",
+      "bytes": 1192,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/thesis/reviews.post.ts",
+      "sha256": "8b87240cda466bf1085c914fd5dc54491d7cc2df404f7548158a1027216ada71",
+      "bytes": 1228,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/[symbol]/timeline.get.ts",
+      "sha256": "e47eb7bd5f9e3d58899c4804ea02734ce68a213f30fc9d78b9b16ac4f03e736c",
+      "bytes": 1117,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/alerts/[id].delete.ts",
+      "sha256": "3339be2233bbeea6487fc563a4c49a443b8bb4fb27534eb2b55d14e83e6ef422",
+      "bytes": 710,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/alerts/[id].put.ts",
+      "sha256": "6701a02c59bc0ead44187112f11586c8bbc1d0ba5ce694bd83b499d47070e68f",
+      "bytes": 813,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/alerts/index.get.ts",
+      "sha256": "076bf5cb7d5b619a8fe61e63c0d7ad3cd8c2918693c4a4046af1c53c088ad9dc",
+      "bytes": 735,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/alerts/index.post.ts",
+      "sha256": "0907298a1fb07519f57386dbf06387e56a85528bebef2360c93bfa7e37263858",
+      "bytes": 686,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/attention.get.ts",
+      "sha256": "79d8ede310f176df421e3b291e32fcd4d685b017db6c1cf8889a8070173c3a21",
+      "bytes": 63,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/exposure.get.ts",
+      "sha256": "143c751714736b9dd396abb58c48c7a9091a3828b26a0884de77bd72f12b10f8",
+      "bytes": 4356,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/holdings.get.ts",
+      "sha256": "b84e4b4a6e0ce87a0b1abe676a2b67e6da0f9f79ae6b21e08de293d138b53fb8",
+      "bytes": 815,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/portfolio.get.ts",
+      "sha256": "96466733d77d4befdc592a6372105e946338e25b690054f6ab508240759f0267",
+      "bytes": 929,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/prices.post.ts",
+      "sha256": "e418ff1ffaf707c1c09a59687c7c451d31491cbedea6839508a613a29cf55156",
+      "bytes": 1570,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/timeline.get.ts",
+      "sha256": "cb6eea2e5f7e21618ad139a177decca983f0e836d872ef3c17d51cc288338d19",
+      "bytes": 568,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/watchlist/[id].delete.ts",
+      "sha256": "687f3dfdddec0064023db32a04a568db63556ecda1406dc6bcc3c33dd2103a59",
+      "bytes": 886,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/watchlist/[id].patch.ts",
+      "sha256": "3f61751ce9a46dfcb6ecde35ade1f90fb224c0b9de0d3c76e27dd3aa3547e083",
+      "bytes": 1323,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/watchlist/index.get.ts",
+      "sha256": "74a5a8c1d42b19de51e959c16892057c3082ef21eb7b557009f9033274db5523",
+      "bytes": 400,
+      "tracked": true
+    },
+    {
+      "path": "server/api/stocks/watchlist/index.post.ts",
+      "sha256": "e903535810e3d3c6b5c79e2159b915ceaa850b15c36fffe1aa1b6cdb93e0bf81",
+      "bytes": 993,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/batch.get.ts",
+      "sha256": "35a5c27aedb300bf3699f896ac146ed317a883f0a583d56a845dbe956e21f369",
+      "bytes": 816,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/companies.get.ts",
+      "sha256": "f09f8fce297c4eb7595df46fa98d35857a281db5b3d4655db71bb077d6ca0813",
+      "bytes": 729,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/companies/[cik]/filings/[accession]/documents/[basename].get.ts",
+      "sha256": "53218ed204e3e7aa2df620db031dd486fd286ecf58274e7ad7aa4a035a5d243c",
+      "bytes": 1149,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/companies/[cik]/filings/[accession]/index.get.ts",
+      "sha256": "ff8b1048b583e347487681e1768715bd9d57a8ddf8973e7077ab01619a4f4e61",
+      "bytes": 640,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/companies/[cik]/filings/[accession]/package.get.ts",
+      "sha256": "8d806c756cd5434bba8ecd4f47a1270131bff2ae37407a19e9407b07ed1faa4e",
+      "bytes": 994,
+      "tracked": true
+    },
+    {
+      "path": "server/api/tools/sec-filings/companies/[cik]/filings/index.get.ts",
+      "sha256": "028c3c0d5cfa18aa9afac2aebd76c924e71bb4643e71a327cc77f4d96990ad71",
+      "bytes": 1029,
+      "tracked": true
+    },
+    {
+      "path": "server/api/trade-plans/[id].delete.ts",
+      "sha256": "7e721de40d078531bccc7a569211bf15a2c9d06b8f475ed3618a3354589319b7",
+      "bytes": 885,
+      "tracked": true
+    },
+    {
+      "path": "server/api/trade-plans/[id].get.ts",
+      "sha256": "2b456227d02ac5b3ca91c732fb37042b500456da5214b930f5572153e5ee6593",
+      "bytes": 776,
+      "tracked": true
+    },
+    {
+      "path": "server/api/trade-plans/[id].put.ts",
+      "sha256": "60d63ef226322f061fe74997b8568721e2339bb70d94b2bb0ff6bbb9b60380fe",
+      "bytes": 2615,
+      "tracked": true
+    },
+    {
+      "path": "server/api/trade-plans/index.get.ts",
+      "sha256": "14fdd212fb4cae62395bd69fa151d3aa836d5601bcdc658fb53c59ef2ea80a08",
+      "bytes": 1906,
+      "tracked": true
+    },
+    {
+      "path": "server/api/trade-plans/index.post.ts",
+      "sha256": "07c194ab5d25765d212946c33156173d3170b1efc1706eb902315ed589a80754",
+      "bytes": 1699,
+      "tracked": true
+    },
+    {
+      "path": "server/api/transactions/latest.get.ts",
+      "sha256": "afc49c360d5c78f35ab90c7ebdaf688df6e33b29e4e62f2e2c455dd8ff66d3a5",
+      "bytes": 983,
+      "tracked": true
+    },
+    {
+      "path": "server/api/user/password.put.ts",
+      "sha256": "8c1c40f38b8b35960fcc8b6560f0e8a43f54522a98a8b5f98e373e94cbc7d745",
+      "bytes": 1590,
+      "tracked": true
+    },
+    {
+      "path": "server/api/user/settings.get.ts",
+      "sha256": "7106b0997957fc7dee394c8a9f7a350552dda1a2a5d68b6d9fb0ea2f64a6a225",
+      "bytes": 533,
+      "tracked": true
+    },
+    {
+      "path": "server/api/user/settings.put.ts",
+      "sha256": "542a08f75aa3a89fd0455bba8231723ef602614277e0f0c62d2297422afde6ac",
+      "bytes": 645,
+      "tracked": true
+    },
+    {
+      "path": "server/config/env.ts",
+      "sha256": "cd62006b48969c0b8159278dc1f202b93f33704a7edbd8165f83f27d394b51a0",
+      "bytes": 6925,
+      "tracked": true
+    },
+    {
+      "path": "server/middleware/admin.ts",
+      "sha256": "f6f55e708bb7d1d35efad122a565f904901b467e75264f99a9a42eebd4d30ab9",
+      "bytes": 1376,
+      "tracked": true
+    },
+    {
+      "path": "server/middleware/auth.ts",
+      "sha256": "3b784929a12146b954b37c70b853afb7acae56d723f3f0b411da7080f0d1378d",
+      "bytes": 6363,
+      "tracked": true
+    },
+    {
+      "path": "server/middleware/csrf.ts",
+      "sha256": "a81006af2ac94814eb4a4f3e0e0bfdce2f3a6a9f701dfc90d139369dcf02f2d3",
+      "bytes": 2787,
+      "tracked": true
+    },
+    {
+      "path": "server/middleware/rate-limit.ts",
+      "sha256": "5930491a15277c7f870f5409980ce4bc0b502cb0899ca90473ed4c480e09af92",
+      "bytes": 819,
+      "tracked": true
+    },
+    {
+      "path": "server/middleware/request-id.ts",
+      "sha256": "8d70912ca8775e80a7ddd6a80db51803666a217ebca850e28313c1c3924653fe",
+      "bytes": 667,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/00-runtime-config.ts",
+      "sha256": "d54148cf3141692bb852876897619d147f89b6db864199442252b7173c91da73",
+      "bytes": 2205,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/alert-scheduler.ts",
+      "sha256": "d4e3068ebf2e6ac5f83464d069a760dcf6a6cba1981ad9176bcf311f07eb6d4e",
+      "bytes": 2093,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/bigint.ts",
+      "sha256": "da69c943eddc5f92bb9bc88aa2c440e69b0ae9625f5cf96ff0f25b6ec4cfc809",
+      "bytes": 133,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/error-contract.ts",
+      "sha256": "391a53c76300031909a9f997e5df2b7a253ae6b15a5eca6c76706e7ff05d4a57",
+      "bytes": 1208,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/etf-cache-cleaner.ts",
+      "sha256": "2d2d4ed46a6a6ea2a56e69d8751d937331ad037535b2d003722fde5b2b75f06a",
+      "bytes": 1406,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/jwt-config.ts",
+      "sha256": "a8265bd6070fb5cf2f51ba88d1f60a22eba5629291cca1f6eafa0f96bf0eeca8",
+      "bytes": 123,
+      "tracked": true
+    },
+    {
+      "path": "server/plugins/websocket.ts",
+      "sha256": "ddaef5c620baa9b27b1300b5b943d7a491fd06c904a7a9974c64f49382037e18",
+      "bytes": 2261,
+      "tracked": true
+    },
+    {
+      "path": "server/schedulers/alert-pusher.ts",
+      "sha256": "35c696be735e225c908b8df2a94bc8d1cf0321d8ef26644c1fff5c119e685731",
+      "bytes": 5156,
+      "tracked": true
+    },
+    {
+      "path": "server/schedulers/price-alert-checker.ts",
+      "sha256": "db27bcdc35743e4626b671b234802eedacc0e7ec12013ab261da8b00ac8af3ea",
+      "bytes": 5882,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/alert-persistence.ts",
+      "sha256": "fd0e7365530e6d73a667df024716d6e66330746527ecab9a9bcdc2e4f49cab48",
+      "bytes": 2465,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/alert-queries.ts",
+      "sha256": "74d503601a5fd8a2775dc844b26361164f0c333f949d6f1774753dcdb7baa8e9",
+      "bytes": 6913,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/api-key-queries.ts",
+      "sha256": "54abab3de0814a38b0f072c1e0631383eae930930b97090e30a966f657013cb8",
+      "bytes": 3769,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/api-key.ts",
+      "sha256": "c83a94f3731d7a3bbd3664a9fc664b361fbd0b4c3b6798b4689ff70fd55c1ad5",
+      "bytes": 3033,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/auth-session.ts",
+      "sha256": "b2f244a34fc50448d6a79ea1ca77623d0ab880dc1d114fc35d159ffdb8755ac3",
+      "bytes": 4157,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/auth.ts",
+      "sha256": "508f17f5d026c52194fac3345d5be33094894b6ee225a1f19c0345469819a14e",
+      "bytes": 1820,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/bearer.ts",
+      "sha256": "1c653cfc8f448b9fcb031039eff2a598a565352e19db87344c42e6de23099133",
+      "bytes": 331,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/blog-schemas.ts",
+      "sha256": "a93d582f7420ccb23d31ebc4b0958559c6e44583ea1b09e7792e89ff6dfe8c20",
+      "bytes": 2619,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/company-hub-query.ts",
+      "sha256": "d2bb9eef1242c18b66aa280a9e55d396d70d3affd31765d27f2647c0d91ea141",
+      "bytes": 7597,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-activity.ts",
+      "sha256": "01f27304813170203eb09168cbd2bcb558630cf8a0dc87d06b3cb2f810f64cf4",
+      "bytes": 1577,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-read.ts",
+      "sha256": "77374b37ce255ed933c1a5d57e37091fddbf027419f67ff6629118a75feba8d2",
+      "bytes": 17034,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-response.ts",
+      "sha256": "4a6dcc07e89fd973c8eb0c8e4feaacecb14164b4f9a6b770c9974dbdb0adb47f",
+      "bytes": 8619,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-review.ts",
+      "sha256": "0072d8817838658ef07cac4aca065fd4406fa76bc4a1a638e9066eeb64d18dca",
+      "bytes": 2360,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-stock-context.ts",
+      "sha256": "1a925fc0ada6242f155a3afa179f39ab7ecfdf94dca5b2f191415cf8f927cdda",
+      "bytes": 2672,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-summary.ts",
+      "sha256": "fa36c8d95c120347ad2f99fa267e34e9e92dc916be4490065c978cc77d1c4105",
+      "bytes": 3639,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/diary-write.ts",
+      "sha256": "b70785af7e0f049b840a3c5a9bae4fd69e1a050feaab1d91c208339dca98be0a",
+      "bytes": 19646,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/discipline-queries.ts",
+      "sha256": "097208d24421a90521efae28eb8e095ccd920d992235669418e1fca3c884e690",
+      "bytes": 8279,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/error-handler.ts",
+      "sha256": "80b913d6d01452a398cb5b114d13e1731723b4612f7096eaf49b5108cb56a187",
+      "bytes": 811,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/etf-admin-queries.ts",
+      "sha256": "74c47302e0eabe4caab5f11beb2cc2447789bafdff31cfeacebf45c586f0780a",
+      "bytes": 5768,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/etf-watchlist-queries.ts",
+      "sha256": "602b7b13ed5594360e8fa0230f6e76f2bf16e271f6b061f8813ac41dda6588e5",
+      "bytes": 2109,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/hash.ts",
+      "sha256": "b52a8337bbac24ba61701dd85f741676c161ffb819508bceba2df4d67756c75d",
+      "bytes": 372,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/investment-activity.ts",
+      "sha256": "b8ce5c11f3d552756a5c909a80007a056138c36c137b3a584a660fd2d88f1401",
+      "bytes": 11027,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/investment-thesis-queries.ts",
+      "sha256": "7036fdd38c5a4a4700d27e468fd9dd7b74d783a8e8a585b890a34b9223cf1d9e",
+      "bytes": 9714,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/market-rotation-batch.ts",
+      "sha256": "c2364fbdce48b91d90b27c3d9981fe613605c5808637cf1682e64c8c893704dc",
+      "bytes": 10257,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/market-rotation-monitor-queries.ts",
+      "sha256": "c2340069cd815f17e431eae8ed293b5f7c259e820f378f32830b2ae78da96825",
+      "bytes": 13153,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/market-rotation-queries.ts",
+      "sha256": "1f26bce1cd1292c143b4e80f35682c1ae2bb1638f946b3c89388fa5776a17ad9",
+      "bytes": 12100,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/market-state-queries.ts",
+      "sha256": "9992fcf5425f25fdf7393709ced276f1896d9289d3fcda7822a66bfef373b374",
+      "bytes": 4468,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/native-auth-session.ts",
+      "sha256": "b31ef3c27e9a493f50acc07c41d6f37cc3b4df7525c3157f6cd1d38dc7f82f52",
+      "bytes": 5565,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/partner-compare.ts",
+      "sha256": "bd41bf7c771b9963de2264f6f2f281b03e91a23fb5e693049797665a01374aa5",
+      "bytes": 3047,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/partner-queries.ts",
+      "sha256": "f74d431e73463357889424f8313194cd21a33b24120555cb721e204ae67902e7",
+      "bytes": 5588,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/partner-response.ts",
+      "sha256": "6752d05173e0c196cf7350d0d44f1c0f98b8f6840d52c4ce42effec057f7de0a",
+      "bytes": 852,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/partner.ts",
+      "sha256": "fdc8cb9375638af735ad529156b1ca364b5ccf3707314ac812e133800e714b06",
+      "bytes": 4349,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/performance-stats.ts",
+      "sha256": "c15f8d9b5634ec9e03ceddad4403028dfb49842795615953d5aa8319ca05645f",
+      "bytes": 7461,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/portfolio-read.ts",
+      "sha256": "f64cd6550d7ce945d699eed3ccb1c9cb44e7638a26e77a59e8509c7d5a5de917",
+      "bytes": 2754,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/post-queries.ts",
+      "sha256": "58bfffb5ebbb36054a97b84cf3752f9b77ee27187f4ebef31aaf3c2208490f28",
+      "bytes": 9516,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/post-write.ts",
+      "sha256": "35c25a3d162463ede69a73e5b63f8a499511f3d001e5b544ec542cfab5fcfbef",
+      "bytes": 4859,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/price-alert-condition.ts",
+      "sha256": "bf7352a4438fe6a43eb98b1df5d28ed9351f6ba45f0887e6985f547c77910bb4",
+      "bytes": 844,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/price-alert-queries.ts",
+      "sha256": "986d3308da09092f2df62222780e327ca6177a30bdbd3288391430ea14a18d96",
+      "bytes": 4184,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/cache.ts",
+      "sha256": "bd330311604cf1962f3a000bdd5037d0d369ae4b525c6fa246cdf87605c6e2b7",
+      "bytes": 2411,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/client.ts",
+      "sha256": "798134b47381cf662f8e95167f3fabc56b47e30675593aa8ab353885debfa18b",
+      "bytes": 7685,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/download.ts",
+      "sha256": "c305c2b2e3323849bfdf48f1fe64e98b4c1f73d42e5366924a852655fec7c51b",
+      "bytes": 2412,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/errors.ts",
+      "sha256": "4bfb1d3f841b3f31e8c96f638f1f228e0b741ff49f7f6e096c77171828a615d5",
+      "bytes": 353,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/http.ts",
+      "sha256": "2587387f8d465c8f4f2a390952f96bb2e9050e9dfe2c1a8a5eb6f02f517f1114",
+      "bytes": 1633,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/package.ts",
+      "sha256": "912e07836bca642e366094064ad713b72c0c0eade58ec4e88e20473e4529b153",
+      "bytes": 5463,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/queue.ts",
+      "sha256": "fe88b3c57f77346dceda54a31da5eb3dd08a018249ac650fbbdc6247b9751765",
+      "bytes": 1995,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/runtime.ts",
+      "sha256": "6099bbe943fdaff281d86a5809cfec201fe52e5295b28d39ce6713ce309bc11f",
+      "bytes": 439,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/service.ts",
+      "sha256": "d18a32cbfe8e33e7294a38d77712d17603cebff0f722b7eec65df30376bed861",
+      "bytes": 17246,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/sec-edgar/validation.ts",
+      "sha256": "9ed4581c1eb55c86191dda23a95f61d8849bcd02d09306b85abed20f00b4944d",
+      "bytes": 3050,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/serialize.ts",
+      "sha256": "7a63d57bbadbcd0e13664666a1bd9a4438223e7701dc22ce18dae51a6f18738d",
+      "bytes": 3293,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/stock-timeline-queries.ts",
+      "sha256": "b0619d717f922f2c544d3251fa5ef3f3d544df20f13842490a69af38f439961b",
+      "bytes": 7127,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/stock-watchlist-queries.ts",
+      "sha256": "a472ba73da97f84974c3097ee9502780d5da02cf3f253ce0894a2214eff6d8bc",
+      "bytes": 4705,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/trade-plan-queries.ts",
+      "sha256": "9837f614ecf5576ec2d35f9eed76a4b74062c650a8426f3fc014591efd4472cf",
+      "bytes": 2609,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/trade-plan-schemas.ts",
+      "sha256": "ac6b0b200a5dc182e42e7ce3886d504f69271e3c545bde597bc70e13535cccde",
+      "bytes": 204,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/transaction-read.ts",
+      "sha256": "11bfd371bc4b1a212a319b53c41a9b650dac4719a44ba3db8e6beba090cf6a02",
+      "bytes": 4207,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/user-queries.ts",
+      "sha256": "d37e7e371210a6ca0c03a4b8473ff6e88fe683a7c4cdc2ae614e78f8f58fe25e",
+      "bytes": 15452,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/validation.ts",
+      "sha256": "c230fe48c67db9e4834755a6ae47dbd3d9895464c7cae6a634052ed43df2830b",
+      "bytes": 2132,
+      "tracked": true
+    },
+    {
+      "path": "server/utils/websocket-origin.ts",
+      "sha256": "7da84a021aac17dd2774e306a68cbc9a4868a8aaeac5aa5ba04142c605cf9083",
+      "bytes": 1376,
+      "tracked": true
+    },
+    {
+      "path": "server/websocket/alertHandler.ts",
+      "sha256": "704814890a7b1eda6060c1265b3059263e1d69bf8a68ee34dc8940e429be4ac1",
+      "bytes": 2047,
+      "tracked": true
+    },
+    {
+      "path": "server/websocket/connectionManager.ts",
+      "sha256": "288b1586db8b9b638f82b8cf91dce344e194e1ca5aaceb8ecb374392e86d28dc",
+      "bytes": 7348,
+      "tracked": true
+    },
+    {
+      "path": "server/websocket/socket-server.ts",
+      "sha256": "5db7923e5fa89b00ec56d57d647ce6b587b6dcd13148d56bc02d9e26c30058e2",
+      "bytes": 5572,
+      "tracked": true
+    },
+    {
+      "path": "tailwind.config.ts",
+      "sha256": "8950f5114a628a117e4d1d2e856e5486f8847ddc59aec77136e65ac4220c982e",
+      "bytes": 2097,
+      "tracked": true
+    },
+    {
+      "path": "tests/README.md",
+      "sha256": "f5a69fbfc4817a747c5ad422e63b32024b775308c74b48b0e1d565083c585236",
+      "bytes": 104,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/admin-etf.test.ts",
+      "sha256": "387bc94c74b1f8f200cdc40414012ffcea4560e551083bbe68005dc4b187ec6a",
+      "bytes": 5308,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/admin-market-rotation.test.ts",
+      "sha256": "1dab310330d7a5f38879c74bba07ac91ddc626b4ac47b85431b3dab4b183fb07",
+      "bytes": 2513,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/agent-diaries.test.ts",
+      "sha256": "8947b9fb0bd684daef8c27d46c2b5089c75d51c1660764576412ea43559f29da",
+      "bytes": 3690,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/agent-stocks-records.test.ts",
+      "sha256": "40c8b3467db1258e6602c21b5a6e849bc25c4b1ea4447248e32c46474eba522d",
+      "bytes": 5891,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/agent-stocks-watchlist.test.ts",
+      "sha256": "03802d9a090d486dc304324f87422cb2abc55b58dd480deab635fb1fc955e64f",
+      "bytes": 6366,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/alerts-dismiss.test.ts",
+      "sha256": "cceb33ba74d319ce93c7ef1997b1807c9d11d2fabd856afcba9f8bcc189e388f",
+      "bytes": 1543,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/alerts.test.ts",
+      "sha256": "3fbbed854d62e0738904cc52e813b46813625dbce4bb5f21b738490a73bf9b81",
+      "bytes": 2145,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/api-keys.test.ts",
+      "sha256": "ab361141e398a45004c8766ca852911d06f655ec0a88b2d41f201770a24b6d65",
+      "bytes": 5245,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/auth.test.ts",
+      "sha256": "cba394c796b53236e165a46321af710b2ee6528d6dd60831b8bdba064e3254e2",
+      "bytes": 21431,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/blog.test.ts",
+      "sha256": "3e4cd0ae808640190de15676c27530890075917a6b136f5b0fb81ea08742e535",
+      "bytes": 20309,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/diaries-activity.test.ts",
+      "sha256": "a8f5c8d0428b6bb5b54ad59856be6c37ffa0a5559b4706cff55c5882b715527b",
+      "bytes": 1933,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/diaries.test.ts",
+      "sha256": "27e4931bf2ed3058f26b336da22ed326454141bf69fa41e5a6503f0e9faa3274",
+      "bytes": 15445,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/diary-update-transactions.test.ts",
+      "sha256": "af82649ce0cc4afe14ca314a0e2a1b4378120b18b3b2bef9441a98c9c7a7d156",
+      "bytes": 4405,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/disciplines.test.ts",
+      "sha256": "b68fd80e38baaf0a63069629124040aa32da54553c20e34a82abf70f9a958f7d",
+      "bytes": 8496,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/etf-watchlist.test.ts",
+      "sha256": "b63ab415becd934b5c7cbb08147787fb6ed4c471a60e2cb25a201bd8bfd3bf25",
+      "bytes": 12449,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/export-trades.test.ts",
+      "sha256": "15d740de9bca2bc2f9c1a86ef41fac2bfd76ffdd8867c1dcc5343cc98c6be5d1",
+      "bytes": 5357,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/holidays.test.ts",
+      "sha256": "2b56821c4018ca368ac2202028d6e42168178e5e1aad4c3f85d4caaa6615ac71",
+      "bytes": 1671,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/investment-activity.test.ts",
+      "sha256": "4370e09fc2c89f4fc93bc34501c9fe10277ef75e1aa9aa6706bf99934ed39d1f",
+      "bytes": 2452,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/market-state.test.ts",
+      "sha256": "abcd992c542cee5514036646e46549a39efdc178e1026ffff119903eb1338ca2",
+      "bytes": 2543,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/partner-stock-notes.test.ts",
+      "sha256": "8e8f5c169cfa9e71f27a02aa359346ce6b2eb8c4b354442f0f14847e38e28eee",
+      "bytes": 13970,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/partners.test.ts",
+      "sha256": "71d10fcc8caaa1a4f248e2f962d0c7f7b6a1b2977f6f5efe8973dafa03a78142",
+      "bytes": 7466,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/performance.test.ts",
+      "sha256": "d39617017785645b6135beb5b0b356f68fc34d1a4372b638643c1f0a9788de01",
+      "bytes": 4435,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/portfolio-attention.test.ts",
+      "sha256": "e4ae46520547e69e3cb92e06b7d9573e8ecac869e59dae082be13f4a99e61d0d",
+      "bytes": 3945,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/recent-trades.test.ts",
+      "sha256": "77a8ab7c207dd1e385bb8e72e81f23c00bdaca5f87f12a72a9b9aed644d54d28",
+      "bytes": 7113,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/reviews.test.ts",
+      "sha256": "47ffa6dc69033f2333b13ada64be806cf3118d586aea797e3018b6286e393c2f",
+      "bytes": 9677,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/rotation-monitor.test.ts",
+      "sha256": "cd212f69ee4ed59bdd9ea57e9291390d8dc9f6580b2117547a85dfca2704db81",
+      "bytes": 13262,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/sec-filings.test.ts",
+      "sha256": "5e73dbeb0e23bccb9eff36854a686f7433891eaca29509f9941a49dfa5b09d4d",
+      "bytes": 1309,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stats.test.ts",
+      "sha256": "49c170d54c77919b3ec1ed055580064f6d72b4ef3261b435ce83d61c52d82c12",
+      "bytes": 9984,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stock-notes.test.ts",
+      "sha256": "0b1e691ae2ed3af01054926db93076bef019236c75bc66cccdf73b8cfeb34ef2",
+      "bytes": 20181,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stock-tracking.test.ts",
+      "sha256": "e5540d0e46b04e7eed8fc57c1168980e46bf2fe1bd4b18c19e7df3782ef7f802",
+      "bytes": 6668,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-alerts.test.ts",
+      "sha256": "0e0cb9edfee360a894765b9a251eb7a6bd6a59dfddd16d601c3bf9c83129a5c2",
+      "bytes": 2911,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-evidence.test.ts",
+      "sha256": "3bd86d948191edd78479e28549e67e14ef80d90d560aa43815753d6c63278e39",
+      "bytes": 5226,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-exposure.test.ts",
+      "sha256": "8c025e5f612ab0eb93c101353d8e00f92b86e0480e20c062177f863728218c50",
+      "bytes": 10750,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-portfolio.test.ts",
+      "sha256": "0a0a70fb89f3649b32c0dffa271c884134d2a86292c895b0a7d9ae7479855c54",
+      "bytes": 3910,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-prices.test.ts",
+      "sha256": "3cff1b7ab2732be1eb868fa68961e5aaa0662d3d540b236c2c554f28afbd2693",
+      "bytes": 6577,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-timeline.test.ts",
+      "sha256": "b2934ce09b2ba8cdc427e0b944632626571fb3fa8b2789dc11aa8e5fcfc3ff22",
+      "bytes": 6430,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/stocks-watchlist.test.ts",
+      "sha256": "f84973bf9a547b230822edc2c709bdc6b688ce6caab9481ac7324261e66275db",
+      "bytes": 8978,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/trade-plans.test.ts",
+      "sha256": "ad5dbcbae44f3702a8a5c9c49c054d3746da02d25bd9ecb729e721b6ed7a9e21",
+      "bytes": 11919,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/user-password.test.ts",
+      "sha256": "122ba4af0e12499eeb63f2ee3fd60560993fde301c5cff410ebc5676a41398d7",
+      "bytes": 6971,
+      "tracked": true
+    },
+    {
+      "path": "tests/api/user-settings.test.ts",
+      "sha256": "502703e94f0918412e19af68324e4d756460d4603868555fbde1596bd5b86956",
+      "bytes": 3303,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/AlertNotification.test.ts",
+      "sha256": "66f9b11dbac9f5c8588c631734d2fb604cf61e42f4da9cd4292a1bca8e87143d",
+      "bytes": 1965,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/ArticlesPage.test.ts",
+      "sha256": "1dab4e43aae2c311f40ffb79680124c78940d8661535ace23ee42fb5afd6b23f",
+      "bytes": 3431,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/BlogCard.test.ts",
+      "sha256": "36a4e69f93e8049ebad66ccfb6a56e12dcfaf4639541e4fddcbc04f9c32b665d",
+      "bytes": 10050,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/BottomNavigation.test.ts",
+      "sha256": "7dcfe74356b082f084f69f382423b1d5fdc7ddc171f7d88a40e31673a92f8caf",
+      "bytes": 2305,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/DiaryAuthoringForm.test.ts",
+      "sha256": "3a80a8484714e5470720f79f30d668a26849c543a446ef1f4d3cdf27486de928",
+      "bytes": 5440,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/DiaryAuthoringPages.test.ts",
+      "sha256": "d3e4c04b5bd72cccfb1682a85beeca69eb65e196e5e886dd30fc684a887f9a99",
+      "bytes": 15796,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/QuickDiaryModal.test.ts",
+      "sha256": "bf4cf23a2848441b727f16deac60b063fc6ab2026b6ce3ec6dfff5dfe7370a1d",
+      "bytes": 18943,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/QuickDiaryOneLiner.test.ts",
+      "sha256": "88c631a54b00968940f30ab2df0dd7b594028961558277d05a3421f210cc3115",
+      "bytes": 12731,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/QuickNoteEditorCore.test.ts",
+      "sha256": "ef2c3e88e75be923d47b0c922d606ea26d36151725ca4322b631aa78c6c75972",
+      "bytes": 9275,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/QuickNoteTemplateAssistant.test.ts",
+      "sha256": "a9523efce26a6294f9c1d349291042cc91f9c213628cda3db516bbb4acb5a54f",
+      "bytes": 6622,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/QuickReminder.test.ts",
+      "sha256": "85db6cfacfe717b6bdb0a233b09d61717fb440ee2e25b3f3c95b277f1c8eee6e",
+      "bytes": 1535,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/ResearchCaptureModal.test.ts",
+      "sha256": "d978e689750030ce33f0964e75d73633d156a3b9530a229836f0cee8e71066ad",
+      "bytes": 5911,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/StockNoteItem.test.ts",
+      "sha256": "f66b229a504b46a0d3c486333bc47a1f474d0250a3be2585e3b2892cb5c9e325",
+      "bytes": 2146,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/TimelineModeSwitch.test.ts",
+      "sha256": "85e3a33c1ede7946f6244553de27d6ead3e29a05c00ead803f7b29ddd446a485",
+      "bytes": 1149,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/Toast.test.ts",
+      "sha256": "bf29fc9656b46ad9e6840119a2b2820564a86d3a7fbf0f2920e8e5c16ab01c46",
+      "bytes": 5178,
+      "tracked": true
+    },
+    {
+      "path": "tests/components/TransactionInput.test.ts",
+      "sha256": "4fbddfaea01a68746fbd63d68f3b6f01c5f703bb60bd792f54bdaa1d10fb4f1c",
+      "bytes": 5690,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useAlerts.test.ts",
+      "sha256": "2ec1debf1db20a772f9fe8a112b4c8fd4f82b6fc2b684383d9fe56e928f4b9d6",
+      "bytes": 4829,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useAppShell.test.ts",
+      "sha256": "7cae474a273f6ea777e8e36d60bbf639a2cb33ebaeaf0c009ec20f5b9445f125",
+      "bytes": 1368,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useAuthRecovery.test.ts",
+      "sha256": "a46ff535b7f0905c55492ebd62f01ac2258724863485f1e3067ee6aef3dd2009",
+      "bytes": 3184,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useBlogDraft.test.ts",
+      "sha256": "5b1e4ae39908dd14640b38d3dea55cb84467bd28af2d3c54187cd993653eddb1",
+      "bytes": 2745,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useDialogA11y.test.ts",
+      "sha256": "ac1d4b0691247e66e78dce1995a38f1864cc6d3f5d33fdd1ed7c6227d028c03b",
+      "bytes": 3326,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useDiaryMutation.test.ts",
+      "sha256": "ec2f583ee3c61e40aabc730cb58d621264a69ff3157a3b63fca49277b7c0df89",
+      "bytes": 1342,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useDiscipline.test.ts",
+      "sha256": "bf5f0021c7470c03a05be5911cef96f3fb775e5536c3eb7c8ca49143c77e75bd",
+      "bytes": 3764,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useMobileDetection.test.ts",
+      "sha256": "c9e4d2f880d2184530dfc4d4ca63053d01d35fb42d5ca30d633d71b7a573fec6",
+      "bytes": 1310,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useNavigation.test.ts",
+      "sha256": "007420fd9346710145884b2b6811f58353957b36ef676ed0002a75cb21dbef8b",
+      "bytes": 11660,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/usePerformance.test.ts",
+      "sha256": "f7a479bc64b0511bcaf3e2edd160a7d65145a2ac9b2816a86d36abe7ea6de95e",
+      "bytes": 1398,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useQuickNoteComposer.test.ts",
+      "sha256": "b4522a0e2e8eb88d0246718faf19da7cdc5d681edaff49e44250283ff41784ac",
+      "bytes": 20010,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useResearchCapture.test.ts",
+      "sha256": "975b4f81534c39a98c2eae28b79a73bdc668b0c4c4000644d144626ba7fed4fe",
+      "bytes": 5124,
+      "tracked": true
+    },
+    {
+      "path": "tests/composables/useToast.test.ts",
+      "sha256": "a0123dac90139cced2f4e353fef4a9ea4cfb7b885f7079a0fb8d155c4d1117e7",
+      "bytes": 1677,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/app-layout-responsive.spec.ts",
+      "sha256": "11e53063fbc0f48b6486cefdb829a526bd6b62a744c6f20844f8cafb0dce6d8b",
+      "bytes": 8002,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/auth-flow.spec.ts",
+      "sha256": "75661bc68ba8514de67f1666b9a067435acd371630c0cdb94efdf0c9a7164b65",
+      "bytes": 10075,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/blog-card-delete.spec.ts",
+      "sha256": "26d661fdf7ca77dfd4c0631cc2d1439b129bd3917ceeef426a1db6bba5bf2c5e",
+      "bytes": 3511,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/decision-thread.spec.ts",
+      "sha256": "d2f6e61c1e146537eebe24c31116101f59627c344f8ba139e3c957bfeb6b858d",
+      "bytes": 4295,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/diary-crud.spec.ts",
+      "sha256": "f50a8365f8ea60d0f25d001a779103b482aa52eed76b24d7961dec1fed63d3a3",
+      "bytes": 15223,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/global-setup.ts",
+      "sha256": "264e8de89a09bb9361855bfa4bafe44185a9142a0e36aa4922d80f4e279376e5",
+      "bytes": 10097,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/global-teardown.ts",
+      "sha256": "1cbe616c815b004b3b95f1b42125f74ec05e6592b1a9d7a3c71514b960db41c0",
+      "bytes": 349,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/helpers/auth.ts",
+      "sha256": "ab69c0d4ec29fc5cadb4f478526ddc6dfa867075614dc5a19e95326eb8146fc6",
+      "bytes": 4509,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/mobile-bottom-navigation.spec.ts",
+      "sha256": "41c3b970fd89ac3908cfce0a68ac15444c1e159f2b4760a2d9f9696d9e125304",
+      "bytes": 8326,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/quick-diary.spec.ts",
+      "sha256": "f06ace127f819af7738912ad99a926fdbec135c67a89537704d0fc6b83c1114b",
+      "bytes": 4655,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/relative-value.spec.ts",
+      "sha256": "c5a8c1d0447547b83bcc86f0e6a5fa54102bc171c37e0352a73144fa14df7047",
+      "bytes": 5119,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/sec-filings.spec.ts",
+      "sha256": "c57ed6422bf1766990e67b8fe0f5d8db5499d8917ce32fcf6e80cf9808053a15",
+      "bytes": 5645,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/stock-tracking.spec.ts",
+      "sha256": "135776346df67b26cc96a0e011d3fb3fd1ed911b5926b17cbb66aab1d3e32d34",
+      "bytes": 8880,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/tools-responsive.spec.ts",
+      "sha256": "1e7595a16ecbb5e02f0a56b0a50f6ab16ebb63be7e4f61a51cd55f7224fe6bdc",
+      "bytes": 1060,
+      "tracked": true
+    },
+    {
+      "path": "tests/e2e/tools-text-containment.spec.ts",
+      "sha256": "81c5a1c592b99607685d027087a9df0a3bd4b7289e12ca14f1d36c080a82748f",
+      "bytes": 3311,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/builders.test.ts",
+      "sha256": "af2b823a41ea69edf1b4efde1babfe8c542222c8d7ba235d5bfda5abe525ce08",
+      "bytes": 1276,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/builders.ts",
+      "sha256": "b729dcd1141a4be33da6580a7cf9444b11b1817c7921848dc6f977384e3698dd",
+      "bytes": 5416,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/sec/company-directory.json",
+      "sha256": "2e5e2f157b271b15a3caf3b201128d83e8432bf2777eed454c8842b9e158263e",
+      "bytes": 261,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/sec/filing-index.html",
+      "sha256": "5a0d8ccefe39547f69f2bf9a15b972bd20389e534dd9514c6eba14347e090ffd",
+      "bytes": 642,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/sec/filing-index.json",
+      "sha256": "a39832350591a163b808f49220ab0ff1912c8f6f5c49adc18e3845436b21b0ca",
+      "bytes": 375,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/sec/historical.json",
+      "sha256": "0026ea70fb8c4616241d9ad1fed71c7efc4d3d2547adb77e5c3b3c8320617675",
+      "bytes": 321,
+      "tracked": true
+    },
+    {
+      "path": "tests/fixtures/sec/submissions.json",
+      "sha256": "5f38d57a923f7eb541dc8fb4c6769914f055bb3798f1fbd688dabbf92642130a",
+      "bytes": 810,
+      "tracked": true
+    },
+    {
+      "path": "tests/guards/lint-typecheck.test.ts",
+      "sha256": "2bbcf9c8c9bb268153989dead4a896ad7bf4eb5d80bafccfb5270297e8ccb07e",
+      "bytes": 1233,
+      "tracked": true
+    },
+    {
+      "path": "tests/guards/no-legacy-branding.test.ts",
+      "sha256": "f979ecb3148926079733b73cc0ae99087553cbf33f647c9f046e19989c90885e",
+      "bytes": 2178,
+      "tracked": true
+    },
+    {
+      "path": "tests/helpers/mock.ts",
+      "sha256": "928887b545734a0edd691e55768e8f176c068cc5e2de371005270c0e08147832",
+      "bytes": 720,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/agent-stock-timeline.test.ts",
+      "sha256": "ec859caf2c30f5adeb62da50336aedb8db1049bd640bbb87bbdaf2d674484c86",
+      "bytes": 9838,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/alert-query.mysql.test.ts",
+      "sha256": "c85270dde738e78799834adfd7963f1505574f326fec3572e0d39105e1ae4b7c",
+      "bytes": 5448,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/article-markdown-ssr.test.ts",
+      "sha256": "9a7d37f013981441d834c025283df9134a3ef386455bc7c3c266cb0abf2f709a",
+      "bytes": 6965,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/auth-credential-resolution.test.ts",
+      "sha256": "afc74d0b4b7f2403b54e5886754333300fa4c73772e9ed40a97bc6ed5bf148b6",
+      "bytes": 10299,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/auth-flow.test.ts",
+      "sha256": "fb590ea8fe29842f9e629dc37f79d195a8300359f35908d6a62750f8b7d213a3",
+      "bytes": 8609,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/diary-reconciliation.mysql.test.ts",
+      "sha256": "fc79bb95dac855e6b4d403ef7c720171e86f94a4eec07f09f51d6dd91e95e4b7",
+      "bytes": 15427,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/diary-workflow.test.ts",
+      "sha256": "c2415a336c2a0c83c6cce556d6eaa7f7a9fa058e217c27d4a28d6fdc08a4fa36",
+      "bytes": 9339,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/http/auth.contract.test.ts",
+      "sha256": "5d40a154895fb705c2dd583d3433e673510494e0fb60394d2eec0d9e2da0228e",
+      "bytes": 18851,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/http/core.contract.test.ts",
+      "sha256": "f6211d18c734712010e7642322ae35efc3af83b0b7d4466aa9ac58f15a24759a",
+      "bytes": 39343,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/http/websocket-revocation.contract.test.ts",
+      "sha256": "9d2ed2d0f395cbb5fbb50bbf028a02a70a2c27991cd302841d013ba90f3e8446",
+      "bytes": 6409,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/market-rotation.mysql.test.ts",
+      "sha256": "75c4609ffc52600c35c9639b80efcda574c5f78b0b6718cfb90cf7ddd074be83",
+      "bytes": 5364,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/native-client/native-client.smoke.test.ts",
+      "sha256": "4f9e85280f5416aea5ea18d51d0efcc1b104afd2a8216666645ec76f0ffca5db",
+      "bytes": 6640,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/research-capture-tools.test.ts",
+      "sha256": "1fbff6232488e367010ea5bac7d31fc34fae6544d529600141fac81585cb9f1a",
+      "bytes": 7815,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/websocket/malformed-cookie-process.test.ts",
+      "sha256": "6ec49cfc26a0d1ae63869855c641a353a8903615f2386c8c80c160a4d226fd43",
+      "bytes": 2482,
+      "tracked": true
+    },
+    {
+      "path": "tests/integration/websocket/socket-io.contract.test.ts",
+      "sha256": "2955fefd531d8c83387f571c217f36906380ee9117aab3d12c0f1a28f6924a1c",
+      "bytes": 14593,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/admin-page-helpers.test.ts",
+      "sha256": "0a1477639c3467a5547c1482bc4ec0e03ab1eb0323a256c0726c70e10b3716ec",
+      "bytes": 1961,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/auth-session-error.test.ts",
+      "sha256": "343a487d0be25cb443b0a42fbc6df93dc67944d70c50b31503fe55a53d321305",
+      "bytes": 1632,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/blog.test.ts",
+      "sha256": "a875dec2cdc9427a92c67132411790f1d4b986ee755a9d7046484bafa6f0200b",
+      "bytes": 10893,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/dates/format.test.ts",
+      "sha256": "9df5100a97f45f36a08889cdecd054e0cd1383f78df092740dbe4f457569c8a8",
+      "bytes": 7239,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/dates/normalize.test.ts",
+      "sha256": "55c25ec9614dfae14c4c7a3fb1d0f00c973a45c66bbf2b2244100f62ecfc0e05",
+      "bytes": 4091,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/financialFreedom.test.ts",
+      "sha256": "259f76c16f25e5d3ab481e37516b1c35bc5d0777c00957e4b01ab9f20bf35d88",
+      "bytes": 3986,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/format.test.ts",
+      "sha256": "a9c3428aca73a5eefd6ee1c50daefb1965212bb52f9b9264722d72aeceac8bc8",
+      "bytes": 3193,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/holiday-heatmap.test.ts",
+      "sha256": "c38169b8e8fb8ed90657d3b5d9bffd6588cf63a06a6d6c24a352df153b845e96",
+      "bytes": 1837,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/investment-activity.test.ts",
+      "sha256": "fd07bc725d8df82aba393b3fd8a9561150ed92084731545f89227ce2dccb77fc",
+      "bytes": 5446,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/market-data.test.ts",
+      "sha256": "0820d749f53f4daddb3a174cafcf780caa23bfdeb377b9b2f4fbabd70b74c251",
+      "bytes": 4642,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/portfolio-attention.test.ts",
+      "sha256": "304cbfc50ffbea8bf724aae9ef7dcbaae6165aa4f4dc999fd3882d57c25162c5",
+      "bytes": 6545,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/position-state.test.ts",
+      "sha256": "48e6527902a33a112794bd9373a6cb0954127e5279fd44326816dde692bf8de6",
+      "bytes": 8487,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/quicknote/generate-template-draft.test.ts",
+      "sha256": "eadd209e49bd44281e935ab32924d4abd5698e85c04cfc9ae8490a14337accaa",
+      "bytes": 6506,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/quicknote/market-session.test.ts",
+      "sha256": "7b1c16c23f4ac85fc8033e2bf25dbe9e3edaa65e7857e2eba23f12832bb10029",
+      "bytes": 1688,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/quicknote/modal-shell.test.ts",
+      "sha256": "c4427e8c34b6281a17b4347fe19b69a170aa4bf03b987d9232042e01d79537f7",
+      "bytes": 2554,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/quicknote/quick-reminders.test.ts",
+      "sha256": "3214a5eae641233aac56b9e858bdd227aec1eb22c5c4f44c4a2693fd21d203d0",
+      "bytes": 1337,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/quicknote/shortcut.test.ts",
+      "sha256": "78115118c43c04159b0c13a1c9071a3f77537512854b193b2cb09ad988203eff",
+      "bytes": 1923,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/recurring-alerts.test.ts",
+      "sha256": "92f0262e96bc7745f6d12b1db62be6260228f4bb986cdecdcfcf0e40472bed5b",
+      "bytes": 9044,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/relativeValue.test.ts",
+      "sha256": "af7b1891e0b6dbb2be4b459260d3797645bead070f67bc565a89944b0c425237",
+      "bytes": 825,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/stocks-analytics.test.ts",
+      "sha256": "95d645d2aeb55127859e6bd73d01109a7b02beadee5bda69afcfdb469e57a994",
+      "bytes": 1372,
+      "tracked": true
+    },
+    {
+      "path": "tests/lib/stocks-view.test.ts",
+      "sha256": "04be5e1791ff1f3b5dad429ae82882cdb7b52c09aec78fe2137f5906655109ff",
+      "bytes": 9376,
+      "tracked": true
+    },
+    {
+      "path": "tests/mocks/nuxt-imports.ts",
+      "sha256": "cf18e3b1dc875bd1155fb33510f83c61e1fbcc4c0e92acf5da680631f61d10bd",
+      "bytes": 3388,
+      "tracked": true
+    },
+    {
+      "path": "tests/setup.ts",
+      "sha256": "21291d2a01b2b4a434ddc799ed7436a97d96147206abebf91efd234326fcdedd",
+      "bytes": 2376,
+      "tracked": true
+    },
+    {
+      "path": "tests/types/nuxt-test-globals.d.ts",
+      "sha256": "341e35afbe22a7dce5046ad65b289c9712f93d0c87c02bdb2f850bca490a25a6",
+      "bytes": 2163,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/api-client.test.ts",
+      "sha256": "3f1de3dd8857a115d1d9a2f88e876ec32983bed9e89e601b899bf5053ca276a8",
+      "bytes": 3751,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/api-docs-content.test.ts",
+      "sha256": "bc8bdd5f736b34272e5cfcf53d5a01dd61f0c0e381ee293f54ddc7a2254dd521",
+      "bytes": 7504,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/api-logger-regression.test.ts",
+      "sha256": "40e24ca6c6ec9fc64adc33dc3a0a333d6c8bd7ab6241499ee4236685a4f3a808",
+      "bytes": 1175,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/auth-client-regressions.test.ts",
+      "sha256": "ed0a042863db54edb0fecb4d84464e92d2a23fb48ad7348d174d517b7331d22c",
+      "bytes": 5018,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/auth-page-hydration-regressions.test.ts",
+      "sha256": "48e26241fe0604b9beb66bbca24dd9a53ddc46b805f1214c34d91ab4d2d99fce",
+      "bytes": 1587,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/auth-route-redirects.test.ts",
+      "sha256": "67119569f1be27cee840b39f7a38870d25461aec8a7063f18dab0843064c02c5",
+      "bytes": 1457,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/BaseButton.test.ts",
+      "sha256": "584d7de7f20c3296925a4568b266fa932a31b69439766dc19cbde36eb4c35639",
+      "bytes": 3818,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/EtfMobileCard.test.ts",
+      "sha256": "3337333a97cd74f220fe383dec86ff51c2cf50b15b688445affdf55b6b16605b",
+      "bytes": 5367,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/HoldingsDisplay.test.ts",
+      "sha256": "ae99d533d32600d5cfd6ef39b9abe683097fb3f0cb71b50b424abc3ee7fcff32",
+      "bytes": 1252,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/LedgerCard.test.ts",
+      "sha256": "84c854053eea732f797dcf08abb4475aabd1aeba2a740a254601abd490193ceb",
+      "bytes": 4131,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/ReviewCandidateCard.test.ts",
+      "sha256": "ef3d5f226ab0d39b7f5efacb86de80235a483a6faf0a683bcc7e29e00326df86",
+      "bytes": 2579,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/StatusBadge.test.ts",
+      "sha256": "2c78a209467ac910dd712b45e84e8b3e73f338564708a123ec7593f3fca23347",
+      "bytes": 2508,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/components/TradePlanForm.test.ts",
+      "sha256": "0879ba920ac4e9f521bf6035023116a74bef65dd5c61019ff782143748233a5c",
+      "bytes": 1161,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/composables/useAuth.test.ts",
+      "sha256": "9ae0aa6ead3b4026e1a9e7930ad71246e4ecfb6747592bb0098c2d268bacf296",
+      "bytes": 7243,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/composables/useSpeechRecognition.test.ts",
+      "sha256": "5302c473979172c7b8f48d5d44ad2d9fc7c24954dfd949da618cd3df75ffa13d",
+      "bytes": 3772,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/composables/useTimelineDiaries.test.ts",
+      "sha256": "7d99ea42dbfcf4090226acdb06e5f5f169818d5ed9a550ec51717d167b1fc611",
+      "bytes": 5531,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/csp-regressions.test.ts",
+      "sha256": "578416ecae75c2fab4b6cc322335d4640bd2851b26aaba32a8442f958dc02885",
+      "bytes": 2064,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/dockerfile-prisma-config.test.ts",
+      "sha256": "f1742e7ede1af6874738d43ccfdd69b85ab39fbbeaaa8327dcb0fcc8c597e4b4",
+      "bytes": 886,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/i18n-parity.test.ts",
+      "sha256": "dd1831eaf5d7171b10311ad5a43ac4ca7c4cfa909406ff25c7437dc0b48f9e4b",
+      "bytes": 3090,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/k8s/app-deployment.test.ts",
+      "sha256": "ff71a87c6275a1717d5c61be484c718cec9bbef0dfb6d92756c134919b477f6f",
+      "bytes": 991,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/k8s/market-cron.test.ts",
+      "sha256": "cb99da05608a18a77006b4c7575ddcb003272797742aa6ac8b336d4ae085bd2b",
+      "bytes": 2876,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/beta-allocation/policy.test.ts",
+      "sha256": "4e5c8936789791e739799b5310e2c16e45d05c8f087aead23118aebab6bfb2ce",
+      "bytes": 14564,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/contracts-import-boundary.test.ts",
+      "sha256": "830268a41dca1c33d840a97a2e6fc6079e04853b5be14b8c1e2762045c1640f9",
+      "bytes": 1220,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/contracts/investment-thesis.test.ts",
+      "sha256": "30d6c71aa14d92b49bb2bc902336885424f77b3938b228800be25dfa98cba742",
+      "bytes": 3068,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/daily-prices.test.ts",
+      "sha256": "68058052ad38fb6cc1c69433e87524dbdcb57534d4adf87d96f127e7337ef3d0",
+      "bytes": 3199,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/dates/user-tz.test.ts",
+      "sha256": "4d66837c9238699734ee24e53246ebc2abcf18261d6233a53e9fb4c9d47a5db8",
+      "bytes": 6869,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/diary-authoring.test.ts",
+      "sha256": "c8138e9412560d98c4e3565c499d48b1e30224a7b439da07b7bde8c4d4703865",
+      "bytes": 5619,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/diary-date-conflict.test.ts",
+      "sha256": "c7ac01d442f990dceca80e92aaebe082b1c644e7fceaf61f3f20bf269e3a952e",
+      "bytes": 10505,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/diary-draft-guard.test.ts",
+      "sha256": "c4a9baf48b44156e060f4a18167be5bdd69f71df577508c507462ea130af9f64",
+      "bytes": 4086,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/diary-excerpt.test.ts",
+      "sha256": "07f5e0759390ae6d8cb8f562bf788e24b36bf1661be2b5c5fecaeed8b4bc0579",
+      "bytes": 434,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/discipline-share-url.test.ts",
+      "sha256": "3366eb120017871204fca5a31020f339c78c27927ce3f0224b6bca7b822489eb",
+      "bytes": 3535,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/error-i18n-mapping.test.ts",
+      "sha256": "a9ee96ad07a1f2c536e455f26ee9695c737c8c9a8106853a48230e7e012114fe",
+      "bytes": 1592,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/jwt.test.ts",
+      "sha256": "71a72f2e2150fcb71a992de572803e9c5bb79792cacb31b84dade71692ef69a7",
+      "bytes": 8900,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/logger.test.ts",
+      "sha256": "01814e0b469569a796adecd98f6de0603e2abee63a67397a640d8f557f183331",
+      "bytes": 6203,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-data-cache.test.ts",
+      "sha256": "ce735fd1fba0ea406219ab67c7b9d33a928c9071252774c36fa4a55da19f76cb",
+      "bytes": 6917,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-data-quote.test.ts",
+      "sha256": "54648c94730c61111de61bb38fa65c9ba91e82108b0e52478670e498e682b60c",
+      "bytes": 4069,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/breadth.test.ts",
+      "sha256": "26b6ee4111d35b317ecfb6a92a26c541effc3bc669922907bc48cc449b4c2e5f",
+      "bytes": 2401,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/calculations.test.ts",
+      "sha256": "e5ead2c0fec1b14fb99a674cdce8c62a4f7607c6c23612c983f3beec1a4b968e",
+      "bytes": 8212,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/comparison-enrichment.test.ts",
+      "sha256": "81a80c4218bdfb56fccfe96942d09ac129f2d60a758385226420dd90602ecb33",
+      "bytes": 17789,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/indicators.test.ts",
+      "sha256": "4fa476d4211cc79f2d18ed4ecb9dc188b0c636ca3c0ea7c02ee5bf430a8d2b54",
+      "bytes": 6938,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/monitor.test.ts",
+      "sha256": "5e51d90cd69f70fc9254601cc2486442e3101ad13aafa982937f21ad2d01f330",
+      "bytes": 7917,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/pipeline.test.ts",
+      "sha256": "c15c6035d4f01f12d573eb9a52debdd0ec01cf71cefc5dfa0d8e944358abf8a8",
+      "bytes": 7352,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/qualified-date.test.ts",
+      "sha256": "713f2878abf0512e9b1b0b378061f4398842e3c7e58add9a33a1055ff0edadad",
+      "bytes": 8346,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/round.test.ts",
+      "sha256": "2777c00e622c1fdb8fa4a79e2ca4597063440a77e7fc809e50d13a14140a852e",
+      "bytes": 566,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/scope-enrichment.test.ts",
+      "sha256": "98b0618931b5fb171ccc63e1948b3e0781c8fbe0f0fed47e2b53eda80c94c9ad",
+      "bytes": 12415,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/signal.test.ts",
+      "sha256": "0ff20e73bf07a803c6c6899d259e8da7f251564b9377f588b56ade68b8b00141",
+      "bytes": 4487,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/snapshot-builder.test.ts",
+      "sha256": "1fb024957d1b21933fe96c6b259be71433321d5b96197fded94fc9b533fb274d",
+      "bytes": 11289,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/state.test.ts",
+      "sha256": "d982fbd4d5ecd0a2b038e3e941c6534b036930d6accfdeb7a3fe39821804c54f",
+      "bytes": 739,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/summary.test.ts",
+      "sha256": "25fcef34b1d06b8e5e3b44e4084c4b1b9aca4479c3197c31c101e9e889514863",
+      "bytes": 8598,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/trend-series.test.ts",
+      "sha256": "d4dc94a3e3cb280a37b2845c7334c5e94799bfb805ed52e5be7362cc54c86665",
+      "bytes": 6833,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/types.test.ts",
+      "sha256": "f506f8ef1012387369d65a15c135aba5dbf2016eb9a4d515aebe89fd5de7aa2c",
+      "bytes": 458,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-rotation/universe.test.ts",
+      "sha256": "0e2578da2038f071f5d2f429b3612be2efa488f9fc2108369769d9c29da993a9",
+      "bytes": 9309,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-state/breadth.test.ts",
+      "sha256": "a581da9b3f22efa032b7fb3818597235a6f5f6f760eb0e269888aeaf08f1d609",
+      "bytes": 2627,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/market-state/regime.test.ts",
+      "sha256": "415e73f08460bb6f0ea70706765d34a7ed6000de0e653f1f3693e5bd4838f2ca",
+      "bytes": 3751,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/observability.test.ts",
+      "sha256": "28dd41dfd26d0302fb557e6031d64648575608883852343440cd81284ab7854f",
+      "bytes": 2152,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/portfolio-exposure/beta-buckets.test.ts",
+      "sha256": "b4ce075528d3aa1d03f52b0149cf5f4ef84baf204616f13e8c5d1eb73e0512ad",
+      "bytes": 2513,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/portfolio-exposure/exposure.test.ts",
+      "sha256": "1dde7dfcbdeb0fd4bcccb955c30754f41bb52f63d2b34f56d74a8141f911f0e3",
+      "bytes": 12074,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/prisma-import.test.ts",
+      "sha256": "e1fa8f102fbf6ee070d4be908eeebb788a6ce3703689a3faccedfc36d46cf8d9",
+      "bytes": 548,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/prisma-runtime-contract.test.ts",
+      "sha256": "866e30f464d2986a58abfc9f44a69aa7a0be02676e245a1603aab715732fcd86",
+      "bytes": 1323,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/prisma-version-gate.test.ts",
+      "sha256": "d0cd622ce045307a57162db857583bb27313e12b9d306f5f0e7f65eafa8a2a7d",
+      "bytes": 465,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/rate-limiter.test.ts",
+      "sha256": "56edc3948081da2cf3b00d26d2c8a2287e7b97db55fc1c504fe196b54aac7795",
+      "bytes": 1995,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/stocks-symbols.test.ts",
+      "sha256": "523edb1eb819eb145a6e90bbe492bede0f8199b2a62c140c07197b05b912efcf",
+      "bytes": 1797,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/stocks/note-view.test.ts",
+      "sha256": "06529bc405d6dbdb7e9fb0a9a54bc96b4f21d12f1033083e520ea0069d54eb32",
+      "bytes": 2882,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/stocks/timeline-source.test.ts",
+      "sha256": "7e6f0300c099672aa76f2caa0c5b7cea322a12aed31eb9d51c2e639e0d4aa734",
+      "bytes": 824,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/symbol-normalization.test.ts",
+      "sha256": "6f5d76c71e9f8589db4aed32de581973e720442f2e0526e1a2dee2d2c2948206",
+      "bytes": 1964,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/trade-analytics.test.ts",
+      "sha256": "86ea4a7ac49390fca0744a778a92e528a1763a755522a81b7745d8474a01c67c",
+      "bytes": 18300,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/lib/yahoo-request-queue.test.ts",
+      "sha256": "7f9d71c1bc55385b5110261c47758ac75dc66de7ca75cf303c9cf44298a4ebea",
+      "bytes": 5304,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/openapi-generation.test.ts",
+      "sha256": "03536716b4be8f9677f0839c1c56f8aced211d907b550222f5689cd4490cc0cf",
+      "bytes": 3863,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/admin-blog-route-guard.test.ts",
+      "sha256": "a9dd62abfb8cd9add4c3ac3a6e9ee190a50cdd1565bed32fc6ba52c03db8d8a6",
+      "bytes": 1515,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/admin-etf-route-guard.test.ts",
+      "sha256": "b71d691719fdab54e30c1641202450aba5dfa20f00e0da79790229fcccfc7a2c",
+      "bytes": 417,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/article-content-rendering.test.ts",
+      "sha256": "529faab5a015c2c485d9a08c5cc0692df3602fe38ff723b8c5c52870ac57c952",
+      "bytes": 5138,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/decision-record-contract.test.ts",
+      "sha256": "306006ca75f86d4b42afe880dc51c7aa5a82eab1686283f63c7c19dac76b21eb",
+      "bytes": 2562,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/discipline-import-url.test.ts",
+      "sha256": "f11f5516e67c7c022b3d7ef1add75d95150f8934dee7bc82317e3d55c6b25d46",
+      "bytes": 592,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/discipline-share-page.test.ts",
+      "sha256": "ef1dfde0bf26913b476f57e017a80df3ad00b8d9ead840e2707514d2b6a24d2b",
+      "bytes": 698,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/partners-contract.test.ts",
+      "sha256": "d74a035e568b9dca0ae69cd1062332bcdffdd16a9381684c5580951109311919",
+      "bytes": 4275,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/portfolio-risk-contract.test.ts",
+      "sha256": "3751044198246fb4255c7266ebb6684033b5f90c40da9c84df7be0f9ea3495aa",
+      "bytes": 1175,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/position-sizing-workflow.test.ts",
+      "sha256": "4b3616ec4ca2d754d971d3baea72c25d8f7752a4501e112cdc52538e26708e8b",
+      "bytes": 1791,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/reviews-contract.test.ts",
+      "sha256": "201b4dfa1efb0d4a9a0d89c7f17d0646c7d0ad1dd888907ff1bc125405e5740a",
+      "bytes": 1458,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/stocks-notes-i18n.test.ts",
+      "sha256": "f506315da17f244777ef90bbe9938c543bde783e8ca4ab7f14b4205a5a98b61d",
+      "bytes": 639,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/strategy-performance-contract.test.ts",
+      "sha256": "72865b85cdb54cb800e04a8da943bc93b49eaa75561719efecad77fae790bb2a",
+      "bytes": 1077,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/structured-review-contract.test.ts",
+      "sha256": "0756a81b8d2dd2a1b52865f11e21a98b165d251927cf94c18564bf6b1e97ce95",
+      "bytes": 1586,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/timeline-first-contract.test.ts",
+      "sha256": "aa9cfeb821f5b144061c4f6a34633d478b5fe7df904656e6943f3a24cfa47119",
+      "bytes": 5163,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/tools-market-rotation.test.ts",
+      "sha256": "307e77f1a2d302c829ec6b59cfbe79972ba2f5ff3410b22bdb0b71093a9841ad",
+      "bytes": 1796,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pages/trade-plans-contract.test.ts",
+      "sha256": "de8f9d37d30a00fc84c7370b22e03cf071c684a5139c6b7cbc380b12db1902a8",
+      "bytes": 3639,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/prisma-market-rotation-run-schema.test.ts",
+      "sha256": "7caec813c9039dd21c467db7eb49b06487379a010beabd1bad8c3a2f0b81ddaf",
+      "bytes": 1326,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/prisma-structured-review-schema.test.ts",
+      "sha256": "9eff175032ce6c7b2884eeda89eebc6a0c84be0bd8835fa697a8a812c9455ded",
+      "bytes": 998,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/pwa-regressions.test.ts",
+      "sha256": "29e57c50aeb16c978756427c7fd3ff9eb8fd7bf844db0ae5392ead15acd1760d",
+      "bytes": 1041,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/responsive-shell-regressions.test.ts",
+      "sha256": "09b3d18f001cc5104ecc5a0deb8e50aac11e246c270a801938e308214e4a0ee5",
+      "bytes": 2397,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/schedulers/alert-pusher.test.ts",
+      "sha256": "9148c9fcb302f84e2739bf2b396772fcccfbf8dc251ce76b4381824aae3c6503",
+      "bytes": 6096,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/schedulers/price-alert-checker.test.ts",
+      "sha256": "bf3d982d1511971cab1b73051d99dd8bf667e416fb0a5c85459fb651a8e7b8d9",
+      "bytes": 10806,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/scripts/diary-reconcile-duplicates.test.ts",
+      "sha256": "f97cbc498d0900edd1a4530e1110b7700bc5b9289d27b65b5a9c11290bbcd04c",
+      "bytes": 1852,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/scripts/market-rotation/run-batch.test.ts",
+      "sha256": "8af7345b25866e30726b8d18445896d6f0730df0617784c82a3e0df2a2ce64c4",
+      "bytes": 7941,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/scripts/market-state/seed-universe-utils.test.ts",
+      "sha256": "23b6b54f2e675cfa8803ce40898027149e54b66e70a14bc7d18de6baed466ba7",
+      "bytes": 327,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/scripts/market-state/update-breadth-utils.test.ts",
+      "sha256": "0aab12e5a24fa0bd55ba0c622c72b349b91c611d4a079b9733aa4d2e401b2dc9",
+      "bytes": 7375,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/scripts/test-database-guard.test.ts",
+      "sha256": "443e784f26dcfde7a25ab13d8d3eccb42e407c7af59d0f090b035f894652ae1c",
+      "bytes": 1562,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/admin.middleware.test.ts",
+      "sha256": "6c73c9128f5708cc70052091a8547088a1f681e5e01a428bb21bd88015d3c670",
+      "bytes": 9735,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/alert-persistence.test.ts",
+      "sha256": "4f8f28666d472c2cf0eea67618ce9f3c4f477903f9a44bf92539b503ed311a34",
+      "bytes": 2348,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/alert-queries.test.ts",
+      "sha256": "3cf9a50b5b5be9bef23e6de2cff8462e903384a9558b239c70a7fcc12176f450",
+      "bytes": 5069,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/alert-scheduler.test.ts",
+      "sha256": "9a9a300823224ae6a6fb961cc76e75e9a9059cda147c04b7646cb2513ab9be49",
+      "bytes": 2130,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/api-key-auth.test.ts",
+      "sha256": "45599a4712f11be9538520e7e41dfab5532ec820b3daa7266e59fdc0e84bc618",
+      "bytes": 5282,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/api-key-queries.test.ts",
+      "sha256": "84c94bf28b0f0d643209335b48f2eb5f931bdfafb544f228827cadeac132763e",
+      "bytes": 8405,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/auth.cookies.test.ts",
+      "sha256": "fdf76a529f1098e1cbff5e125602f95399b328381d742cadb65fb90429afef84",
+      "bytes": 1992,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/auth.middleware.test.ts",
+      "sha256": "fa5bf4528e55bbf9db34d7a4e0cb0048ac146cec268098b2dcd7f9309482f34a",
+      "bytes": 13776,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/company-hub-query.test.ts",
+      "sha256": "c7d7b17e79789cb00e0c19b134a6a89c3d853ec42371923fc27b08a7b053f1ed",
+      "bytes": 2426,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/config-env.test.ts",
+      "sha256": "dc89e3763e8de1b01cdd27406fec28fa9e6dd583c0957f8453cf335c7117b2ba",
+      "bytes": 2855,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/csrf.middleware.test.ts",
+      "sha256": "a83fcfecace0c4fd8bc3b790c0d5bb1f36f3b3d2f5d2ce15ba56ac3b3cf36ed6",
+      "bytes": 8914,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diaries-query.test.ts",
+      "sha256": "aa625b243f550ca599d3be0220c6b31b4f910053a95e6122aa990227c2290044",
+      "bytes": 8158,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-activity.test.ts",
+      "sha256": "fc903189364f2a72da736583da4f11dcd58d51669629d5f13c0566cb40ca082c",
+      "bytes": 1820,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-list-contract.test.ts",
+      "sha256": "feeda59aba119d06b8a8af69cc654a93d3fd11127d839f80e2ad93741863359f",
+      "bytes": 1687,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-read.test.ts",
+      "sha256": "7022c523897f3436d43ca7eb460a871eb15a0bf6cbaaa355587c66e9f3e4f2c4",
+      "bytes": 23855,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-review.test.ts",
+      "sha256": "eb7e1a0a2891130f472bf6aa2c71466453d18ae5e8152b3e76630e2acb674b27",
+      "bytes": 3230,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-stock-context.test.ts",
+      "sha256": "7b2909b5d3c2498c77a91d63bf3429fa15f08eb811f7f7ab8aca6acca7b5958d",
+      "bytes": 1722,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-summary.test.ts",
+      "sha256": "ed1cab2323879a9fb65cabbb3584dcce4d2eaea2b72f1e73a95b71dce829862d",
+      "bytes": 2767,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-wire-contract.test.ts",
+      "sha256": "d967f9854d4f6bc0568c18b2090326192e01804e8e1d910542a1bc1f9be1188d",
+      "bytes": 4861,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/diary-write.test.ts",
+      "sha256": "9698b8232e1cac27696e92ec5b1d07c8874d25816a739bc8cb24608a50c24ece",
+      "bytes": 41029,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/discipline-queries.test.ts",
+      "sha256": "47c1e9561bf39c6b77e5131fd0aaa9755b2adac42a602bb127fa570c9034d62d",
+      "bytes": 24606,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/error-contract.test.ts",
+      "sha256": "29efd4045047b8f6e91c2ea5df353fe30b98c7520f703fde8cb1b0d44bcc7b45",
+      "bytes": 3581,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/error-handler.test.ts",
+      "sha256": "d194c787cd9fc6c0ceec4bf5e01991e845005e8edd3a19e80db705aea51091d8",
+      "bytes": 5301,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/etf-initialize-ohlc.test.ts",
+      "sha256": "47eccb4244afebf93b2b68dd823de3875980bf02e14b375c175e03d07e878148",
+      "bytes": 3019,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/etf-ownership-regressions.test.ts",
+      "sha256": "30496d7b460a6c38d5c5c3f08dac1da0b88ce812a85e46ea1c5891070bdc2701",
+      "bytes": 1629,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/etf-watchlist-queries.test.ts",
+      "sha256": "86fabafdcb06ce101e61b4d45b38b31a306708b6506967794bc27a1d899b0dd7",
+      "bytes": 10462,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/health.get.test.ts",
+      "sha256": "063306dbdbe883da006e99e3cb7ad9c15a0bc01f6be3b62a4b16f5404e5f6511",
+      "bytes": 1650,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/investment-thesis-queries.test.ts",
+      "sha256": "a49796cbd2c6be26e9a8083c56281d61bf5c6efac1578dac372d41ccdef4a872",
+      "bytes": 6628,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/market-quote-api.test.ts",
+      "sha256": "b23163ebafb671bfbf531a54d17bab90b2a64f568612830753d6bd9b15b21d41",
+      "bytes": 3925,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/market-rotation-batch.test.ts",
+      "sha256": "fb692e83cb683a4dfac18e3454394e550924cc3248b5fa578941ade4f32e175e",
+      "bytes": 12979,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/market-rotation-monitor-queries.test.ts",
+      "sha256": "c022fb69faaabd8616081f74b796fe2dbd021070c1bff8324798a70db2c4f017",
+      "bytes": 21130,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/market-rotation-queries.test.ts",
+      "sha256": "c4594ca281779375a614c48c844d66b361cf1ba1314c9f56999bc8def03d3c04",
+      "bytes": 21504,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/native-auth-session.test.ts",
+      "sha256": "01b35afee8ab2ba38c23ffd2f3ac898114beb80cb4779fee897da32fe5f8eccc",
+      "bytes": 5721,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/og-discipline-svg.test.ts",
+      "sha256": "6614331e4b9cb82e6e74b30fa1207b017204326483d818634feab880ffaf0abd",
+      "bytes": 1901,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/partner-compare.test.ts",
+      "sha256": "7f55f4e6a4257d6ec33c851e683b5bb3e09d66fa611ebb6a9a5cbacc654ce7df",
+      "bytes": 6946,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/partner-policy.test.ts",
+      "sha256": "3e90b59c4527ae27524d6b8e8a648fda9c46623560530d7fdd7062ed4f17a710",
+      "bytes": 2391,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/partner-queries.test.ts",
+      "sha256": "6c9c000e54e9ccd4ae04fb527a9162aa770c65cbdf564c52cadb200574869f32",
+      "bytes": 13635,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/partner.test.ts",
+      "sha256": "38e1ec8b60c149c680fb21c02ac6f095abdfaa8d7e6ca321bf76ad64a731c30a",
+      "bytes": 2679,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/performance-stats.test.ts",
+      "sha256": "98c347477b184e39fc777fbf27ba077d4b4b266c28c91eafd69bc43939e01b9a",
+      "bytes": 5555,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/phase2-auth-contracts.test.ts",
+      "sha256": "bca88c894f0ffe0c206903e92dd702ddd8d2e0c9607a2210f128fdbcfd506c6f",
+      "bytes": 3294,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/portfolio-read.test.ts",
+      "sha256": "1e3e010941ff78b6fee00f437c508d8f9bfb15d97de3ffd6daa577ffff35a67f",
+      "bytes": 3978,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/post-write.test.ts",
+      "sha256": "8ab9a77a5e70d1d25b653084c9cfe0c0e8bb9645fc5f1923c7f081c911c6dc47",
+      "bytes": 8494,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/price-alert-queries.test.ts",
+      "sha256": "b6ea87cc3ea4a34dffb4a5522f0cf587634bae6468dc5cca39f98ff46d90b53e",
+      "bytes": 15097,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/runtime-config-plugin.test.ts",
+      "sha256": "26f8b08288105afe542d73f0e0e203a7313ff67c7a02832e24605ce0b63027fc",
+      "bytes": 5331,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-cache.test.ts",
+      "sha256": "b3dcb5762cdabf0b0cc33f33acb552ced21e5653f14057267a4e463371472fe9",
+      "bytes": 1472,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-client.test.ts",
+      "sha256": "7db3555e5e3004be8908e57000bebb1700c6bfdfc179170020c70ffe016863a9",
+      "bytes": 1982,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-download.test.ts",
+      "sha256": "f5046d872977de0c5eb7f85be4322c718462e4b6264508854655385337ea3b94",
+      "bytes": 880,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-package.test.ts",
+      "sha256": "abc45dd458ee9792a06b3d376e911f3a08ce7f5d983d2589f81dbe4ee2100e78",
+      "bytes": 1226,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-queue.test.ts",
+      "sha256": "be6d550256dd124ac2f4f25f7023fb0214174b812c0f696bd2f8e1130326d470",
+      "bytes": 1027,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-service.test.ts",
+      "sha256": "c5cfb10e2ed4b31ea79e97465ed586b67cf1d27d3cb0589e7ea437104e69a3bd",
+      "bytes": 4039,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/sec-edgar-validation.test.ts",
+      "sha256": "207a663f6308577deee2c9ca637fcbdadc93ec39a972df923a14a4ae8eef2958",
+      "bytes": 849,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/serialize-contract.test.ts",
+      "sha256": "51dadb9e564dfbd87a28acbf61d54bbd4968a72bfbfce5cb035815971f3607ae",
+      "bytes": 2148,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/serialize.test.ts",
+      "sha256": "b5cc194ef69321c4fa55eedd8969f754e40fa3048836220a31a3372a49ca6cf5",
+      "bytes": 6940,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/spx-session-api.test.ts",
+      "sha256": "7fe5eadf1fb7c339467b5e29ea0c2ef353c49af8d7543c36a659241a6387346f",
+      "bytes": 3004,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/stock-timeline-web.test.ts",
+      "sha256": "7829e429c4f38f71b70529978bd9d2a037f4dab350cd97028a2aa5a14a0786bd",
+      "bytes": 4029,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/transaction-read.test.ts",
+      "sha256": "42fe503fa3ada78ff27c2cf8beb997fd59d0341197801f689a059ab04abcb710",
+      "bytes": 4562,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/user-queries.test.ts",
+      "sha256": "13b3d4aa7919c66f688a37e4ace0cd44e32bb00d864a8ccf2c3aacd8316bec03",
+      "bytes": 21298,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/server/websocket-origin.test.ts",
+      "sha256": "c775567c874dd6fa1726676199551c994b44039b6176b8b039c121bb105c0a7f",
+      "bytes": 1355,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/stock-timeline-queries.test.ts",
+      "sha256": "0499bb6ab721c055b6bcf5e35a555403837b2efcb97bd48d9776a784c6f0d77f",
+      "bytes": 11761,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/stock-watchlist-queries.test.ts",
+      "sha256": "9bf6f09d70b8d310de28c08707ce96a063cc3328a01e3017ede9439245f46e70",
+      "bytes": 9591,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/stockSeasonality.test.ts",
+      "sha256": "b9385f59e4792bdf294d3ed366c9bd61ad597d1b4608b994b80f285dfca3918d",
+      "bytes": 1569,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/telegram-removal-contract.test.ts",
+      "sha256": "50b9f8c8c6a1272166767a2f576e3c5749c84bbe0a55629f3edc7f1d0540abc2",
+      "bytes": 3074,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/typecheck-config.test.ts",
+      "sha256": "c06f6cef8d0809fce2242147f343dd79adf294e4bfe43650e21f53a68eecd534",
+      "bytes": 1986,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/types/alert.test.ts",
+      "sha256": "405017eb4be331d65ae4cf569711fb7228b4f0691069270624b9e95af9317f69",
+      "bytes": 1223,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/types/common.test.ts",
+      "sha256": "e615196f7f7192511b633b089522a4b29b66bbe6dd352149f0069c1605a95922",
+      "bytes": 610,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/websocket-client-regressions.test.ts",
+      "sha256": "dd751dffc56fdfce9678a152ed8a70ab24f89441cbd4b4f3ab40edd0f4585ca8",
+      "bytes": 6548,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/websocket-plugin-regression.test.ts",
+      "sha256": "961b73a3b73d39b34e172085d49708142481470c51634dbc994e976b09b8c193",
+      "bytes": 698,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/websocket/alertHandler.test.ts",
+      "sha256": "9b78fd435edf42ecc5103293264d89bb6ba8afe8b5262581f414384f9625a561",
+      "bytes": 7047,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/websocket/connectionManager.test.ts",
+      "sha256": "a9b5cc3decca55994e3c5b9b6a664c502e45a267da7e464809d957746278ce7b",
+      "bytes": 5292,
+      "tracked": true
+    },
+    {
+      "path": "tests/unit/websocket/runtime-dependencies.test.ts",
+      "sha256": "a6b02b4f36ba8924c6365f5595b2341e8c4c3dc40c2bd6fc5136575afb220120",
+      "bytes": 2004,
+      "tracked": true
+    },
+    {
+      "path": "tests/vi-setup.ts",
+      "sha256": "40d312be96dbca0f6d598a5236265a8209bfc2ce340274646177d9b08798dfb3",
+      "bytes": 5280,
+      "tracked": true
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "5dcf8b6d48da0438811c1b22d010604192d0898742331bcee8cf7998e1a1ff45",
+      "bytes": 320,
+      "tracked": true
+    },
+    {
+      "path": "tsconfig.tests.json",
+      "sha256": "2f98b81dacd1c526a9cb833512cf56398459179a0a31fae3484dfdfaf277bb4e",
+      "bytes": 2301,
+      "tracked": true
+    },
+    {
+      "path": "tsconfig.typecheck.json",
+      "sha256": "560f826b8519a7891e6568fbed98fe596146901fe13655d43e37c5849348bd33",
+      "bytes": 845,
+      "tracked": true
+    },
+    {
+      "path": "types/alert.ts",
+      "sha256": "4d16cfdfc2fca08d502552ebf21f0999e97bb0e6faef81d6be0507e5267346a5",
+      "bytes": 2364,
+      "tracked": true
+    },
+    {
+      "path": "types/blog.ts",
+      "sha256": "74969cf558e8a016c4689a39ecc58ff582c61b8e85e27cf366ccdb09446efc79",
+      "bytes": 2157,
+      "tracked": true
+    },
+    {
+      "path": "types/common.ts",
+      "sha256": "b5863d0117e5d62521a6c7014399e81178cdd5f35ff0dabace738f7e0956cea2",
+      "bytes": 558,
+      "tracked": true
+    },
+    {
+      "path": "types/company-hub.ts",
+      "sha256": "fecf85f2df7d4f7d21b0ad4af6b74ace64db2de76c8881d9150bd7ff001884ba",
+      "bytes": 234,
+      "tracked": true
+    },
+    {
+      "path": "types/diary.ts",
+      "sha256": "a8648cbce8ebb6c384563c344a9046d97aae9b224289c906276be28e7283a9b2",
+      "bytes": 220,
+      "tracked": true
+    },
+    {
+      "path": "types/investment-thesis.ts",
+      "sha256": "43c2d0bf981e10a145e6d9e57624de5ac56176549a174a9646cb844ff82dac48",
+      "bytes": 584,
+      "tracked": true
+    },
+    {
+      "path": "types/partner.ts",
+      "sha256": "4c1d80596ecf02c98fc2a76d5dbe68856ba0402709434e559f2ca0d454479c52",
+      "bytes": 2027,
+      "tracked": true
+    },
+    {
+      "path": "types/portfolio-attention.ts",
+      "sha256": "080cf292eb4661fe54bd753fe99ceb9f47e6f5b22e0b6f7dcf958f1fc3c6a2bf",
+      "bytes": 264,
+      "tracked": true
+    },
+    {
+      "path": "types/quicknote.ts",
+      "sha256": "22ef1aa783b66a9601f6959688e8d984e8fea3820bdb755c367a466a1d5a2770",
+      "bytes": 2427,
+      "tracked": true
+    },
+    {
+      "path": "types/rate-limiter-flexible.d.ts",
+      "sha256": "4a16046a609f81acab3be6aa68f39987a1a16ed3f526b479899edf156498bb00",
+      "bytes": 609,
+      "tracked": true
+    },
+    {
+      "path": "types/reviews.ts",
+      "sha256": "25c6fe358357901071501414c8202862e61f0d58b991c404ab8b3f53f2b0cb6d",
+      "bytes": 270,
+      "tracked": true
+    },
+    {
+      "path": "types/sec-filings.ts",
+      "sha256": "3a30628e85c52e64d23986f2826d4537892f14d38db3a5c32a49d2bf511ab87e",
+      "bytes": 2240,
+      "tracked": true
+    },
+    {
+      "path": "types/stock-note.ts",
+      "sha256": "33c4748bfb862d3614d2060cd0f638e7c2dc66be23d78324e1a642fdf49d7eba",
+      "bytes": 1098,
+      "tracked": true
+    },
+    {
+      "path": "types/trade-plan.ts",
+      "sha256": "a511c2efc9b58565c9a7da3c3ee4656e6d8b24c02878d994ecbedbfbbbff2cf3",
+      "bytes": 532,
+      "tracked": true
+    },
+    {
+      "path": "types/websocket.ts",
+      "sha256": "0d0714cf652bc3a837f67da23714d022f0bcae9af0bed567e245fa8243e1261e",
+      "bytes": 1797,
+      "tracked": true
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "c19fafb6ec343a1263fbb6f75ed63b2f8edadc7983d47da22eeb2b77921f5162",
+      "bytes": 2586,
+      "tracked": true
+    }
+  ],
+  "excluded": [
+    ".env.example",
+    ".scratch/codebase-bug-hardening/issues/01-reject-invalid-transaction-values.md",
+    ".scratch/codebase-bug-hardening/issues/02-enforce-one-diary-per-user-date.md",
+    ".scratch/codebase-bug-hardening/issues/03-reject-impossible-calendar-dates.md",
+    ".scratch/codebase-bug-hardening/issues/04-deliver-complete-diary-history-and-activity.md",
+    ".scratch/codebase-bug-hardening/issues/05-unify-market-rotation-comparison-date.md",
+    ".scratch/codebase-bug-hardening/issues/06-create-independent-refresh-sessions.md",
+    ".scratch/codebase-bug-hardening/issues/07-restore-holiday-api-observability.md",
+    ".scratch/codebase-bug-hardening/issues/08-protect-diary-drafts-during-date-changes.md",
+    ".scratch/codebase-bug-hardening/issues/09-fix-diary-sorting-filtering-and-summary-semantics.md",
+    ".scratch/diary-ux-reliability/PRD.md",
+    ".scratch/remove-telegram-bot/issues/01-remove-telegram-bot-integration.md",
+    ".scratch/timeline-first/issues/01-returning-user-lands-on-timeline.md",
+    ".scratch/timeline-first/issues/02-navigate-primary-jobs-without-duplicates.md",
+    ".scratch/timeline-first/issues/03-capture-quick-diary-globally.md",
+    ".scratch/timeline-first/issues/04-switch-timeline-reading-modes.md",
+    ".scratch/timeline-first/issues/05-make-diaries-a-library-and-verify.md",
+    "k8s/01a-db-secret.yaml",
+    "k8s/01b-app-secret.yaml",
+    "lib/api-client/generated.ts",
+    "openapi/openapi.json",
+    "public/apple-touch-icon.png",
+    "public/favicon-16x16.png",
+    "public/favicon-32x32.png",
+    "public/favicon.ico",
+    "public/icon-192x192.png",
+    "public/icon-512x512.png",
+    "public/icon-maskable-512x512.png",
+    "public/icon.jpg",
+    "public/screenshots/how-to-use-features/00-timeline.png",
+    "public/screenshots/how-to-use-features/01-quick-diary.png",
+    "public/screenshots/how-to-use-features/02-diaries.png",
+    "public/screenshots/how-to-use-features/03-review-queue.png",
+    "public/screenshots/how-to-use-features/04-trade-plans.png",
+    "public/screenshots/how-to-use-features/05-holdings.png",
+    "public/screenshots/how-to-use-features/06-watchlist.png",
+    "public/screenshots/how-to-use-features/07-strategy-performance.png",
+    "public/screenshots/how-to-use-features/08-market-rotation.png",
+    "public/screenshots/how-to-use-features/09-partners.png",
+    "public/screenshots/how-to-use-features/10-compare.png",
+    "public/screenshots/how-to-use-features/11-position-sizing.png",
+    "public/screenshots/how-to-use-features/12-financial-freedom.png",
+    "public/screenshots/how-to-use-features/13-relative-value.png",
+    "public/screenshots/how-to-use-features/14-seasonality.png",
+    "public/screenshots/how-to-use-features/15-sec-filings.png"
+  ],
+  "archiveSha256": "4acf99ea1f0d348c522f287b9670418f0d876c27edc27865254e5c9430acd90f",
+  "policy": "Source-only allowlist, excludes env/secrets/data/dependencies/generated; files copied from worktree, not HEAD."
+}

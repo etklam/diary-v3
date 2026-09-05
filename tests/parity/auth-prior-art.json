@@ -1,0 +1,476 @@
+{
+  "tickets": [
+    4,
+    5,
+    6,
+    39
+  ],
+  "sourceHead": "47f8313bf29870b52582db97209bef2e1cbe41ce",
+  "cases": [
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 107,
+      "case": "returns a JSON pair without auth cookies and accepts the Bearer access token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 133,
+      "case": "rotates A to B and contains stale A replay to one device family",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 162,
+      "case": "allows one concurrent native refresh winner and isolates replay revocation by family",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 199,
+      "case": "logout-one is idempotent; logout-all invalidates every family and access token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 225,
+      "case": "keeps Web cookie login/refresh wire stable",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 274,
+      "case": "keeps a logged-in Web session authenticated across a hard-refresh bootstrap",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 286,
+      "case": "recovers an expired access token from a valid Web refresh session",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 297,
+      "case": "authenticates a Web request that contains only a valid refresh token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 308,
+      "case": "leaves a Web request unauthenticated when its refresh token is invalid",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 316,
+      "case": "does not restore a Web session after logout removes its refresh token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 333,
+      "case": "keeps two independent Web browser sessions independent",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 359,
+      "case": "returns the stable 429 contract for bounded native login attempts",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 375,
+      "case": "enforces the canonical Diary request, YMD/instant/ID wire, pagination, and conflict contract",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/http/auth.contract.test.ts",
+      "line": 441,
+      "case": "keeps Diary Review as one mutable owner-only post-mortem",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 95,
+      "case": "leaves an API request anonymous when no credential is supplied",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 106,
+      "case": "uses a valid cookie and preserves cookie access-to-refresh recovery",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 145,
+      "case": "rejects malformed Authorization with a valid cookie",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 155,
+      "case": "rejects an invalid API key with a valid cookie without consulting cookies",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 167,
+      "case": "rejects ambiguous explicit credentials before verifying either source",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 179,
+      "case": "uses a valid Bearer identity over a valid cookie and warns once without token contents",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 195,
+      "case": "stores a verified API key in auth without granting unrestricted user compatibility",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 212,
+      "case": "uses a valid API key over a valid cookie",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 225,
+      "case": "rejects invalid explicit credentials on public API routes",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 234,
+      "case": "authenticates a Bearer access token through GET /api/auth/me",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 250,
+      "case": "does not let the refresh endpoint fall back to a browser cookie beside an explicit credential",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 276,
+      "case": "resolves auth before CSRF even when the middleware handlers are invoked in reverse order",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/auth-credential-resolution.test.ts",
+      "line": 284,
+      "case": "does not let an invalid Bearer credential fall back to a valid cookie for CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/integration/native-client/native-client.smoke.test.ts",
+      "line": 47,
+      "case": "uses JSON native auth, Bearer-only requests, single-flight refresh, retry, and logout",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/native-auth-session.test.ts",
+      "line": 80,
+      "case": "issues a cookie-independent JSON token pair in a new native family",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/native-auth-session.test.ts",
+      "line": 105,
+      "case": "atomically revokes A, creates B, and records both lineage links",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/native-auth-session.test.ts",
+      "line": 141,
+      "case": "contains stale-token replay to the matching family",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/native-auth-session.test.ts",
+      "line": 164,
+      "case": "logout-one is idempotent and revokes only its native family",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 40,
+      "case": "should set user when token is valid and tokenVersion matches",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 67,
+      "case": "should clear user when tokenVersion mismatches",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 90,
+      "case": "should recover session via refresh token when access token is expired",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 134,
+      "case": "should clear context when access token is a refresh token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 152,
+      "case": "should clear context when refresh token is missing in storage",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 177,
+      "case": "should reject user when database user is missing even if access token verifies",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 195,
+      "case": "should apply normal JWT processing to the former Telegram webhook path",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 221,
+      "case": "should leave context.user undefined for former Telegram webhook path without credentials",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 234,
+      "case": "should leave context.user undefined for protected /api paths without any credentials",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 250,
+      "case": "should ignore non-API routes entirely (no JWT parsing for /pages/* etc.)",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 261,
+      "case": "keeps a logged-in browser authenticated after a hard refresh",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 298,
+      "case": "authenticates a browser request containing only a valid WEB refresh token",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 343,
+      "case": "leaves the browser unauthenticated when the refresh token is invalid",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.middleware.test.ts",
+      "line": 358,
+      "case": "keeps two independent browser refresh sessions independent",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 29,
+      "case": "GET /api/* without cookie sets a new csrf cookie and passes through",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 45,
+      "case": "GET /api/* with existing cookie does NOT rotate it",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 55,
+      "case": "ignores non-API routes entirely",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 65,
+      "case": "POST without csrf cookie or header is rejected (403)",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 76,
+      "case": "POST with mismatched cookie/header tokens is rejected (403)",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 87,
+      "case": "POST with cookie but missing header token is rejected (403)",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 100,
+      "case": "POST with matching csrf cookie + header passes",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 109,
+      "case": "PUT /api/diaries with matching tokens passes",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 118,
+      "case": "DELETE /api/diaries/1 with matching tokens passes",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 129,
+      "case": "POST with an unverified Authorization: Bearer dva_... does not skip CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 140,
+      "case": "POST with an unverified x-api-key does not skip CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 151,
+      "case": "POST with a raw legacy Authorization header does not skip CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 162,
+      "case": "POST with a raw non-dva Bearer token does not skip CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 175,
+      "case": "POST /api/auth/login skips CSRF (login can happen before cookie exists)",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 184,
+      "case": "POST /api/agent/diary without verified API key still requires CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 195,
+      "case": "POST with verified API key auth skips CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 210,
+      "case": "POST with verified Bearer auth skips CSRF without inspecting Authorization",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/csrf.middleware.test.ts",
+      "line": 227,
+      "case": "POST to the former Telegram webhook path still requires CSRF",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.cookies.test.ts",
+      "line": 13,
+      "case": "should set access token cookie for 1 hour and refresh token cookie for 30 days",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.cookies.test.ts",
+      "line": 33,
+      "case": "should set refreshed access token cookie for 1 hour",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/server/auth.cookies.test.ts",
+      "line": 47,
+      "case": "should clear access, refresh, and legacy auth-token cookies",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 14,
+      "case": "websocket plugin should not read httpOnly access-token cookie from client JS",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 20,
+      "case": "websocket plugin should wait for protected routes before connecting",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 27,
+      "case": "auth bootstrap should skip fetchMe on public routes without auth cookies",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 34,
+      "case": "fetchMe should delegate access→refresh recovery to the server resolver",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 46,
+      "case": "default layout should delegate alert polling to useAlerts instead of owning a duplicate auth recovery loop",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 54,
+      "case": "useAlerts should own alert HTTP recovery so layout polling does not race websocket reconnects",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 61,
+      "case": "global 401 handler should only auto-logout on auth session errors",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 69,
+      "case": "protected diary and alert pages should use shared auth recovery instead of inline 401 cleanup",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    },
+    {
+      "source": "tests/unit/auth-client-regressions.test.ts",
+      "line": 86,
+      "case": "calendar page should use useCalendar composable which handles auth recovery internally",
+      "newImplementationVerification": "pending: reuse assertions against real Hono/PostgreSQL where applicable"
+    }
+  ],
+  "boundaryNotes": [
+    "Web refresh is deliberately stable for concurrent browser sessions; do not rotate as Native.",
+    "Native concurrent rotation must have one winner. Replaying A after A→B revokes that family, including B, while other device families survive.",
+    "Logout-one revokes refresh family but old access JWT may survive until expiry; logout-all/password changes increment tokenVersion and disconnect sockets.",
+    "Invalid explicit Bearer or API key, including on public routes, fails closed; never fallback to valid browser cookies. Multiple explicit credential sources are ambiguous.",
+    "Only verified Bearer/scoped API-key requests bypass CSRF. Cookie mutations require CSRF, including logout-all.",
+    "Standard fetch native refresh must coordinate one refresh request for concurrent protected401 responses, retry each once, and never recurse bootstrap endpoints.",
+    "Old native smoke test is prior art, not sufficient new acceptance: ticket05 must use actual Hono/PostgreSQL."
+  ]
+}

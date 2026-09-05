@@ -1,0 +1,14 @@
+{
+  "sourceHead": "47f8313bf29870b52582db97209bef2e1cbe41ce",
+  "diary": {
+    "input": {"title":"Synthetic diary","content":"## Baseline\nNo transaction. 測試內容","date":"2026-08-10","tags":["baseline"]},
+    "flow": ["login:200", "create:201", "read:200", "delete:200", "readDeleted:404"],
+    "knownLegacyBug": {"acceptedContractTitleMax":500,"persistedTitleMax":255,"probes":[{"length":255,"status":201},{"length":256,"status":500},{"length":500,"status":500}],"newBehavior":"Requires explicit documented correction; do not reproduce 500 as intended validation."}
+  },
+  "publicSearch": {
+    "publishedPost":{"title":"Investment the AI 投資策略","excerpt":"Longterm investment evidence","content":"bodyonly","publishedAt":"non-null"},
+    "excludedDraft":{"title":"Hidden Investment","excerpt":"investment","status":"DRAFT"},
+    "queries":[{"term":"investment","total":1},{"term":"vest","total":0},{"term":"the","total":0},{"term":"AI","total":0},{"term":"投資","total":0},{"term":"投資策略","total":1},{"term":"investment 投資","total":1},{"term":"bodyonly","total":0}],
+    "meaning":"Tokenized fulltext title/excerpt only; no substring, body search, unpublished posts or email. Measured on MariaDB 11.4 default token/stopword settings."
+  }
+}

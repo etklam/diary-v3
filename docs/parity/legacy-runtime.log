@@ -1,0 +1,171 @@
+🎨 Generating PNG icons from SVG...
+
+✅ Generated icon-192x192.png (192x192)
+✅ Generated icon-512x512.png (512x512)
+✅ Generated icon-maskable-512x512.png (512x512 maskable)
+
+✨ All icons generated successfully!
+│
+◆  Types generated in .nuxt.
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+Datasource "db": MySQL database "backend_http_test" at "127.0.0.1:32893"
+
+38 migrations found in prisma/migrations
+
+Applying migration `20260220185912_add_token_version`
+Applying migration `20260220193715_add_discipline_order`
+Applying migration `20260221_migrate_categories`
+Applying migration `20260221105736_add_user_timezone`
+Applying migration `20260222173520_add_performance_indexes`
+Applying migration `20260223174528_add_diary_tags_and_favorite_tags`
+Applying migration `20260223182554_add_recurring_alerts`
+Applying migration `20260225172231_add_etf_models`
+Applying migration `20260409030000_add_partner_links_and_api_keys`
+Applying migration `20260411154724_normalize_transaction_symbols`
+Applying migration `20260411160000_extend_transaction_schema`
+Applying migration `20260411162853_add_discipline_check_model`
+Applying migration `20260411165111_add_portfolio_snapshot`
+Applying migration `20260501093000_add_stock_tracking_models`
+Applying migration `20260501162858_add_price_alerts_table`
+Applying migration `20260502183442_add_stock_notes`
+Applying migration `20260504190526_add_stock_notes_sharing_to_partner_link`
+Applying migration `20260509180545_add_telegram_bot_support`
+Applying migration `20260510102158_add_verification_code_attempts`
+Applying migration `20260513160729_drop_discipline_checks_and_portfolio_snapshots`
+Applying migration `20260605065609_add_marketbee_models`
+Applying migration `20260605191941_add_diary_review_fields`
+Applying migration `20260610140000_add_market_rotation_snapshot`
+Applying migration `20260614020000_add_market_rotation_snapshot_run`
+Applying migration `20260614182000_add_trade_plans`
+Applying migration `20260714000000_align_transaction_ownership`
+Applying migration `20260807080000_add_diary_reconciliation_audit`
+Applying migration `20260807090000_enforce_diary_user_date`
+Applying migration `20260807100000_remove_telegram_bot_support`
+Applying migration `20260809070000_add_structured_review_v1`
+Applying migration `20260811080000_add_investment_theses_and_diary_stocks`
+Applying migration `20260815080000_add_research_source_types`
+Applying migration `20260901090000_add_native_refresh_sessions`
+Applying migration `20260901100000_diary_v1_contract`
+Applying migration `20260902100000_thesis_contract_constraints`
+Applying migration `20260902110000_backend_v1_integrity`
+Applying migration `20260904090000_add_posts_fulltext_index`
+Applying migration `20260905000000_alert_active_trigger_index`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260220185912_add_token_version/
+    └─ migration.sql
+  └─ 20260220193715_add_discipline_order/
+    └─ migration.sql
+  └─ 20260221_migrate_categories/
+    └─ migration.sql
+  └─ 20260221105736_add_user_timezone/
+    └─ migration.sql
+  └─ 20260222173520_add_performance_indexes/
+    └─ migration.sql
+  └─ 20260223174528_add_diary_tags_and_favorite_tags/
+    └─ migration.sql
+  └─ 20260223182554_add_recurring_alerts/
+    └─ migration.sql
+  └─ 20260225172231_add_etf_models/
+    └─ migration.sql
+  └─ 20260409030000_add_partner_links_and_api_keys/
+    └─ migration.sql
+  └─ 20260411154724_normalize_transaction_symbols/
+    └─ migration.sql
+  └─ 20260411160000_extend_transaction_schema/
+    └─ migration.sql
+  └─ 20260411162853_add_discipline_check_model/
+    └─ migration.sql
+  └─ 20260411165111_add_portfolio_snapshot/
+    └─ migration.sql
+  └─ 20260501093000_add_stock_tracking_models/
+    └─ migration.sql
+  └─ 20260501162858_add_price_alerts_table/
+    └─ migration.sql
+  └─ 20260502183442_add_stock_notes/
+    └─ migration.sql
+  └─ 20260504190526_add_stock_notes_sharing_to_partner_link/
+    └─ migration.sql
+  └─ 20260509180545_add_telegram_bot_support/
+    └─ migration.sql
+  └─ 20260510102158_add_verification_code_attempts/
+    └─ migration.sql
+  └─ 20260513160729_drop_discipline_checks_and_portfolio_snapshots/
+    └─ migration.sql
+  └─ 20260605065609_add_marketbee_models/
+    └─ migration.sql
+  └─ 20260605191941_add_diary_review_fields/
+    └─ migration.sql
+  └─ 20260610140000_add_market_rotation_snapshot/
+    └─ migration.sql
+  └─ 20260614020000_add_market_rotation_snapshot_run/
+    └─ migration.sql
+  └─ 20260614182000_add_trade_plans/
+    └─ migration.sql
+  └─ 20260714000000_align_transaction_ownership/
+    └─ migration.sql
+  └─ 20260807080000_add_diary_reconciliation_audit/
+    └─ migration.sql
+  └─ 20260807090000_enforce_diary_user_date/
+    └─ migration.sql
+  └─ 20260807100000_remove_telegram_bot_support/
+    └─ migration.sql
+  └─ 20260809070000_add_structured_review_v1/
+    └─ migration.sql
+  └─ 20260811080000_add_investment_theses_and_diary_stocks/
+    └─ migration.sql
+  └─ 20260815080000_add_research_source_types/
+    └─ migration.sql
+  └─ 20260901090000_add_native_refresh_sessions/
+    └─ migration.sql
+  └─ 20260901100000_diary_v1_contract/
+    └─ migration.sql
+  └─ 20260902100000_thesis_contract_constraints/
+    └─ migration.sql
+  └─ 20260902110000_backend_v1_integrity/
+    └─ migration.sql
+  └─ 20260904090000_add_posts_fulltext_index/
+    └─ migration.sql
+  └─ 20260905000000_alert_active_trigger_index/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+
+ RUN  v4.1.0 /private/tmp/diary-v3-source-baseline
+
+stderr | tests/integration/http/parity-baseline.test.ts
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+{"timestamp":"2026-09-05T05:25:00.081Z","level":"INFO","prefix":"Alert","message":"Alert scheduler disabled","context":{"operation":"scheduler_start","schedulerEnabled":false}}
+{"timestamp":"2026-09-05T05:25:00.082Z","level":"INFO","prefix":"ETF","message":"ETF cache cleaner disabled","context":{"operation":"etf_cache_cleaner_start","schedulerEnabled":false}}
+Listening on http://127.0.0.1:56535
+{"timestamp":"2026-09-05T05:25:00.737Z","level":"INFO","prefix":"Diary","message":"Diary created","requestId":"55fce52e-9d56-426b-ac28-be6e80d8c26f","context":{"diaryId":"1","userId":"1"}}
+{"timestamp":"2026-09-05T05:25:00.751Z","level":"INFO","prefix":"Diary","message":"Diary fetched","requestId":"829cb981-c0a1-44de-8227-0df45b37476a","context":{"diaryId":"1"}}
+{"timestamp":"2026-09-05T05:25:00.769Z","level":"INFO","prefix":"Diary","message":"Diary deleted","requestId":"bcfd122c-5760-4593-83ea-24103a4b6792","context":{"diaryId":"1","userId":"1"}}
+{"timestamp":"2026-09-05T05:25:00.777Z","level":"WARN","prefix":"Diary","message":"Diary 1 not found","requestId":"4aad10e7-b8e3-4191-9be0-fd93e23b6f9b","context":{"code":"DIARY_NOT_FOUND"}}
+{"timestamp":"2026-09-05T05:25:00.790Z","level":"INFO","prefix":"Diary","message":"Diary created","requestId":"853e14fd-1255-4a46-821b-18c61f73abe5","context":{"diaryId":"2","userId":"1"}}
+{"timestamp":"2026-09-05T05:25:00.799Z","level":"ERROR","prefix":"Diary","message":"Unexpected error","requestId":"7fd2c5eb-e724-4158-b8db-c617f15e86ca","context":{"error":"\nInvalid `prisma.diary.create()` invocation:\n\n\nThe provided value for the column is too long for the column's type. Column: title","errorType":"PrismaClientKnownRequestError","stack":"PrismaClientKnownRequestError: \nInvalid `prisma.diary.create()` invocation:\n\n\nThe provided value for the column is too long for the column's type. Column: title\n    at Gr.handleRequestError (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:8286)\n    at Gr.handleAndLogRequestError (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:7581)\n    at Gr.request (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:75:6730)\n    at async createDiaryForUser (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:20585:19)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/routes/api/diaries.post.mjs:38:19)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2003:19)\n    at async Server.toNodeHandle (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2274:7)"}}
+{"timestamp":"2026-09-05T05:25:00.799Z","level":"ERROR","prefix":"API","message":"Unhandled request error","requestId":"7fd2c5eb-e724-4158-b8db-c617f15e86ca","context":{"operation":"http_request","requestId":"7fd2c5eb-e724-4158-b8db-c617f15e86ca","method":"POST","path":"/api/diaries","userId":"1","error":"Internal server error","errorType":"Error","stack":"Error: Internal server error\n    at createError$1 (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:956:15)\n    at AppError.toH3Error (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:15165:12)\n    at handleApiError (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:20859:37)\n    at Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/routes/api/diaries.post.mjs:51:5)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2003:19)\n    at async Server.toNodeHandle (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2274:7)"}}
+{"timestamp":"2026-09-05T05:25:00.806Z","level":"ERROR","prefix":"Diary","message":"Unexpected error","requestId":"99ecbf06-daf6-4fed-9e99-f28c6c3ff452","context":{"error":"\nInvalid `prisma.diary.create()` invocation:\n\n\nThe provided value for the column is too long for the column's type. Column: title","errorType":"PrismaClientKnownRequestError","stack":"PrismaClientKnownRequestError: \nInvalid `prisma.diary.create()` invocation:\n\n\nThe provided value for the column is too long for the column's type. Column: title\n    at Gr.handleRequestError (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:8286)\n    at Gr.handleAndLogRequestError (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:7581)\n    at Gr.request (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:65:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/private/tmp/diary-v3-source-baseline/node_modules/@prisma/client/runtime/client.js:75:6730)\n    at async createDiaryForUser (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:20585:19)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/routes/api/diaries.post.mjs:38:19)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2003:19)\n    at async Server.toNodeHandle (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2274:7)"}}
+{"timestamp":"2026-09-05T05:25:00.806Z","level":"ERROR","prefix":"API","message":"Unhandled request error","requestId":"99ecbf06-daf6-4fed-9e99-f28c6c3ff452","context":{"operation":"http_request","requestId":"99ecbf06-daf6-4fed-9e99-f28c6c3ff452","method":"POST","path":"/api/diaries","userId":"1","error":"Internal server error","errorType":"Error","stack":"Error: Internal server error\n    at createError$1 (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:956:15)\n    at AppError.toH3Error (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:15165:12)\n    at handleApiError (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:20859:37)\n    at Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/routes/api/diaries.post.mjs:51:5)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Object.handler (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2003:19)\n    at async Server.toNodeHandle (file:///private/tmp/diary-v3-source-baseline/.nuxt/test/r6xbvc/output/server/chunks/nitro/nitro.mjs:2274:7)"}}
+{"timestamp":"2026-09-05T05:25:00.824Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"4ba6b18b-e8bc-4378-a181-f94748309fca","context":{}}
+{"timestamp":"2026-09-05T05:25:00.832Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"b7dbfcc7-f5e3-40a9-87a2-211a24d086c3","context":{}}
+{"timestamp":"2026-09-05T05:25:00.853Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"da679e3e-d2fd-497b-8030-cbd4f02b774c","context":{}}
+{"timestamp":"2026-09-05T05:25:00.859Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"69ebf871-9b3b-417b-8d8a-2d1969bfe5c7","context":{}}
+{"timestamp":"2026-09-05T05:25:00.865Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"cc0dddce-f4ca-4dd0-bfad-e5dc1b2b64b0","context":{}}
+{"timestamp":"2026-09-05T05:25:00.869Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"6b991d70-bd2b-42f5-b805-f259f8a2165d","context":{}}
+{"timestamp":"2026-09-05T05:25:00.872Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"f2329243-e79c-45db-bce4-3fe928b655d5","context":{}}
+{"timestamp":"2026-09-05T05:25:00.876Z","level":"INFO","prefix":"Blog","message":"Fetching public blog posts","requestId":"2d7b18ce-7e20-4fd9-bfcc-b65e286353c3","context":{}}
+ ✓ tests/integration/http/parity-baseline.test.ts > real legacy login → create → read → delete → missing; synthetic no-transaction Diary 516ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  13:24:32
+   Duration  28.15s (transform 24ms, setup 41ms, import 62ms, tests 27.98s, environment 0ms)
+

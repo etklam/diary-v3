@@ -1,0 +1,100 @@
+{
+  "environment": "isolated frozen Nuxt/Nitro + disposable MariaDB 11.4",
+  "synthetic": true,
+  "knownDeltas": [
+    {
+      "probe": "Diary title length",
+      "length": 255,
+      "status": 201,
+      "errorCode": null
+    },
+    {
+      "probe": "Diary title length",
+      "length": 256,
+      "status": 500,
+      "errorCode": "SYS_INTERNAL_ERROR"
+    },
+    {
+      "probe": "Diary title length",
+      "length": 500,
+      "status": 500,
+      "errorCode": "SYS_INTERNAL_ERROR"
+    }
+  ],
+  "search": [
+    {
+      "term": "investment",
+      "status": 200,
+      "total": 1,
+      "errorCode": null
+    },
+    {
+      "term": "vest",
+      "status": 200,
+      "total": 0,
+      "errorCode": null
+    },
+    {
+      "term": "the",
+      "status": 200,
+      "total": 0,
+      "errorCode": null
+    },
+    {
+      "term": "AI",
+      "status": 200,
+      "total": 0,
+      "errorCode": null
+    },
+    {
+      "term": "投資",
+      "status": 200,
+      "total": 0,
+      "errorCode": null
+    },
+    {
+      "term": "投資策略",
+      "status": 200,
+      "total": 1,
+      "errorCode": null
+    },
+    {
+      "term": "investment 投資",
+      "status": 200,
+      "total": 1,
+      "errorCode": null
+    },
+    {
+      "term": "bodyonly",
+      "status": 200,
+      "total": 0,
+      "errorCode": null
+    }
+  ],
+  "flow": [
+    "login:200",
+    "create:201",
+    "read:200",
+    "delete:200",
+    "readDeleted:404"
+  ],
+  "timingsMs": {
+    "login": 140.18,
+    "create": 35.42,
+    "read": 12.96,
+    "delete": 17.78,
+    "readDeleted": 7.81,
+    "title255": 13.04,
+    "title256": 8.67,
+    "title500": 7.58,
+    "searchinvestment": 9.64,
+    "searchvest": 21.28,
+    "searchthe": 6.2,
+    "searchAI": 6.01,
+    "search投資": 3.52,
+    "search投資策略": 4.65,
+    "searchinvestment 投資": 2.28,
+    "searchbodyonly": 3.4
+  },
+  "note": "Single cold-flow observation; not a percentile or capacity benchmark. Native login used to avoid browser-cookie simulation."
+}

@@ -1,0 +1,143 @@
+CONSTRAINT_CATALOG	CONSTRAINT_SCHEMA	CONSTRAINT_NAME	TABLE_SCHEMA	TABLE_NAME	CONSTRAINT_TYPE
+def	backend_http_test	PRIMARY	backend_http_test	_prisma_migrations	PRIMARY KEY
+def	backend_http_test	PRIMARY	backend_http_test	disciplines	PRIMARY KEY
+def	backend_http_test	disciplines_user_id_fkey	backend_http_test	disciplines	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	users	PRIMARY KEY
+def	backend_http_test	users_email_key	backend_http_test	users	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	etfs	PRIMARY KEY
+def	backend_http_test	etfs_symbol_key	backend_http_test	etfs	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	etf_prices	PRIMARY KEY
+def	backend_http_test	etf_prices_etf_id_date_key	backend_http_test	etf_prices	UNIQUE
+def	backend_http_test	etf_prices_etf_id_fkey	backend_http_test	etf_prices	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	etf_watchlists	PRIMARY KEY
+def	backend_http_test	etf_watchlists_user_id_etf_id_key	backend_http_test	etf_watchlists	UNIQUE
+def	backend_http_test	etf_watchlists_etf_id_fkey	backend_http_test	etf_watchlists	FOREIGN KEY
+def	backend_http_test	etf_watchlists_user_id_fkey	backend_http_test	etf_watchlists	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	api_key_credentials	PRIMARY KEY
+def	backend_http_test	api_key_credentials_key_hash_key	backend_http_test	api_key_credentials	UNIQUE
+def	backend_http_test	api_key_credentials_user_id_fkey	backend_http_test	api_key_credentials	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	stocks	PRIMARY KEY
+def	backend_http_test	stocks_symbol_key	backend_http_test	stocks	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	stock_watchlists	PRIMARY KEY
+def	backend_http_test	stock_watchlists_user_stock_key	backend_http_test	stock_watchlists	UNIQUE
+def	backend_http_test	stock_watchlists_stock_id_fkey	backend_http_test	stock_watchlists	FOREIGN KEY
+def	backend_http_test	stock_watchlists_user_id_fkey	backend_http_test	stock_watchlists	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	stock_notes	PRIMARY KEY
+def	backend_http_test	stock_notes_stock_id_fkey	backend_http_test	stock_notes	FOREIGN KEY
+def	backend_http_test	stock_notes_user_id_fkey	backend_http_test	stock_notes	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	partner_links	PRIMARY KEY
+def	backend_http_test	partner_links_user_pair_key	backend_http_test	partner_links	UNIQUE
+def	backend_http_test	partner_links_initiated_by_user_id_fkey	backend_http_test	partner_links	FOREIGN KEY
+def	backend_http_test	partner_links_user_a_id_fkey	backend_http_test	partner_links	FOREIGN KEY
+def	backend_http_test	partner_links_user_b_id_fkey	backend_http_test	partner_links	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	market_universe	PRIMARY KEY
+def	backend_http_test	market_universe_symbol_key	backend_http_test	market_universe	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	market_breadth_daily	PRIMARY KEY
+def	backend_http_test	market_breadth_daily_universe_date_key	backend_http_test	market_breadth_daily	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	market_daily_price	PRIMARY KEY
+def	backend_http_test	market_daily_price_symbol_date_key	backend_http_test	market_daily_price	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	market_rotation_snapshot	PRIMARY KEY
+def	backend_http_test	market_rotation_snapshot_scope_symbol_date_key	backend_http_test	market_rotation_snapshot	UNIQUE
+def	backend_http_test	PRIMARY	backend_http_test	market_rotation_snapshot_run	PRIMARY KEY
+def	backend_http_test	PRIMARY	backend_http_test	diary_reconciliation_audits	PRIMARY KEY
+def	backend_http_test	diary_reconciliation_audits_migration_merged_key	backend_http_test	diary_reconciliation_audits	UNIQUE
+def	backend_http_test	diary_reconciliation_audits_user_id_fkey	backend_http_test	diary_reconciliation_audits	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	diary_stocks	PRIMARY KEY
+def	backend_http_test	diary_stocks_diary_id_fkey	backend_http_test	diary_stocks	FOREIGN KEY
+def	backend_http_test	diary_stocks_stock_id_fkey	backend_http_test	diary_stocks	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	stock_timeline_records	PRIMARY KEY
+def	backend_http_test	stock_timeline_records_user_stock_idempotency_key	backend_http_test	stock_timeline_records	UNIQUE
+def	backend_http_test	stock_timeline_records_source_diary_id_fkey	backend_http_test	stock_timeline_records	FOREIGN KEY
+def	backend_http_test	stock_timeline_records_stock_id_fkey	backend_http_test	stock_timeline_records	FOREIGN KEY
+def	backend_http_test	stock_timeline_records_user_id_fkey	backend_http_test	stock_timeline_records	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	refresh_tokens	PRIMARY KEY
+def	backend_http_test	refresh_tokens_token_key	backend_http_test	refresh_tokens	UNIQUE
+def	backend_http_test	refresh_tokens_replacement_id_key	backend_http_test	refresh_tokens	UNIQUE
+def	backend_http_test	refresh_tokens_parent_id_fkey	backend_http_test	refresh_tokens	FOREIGN KEY
+def	backend_http_test	refresh_tokens_replacement_id_fkey	backend_http_test	refresh_tokens	FOREIGN KEY
+def	backend_http_test	refresh_tokens_user_id_fkey	backend_http_test	refresh_tokens	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	transactions	PRIMARY KEY
+def	backend_http_test	transactions_diary_user_fkey	backend_http_test	transactions	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	investment_theses	PRIMARY KEY
+def	backend_http_test	investment_theses_user_stock_key	backend_http_test	investment_theses	UNIQUE
+def	backend_http_test	investment_theses_id_user_id_key	backend_http_test	investment_theses	UNIQUE
+def	backend_http_test	investment_theses_active_fields_check	backend_http_test	investment_theses	CHECK
+def	backend_http_test	investment_theses_active_timestamp_check	backend_http_test	investment_theses	CHECK
+def	backend_http_test	investment_theses_archive_timestamp_check	backend_http_test	investment_theses	CHECK
+def	backend_http_test	investment_theses_review_timestamp_check	backend_http_test	investment_theses	CHECK
+def	backend_http_test	investment_theses_stock_id_fkey	backend_http_test	investment_theses	FOREIGN KEY
+def	backend_http_test	investment_theses_user_id_fkey	backend_http_test	investment_theses	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	thesis_reviews	PRIMARY KEY
+def	backend_http_test	thesis_reviews_thesis_user_fkey	backend_http_test	thesis_reviews	FOREIGN KEY
+def	backend_http_test	thesis_reviews_user_id_fkey	backend_http_test	thesis_reviews	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	diaries	PRIMARY KEY
+def	backend_http_test	diaries_user_date_key	backend_http_test	diaries	UNIQUE
+def	backend_http_test	diaries_id_user_id_key	backend_http_test	diaries	UNIQUE
+def	backend_http_test	diaries_review_status_check	backend_http_test	diaries	CHECK
+def	backend_http_test	diaries_review_outcome_check	backend_http_test	diaries	CHECK
+def	backend_http_test	diaries_review_lifecycle_check	backend_http_test	diaries	CHECK
+def	backend_http_test	diaries_review_lifecycle_v1_check	backend_http_test	diaries	CHECK
+def	backend_http_test	diaries_user_id_fkey	backend_http_test	diaries	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	trade_plans	PRIMARY KEY
+def	backend_http_test	trade_plans_zone_order_v1_check	backend_http_test	trade_plans	CHECK
+def	backend_http_test	trade_plans_diary_id_fkey	backend_http_test	trade_plans	FOREIGN KEY
+def	backend_http_test	trade_plans_user_id_fkey	backend_http_test	trade_plans	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	price_alerts	PRIMARY KEY
+def	backend_http_test	price_alerts_trigger_state_v1_check	backend_http_test	price_alerts	CHECK
+def	backend_http_test	price_alerts_user_id_fkey	backend_http_test	price_alerts	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	posts	PRIMARY KEY
+def	backend_http_test	posts_slug_key	backend_http_test	posts	UNIQUE
+def	backend_http_test	posts_author_id_fkey	backend_http_test	posts	FOREIGN KEY
+def	backend_http_test	PRIMARY	backend_http_test	alerts	PRIMARY KEY
+def	backend_http_test	alerts_id_diary_key	backend_http_test	alerts	UNIQUE
+def	backend_http_test	alerts_series_consistency_v1_check	backend_http_test	alerts	CHECK
+def	backend_http_test	alerts_diary_id_fkey	backend_http_test	alerts	FOREIGN KEY
+def	backend_http_test	alerts_parent_diary_fkey	backend_http_test	alerts	FOREIGN KEY
+def	backend_http_test	alerts_parent_id_fkey	backend_http_test	alerts	FOREIGN KEY
+CONSTRAINT_CATALOG	CONSTRAINT_SCHEMA	CONSTRAINT_NAME	UNIQUE_CONSTRAINT_CATALOG	UNIQUE_CONSTRAINT_SCHEMA	UNIQUE_CONSTRAINT_NAME	MATCH_OPTION	UPDATE_RULE	DELETE_RULE	TABLE_NAME	REFERENCED_TABLE_NAME
+def	backend_http_test	disciplines_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	disciplines	users
+def	backend_http_test	etf_prices_etf_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	etf_prices	etfs
+def	backend_http_test	etf_watchlists_etf_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	etf_watchlists	etfs
+def	backend_http_test	etf_watchlists_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	etf_watchlists	users
+def	backend_http_test	api_key_credentials_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	api_key_credentials	users
+def	backend_http_test	stock_watchlists_stock_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_watchlists	stocks
+def	backend_http_test	stock_watchlists_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_watchlists	users
+def	backend_http_test	stock_notes_stock_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_notes	stocks
+def	backend_http_test	stock_notes_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_notes	users
+def	backend_http_test	partner_links_initiated_by_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	partner_links	users
+def	backend_http_test	partner_links_user_a_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	partner_links	users
+def	backend_http_test	partner_links_user_b_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	partner_links	users
+def	backend_http_test	diary_reconciliation_audits_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	diary_reconciliation_audits	users
+def	backend_http_test	diary_stocks_diary_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	diary_stocks	diaries
+def	backend_http_test	diary_stocks_stock_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	diary_stocks	stocks
+def	backend_http_test	stock_timeline_records_source_diary_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	SET NULL	stock_timeline_records	diaries
+def	backend_http_test	stock_timeline_records_stock_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_timeline_records	stocks
+def	backend_http_test	stock_timeline_records_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	stock_timeline_records	users
+def	backend_http_test	refresh_tokens_parent_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	SET NULL	refresh_tokens	refresh_tokens
+def	backend_http_test	refresh_tokens_replacement_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	SET NULL	refresh_tokens	refresh_tokens
+def	backend_http_test	refresh_tokens_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	refresh_tokens	users
+def	backend_http_test	transactions_diary_user_fkey	def	backend_http_test	diaries_id_user_id_key	NONE	CASCADE	CASCADE	transactions	diaries
+def	backend_http_test	investment_theses_stock_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	investment_theses	stocks
+def	backend_http_test	investment_theses_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	investment_theses	users
+def	backend_http_test	thesis_reviews_thesis_user_fkey	def	backend_http_test	investment_theses_id_user_id_key	NONE	CASCADE	CASCADE	thesis_reviews	investment_theses
+def	backend_http_test	thesis_reviews_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	thesis_reviews	users
+def	backend_http_test	diaries_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	diaries	users
+def	backend_http_test	trade_plans_diary_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	SET NULL	trade_plans	diaries
+def	backend_http_test	trade_plans_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	trade_plans	users
+def	backend_http_test	price_alerts_user_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	price_alerts	users
+def	backend_http_test	posts_author_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	posts	users
+def	backend_http_test	alerts_diary_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	alerts	diaries
+def	backend_http_test	alerts_parent_diary_fkey	def	backend_http_test	alerts_id_diary_key	NONE	CASCADE	CASCADE	alerts	alerts
+def	backend_http_test	alerts_parent_id_fkey	def	backend_http_test	PRIMARY	NONE	CASCADE	CASCADE	alerts	alerts
+CONSTRAINT_CATALOG	CONSTRAINT_SCHEMA	TABLE_NAME	CONSTRAINT_NAME	LEVEL	CHECK_CLAUSE
+def	backend_http_test	investment_theses	investment_theses_active_fields_check	Table	`status` <> 'ACTIVE' or `summary` is not null and char_length(trim(`summary`)) > 0 and `why_i_own_it` is not null and char_length(trim(`why_i_own_it`)) > 0
+def	backend_http_test	investment_theses	investment_theses_active_timestamp_check	Table	`status` <> 'ACTIVE' or `activated_at` is not null
+def	backend_http_test	investment_theses	investment_theses_archive_timestamp_check	Table	`status` <> 'ARCHIVED' or `archived_at` is not null
+def	backend_http_test	investment_theses	investment_theses_review_timestamp_check	Table	`last_reviewed_at` is null and `latest_review_outcome` is null or `last_reviewed_at` is not null and `latest_review_outcome` is not null
+def	backend_http_test	diaries	diaries_review_status_check	Table	`review_status` in ('none','pending','reviewed')
+def	backend_http_test	diaries	diaries_review_outcome_check	Table	`review_outcome` is null or `review_outcome` in ('INTACT','PARTIAL','INVALIDATED','UNCLEAR')
+def	backend_http_test	diaries	diaries_review_lifecycle_check	Table	`review_status` = 'reviewed' and `reviewed_at` is not null or `review_status` <> 'reviewed' and `reviewed_at` is null and `review_outcome` is null and `review_summary` is null and `review_learning` is null and `review_adjustment` is null
+def	backend_http_test	diaries	diaries_review_lifecycle_v1_check	Table	`review_status` = 'reviewed' and `reviewed_at` is not null or `review_status` <> 'reviewed' and `reviewed_at` is null and `review_outcome` is null and `review_summary` is null and `review_learning` is null and `review_adjustment` is null
+def	backend_http_test	trade_plans	trade_plans_zone_order_v1_check	Table	`entry_zone_low` is null or `entry_zone_high` is null or `entry_zone_low` <= `entry_zone_high`
+def	backend_http_test	price_alerts	price_alerts_trigger_state_v1_check	Table	`is_triggered` = 0 and `triggered_at` is null or `is_triggered` = 1 and `triggered_at` is not null
+def	backend_http_test	alerts	alerts_series_consistency_v1_check	Table	`recurring_mode` is null and `instance_number` = 1 or `recurring_mode` is not null and `instance_number` >= 1
