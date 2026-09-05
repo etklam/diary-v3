@@ -1,0 +1,5 @@
+# Trade Plans independent finish review
+
+Root inspected the four form/list desktop/mobile captures in `evidence/trade-plans/`, the API contracts and browser assertions. Disposition: ship after adding explicit sign-in recovery to authentication errors. The focused guest recovery check passed 1/1 (7.6 seconds). Main browser workflow passed 2/2 (17.0 seconds): exact decimal strings, invalid entry zone, lifecycle, linked Diary, unlink, failure retention/retry, filters, locales and delete. Backend true PostgreSQL tests passed 5/5, with 13/13 Diary projection regressions. No visual redesign or further polish was required; existing flat forms, native controls and tokens remain.
+
+The initial desktop test filled the previous list's Symbol input before route navigation finished. The corrected test waits for the new-plan URL and heading. No hydration product bug was found; the experimental readiness change was reverted. Root integrated 221 tests, build, lint and contracts passed before the small sign-in-link addition; its focused browser check and static checks verify the addition.
