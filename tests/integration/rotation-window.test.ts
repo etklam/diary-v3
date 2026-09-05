@@ -1,0 +1,22 @@
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {marketRotationSnapshots} from '../../packages/db/src/schema';
+import {getSectorsUniverse,getIndexesUniverse} from '../../packages/domain/src/market-rotation/universe';
+import {readRotationWindow} from '../../apps/api/src/rotation-queries';
+import {provisionTestDatabase} from '../support/database';
+let database:Awaited<ReturnType<typeof provisionTestDatabase>>;
+beforeAll(async()=>{database=await provisionTestDatabase('rotation_window');});afterAll(async()=>{await database?.dispose();});
+it('counts canonical scope members only and deduplicates pre-persistence candidates',async()=>{
+ const sectors=getSectorsUniverse();
+ const rows=Array.from({length:11},(_,i)=>sectors.slice(0,10).map(entry=>({symbol:entry.symbol,rankScope:'sectors',groupType:'sector',date:`2026-08-${String(i+1).padStart(2,'0')}`,signalStatus:'insufficient_data'}))).flat();
+ rows.push(...sectors.slice(0,9).map(entry=>({symbol:entry.symbol,rankScope:'sectors',groupType:'sector',date:'2026-08-12',signalStatus:'insufficient_data'})));
+ rows.push(...Array.from({length:20},(_,i)=>({symbol:`EXTRA${i}`,rankScope:'sectors',groupType:'sector',date:'2026-08-12',signalStatus:'insufficient_data'})));
+ rows.push(...sectors.map(entry=>({symbol:entry.symbol,rankScope:'sectors',groupType:'sector',date:'2026-09-06',signalStatus:'insufficient_data'})));
+ rows.push(...getIndexesUniverse().map(entry=>({symbol:entry.symbol,rankScope:'indexes',groupType:'index',date:'2026-08-12',signalStatus:'insufficient_data'})));
+ await database.db.insert(marketRotationSnapshots).values(rows);
+ const result=await readRotationWindow(database.db,'sectors','2026-09-05');expect(result.qualifiedDatesDesc).toHaveLength(11);expect(result.latestDate?.toISOString()).toBe('2026-08-11T00:00:00.000Z');expect(result.comparisonDate?.toISOString()).toBe('2026-08-01T00:00:00.000Z');
+ const retry=await readRotationWindow(database.db,'sectors','2026-09-05',{date:new Date('2026-08-11'),snapshotCount:10});expect(retry).toEqual(result);
+ const candidate=await readRotationWindow(database.db,'sectors','2026-09-05',{date:new Date('2026-08-13'),snapshotCount:10});expect(candidate.qualifiedDatesDesc).toHaveLength(12);expect(candidate.comparisonDate?.toISOString()).toBe('2026-08-02T00:00:00.000Z');
+ const partial=await readRotationWindow(database.db,'sectors','2026-09-05',{date:new Date('2026-08-13'),snapshotCount:9});expect(partial).toEqual(result);
+ const future=await readRotationWindow(database.db,'sectors','2026-09-05',{date:new Date('2026-09-06'),snapshotCount:11});expect(future).toEqual(result);
+ const indexes=await readRotationWindow(database.db,'indexes','2026-09-05');expect(indexes.qualifiedDatesDesc).toHaveLength(1);expect(indexes.comparisonDate).toBeNull();
+});

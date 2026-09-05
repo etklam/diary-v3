@@ -1,0 +1,20 @@
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {marketRotationSnapshots} from '../../packages/db/src/schema';
+import {runSnapshotPipeline} from '../../packages/domain/src/market-rotation/pipeline';
+import {persistRotationSnapshots} from '../../apps/api/src/rotation-snapshots';
+import {provisionTestDatabase} from '../support/database';
+let database:Awaited<ReturnType<typeof provisionTestDatabase>>;
+beforeAll(async()=>{database=await provisionTestDatabase('rotation_snapshots');});afterAll(async()=>{await database?.dispose();});
+it('persists actual pipeline output, reruns update metrics, and invalid batches write nothing',async()=>{
+ const prices=Array.from({length:60},(_,i)=>({date:new Date(Date.UTC(2026,5,i+1)).toISOString().slice(0,10),close:100+i/3,adjustedClose:100+i/3}));
+ const result=runSnapshotPipeline([{meta:{symbol:'SPY',rankScope:'indexes',groupType:'index',sectorName:null},prices}]);
+ const first=new Date('2026-09-01T00:00:00Z'),second=new Date('2026-09-02T00:00:00Z');
+ expect(await persistRotationSnapshots(database.db,result.latest,first)).toBe(1);
+ let [stored]=await database.db.select().from(marketRotationSnapshots);expect(stored?.lastPrice).toBe('119.666667');expect(stored?.signal).toBeNull();expect(stored?.rotationRank).toBeNull();expect(stored?.updatedAt).toEqual(first);const id=stored!.id;
+ await persistRotationSnapshots(database.db,[{...result.latest[0],lastPrice:120,rotationScore:12.34567,rotationRank:1}],second);
+ [stored]=await database.db.select().from(marketRotationSnapshots);expect(stored?.id).toBe(id);expect(stored?.lastPrice).toBe('120.000000');expect(stored?.rotationScore).toBe('12.3457');expect(stored?.updatedAt).toEqual(second);
+ await expect(persistRotationSnapshots(database.db,[{...result.latest[0],symbol:'QQQ'},{...result.latest[0],symbol:'DIA',rotationScore:Infinity}])).rejects.toThrow();expect(await database.db.select().from(marketRotationSnapshots)).toHaveLength(1);
+ await database.pool.query("CREATE FUNCTION reject_rotation_row() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.symbol = 'ZZZ' THEN RAISE EXCEPTION 'synthetic write failure'; END IF; RETURN NEW; END $$");
+ await database.pool.query('CREATE TRIGGER reject_rotation_row BEFORE INSERT ON market_rotation_snapshot FOR EACH ROW EXECUTE FUNCTION reject_rotation_row()');
+ const many=Array.from({length:251},(_,i)=>({...result.latest[0],symbol:i===250?'ZZZ':`X${i}`}));await expect(persistRotationSnapshots(database.db,many)).rejects.toThrow();expect(await database.db.select().from(marketRotationSnapshots)).toHaveLength(1);
+});
