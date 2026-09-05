@@ -22,7 +22,6 @@ import {
   postDeleteResponseSchema,
   postPublicDetailSchema,
   postPublicListResponseSchema,
-  postStatusSchema,
   postWriteRequestSchema,
   serializedIdSchema,
   type PostStatus,

@@ -1,3 +1,4 @@
+import { findUpcomingAlerts } from '../../apps/api/src/alert-pusher'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import type { AddressInfo } from 'node:net'
@@ -192,4 +193,26 @@ it('serializes concurrent Diary appends without losing reminder collections', as
   const persisted = await (await browser.request(`/api/diaries/${source.id}`)).json()
   expect(persisted.alerts.map((row: { message: string }) => row.message).sort()).toEqual(['Reminder 1', 'Reminder 2', 'Reminder 3'])
   for (const index of [1, 2, 3]) expect(persisted.content).toContain(`Append ${index}`)
+})
+
+it('queries the half-open pusher window with parent dismissal protection and no delivery writes', async () => {
+  const browser = await login(), source = await diary(browser)
+  const instants = ['2090-01-01T11:59:59.999Z', '2090-01-01T12:00:00.000Z', '2090-01-01T12:01:04.999Z', '2090-01-01T12:01:05.000Z']
+  const ids: string[] = []
+  for (const triggerAt of instants) {
+    const response = await browser.post('/api/alerts', { diaryId: source.id, message: 'Boundary reminder', triggerAt })
+    expect(response.status).toBe(200); ids.push((await response.json()).id)
+  }
+  const inserted = await database.pool.query("insert into alerts (diary_id,message,trigger_at,recurring_mode,is_dismissed) values ($1,'Dismissed root','2090-01-01T12:00:00Z','WEEK',true) returning id", [source.id])
+  const rootId = inserted.rows[0].id
+  await database.pool.query('update alerts set parent_id=id where id=$1', [rootId])
+  await database.pool.query("insert into alerts (diary_id,message,trigger_at,recurring_mode,parent_id,instance_number) values ($1,'Hidden child','2090-01-01T12:00:00Z','WEEK',$2,2)", [source.id, rootId])
+  const start = new Date('2090-01-01T12:00:00Z'), end = new Date('2090-01-01T12:01:05Z')
+  const before = await database.pool.query('select id,is_dismissed from alerts where diary_id=$1 order by id', [source.id])
+  for (let tick = 0; tick < 2; tick++) {
+    const hints = (await findUpcomingAlerts(database.db, start, end)).filter(row => String(row.diary.id) === source.id)
+    expect(hints.map(row => String(row.id))).toEqual(ids.slice(1, 3))
+    expect(hints[0]!.diary.title).toBe(source.title)
+  }
+  expect((await database.pool.query('select id,is_dismissed from alerts where diary_id=$1 order by id', [source.id])).rows).toEqual(before.rows)
 })

@@ -1,5 +1,6 @@
 import {readRotationMonitor} from './rotation-monitor.js'
 import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from '@diary/contracts/rotation-monitor'
+import {registerMarketStateRoutes} from './market-state-routes.js'
 import {registerRotationAdmin} from './rotation-admin.js'
 import {runRotationBatch} from './rotation-batch.js'
 import { registerEtfProfileRoutes } from './etf-profile.js'
@@ -8,9 +9,15 @@ import { registerEtfAdminRoutes } from './etf-admin.js'
 import { registerAgentStockRoutes } from './agent-stocks.js'
 import { registerApiKeyRoutes } from './api-keys.js'
 import { registerPartnerRoutes } from './partners.js'
+import { registerDisciplineOg } from './discipline-og.js'
+import { registerDisciplineRoutes } from './discipline.js'
+import { registerPriceAlertRoutes } from './price-alerts.js'
 import { registerAlertRoutes } from './alerts.js'
 import { registerPerformanceRoute } from './performance.js'
+import { registerPortfolioAttentionRoutes } from './portfolio-attention.js'
+import { readPortfolioExposure } from './portfolio-exposure.js'
 import { registerCompanyHubRoute } from './company-hub.js'
+import { registerPostRoutes } from './posts.js'
 import { createHash, randomBytes, randomUUID as nodeRandomUUID, timingSafeEqual } from 'node:crypto'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import {
@@ -87,6 +94,9 @@ import {
 } from './diary.js'
 import { getHoldings, getRecentClosedTrades, LedgerValidationError } from './ledger.js'
 import { listLinkedTradePlans } from './trade-plans.js'
+import { registerSecFilingRoutes } from './sec-filings.js'
+import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
+import { registerAdminUserRoutes } from './admin-users.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -105,6 +115,7 @@ export interface ApiConfig {
   nodeEnv: 'development' | 'test' | 'production'
   trustProxy: boolean
   webOrigin: string
+  secUserAgent?: string
 }
 
 type AuthTransport = 'cookie' | 'bearer' | 'api-key'
@@ -120,14 +131,17 @@ export interface AppEnv {
 
 export interface AppDependencies {
   databasePool?: Pick<import('pg').Pool,'connect'>
+  onAccountRevoked?: (userId: string) => void
   db: Database
   config: ApiConfig
   marketData?: ReturnType<typeof createMarketData>
   holidays?: HolidayProvider
+  secFilings?: SecEdgarService
   now?: () => Date
   randomUUID?: () => string
   logger?: {
     error(message: string, context: Record<string, unknown>): void
+    info?(message: string, context?: Record<string, unknown>): void
   }
 }
 
@@ -249,6 +263,8 @@ export function createApp({
   logger = console,
   marketData,
   holidays,
+  secFilings,
+  onAccountRevoked,
 }: AppDependencies) {
   const rateLimiter = createRateLimiter()
   const app = new Hono<AppEnv>()
@@ -285,7 +301,28 @@ export function createApp({
     const requestId = incoming && /^[A-Za-z0-9._:-]{1,128}$/.test(incoming) ? incoming : randomUUID()
     c.set('requestId', requestId)
     c.header('x-request-id', requestId)
+    const startedAt = Date.now()
     await next()
+    if (config.nodeEnv === 'production') {
+      logger.info?.(JSON.stringify({
+        operation: 'http_request',
+        requestId,
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        durationMs: Date.now() - startedAt,
+      }))
+    }
+  })
+
+  app.get('/healthz', c => c.json({ status: 'ok' }))
+  app.get('/readyz', async c => {
+    try {
+      await db.execute(sql`select 1`)
+      return c.json({ status: 'ready' })
+    } catch {
+      return c.json({ status: 'not_ready' }, 503)
+    }
   })
 
   app.use('/api/*', cors({
@@ -391,6 +428,14 @@ export function createApp({
     fail,
     validationError,
   })
+  registerSecFilingRoutes(app, {
+    service: secFilings ?? createSecEdgarService(config.secUserAgent ?? ''),
+    consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp),
+    clientIp: (c) => clientIp(c, config.trustProxy),
+    now,
+    fail,
+    validationError,
+  })
 
   app.get('/api/market/rotation-monitor',async c=>{
     c.header('Cache-Control','no-store');
@@ -399,6 +444,7 @@ export function createApp({
     if(!context)return fail(404,'SYS_NOT_FOUND','No qualified rotation snapshots available');
     return c.json(marketRotationMonitorResponseSchema.parse(context.payload));
   })
+  registerMarketStateRoutes(app, { db, fail, validationError })
   registerRotationAdmin(app,{run:databasePool?scope=>runRotationBatch({db,pool:databasePool,market,now},scope):undefined,parseJson,fail})
   registerEtfProfileRoutes(app, { market, now, validationError })
   registerEtfWatchlistRoutes(app, { db, now, fail, validationError, parseJson })
@@ -411,12 +457,18 @@ export function createApp({
   registerStockNoteRoutes(app, { db, now, fail, validationError, parseJson })
   registerInvestmentThesisRoutes(app, { db, now, fail, validationError, parseJson })
   registerReviewQueueRoute(app, { db, now, fail, validationError })
+  registerDisciplineOg(app)
   registerAgentStockRoutes(app, { db, now, fail, validationError, parseJson })
   registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp) })
   registerPartnerRoutes(app, { db, now, fail, validationError, parseJson })
+  registerDisciplineRoutes(app, { db, now, fail, validationError, parseJson })
+  registerPriceAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerPerformanceRoute(app, { db, fail, validationError })
+  registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
+  registerPostRoutes(app, { db, now, fail, validationError, parseJson })
+  registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
 
   app.post('/api/auth/register', async (c) => {
     const ip = clientIp(c, config.trustProxy)
@@ -659,6 +711,7 @@ export function createApp({
     const authenticated = c.get('user')
     if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     await session.logoutAllSessions(BigInt(authenticated.id))
+    onAccountRevoked?.(authenticated.id)
     clearAuthCookies(c)
     return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
   })
@@ -671,6 +724,7 @@ export function createApp({
     rateLimiter.consume(`password:user:${authenticated.id}`, 3, timestamp)
     const input = await parseJson(c, changePasswordRequestSchema)
     await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword)
+    onAccountRevoked?.(authenticated.id)
     clearAuthCookies(c)
     return c.json(changePasswordResponseSchema.parse({
       success: true,
@@ -824,6 +878,11 @@ export function createApp({
     return c.json(deleteDiaryResponseSchema.parse({ success: true }), 200)
   })
 
+  app.get('/api/stocks/exposure', async c => {
+    c.header('Cache-Control', 'no-store')
+    const user = c.get('user'); if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    return c.json(await readPortfolioExposure(db, BigInt(user.id), now().toISOString().slice(0, 10)))
+  })
 
   app.get('/api/stocks/holdings', async (c) => {
     const session = c.get('user')

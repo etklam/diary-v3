@@ -29,6 +29,7 @@ export const diaryReviewStatus = pgEnum('diary_review_status', ['none', 'pending
 export const thesisReviewOutcome = pgEnum('thesis_review_outcome', ['INTACT', 'PARTIAL', 'INVALIDATED', 'UNCLEAR'])
 export const transactionType = pgEnum('transaction_type', ['BUY', 'SELL'])
 export const tradePlanStatus = pgEnum('trade_plan_status', ['draft', 'active', 'closed', 'cancelled'])
+export const postStatus = pgEnum('post_status', ['DRAFT', 'PUBLISHED', 'ARCHIVED'])
 
 export const users = pgTable('users', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
@@ -99,6 +100,29 @@ export const diaries = pgTable('diaries', {
   unique('diaries_id_user_id_key').on(table.id, table.userId),
   index('diaries_user_id_idx').on(table.userId),
   index('diaries_user_created_idx').on(table.userId, table.createdAt.desc()),
+])
+
+export const posts = pgTable('posts', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  authorId: bigint('author_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  excerpt: text('excerpt'),
+  coverImage: varchar('cover_image', { length: 500 }),
+  category: varchar('category', { length: 100 }).notNull(),
+  tags: varchar('tags', { length: 500 }),
+  status: postStatus('status').default('DRAFT').notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('posts_slug_key').on(table.slug),
+  index('posts_author_id_idx').on(table.authorId),
+  index('posts_status_idx').on(table.status),
+  index('posts_published_at_idx').on(table.publishedAt),
+  index('posts_status_published_idx').on(table.status, table.publishedAt.desc()),
+  index('posts_category_status_idx').on(table.category, table.status),
 ])
 
 export const transactions = pgTable('transactions', {
@@ -322,6 +346,41 @@ export const alerts = pgTable('alerts', {
   index('alerts_pending_trigger_idx').on(table.isDismissed, table.triggerAt, table.id),
 ])
 
+export const priceAlertType = pgEnum('price_alert_type', ['PRICE_ABOVE', 'PRICE_BELOW', 'CHANGE_PERCENT', 'MOVING_AVG'])
+export const priceAlertMovingAverageDirection = pgEnum('price_alert_moving_average_direction', ['above', 'below'])
+export const priceAlerts = pgTable('price_alerts', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  symbol: varchar('symbol', { length: 32 }).notNull(),
+  type: priceAlertType('type').notNull(),
+  threshold: numeric('threshold', { precision: 10, scale: 4 }).notNull(),
+  movingAverageDirection: priceAlertMovingAverageDirection('moving_average_direction'),
+  message: varchar('message', { length: 500 }).notNull(),
+  isTriggered: boolean('is_triggered').notNull().default(false),
+  triggeredAt: timestamp('triggered_at', { withTimezone: true }).$type<Date>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  index('price_alerts_user_created_idx').on(table.userId, table.createdAt, table.id),
+  index('price_alerts_pending_idx').on(table.isTriggered, table.symbol),
+  check('price_alerts_trigger_state_check', sql`${table.isTriggered} = (${table.triggeredAt} is not null)`),
+  check('price_alerts_threshold_check', sql`${table.type} = 'CHANGE_PERCENT' or ${table.threshold} >= 0`),
+  check('price_alerts_moving_average_period_check', sql`${table.type} <> 'MOVING_AVG' or ${table.threshold} in (20, 50, 200)`),
+  check('price_alerts_moving_average_direction_check', sql`(${table.type} = 'MOVING_AVG' and ${table.movingAverageDirection} is not null) or (${table.type} <> 'MOVING_AVG' and ${table.movingAverageDirection} is null)`),
+  check('price_alerts_symbol_check', sql`${table.symbol} ~ '^[A-Z0-9.]+$'`),
+])
+
+export const disciplines = pgTable('disciplines', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: varchar('content', { length: 255 }).notNull(),
+  order: integer('display_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  index('disciplines_user_order_id_idx').on(table.userId, table.order, table.id),
+  check('disciplines_content_nonempty', sql`length(btrim(${table.content})) > 0`),
+])
+
 export const partnerLinks = pgTable('partner_links', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   userAId: bigint('user_a_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -388,6 +447,51 @@ export const etfWatchlists = pgTable('etf_watchlists', {
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, table => [unique('etf_watchlists_user_etf_key').on(table.userId, table.etfId), index('etf_watchlists_user_order_idx').on(table.userId, table.sortOrder, table.id)])
+
+export const marketUniverse = pgTable('market_universe', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  symbol: varchar('symbol', { length: 20 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  exchange: varchar('exchange', { length: 32 }).notNull(),
+  assetType: varchar('asset_type', { length: 32 }).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  sector: varchar('sector', { length: 100 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('market_universe_symbol_key').on(table.symbol),
+  index('market_universe_symbol_idx').on(table.symbol),
+  index('market_universe_active_asset_type_idx').on(table.isActive, table.assetType),
+  index('market_universe_exchange_active_idx').on(table.exchange, table.isActive),
+  check('market_universe_symbol_canonical', sql`${table.symbol} = upper(btrim(${table.symbol})) and length(${table.symbol}) > 0`),
+])
+
+export const marketBreadthDaily = pgTable('market_breadth_daily', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  universeKey: varchar('universe_key', { length: 32 }).notNull(),
+  date: date('date', { mode: 'string' }).notNull(),
+  universeCount: integer('universe_count').notNull(),
+  up4Count: integer('up4_count'),
+  down4Count: integer('down4_count'),
+  up4Pct: numeric('up4_pct', { precision: 8, scale: 4 }),
+  down4Pct: numeric('down4_pct', { precision: 8, scale: 4 }),
+  above40dCount: integer('above40d_count'),
+  above40dPct: numeric('above40d_pct', { precision: 8, scale: 4 }),
+  ratio5d: numeric('ratio_5d', { precision: 12, scale: 4 }),
+  ratio10d: numeric('ratio_10d', { precision: 12, scale: 4 }),
+  regime: varchar('regime', { length: 32 }),
+  score: integer('score'),
+  coveragePct: numeric('coverage_pct', { precision: 5, scale: 2 }),
+  isStale: boolean('is_stale').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('market_breadth_daily_universe_date_key').on(table.universeKey, table.date),
+  index('market_breadth_daily_universe_date_idx').on(table.universeKey, table.date.desc()),
+  check('market_breadth_daily_universe_count_nonnegative', sql`${table.universeCount} >= 0`),
+  check('market_breadth_daily_counts_nonnegative', sql`(${table.up4Count} is null or ${table.up4Count} >= 0) and (${table.down4Count} is null or ${table.down4Count} >= 0) and (${table.above40dCount} is null or ${table.above40dCount} >= 0)`),
+  check('market_breadth_daily_percentages_bounded', sql`(${table.up4Pct} is null or (${table.up4Pct} >= 0 and ${table.up4Pct} <= 100)) and (${table.down4Pct} is null or (${table.down4Pct} >= 0 and ${table.down4Pct} <= 100)) and (${table.above40dPct} is null or (${table.above40dPct} >= 0 and ${table.above40dPct} <= 100)) and (${table.coveragePct} is null or (${table.coveragePct} >= 0 and ${table.coveragePct} <= 100))`),
+])
+
 
 export const marketDailyPrices = pgTable('market_daily_price', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),

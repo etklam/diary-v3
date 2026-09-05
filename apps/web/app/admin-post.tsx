@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { postAdminDetailSchema, postStatusSchema, postWriteRequestSchema, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
+import { postAdminDetailSchema, postWriteRequestSchema, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
 import { csrfToken, sessionFetch, signInPath } from './session'
 import { Markdown } from './markdown'
 import { useUi } from './ui'

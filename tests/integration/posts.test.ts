@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
+import type { PostAdminDetail } from '@diary/contracts'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>
@@ -52,7 +53,7 @@ async function create(browser: BrowserSession, overrides: Record<string, unknown
   })
   const text = await response.text()
   if (response.status !== 200) throw new Error(`post create ${response.status}: ${text}`)
-  return JSON.parse(text) as Record<string, any>
+  return JSON.parse(text) as PostAdminDetail
 }
 
 function mutate(browser: BrowserSession, path: string, body: unknown, method = 'PUT') {

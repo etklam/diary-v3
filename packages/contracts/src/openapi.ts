@@ -1,5 +1,6 @@
 import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from './rotation-monitor.js'
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from './rotation.js'
+import {marketStateSnapshotQuerySchema, marketStateHistoryQuerySchema, marketStateSnapshotSchema, marketStateHistoryResponseSchema} from './market-state.js'
 import { etfProfileSchema, etfProfileQuerySchema } from './etf-profile.js'
 import { etfWatchlistCreateSchema, etfWatchlistItemSchema, etfWatchlistListSchema } from './etf.js'
 import { adminEtfCreateSchema, adminEtfCreatedSchema, adminEtfListSchema, adminEtfSeedSchema, adminEtfDeleteSchema, adminEtfInitializeSchema } from './etf.js'
@@ -7,8 +8,13 @@ import { agentTimelineBatchRequestSchema, agentTimelineBatchResponseSchema } fro
 import { agentWatchlistResponseSchema } from './watchlist.js'
 import { createApiKeySchema, apiKeyListResponseSchema, apiKeyCreateResponseSchema } from './api-keys.js'
 import { partnerCompareQuerySchema, partnerCompareResponseSchema, invitePartnerSchema, updatePartnerSharingSchema, partnerListResponseSchema, partnerMutationResponseSchema } from './partners.js'
+import { importDisciplineRequestSchema, importDisciplineResponseSchema, exportDisciplineQuerySchema, exportDisciplineResponseSchema } from './discipline-share.js'
+import { writeDisciplineSchema, reorderDisciplinesSchema, disciplineResponseSchema, disciplineListSchema, randomDisciplineSchema } from './discipline.js'
+import { createPriceAlertRequestSchema, updatePriceAlertRequestSchema, priceAlertListResponseSchema, priceAlertResponseSchema } from './price-alerts.js'
 import { alertCreateRequestWireOpenApiSchema, alertListResponseSchema, alertResponseSchema } from './alerts.js'
 import { performanceQuerySchema, performanceResponseSchema } from './performance.js'
+import { portfolioAttentionQuerySchema, portfolioAttentionResponseSchema } from './portfolio-attention.js'
+import { portfolioExposureResponseSchema } from './portfolio-exposure.js'
 import { companyHubResponseSchema } from './company-hub.js'
 import { reviewGroupsResponseSchema, reviewQueueQuerySchema } from './review-queue.js'
 import { saveInvestmentThesisRequestSchema, completeThesisReviewRequestSchema, investmentThesisResponseSchema, investmentThesisMutationResponseSchema, thesisReviewResponseSchema, thesisReviewListParamsSchema } from './investment-thesis.js'
@@ -30,7 +36,38 @@ import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-a
 import { holidayResponseSchema } from './calendar.js'
 import { diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
 import { tradePlanInputSchema, tradePlanUpdateSchema, tradePlanListQuerySchema, tradePlanResponseSchema, tradePlanListResponseSchema, deleteTradePlanResponseSchema } from './trade-plan.js'
+import {
+  secApiResponseSchema,
+  secBatchQuerySchema,
+  secCompanySearchQuerySchema,
+  secCompanySearchResultSchema,
+  secFilingDetailSchema,
+  secFilingListQuerySchema,
+  secFilingPageSchema,
+} from './sec-filings.js'
 import { portfolioValuationResponseSchema } from './portfolio.js'
+import {
+  postAdminDetailSchema,
+  postAdminListQuerySchema,
+  postAdminListResponseSchema,
+  postBulkRequestSchema,
+  postBulkResponseSchema,
+  postDeleteResponseSchema,
+  postPublicDetailSchema,
+  postPublicListResponseSchema,
+  postWriteRequestSchema,
+  postListQuerySchema,
+} from './post.js'
+import {
+  adminDiaryListQuerySchema,
+  adminDiaryListResponseSchema,
+  adminStatsResponseSchema,
+  adminUserDeleteResponseSchema,
+  adminUserListQuerySchema,
+  adminUserListResponseSchema,
+  adminUserRoleResponseSchema,
+  adminUserRoleUpdateRequestSchema,
+} from './admin-users.js'
 import {
   apiErrorResponseSchema,
   authMutationResponseSchema,
@@ -83,6 +120,16 @@ const DiaryListResponse = registry.register('DiaryListResponse', diaryListRespon
 const SpxSessionSummary = registry.register('SpxSessionSummary', spxSessionSummarySchema.clone())
 const HoldingsResponse = registry.register('HoldingsResponse', holdingsResponseSchema.clone())
 const RecentClosedTradesResponse = registry.register('RecentClosedTradesResponse', recentClosedTradesResponseSchema.clone())
+const MarketStateSnapshot = registry.register('MarketStateSnapshot', marketStateSnapshotSchema.clone())
+const MarketStateHistory = registry.register('MarketStateHistory', marketStateHistoryResponseSchema.clone())
+const SecCompanySearchResponse = registry.register('SecCompanySearchResponse', secApiResponseSchema(secCompanySearchResultSchema.array().max(20)).clone())
+const SecFilingPageResponse = registry.register('SecFilingPageResponse', secApiResponseSchema(secFilingPageSchema).clone())
+const SecFilingDetailResponse = registry.register('SecFilingDetailResponse', secApiResponseSchema(secFilingDetailSchema).clone())
+const AdminUserListResponse = registry.register('AdminUserListResponse', adminUserListResponseSchema.clone())
+const AdminUserRoleResponse = registry.register('AdminUserRoleResponse', adminUserRoleResponseSchema.clone())
+const AdminUserDeleteResponse = registry.register('AdminUserDeleteResponse', adminUserDeleteResponseSchema.clone())
+const AdminDiaryListResponse = registry.register('AdminDiaryListResponse', adminDiaryListResponseSchema.clone())
+const AdminStatsResponse = registry.register('AdminStatsResponse', adminStatsResponseSchema.clone())
 
 
 const DiaryActivityResponse = registry.register('DiaryActivityResponse', diaryActivityResponseSchema.clone())
@@ -424,7 +471,9 @@ export function createOpenApiDocument() {
 
 registry.registerPath({ method: 'get', path: '/api/stocks/{symbol}/hub', tags: ['Stocks'], operationId: 'companyHubGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ symbol: stockSymbolSchema.clone() }) }, responses: { 200: json(companyHubResponseSchema.clone(), 'Owner Company Hub with bounded recent research and cost-basis position'), ...errors([400, 401, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/stocks/exposure', tags: ['Stocks'], operationId: 'portfolioExposureGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(portfolioExposureResponseSchema.clone(), 'Cost-basis exposure and optional rotation allocation comparison'), ...errors([401, 500]) } })
 
+for (const [path, operationId] of [['/api/portfolio/attention', 'portfolioAttentionGet'], ['/api/stocks/attention', 'stocksAttentionGet']]) registry.registerPath({ method: 'get', path: path!, tags: ['Stocks'], operationId: operationId!, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: portfolioAttentionQuerySchema.clone() }, responses: { 200: json(portfolioAttentionResponseSchema.clone(), 'Prioritized owner attention items, maximum 50'), ...errors([400, 401, 500]) } })
 
 registry.registerPath({ method: 'get', path: '/api/stats/performance', tags: ['Stocks'], operationId: 'performanceGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: performanceQuerySchema.clone() }, responses: { 200: json(performanceResponseSchema.clone(), 'Owner strategy and realized-trade performance'), ...errors([400, 401, 500]) } })
 
@@ -432,14 +481,27 @@ registry.registerPath({ method: 'get', path: '/api/alerts', tags: ['Alerts'], op
 registry.registerPath({ method: 'post', path: '/api/alerts', tags: ['Alerts'], operationId: 'alertsCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(alertCreateRequestWireOpenApiSchema, 'Reminder wire body; message plus diaryId or diary_id is required. For paired keys snake_case wins when non-nullish; null falls back to camelCase when supplied. Omit trigger keys to use the request clock.') }, responses: { 200: json(alertResponseSchema.clone().nullable(), 'Created reminder or empty recurring set'), ...errors([400, 401, 403, 404, 500]) } })
 registry.registerPath({ method: 'put', path: '/api/alerts/{id}/dismiss', tags: ['Alerts'], operationId: 'alertDismiss', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }) }, responses: { 200: json(alertResponseSchema.clone(), 'Dismissed reminder'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/stocks/alerts', tags: ['PriceAlerts'], operationId: 'priceAlertsGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(priceAlertListResponseSchema.clone(), 'Latest 100 price alerts'), ...errors([401, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/stocks/alerts', tags: ['PriceAlerts'], operationId: 'priceAlertsCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(createPriceAlertRequestSchema.clone(), 'Price alert') }, responses: { 200: json(priceAlertResponseSchema.clone(), 'Created price alert'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/stocks/alerts/{id}', tags: ['PriceAlerts'], operationId: 'priceAlertsUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }), body: json(updatePriceAlertRequestSchema.clone(), 'Price alert changes') }, responses: { 200: json(priceAlertResponseSchema.clone(), 'Updated price alert'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'delete', path: '/api/stocks/alerts/{id}', tags: ['PriceAlerts'], operationId: 'priceAlertsDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }) }, responses: { 200: json(deleteDiaryResponseSchema.clone(), 'Deleted price alert'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/discipline', tags: ['Discipline'], operationId: 'disciplinesGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(disciplineListSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/discipline/random', tags: ['Discipline'], operationId: 'disciplineRandom', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(randomDisciplineSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'post', path: '/api/discipline', tags: ['Discipline'], operationId: 'disciplineCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(writeDisciplineSchema.clone(), 'Discipline input') }, responses: { 200: json(disciplineResponseSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'patch', path: '/api/discipline/reorder', tags: ['Discipline'], operationId: 'disciplineReorder', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(reorderDisciplinesSchema.clone(), 'Discipline input') }, responses: { 200: json(disciplineListSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'put', path: '/api/discipline/{id}', tags: ['Discipline'], operationId: 'disciplineUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }), body: json(writeDisciplineSchema.clone(), 'Discipline input') }, responses: { 200: json(disciplineResponseSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'delete', path: '/api/discipline/{id}', tags: ['Discipline'], operationId: 'disciplineDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }) }, responses: { 200: json(deleteDiaryResponseSchema.clone(), 'Discipline result'), ...errors([400, 401, 403, 404, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/discipline/export', tags: ['Discipline'], operationId: 'disciplineExport', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: exportDisciplineQuerySchema.clone() }, responses: { 200: json(exportDisciplineResponseSchema.clone(), 'Exported discipline share document'), ...errors([400, 401, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/discipline/import', tags: ['Discipline'], operationId: 'disciplineImport', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(importDisciplineRequestSchema.clone(), 'Share JSON and import strategy') }, responses: { 200: json(importDisciplineResponseSchema.clone(), 'Imported disciplines'), ...errors([400, 401, 403, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/og/discipline.svg', tags: ['Discipline'], operationId: 'disciplineOgImage', request: { query: z.object({ title: z.string().optional(), author: z.string().optional(), count: z.string().optional() }) }, responses: { 200: { description: 'Public escaped SVG preview with bounded display text', content: { 'image/svg+xml': { schema: z.string() } } }, ...errors([500]) } })
 
 registry.registerPath({ method: 'get', path: '/api/partners', tags: ['Partners'], operationId: 'partnersGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(partnerListResponseSchema.clone(), 'Partner result'), ...errors([400, 401, 403, 404, 409, 500]) } })
 
@@ -467,6 +529,12 @@ registry.registerPath({ method: 'post', path: '/api/agent/stocks/records', tags:
 
 registry.registerPath({ method: 'get', path: '/api/admin/etf', tags: ['Admin ETF'], operationId: 'adminEtfList', description: 'Admin session required.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],  responses: { 200: json(adminEtfListSchema, 'ETF result'), ...errors([400, 401, 403, 404, 409, 429, 500, 502]) } })
 
+registry.registerPath({ method: 'get', path: '/api/admin/users', tags: ['Admin Users'], operationId: 'adminUsersList', description: 'Admin session required. Search is a case-insensitive email/name substring.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: adminUserListQuerySchema.clone() }, responses: { 200: json(AdminUserListResponse, 'Paginated admin user list'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/admin/users/{id}/role', tags: ['Admin Users'], operationId: 'adminUserRoleUpdate', description: 'Admin session required. Administrators cannot modify their own role.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }), body: json(adminUserRoleUpdateRequestSchema.clone(), 'User role') }, responses: { 200: json(AdminUserRoleResponse, 'Updated user role'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'delete', path: '/api/admin/users/{id}', tags: ['Admin Users'], operationId: 'adminUserDelete', description: 'Admin session required. Administrators cannot delete themselves; dependent data is deleted with the account.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema.clone() }) }, responses: { 200: json(AdminUserDeleteResponse, 'Deleted user'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/admin/diaries', tags: ['Admin Users'], operationId: 'adminDiariesList', description: 'Admin session required. Review outcome and reflection text are owner-private and omitted.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: adminDiaryListQuerySchema.clone() }, responses: { 200: json(AdminDiaryListResponse, 'Paginated admin Diary list'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/admin/stats', tags: ['Admin Users'], operationId: 'adminStats', description: 'Admin session required. Recent Diary projections omit owner-private Review text.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(AdminStatsResponse, 'Admin system counts and recent activity'), ...errors([401, 403, 500]) } })
+
 registry.registerPath({ method: 'post', path: '/api/admin/etf', tags: ['Admin ETF'], operationId: 'adminEtfCreate', description: 'Admin session required.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(adminEtfCreateSchema, 'ETF input') }, responses: { 200: json(adminEtfCreatedSchema, 'ETF result'), ...errors([400, 401, 403, 404, 409, 429, 500, 502]) } })
 
 registry.registerPath({ method: 'post', path: '/api/admin/etf/seed', tags: ['Admin ETF'], operationId: 'adminEtfSeed', description: 'Admin session required.', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],  responses: { 200: json(adminEtfSeedSchema, 'ETF result'), ...errors([400, 401, 403, 404, 409, 429, 500, 502]) } })
@@ -482,6 +550,8 @@ registry.registerPath({ method:'post', path:'/api/etf/watchlist', tags:['ETF'], 
 registry.registerPath({ method:'delete', path:'/api/etf/watchlist/{id}', tags:['ETF'], operationId:'etfWatchlistRemove', security:[{accessTokenCookie:[]},{bearerAuth:[]}], request: { params: z.object({ id: serializedIdSchema }) }, responses:{200:json(deleteDiaryResponseSchema,'ETF watchlist result'),...errors([400,401,403,404,409,500])} })
 
 registry.registerPath({method:'get',path:'/api/market/rotation-monitor',tags:['Market'],operationId:'rotationMonitor',request:{query:marketRotationMonitorQuerySchema},responses:{200:json(marketRotationMonitorResponseSchema,'Persisted rotation monitor'),...errors([400,401,404,500])}})
+registry.registerPath({method:'get',path:'/api/market/state/snapshot',tags:['Market'],operationId:'marketStateSnapshot',description:'Guest-accessible persisted market breadth state. Stale or under-covered rows resolve to unknown.',request:{query:marketStateSnapshotQuerySchema},responses:{200:json(MarketStateSnapshot,'Latest configured-universe market state'),...errors([400,404,500])}})
+registry.registerPath({method:'get',path:'/api/market/state/history',tags:['Market'],operationId:'marketStateHistory',description:'Guest-accessible persisted market breadth history, newest first.',request:{query:marketStateHistoryQuerySchema},responses:{200:json(MarketStateHistory,'Market state history'),...errors([400,500])}})
 registry.registerPath({method:'post',path:'/api/admin/market/rotation-batch',tags:['Admin'],operationId:'rotationBatch',security:[{accessTokenCookie:[]},{bearerAuth:[]}],request:{body:json(rotationBatchRequestSchema,'Rotation scope')},responses:{200:json(rotationBatchResponseSchema,'Completed rotation scope results'),...errors([400,401,403,409,500,503])}})
 
 registry.registerPath({ method:'get',path:'/api/etf/{symbol}/profile',tags:['ETF'],operationId:'etfProfile',request:{params:z.object({symbol:marketSymbolSchema}),query:etfProfileQuerySchema},responses:{200:json(etfProfileSchema,'Public ETF research with partial/stale metadata'),...errors([400,401,500])} })
@@ -491,3 +561,32 @@ registry.registerPath({ method:'get',path:'/api/etf/{symbol}/risk',tags:['ETF'],
 registry.registerPath({ method:'get',path:'/api/etf/{symbol}/valuation',tags:['ETF'],operationId:'etfValuation',request:{params:z.object({symbol:marketSymbolSchema}),query:etfProfileQuerySchema},responses:{200:json(etfProfileSchema.pick({ symbol:true,benchmark:true,period:true,valuation:true,meta:true }),'Public ETF research with partial/stale metadata'),...errors([400,401,500])} })
 
 registry.registerPath({ method:'get',path:'/api/etf/{symbol}/rs',tags:['ETF'],operationId:'etfRs',request:{params:z.object({symbol:marketSymbolSchema}),query:etfProfileQuerySchema},responses:{200:json(etfProfileSchema.pick({ symbol:true,benchmark:true,period:true,rs:true,meta:true }),'Public ETF research with partial/stale metadata'),...errors([400,401,500])} })
+
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/companies', tags: ['SEC Filings'], operationId: 'secCompanySearch', description: 'Guest-accessible SEC company search backed by a configured SEC EDGAR provider.', request: { query: secCompanySearchQuerySchema }, responses: { 200: json(SecCompanySearchResponse, 'SEC company search results and cache metadata'), ...errors([400, 429, 502, 503]) } })
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/companies/{cik}/filings', tags: ['SEC Filings'], operationId: 'secFilingList', request: { params: z.object({ cik: z.string().regex(/^\d{1,10}$/) }), query: secFilingListQuerySchema }, responses: { 200: json(SecFilingPageResponse, 'SEC filing page and cache metadata'), ...errors([400, 404, 429, 502, 503]) } })
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/companies/{cik}/filings/{accession}', tags: ['SEC Filings'], operationId: 'secFilingDetail', request: { params: z.object({ cik: z.string().regex(/^\d{1,10}$/), accession: z.string().regex(/^\d{10}-\d{2}-\d{6}$/) }) }, responses: { 200: json(SecFilingDetailResponse, 'SEC filing detail and document index'), ...errors([400, 404, 429, 502, 503]) } })
+const secBinaryResponse = { description: 'SEC document or ZIP package', content: { 'application/octet-stream': { schema: z.string().openapi({ format: 'binary' }) }, 'application/zip': { schema: z.string().openapi({ format: 'binary' }) } } }
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/companies/{cik}/filings/{accession}/documents/{basename}', tags: ['SEC Filings'], operationId: 'secFilingDocument', request: { params: z.object({ cik: z.string().regex(/^\d{1,10}$/), accession: z.string().regex(/^\d{10}-\d{2}-\d{6}$/), basename: z.string().min(1).max(255) }) }, responses: { 200: secBinaryResponse, ...errors([400, 404, 413, 429, 502, 503]) } })
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/companies/{cik}/filings/{accession}/package', tags: ['SEC Filings'], operationId: 'secFilingPackage', request: { params: z.object({ cik: z.string().regex(/^\d{1,10}$/), accession: z.string().regex(/^\d{10}-\d{2}-\d{6}$/) }), query: z.object({ include: z.array(z.enum(['all', 'primary', 'complete', 'xbrl', 'exhibits', 'pdf'])).optional() }) }, responses: { 200: secBinaryResponse, ...errors([400, 404, 413, 429, 502, 503]) } })
+registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/batch', tags: ['SEC Filings'], operationId: 'secFilingBatchPackage', request: { query: secBatchQuerySchema }, responses: { 200: secBinaryResponse, ...errors([400, 404, 413, 429, 502, 503]) } })
+
+const PostPublicListResponse = registry.register('PostPublicListResponse', postPublicListResponseSchema.clone())
+const PostPublicDetail = registry.register('PostPublicDetail', postPublicDetailSchema.clone())
+const PostAdminListResponse = registry.register('PostAdminListResponse', postAdminListResponseSchema.clone())
+const PostAdminDetail = registry.register('PostAdminDetail', postAdminDetailSchema.clone())
+const PostWriteRequest = registry.register('PostWriteRequest', postWriteRequestSchema.clone())
+const PostBulkRequest = registry.register('PostBulkRequest', postBulkRequestSchema.clone())
+const PostBulkResponse = registry.register('PostBulkResponse', postBulkResponseSchema.clone())
+const PostDeleteResponse = registry.register('PostDeleteResponse', postDeleteResponseSchema.clone())
+
+registry.registerPath({ method: 'get', path: '/api/blog', tags: ['Blog'], operationId: 'blogPublicList', security: [{}], request: { query: postListQuerySchema.clone() }, responses: { 200: json(PostPublicListResponse, 'Published public articles'), ...errors([400, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/{slug}', tags: ['Blog'], operationId: 'blogPublicDetail', security: [{}], request: { params: z.object({ slug: z.string().min(1).max(255) }) }, responses: { 200: json(PostPublicDetail, 'Published public article'), ...errors([404, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/admin', tags: ['Blog'], operationId: 'blogAdminList', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: postAdminListQuerySchema.clone() }, responses: { 200: json(PostAdminListResponse, 'Admin article list'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/admin/{id}', tags: ['Blog'], operationId: 'blogAdminDetail', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Admin article detail'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog', tags: ['Blog'], operationId: 'blogCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostWriteRequest, 'Admin article') }, responses: { 200: json(PostAdminDetail, 'Created article'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/blog/{id}', tags: ['Blog'], operationId: 'blogUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }), body: json(PostWriteRequest, 'Admin article') }, responses: { 200: json(PostAdminDetail, 'Updated article'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'delete', path: '/api/blog/{id}', tags: ['Blog'], operationId: 'blogDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostDeleteResponse, 'Deleted article'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/publish', tags: ['Blog'], operationId: 'blogPublish', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Published article'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/archive', tags: ['Blog'], operationId: 'blogArchive', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Archived article'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-publish', tags: ['Blog'], operationId: 'blogBulkPublish', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Published article count'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-delete', tags: ['Blog'], operationId: 'blogBulkDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Deleted article count'), ...errors([400, 401, 403, 500]) } })

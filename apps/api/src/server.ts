@@ -1,6 +1,9 @@
 import { createDatabase } from '@diary/db'
 import type { ApiConfig } from './app.js'
 import { createApiRuntime } from './runtime.js'
+import { createMarketData } from './market-data/index.js'
+import { createFixtureUpstream } from './market-data/fixture.js'
+import { createYahooUpstream } from './market-data/yahoo.js'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -17,18 +20,25 @@ const config: ApiConfig = {
   nodeEnv: nodeEnv as ApiConfig['nodeEnv'],
   trustProxy: process.env.TRUST_X_FORWARDED_FOR === 'true',
   webOrigin: process.env.WEB_ORIGIN ?? 'http://127.0.0.1:3100',
+  secUserAgent: process.env.SEC_USER_AGENT,
 }
-const runtime = createApiRuntime({ db: database.db, databasePool: database.pool, config })
+const marketData = process.env.MARKET_PROVIDER === 'fixture'
+  ? createMarketData({ upstream: createFixtureUpstream() })
+  : createMarketData({ upstream: createYahooUpstream() })
+const runtime = createApiRuntime({ db: database.db, databasePool: database.pool, config, marketData })
 const port = Number(process.env.API_PORT ?? 3101)
-const hostname = process.env.API_HOST ?? '127.0.0.1'
+const hostname = process.env.API_HOST ?? (nodeEnv === 'production' ? '0.0.0.0' : '127.0.0.1')
 
 runtime.server.listen(port, hostname, () => {
-  console.log(`Diary API listening on http://${hostname}:${port}`)
+  console.log(JSON.stringify({ operation: 'api_started', hostname, port, scheduler: true }))
+  runtime.pusher.start()
+  runtime.priceChecker.start()
 })
 
 async function shutdown() {
   await runtime.close()
   await database.pool.end()
+  console.log(JSON.stringify({ operation: 'api_shutdown', status: 'ok' }))
 }
 
 process.once('SIGINT', shutdown)

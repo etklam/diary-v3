@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { postAdminListResponseSchema, postStatusSchema, type PostStatus } from '@diary/contracts/post'
+import { postAdminListResponseSchema, postStatusSchema } from '@diary/contracts/post'
 import { csrfToken, sessionFetch, signInPath } from '../session'
 import { useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'

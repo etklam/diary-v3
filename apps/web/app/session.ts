@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { createWebSession } from '@diary/api-client';
+import { clearPrivateServiceWorkerCache } from './pwa-client';
 
 type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
@@ -21,13 +22,14 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
-  if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
+  if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
   return candidate && /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/.test(candidate) ? candidate : '/diaries/new';
 }
 export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
 
 export function clearPrivateSession(broadcast = false) {
   webSession.invalidate();
+  clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });
@@ -60,6 +62,7 @@ export const sessionFetch: typeof fetch = async (input, init) => {
   const pathname = new URL(url, 'http://local.invalid').pathname;
   // A remounted private surface must not refill from cookies while logout is in flight.
   const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention'
+    || pathname.startsWith('/api/blog/admin')
     || /^\/api\/(?:diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews)(?:\/|$)/.test(pathname)
     || /^\/api\/stocks\/(?:holdings|portfolio|exposure|attention|prices|watchlist|timeline|alerts)(?:\/|$)/.test(pathname);
   if (locallySignedOut && (privatePath || /^\/api\/stocks\/[^/]+\/(?:timeline|evidence|notes|thesis|hub)(?:\/|$)/.test(pathname))) return invalidatedSessionResponse();

@@ -9,6 +9,10 @@
     "./calendar": "./src/calendar.ts",
     "./portfolio": "./src/portfolio.ts",
     "./investment-thesis": "./src/investment-thesis.ts",
+    "./portfolio-exposure": "./src/portfolio-exposure.ts",
+    "./beta-buckets": "./src/beta-buckets.ts",
+    "./beta-allocation": "./src/beta-allocation.ts",
+    "./portfolio-attention": "./src/portfolio-attention.ts",
     "./performance-stats": "./src/performance-stats.ts",
     "./trade-analytics": "./src/trade-analytics.ts",
     "./recurring-alerts": "./src/recurring-alerts.ts",
@@ -24,6 +28,14 @@
     "./market-rotation/qualified-date": "./src/market-rotation/qualified-date.ts",
     "./market-rotation/monitor": "./src/market-rotation/monitor.ts",
     "./market-rotation/summary": "./src/market-rotation/summary.ts",
-    "./market-rotation/trend-series": "./src/market-rotation/trend-series.ts"
+    "./market-rotation/trend-series": "./src/market-rotation/trend-series.ts",
+    "./market-rotation/view": "./src/market-rotation/view.ts",
+    "./relative-value": "./src/relative-value.ts",
+    "./seasonality": "./src/seasonality.ts",
+    "./market-state/breadth": "./src/market-state/breadth.ts",
+    "./market-state/regime": "./src/market-state/regime.ts",
+    "./market-state/update-breadth-utils": "./src/market-state/update-breadth-utils.ts",
+    "./market-state/seed-universe-utils": "./src/market-state/seed-universe-utils.ts"
+    ,"./position-sizing": "./src/position-sizing.ts"
   }
 }

@@ -13,3 +13,13 @@ export * from './quick-template';
 export * from './quick-snippets';
 export { deriveQuickTitle, mergeQuickTemplate } from './quick-composer';
 export { mergeTimelineEntries,groupTimelineEntries,projectTimelineEntry,diaryExcerpt } from './timeline';
+export { calculatePositionSizing, positionSizingStrategies, validatePositionSizingRatios } from './position-sizing';
+export type {
+  PositionSizingBatch,
+  PositionSizingInput,
+  PositionSizingOutput,
+  PositionSizingRounding,
+  PositionSizingStrategy,
+  PositionSizingStrategyId,
+  PositionSizingSummary,
+} from './position-sizing';

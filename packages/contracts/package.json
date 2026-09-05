@@ -21,13 +21,23 @@
     "./investment-thesis": "./src/investment-thesis.ts",
     "./review-queue": "./src/review-queue.ts",
     "./company-hub": "./src/company-hub.ts",
+    "./portfolio-exposure": "./src/portfolio-exposure.ts",
+    "./portfolio-attention": "./src/portfolio-attention.ts",
     "./performance": "./src/performance.ts",
     "./alerts": "./src/alerts.ts",
+    "./price-alerts": "./src/price-alerts.ts",
+    "./discipline": "./src/discipline.ts",
+    "./discipline-share": "./src/discipline-share.ts",
     "./partners": "./src/partners.ts",
     "./api-keys": "./src/api-keys.ts",
     "./etf": "./src/etf.ts",
     "./etf-profile": "./src/etf-profile.ts",
     "./rotation": "./src/rotation.ts",
-    "./rotation-monitor": "./src/rotation-monitor.ts"
+    "./rotation-monitor": "./src/rotation-monitor.ts",
+    "./market-state": "./src/market-state.ts",
+    "./stock-timeline-source": "./src/stock-timeline-source.ts",
+    "./sec-filings": "./src/sec-filings.ts",
+    "./post": "./src/post.ts",
+    "./admin-users": "./src/admin-users.ts"
   }
 }

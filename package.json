@@ -20,11 +20,17 @@
     "test:e2e": "playwright test",
     "build": "npm run typecheck && npm run build --workspace=@diary/web && node --import tsx scripts/build-api.ts",
     "db:migrate": "node --env-file-if-exists=.env --import tsx packages/db/src/migrate.ts",
+    "db:restore-smoke": "bash scripts/restore-smoke.sh",
     "db:generate": "drizzle-kit generate",
     "contracts:generate": "node --import tsx scripts/generate-openapi.ts && openapi-typescript openapi/openapi.json -o packages/api-client/src/generated.ts",
     "contracts:check": "node --import tsx scripts/generate-openapi.ts --check && openapi-typescript openapi/openapi.json -o packages/api-client/src/generated.ts --check",
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
-    "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts"
+    "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
+    "market:state": "node --env-file-if-exists=.env --import tsx apps/api/src/market-state-cli.ts",
+    "db:migrate:prod": "node dist/api/migrate.js",
+    "seed:system:prod": "node dist/api/seed-system.js",
+    "market:rotation:prod": "node dist/api/rotation.js",
+    "market:state:prod": "node dist/api/market-state.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "9.1.0",
@@ -42,6 +48,8 @@
     "react-markdown": "10.1.0",
     "react-router": "8.3.1",
     "remark-gfm": "4.0.1",
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3",
     "yahoo-finance2": "4.0.2",
     "zod": "4.5.4"
   },
