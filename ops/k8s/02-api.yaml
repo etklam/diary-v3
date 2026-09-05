@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diary-v3-api
+  namespace: diary-v3
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: diary-v3-api
+  template:
+    metadata:
+      labels:
+        app: diary-v3-api
+    spec:
+      terminationGracePeriodSeconds: 45
+      initContainers:
+        - name: migrate
+          image: diary-v3/api:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/api/migrate.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: DATABASE_URL
+            - name: MIGRATIONS_FOLDER
+              value: /app/packages/db/migrations
+      containers:
+        - name: api
+          image: diary-v3/api:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: JWT_SECRET
+            - name: NODE_ENV
+              value: production
+            - name: API_HOST
+              value: 0.0.0.0
+            - name: API_PORT
+              value: "3101"
+            - name: WEB_ORIGIN
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: WEB_ORIGIN
+            - name: TRUST_X_FORWARDED_FOR
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 3101
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diary-v3-api
+  namespace: diary-v3
+spec:
+  selector:
+    app: diary-v3-api
+  ports:
+    - name: http
+      port: 3101
+      targetPort: http

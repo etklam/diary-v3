@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diary-v3-web
+  namespace: diary-v3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diary-v3-web
+  template:
+    metadata:
+      labels:
+        app: diary-v3-web
+    spec:
+      containers:
+        - name: web
+          image: diary-v3/web:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "3000"
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diary-v3-web
+  namespace: diary-v3
+spec:
+  selector:
+    app: diary-v3-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

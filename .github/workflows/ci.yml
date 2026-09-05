@@ -39,3 +39,13 @@ jobs:
           path: |
             playwright-report/
             test-results/
+  production-images:
+    needs: first-diary
+    if: ${{ needs.first-diary.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production API image
+        run: docker build --target api --tag diary-v3/api:ci .
+      - name: Build the production Web image
+        run: docker build --target web --tag diary-v3/web:ci .

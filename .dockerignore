@@ -1,0 +1,14 @@
+.git
+.scratch
+.impeccable
+node_modules
+dist
+apps/web/build
+apps/web/.react-router
+playwright-report
+test-results
+docs/design/evidence
+*.log
+.env
+.env.*
+!.env.example

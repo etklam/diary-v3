@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: diary_v3
+      POSTGRES_USER: diary
+      POSTGRES_PASSWORD: diary_local_production
+    volumes:
+      - diary-v3-production-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diary -d diary_v3"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: ${API_IMAGE:-diary-v3/api:local}
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://diary:diary_local_production@postgres:5432/diary_v3
+      MIGRATIONS_FOLDER: /app/packages/db/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "dist/api/migrate.js"]
+    restart: "no"
+
+  seed:
+    image: ${API_IMAGE:-diary-v3/api:local}
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://diary:diary_local_production@postgres:5432/diary_v3
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: ["node", "dist/api/seed-system.js"]
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:-diary-v3/api:local}
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://diary:diary_local_production@postgres:5432/diary_v3
+      JWT_SECRET: local-disposable-only-change-before-production-8f9b3e5c
+      WEB_ORIGIN: http://127.0.0.1:8080
+      API_HOST: 0.0.0.0
+      API_PORT: 3101
+      NODE_ENV: development
+      TRUST_X_FORWARDED_FOR: "true"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    expose:
+      - "3101"
+
+  web:
+    image: ${WEB_IMAGE:-diary-v3/web:local}
+    build:
+      context: .
+      target: web
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./ops/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  diary-v3-production-postgres:

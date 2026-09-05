@@ -154,3 +154,4 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
 }
 
 export { createYahooUpstream } from './yahoo';
+export { createFixtureUpstream } from './fixture.js';
