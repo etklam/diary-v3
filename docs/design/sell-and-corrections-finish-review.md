@@ -1,0 +1,7 @@
+# SELL and historical corrections independent review
+
+Root inspected four desktop/mobile editor and holdings captures in `evidence/sell/`. Disposition: ship tickets 16/17. The editor keeps failed inputs, clearly explains chronological oversell rejection and exposes BUY/SELL plus exact time controls. Holdings and realized results remain readable on mobile, with decimal strings unchanged. Existing tokens and native form controls are retained; no new decorative system.
+
+Browser evidence: `tests/e2e/sell-ledger.spec.ts` (two viewports) and `tests/e2e/ledger-corrections.spec.ts` passed 3/3, 21.9 seconds. Partial/full sells, failed oversell without diary residue, correction refusal with original stored rows preserved, successful price/note correction preserving ID/precise instant/due date, and ordered deletion back to an empty ledger are asserted through UI plus real API reads. Time conversion unit tests passed 4/4, including New York DST gaps/folds, Lord Howe half-hour fold and retained milliseconds.
+
+Backend evidence: SELL HTTP/PostgreSQL 6/6; historical corrections 6/6, including same-owner other-diary and cross-owner IDs, duplicate IDs, equal-instant ordering, rollback and concurrent reduction/sell. BUY/SELL/diary regressions passed 18/18. Root inspected projected ledger code and test assertions; typecheck and generated-contract checks passed. Later relation slices must extend deletion coverage when their tables exist.
