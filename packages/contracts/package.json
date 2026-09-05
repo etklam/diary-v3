@@ -1,0 +1,33 @@
+{
+  "name": "@diary/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi": "./src/openapi.ts",
+    "./settings": "./src/settings.ts",
+    "./market": "./src/market.ts",
+    "./diary-list": "./src/diary-list.ts",
+    "./diary-activity": "./src/diary-activity.ts",
+    "./ledger": "./src/ledger.ts",
+    "./calendar": "./src/calendar.ts",
+    "./review": "./src/review.ts",
+    "./trade-plan": "./src/trade-plan.ts",
+    "./portfolio": "./src/portfolio.ts",
+    "./watchlist": "./src/watchlist.ts",
+    "./evidence": "./src/evidence.ts",
+    "./stock-note": "./src/stock-note.ts",
+    "./investment-thesis": "./src/investment-thesis.ts",
+    "./review-queue": "./src/review-queue.ts",
+    "./company-hub": "./src/company-hub.ts",
+    "./performance": "./src/performance.ts",
+    "./alerts": "./src/alerts.ts",
+    "./partners": "./src/partners.ts",
+    "./api-keys": "./src/api-keys.ts",
+    "./etf": "./src/etf.ts",
+    "./etf-profile": "./src/etf-profile.ts",
+    "./rotation": "./src/rotation.ts",
+    "./rotation-monitor": "./src/rotation-monitor.ts"
+  }
+}

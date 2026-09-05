@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: diary_v3
+      POSTGRES_USER: diary
+      POSTGRES_PASSWORD: diary_local
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - diary-v3-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diary -d diary_v3"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  diary-v3-postgres:

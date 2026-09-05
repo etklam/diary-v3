@@ -1,0 +1,29 @@
+{
+  "name": "@diary/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ledger": "./src/ledger.ts",
+    "./calendar": "./src/calendar.ts",
+    "./portfolio": "./src/portfolio.ts",
+    "./investment-thesis": "./src/investment-thesis.ts",
+    "./performance-stats": "./src/performance-stats.ts",
+    "./trade-analytics": "./src/trade-analytics.ts",
+    "./recurring-alerts": "./src/recurring-alerts.ts",
+    "./etf-risk": "./src/etf-risk.ts",
+    "./market-rotation/snapshot-builder": "./src/market-rotation/snapshot-builder.ts",
+    "./market-rotation/indicators": "./src/market-rotation/indicators.ts",
+    "./market-rotation/calculations": "./src/market-rotation/calculations.ts",
+    "./market-rotation/signal": "./src/market-rotation/signal.ts",
+    "./market-rotation/pipeline": "./src/market-rotation/pipeline.ts",
+    "./market-rotation/universe": "./src/market-rotation/universe.ts",
+    "./market-rotation/types": "./src/market-rotation/types.ts",
+    "./market-rotation/state": "./src/market-rotation/state.ts",
+    "./market-rotation/qualified-date": "./src/market-rotation/qualified-date.ts",
+    "./market-rotation/monitor": "./src/market-rotation/monitor.ts",
+    "./market-rotation/summary": "./src/market-rotation/summary.ts",
+    "./market-rotation/trend-series": "./src/market-rotation/trend-series.ts"
+  }
+}

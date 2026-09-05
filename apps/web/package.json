@@ -1,0 +1,11 @@
+{
+  "name": "@diary/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev --host 127.0.0.1 --port 3100",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js"
+  }
+}
