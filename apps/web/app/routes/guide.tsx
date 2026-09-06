@@ -3,7 +3,7 @@ import { useUi } from '../ui';
 import '../public.css';
 
 export const meta: MetaFunction = () => [
-  { title: 'Guide — diary-v3' },
+  { title: 'Guide — Trade basic' },
   { name: 'description', content: 'Practical steps for creating diaries, adding transactions, capturing research, reviewing decisions and managing preferences.' },
 ];
 
@@ -17,7 +17,7 @@ export default function Guide() {
   const { locale } = useUi();
   const c = copy[locale];
   return <article className="public-page public-reading">
-    <header><p className="public-eyebrow">diary-v3</p><h1>{c.title}</h1><p className="lede">{c.intro}</p></header>
+    <header><p className="public-eyebrow">Trade basic</p><h1>{c.title}</h1><p className="lede">{c.intro}</p></header>
     <ol className="public-guide-list">{c.tasks.map(task => <li key={task.title}><div><h2>{task.title}</h2><p>{task.body}</p></div><Link className="button secondary" to={task.link}>{task.action}</Link></li>)}</ol>
     <section className="public-closing"><p>{c.closing}</p><div className="actions"><Link className="button secondary" to="/login">{c.signIn}</Link><Link className="button" to="/register">{c.register}</Link></div></section>
   </article>;

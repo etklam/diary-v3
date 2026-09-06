@@ -21,11 +21,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => {
-  if (!loaded) return [{ title: 'Article — diary-v3' }]
+  if (!loaded) return [{ title: 'Article — Trade basic' }]
   const description = loaded.post.excerpt ?? loaded.post.title
   const canonical = `${loaded.origin}/articles/${encodeURIComponent(loaded.post.slug)}`
   return [
-    { title: `${loaded.post.title} — diary-v3` },
+    { title: `${loaded.post.title} — Trade basic` },
     { name: 'description', content: description },
     { property: 'og:title', content: loaded.post.title },
     { property: 'og:description', content: description },

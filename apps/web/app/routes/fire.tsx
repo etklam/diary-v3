@@ -7,7 +7,7 @@ import './fire.css';
 
 const defaults = { annualExpenses:'600000',currentAssets:'1000000',monthlyContribution:'20000',expectedReturn:'8',currentAge:'30',withdrawalRate:'4' };
 type Field = keyof typeof defaults;
-export function meta() { return [{title:'FIRE — diary-v3'}]; }
+export function meta() { return [{title:'FIRE — Trade basic'}]; }
 export default function Fire() {
   const {locale,ready}=useUi(); const t=fireCopy[locale];
   const [values,setValues]=useState(defaults); const [preset,setPreset]=useState('moderate');

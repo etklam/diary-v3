@@ -549,8 +549,8 @@ main form > button {
   fill: var(--action);
 }
 
-.brand-mark-bars {
-  stroke: var(--on-action);
+.brand-mark-letter {
+  fill: var(--on-action);
 }
 
 .brand > div {
@@ -559,7 +559,12 @@ main form > button {
 
 .brand .brand-name {
   display: block;
+  font-weight: 500;
   line-height: 1.2;
+}
+
+.brand .brand-name strong {
+  font-weight: 750;
 }
 
 .brand .brand-sub {
@@ -985,7 +990,7 @@ main:focus-visible {
 
 .mobile-brand-name {
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .quick-dialog {

@@ -34,7 +34,11 @@ test('representative design supports languages, keyboard selection, themes and n
   await page.reload();
   await expect(page.getByTestId('theme-select')).toHaveValue('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  // The narrow loop leaves a compact viewport; the full public row only exists from 1024px.
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await clickNav(page, 'Start');
-  await expect(page.locator('.public-header').getByRole('link', { name: 'Start', exact: true })).toHaveAttribute('aria-current', 'page');
+  // The brand mark is the home entry of the single-row public header.
+  await expect(page.locator('.public-header .brand')).toHaveAttribute('href', '/');
+  await expect(page.locator('.public-header').getByRole('link', { name: 'Tools', exact: true })).toBeVisible();
   await expect(page.locator('main')).toBeFocused();
 });

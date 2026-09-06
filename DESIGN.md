@@ -118,7 +118,7 @@ components:
     rounded: "{rounded.control}"
     padding: "10px 12px"
 ---
-# Design System: diary-v3
+# Design System: Trade basic
 
 ## Overview
 
@@ -167,7 +167,7 @@ Sidebar navigation is grouped under small uppercase headings; every item carries
 
 Below 768px the sidebar becomes a sticky top app bar: brand and menu trigger share one row, language and theme controls live in the Menu dialog, and the bar respects `env(safe-area-inset-top)`. Main content keeps the same 16px page gutter. The desktop preferences and quick-entry trigger are hidden at this size, but the menu preferences and keyboard quick-entry dialog remain available.
 
-The public shell has a sticky surface header (brand mark, primary nav, sign-in/registration pair, preference selects) and a shared footer with real links only (Start, Tools, Articles, Guide, About, Sign in, Create account). The `/tools` index and every `/tools/*` route render inside the 1280px page wrapper — including `.rotation-page`, which previously missed the gutter and is now fixed.
+The public shell has a sticky single-row surface header — brand mark plus "Trade basic" wordmark linking home, primary nav (Tools, Articles, Guide, About), then compact language/appearance selects, Sign in, and Create account as the only filled action — and a shared footer with real links only (Tools, Articles, Guide, About, Sign in). Below 1024px the row switches to compact mode (brand, Sign in, Menu) and the remaining navigation, registration, preference selects, and the full tool list move into an accessible drawer dialog; the row never wraps to a second line. The `/tools` index and every `/tools/*` route render inside the 1280px page wrapper — including `.rotation-page`, which previously missed the gutter and is now fixed.
 
 Overview and the public Tools build from shared primitives: `.card` (raised surface), `.section-head`, `.stat`/`.stat-value`, `.badge` with `info`/`warn`/`up`/`down` variants, `.toolbar` for filter rows, and `.empty-state`. Tool pages share one `ToolShell` header (breadcrumb `工具 / 分類`, icon tile, title, lede, optional actions) fed by a single tool registry in `tool-shell.tsx` that also renders the tools index and the home exploration grid.
 
@@ -262,3 +262,15 @@ The diary creation form records buys with trade groups that can be added and rem
 ## Timeline and Calendar
 
 Timeline builds a reading order from month groups, dates, original titles, and short excerpts, with a native disclosure expanding the safe Markdown. Calendar uses a civil-date month grid, activity markers, and holiday texture; the 371-day heatmap initially lands on the nearest date and can be moved day by day with the keyboard. If holiday data fails, coverage shows as not computed. Both pages reuse existing tokens and go single-column on mobile; independent acceptance in `docs/design/timeline-finish-review.md` and `docs/design/calendar-finish-review.md`. The desktop sidebar scrolls vertically, keeping preference controls reachable after new entries are added.
+
+## Trade basic brand and public navbar (2026-09-07)
+
+The external product name is **Trade basic** — strict casing and spacing. It replaces the former `diary-v3` wordmark in the public navbar, footer, private sidebar/mobile shells, page `<title>` suffixes, and the PWA `name`/`short_name`. Repo, package, database, env, storage keys (`diary-theme`, `diary-locale`), auth cookies, and historical documents keep their names; only the user-facing brand moved.
+
+**The Brand Mark Rule.** One geometric monogram — white **T**/**b** letterforms on the action-colour rounded tile — is the single brand source. The in-app `BrandMark` (`icons.tsx`) draws the same three paths as `favicon.svg`, `icon-192.svg`, `icon-512.svg`, and the separate `icon-maskable-*.svg` pair (full-bleed tile, mark scaled to ~70% inside the safe zone; `purpose: any` and `purpose: maskable` are separate manifest entries). The mark uses `--action`/`--on-action`, so it follows the semantic theme swap like every other surface; the static favicons pin the light-theme blue `#2459b8`. No arrows, candlesticks, or market-direction colors in the brand.
+
+**The Wordmark Rule.** The brand line is real text: `<strong>Trade</strong> basic` at weight 750/500 — Trade slightly heavier, basic slightly lighter. The public navbar and footer show the mark plus the single-line wordmark only; no subline under the navbar brand. The private shells keep the "投資決策日記" descriptor subline.
+
+**Public navbar (single row, 1024px+).** Desktop header is a sticky surface bar at ~72px (64px in compact mode): brand links home (no duplicate Home item), centered nav (Tools, Articles, Guide, About), then right-aligned compact unlabeled language/appearance selects (`aria-label`, same ready/disabled/error/retry behavior as the labeled ones), Sign in, and Create account as the only filled action button. Tools is a plain link to `/tools`; a chevron button beside it discloses tool shortcuts rendered from the shared `TOOLS` registry in `tool-shell.tsx` — no second list of tool names or URLs exists. The disclosure is a plain expanded/collapsed region (no ARIA menu): outside pointer-down and Escape close it, Escape restores focus to the chevron, and link clicks close it.
+
+**Compact mode (<1024px).** The row shows brand, Sign in, and a Menu trigger; it never wraps. The drawer dialog carries the full nav, the complete tool list, labeled preference selects (mobile test ids), and Create account. The drawer and trigger reuse the private menu's test ids (`mobile-menu`, `mobile-menu-dialog`, `mobile-*-select`), so preference-selection helpers keep working across both shells. Login and registration stay fully public; saving private work still routes through sign-in. No `overflow-x` traps, negative margins, or `!important` layout patches are used in the header. Evidence: `docs/design/evidence/pwa/1440.png`, `docs/design/evidence/pwa/390.png` (regenerated by the e2e suite), plus the prior commit's versions as the "before" state.

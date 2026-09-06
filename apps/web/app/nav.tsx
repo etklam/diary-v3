@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
+import { TOOLS } from './tool-shell'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -89,7 +90,7 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
   })
   return <>
     <div className="mobile-shell-header">
-      <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></Link>
+      <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link>
       <div className="mobile-shell-actions"><button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
     </div>
     <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
@@ -97,6 +98,88 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
         <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
         <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close}/></nav>
         <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <button type="button" className="secondary" data-testid="mobile-sign-out" disabled={logoutPending} onClick={() => { close(); onLogout() }}>{t(logoutPending ? 'pending' : 'logout')}</button>}</div>
+      </div>
+    </dialog>
+  </>
+}
+
+// ---- Public site navigation (single-row header + compact drawer) ----
+
+const publicCopy = {
+  'zh-TW': { tools: '工具', articles: '文章', guide: '使用說明', about: '關於', shortcuts: '工具快捷入口', menu: '選單' },
+  'zh-CN': { tools: '工具', articles: '文章', guide: '使用说明', about: '关于', shortcuts: '工具快捷入口', menu: '菜单' },
+  en: { tools: 'Tools', articles: 'Articles', guide: 'Guide', about: 'About', shortcuts: 'Tool shortcuts', menu: 'Menu' },
+} as const
+
+/** Tools text links to /tools; the chevron next to it discloses tool shortcuts from the shared TOOLS registry. */
+function ToolsDisclosure({ onNavigate }: { onNavigate?: () => void }) {
+  const { locale } = useUi()
+  const c = publicCopy[locale]
+  const wrap = useRef<HTMLDivElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => { if (!wrap.current?.contains(event.target as Node)) setOpen(false) }
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') { setOpen(false); trigger.current?.focus() } }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('pointerdown', onPointerDown); document.removeEventListener('keydown', onKeyDown) }
+  }, [open])
+  return <div className="nav-tools" ref={wrap}>
+    <NavLink to="/tools" onClick={onNavigate}>{c.tools}</NavLink>
+    <button type="button" ref={trigger} className="nav-tools-trigger" aria-label={c.shortcuts} aria-expanded={open} aria-controls="tools-shortcuts" onClick={() => setOpen(v => !v)}><Icon name="chevronDown" size={16} /></button>
+    {open && <div className="tools-menu-panel" id="tools-shortcuts">
+      {TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={() => { setOpen(false); onNavigate?.() }}><Icon name={tool.icon} size={16} />{tool.name[locale]}</Link>)}
+    </div>}
+  </div>
+}
+
+export function PublicNavLinks({ onNavigate, disclosure = true }: { onNavigate?: () => void; disclosure?: boolean }) {
+  const { locale } = useUi()
+  const c = publicCopy[locale]
+  return <>
+    {disclosure ? <ToolsDisclosure onNavigate={onNavigate} /> : <NavLink to="/tools" onClick={onNavigate}>{c.tools}</NavLink>}
+    <NavLink to="/articles" onClick={onNavigate}>{c.articles}</NavLink>
+    <NavLink to="/guide" onClick={onNavigate}>{c.guide}</NavLink>
+    <NavLink to="/about" onClick={onNavigate}>{c.about}</NavLink>
+  </>
+}
+
+/** Compact public drawer: full navigation, the tool list, preferences and registration. */
+export function PublicMenu({ preferences }: { preferences: ReactNode }) {
+  const { locale, t } = useUi()
+  const c = publicCopy[locale]
+  const dialog = useRef<HTMLDialogElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  function close() {
+    setOpen(false)
+    if (dialog.current?.open) dialog.current.close()
+    requestAnimationFrame(() => trigger.current?.focus())
+  }
+  function show() {
+    setOpen(true)
+    requestAnimationFrame(() => dialog.current?.showModal())
+  }
+  useEffect(() => {
+    const current = dialog.current
+    if (!current) return
+    const onCancel = (event: Event) => { event.preventDefault(); close() }
+    current.addEventListener('cancel', onCancel)
+    return () => current.removeEventListener('cancel', onCancel)
+  })
+  return <>
+    <button type="button" className="secondary mobile-menu-trigger public-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{c.menu}</button>
+    <dialog ref={dialog} className="public-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="public-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
+      <div className="public-menu-panel">
+        <header className="mobile-menu-header"><h2 id="public-menu-title" tabIndex={-1}>{c.menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
+        <nav aria-label={t('navigation')}><PublicNavLinks onNavigate={close} disclosure={false} /></nav>
+        <section aria-labelledby="public-menu-tools-title">
+          <h2 id="public-menu-tools-title" className="public-menu-tools-title">{c.tools}</h2>
+          <div className="public-menu-tools">{TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={close}><Icon name={tool.icon} size={16} />{tool.name[locale]}</Link>)}</div>
+        </section>
+        <div className="public-menu-preferences">{preferences}<Link className="button" to="/register" onClick={close}>{t('register')}</Link></div>
       </div>
     </dialog>
   </>

@@ -15,7 +15,7 @@ export function loader({ request }: LoaderFunctionArgs) {
 export function headers({ loaderHeaders }: HeadersArgs) { return loaderHeaders; }
 export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => {
  const preview = loaded?.preview;
- const title = preview?.title || 'Trading principles — diary-v3';
+ const title = preview?.title || 'Trading principles — Trade basic';
  const description = preview?.description || (preview ? `${preview.count} trading principles` : 'This sharing link is invalid.');
  const image = `${loaded?.origin ?? ''}/api/og/discipline.svg?${new URLSearchParams({ title, author: preview?.author || 'Anonymous', count: String(preview?.count ?? 0) })}`;
  return [{ title }, { name: 'description', content: description }, { property: 'og:title', content: title }, { property: 'og:description', content: description }, { property: 'og:type', content: 'article' }, { property: 'og:image', content: image }, { name: 'robots', content: 'noindex' }];

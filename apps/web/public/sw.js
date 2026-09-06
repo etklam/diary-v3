@@ -1,7 +1,7 @@
-const CACHE_VERSION = 'diary-static-v1'
+const CACHE_VERSION = 'diary-static-v2'
 const STATIC_CACHE = CACHE_VERSION
 const PRIVATE_CACHE_PREFIX = 'diary-private-'
-const STATIC_PATHS = new Set(['/favicon.svg', '/icon-192.svg', '/icon-512.svg', '/manifest.webmanifest'])
+const STATIC_PATHS = new Set(['/favicon.svg', '/icon-192.svg', '/icon-512.svg', '/icon-maskable-192.svg', '/icon-maskable-512.svg', '/manifest.webmanifest'])
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(STATIC_CACHE).then(cache => cache.addAll([...STATIC_PATHS])).then(() => {

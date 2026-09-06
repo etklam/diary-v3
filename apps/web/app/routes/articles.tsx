@@ -19,7 +19,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export const meta: MetaFunction<typeof loader> = () => [
-  { title: 'Articles — diary-v3' },
+  { title: 'Articles — Trade basic' },
   { name: 'description', content: 'Published investment research and decision notes.' },
 ]
 

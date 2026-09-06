@@ -16,7 +16,7 @@ describe('web PWA boundary', () => {
 
   it('keeps private API and document requests outside the static worker cache', async () => {
     const worker = await readFile(resolve(webRoot, 'public/sw.js'), 'utf8')
-    expect(worker).toContain("const CACHE_VERSION = 'diary-static-v1'")
+    expect(worker).toContain("const CACHE_VERSION = 'diary-static-v2'")
     expect(worker).toContain("if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return")
     expect(worker).toContain("if (request.mode === 'navigate' || request.destination === 'document') return")
     expect(worker).toContain("event.data?.type === 'CLEAR_PRIVATE_CACHE'")

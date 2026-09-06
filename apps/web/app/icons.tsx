@@ -28,6 +28,7 @@ const paths = {
   settings: <><circle cx="12" cy="12" r="2.8" /><path d="M12 3.2v2.4M12 18.4v2.4M3.2 12h2.4M18.4 12h2.4M5.8 5.8l1.7 1.7M16.5 16.5l1.7 1.7M18.2 5.8l-1.7 1.7M7.5 16.5l-1.7 1.7" /></>,
   lock: <><rect x="5.4" y="10.4" width="13.2" height="9.6" rx="1.6" /><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6M12 14v2.6" /></>,
   compass: <><circle cx="12" cy="12" r="8.2" /><path d="m15.4 8.6-1.8 5-5 1.8 1.8-5 5-1.8Z" /></>,
+  chevronDown: <path d="m6.5 9.3 5.5 5.4 5.5-5.4" />,
 } as const
 
 export type IconName = keyof typeof paths
@@ -36,10 +37,16 @@ export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: numb
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...rest}>{paths[name]}</svg>
 }
 
-/** Rounded-square brand mark used in the public header and workspace shells. */
+/**
+ * "Trade basic" monogram: white geometric T/b on the action-colour tile.
+ * The same geometry feeds favicon.svg and the PWA icons in public/, so the
+ * brand stays identical across app, tab and installed-app surfaces.
+ */
 export function BrandMark({ size = 30 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false" className="brand-mark">
     <rect x="1.5" y="1.5" width="29" height="29" rx="8" className="brand-mark-tile" />
-    <path d="M9.5 21.5v-6.2M16 21.5V10.5M22.5 21.5v-8.8" strokeWidth="3" strokeLinecap="round" className="brand-mark-bars" fill="none" />
+    <path d="M6 7.6h11.6v3.5h-4v13.3H10V11.1H6Z" className="brand-mark-letter" />
+    <path d="M17.4 9H21v15.4h-3.6Z" className="brand-mark-letter" />
+    <path fillRule="evenodd" clipRule="evenodd" d="M21.7 15.4a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2.6a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8Z" className="brand-mark-letter" />
   </svg>
 }

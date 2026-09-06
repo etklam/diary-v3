@@ -7,7 +7,7 @@ import { TOOLS } from '../tool-shell';
 import '../public.css';
 
 export const meta: MetaFunction = () => [
-  { title: 'diary-v3 — Investment decisions, kept traceable' },
+  { title: 'Trade basic — Investment decisions, kept traceable' },
   { name: 'description', content: 'Record an investment decision, connect later evidence, and review what changed.' },
 ];
 

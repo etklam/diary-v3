@@ -1,25 +1,25 @@
 import { ForegroundReminders } from './foreground-reminders';
 import { useEffect, useRef, useState } from 'react';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, NavLink, useLocation, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router';
 import { clearPrivateSession, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import { BrandMark } from './icons';
 import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
-import { MobileMenu, NavigationLinks } from './nav';
+import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks } from './nav';
 import { PwaStatus } from './pwa';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return <html lang="zh-TW" suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
 }
 
-function PreferencesControls({ mobile = false }: { mobile?: boolean }) {
+function PreferencesControls({ mobile = false, compact = false }: { mobile?: boolean; compact?: boolean }) {
   const { t, locale, setLocale, theme, setTheme, ready, localeReady, localeError, retryLocale } = useUi();
-  return <div className="preferences">
-    <label>{t('language')}<select disabled={!ready||!localeReady} data-testid={mobile ? 'mobile-locale-select' : 'locale-select'} value={locale} onChange={e => setLocale(e.target.value as 'zh-TW' | 'zh-CN' | 'en')}><option value="zh-TW">繁體中文</option><option value="zh-CN">简体中文</option><option value="en">English</option></select></label>
+  return <div className={compact ? 'preferences preferences-compact' : 'preferences'}>
+    <label>{!compact && t('language')}<select aria-label={compact ? t('language') : undefined} disabled={!ready||!localeReady} data-testid={mobile ? 'mobile-locale-select' : 'locale-select'} value={locale} onChange={e => setLocale(e.target.value as 'zh-TW' | 'zh-CN' | 'en')}><option value="zh-TW">繁體中文</option><option value="zh-CN">简体中文</option><option value="en">English</option></select></label>
     {localeError&&<div role="alert"><p>{locale==='en'?'Unable to load or save your language preference.':locale==='zh-CN'?'无法读取或保存语言偏好。':'無法讀取或儲存語言偏好。'}</p><button type="button" className="secondary" onClick={retryLocale}>{t('retry')}</button></div>}
-    <label>{t('theme')}<select disabled={!ready} data-testid={mobile ? 'mobile-theme-select' : 'theme-select'} value={theme} onChange={e => setTheme(e.target.value as 'light' | 'dark' | 'system')}><option value="system">{t('system')}</option><option value="light">{t('light')}</option><option value="dark">{t('dark')}</option></select></label>
+    <label>{!compact && t('theme')}<select aria-label={compact ? t('theme') : undefined} disabled={!ready} data-testid={mobile ? 'mobile-theme-select' : 'theme-select'} value={theme} onChange={e => setTheme(e.target.value as 'light' | 'dark' | 'system')}><option value="system">{t('system')}</option><option value="light">{t('light')}</option><option value="dark">{t('dark')}</option></select></label>
   </div>;
 }
 
@@ -49,37 +49,31 @@ function Shell() {
   }
   const previousPath = useRef(location.pathname);
   useEffect(() => { if(previousPath.current!==location.pathname){document.getElementById('main')?.focus();previousPath.current=location.pathname;} },[location.pathname]);
-  const { t, locale } = useUi();
+  const { t } = useUi();
   const preferences = <PreferencesControls/>;
+  const compactPreferences = <PreferencesControls compact/>;
   const mobilePreferences = <PreferencesControls mobile/>;
   const publicPath = location.pathname === '/' || location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/tools' || location.pathname.startsWith('/tools/') || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
   if (publicPath && session.authenticated !== true) return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">
       <header className="public-header">
-        <Link className="brand" to="/"><BrandMark /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></Link>
-        <nav aria-label={t('navigation')}>
-          <NavLink to="/" end>{t('home')}</NavLink>
-          <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
-          <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
-          <NavLink to="/guide">{locale==='en'?'Guide':locale==='zh-CN'?'使用说明':'使用說明'}</NavLink>
-          <NavLink to="/about">{locale==='en'?'About':locale==='zh-CN'?'关于':'關於'}</NavLink>
-        </nav>
-        <div className="public-actions"><Link className="button secondary" to="/login">{t('login')}</Link><Link className="button" to="/register">{t('register')}</Link></div>
-        <div className="public-preferences">{preferences}</div>
+        <Link className="brand" to="/"><BrandMark size={34} /><span className="brand-name"><strong>Trade</strong> basic</span></Link>
+        <nav className="public-nav" aria-label={t('navigation')}><PublicNavLinks /></nav>
+        <div className="public-actions">
+          {compactPreferences}
+          <Link className="button secondary public-login" to="/login">{t('login')}</Link>
+          <Link className="button public-register" to="/register">{t('register')}</Link>
+          <PublicMenu preferences={mobilePreferences} />
+        </div>
       </header>
       <main id="main" tabIndex={-1}><PwaStatus/><Outlet key={session.revision} /></main>
       <footer className="public-footer">
         <div className="public-footer-inner">
-          <div className="public-footer-brand"><BrandMark size={24} /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></div>
+          <div className="public-footer-brand"><BrandMark size={24} /><span className="brand-name"><strong>Trade</strong> basic</span></div>
           <nav aria-label={t('navigation')}>
-            <NavLink to="/" end>{t('home')}</NavLink>
-            <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
-            <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
-            <NavLink to="/guide">{locale==='en'?'Guide':locale==='zh-CN'?'使用说明':'使用說明'}</NavLink>
-            <NavLink to="/about">{locale==='en'?'About':locale==='zh-CN'?'关于':'關於'}</NavLink>
-            <NavLink to="/login">{t('login')}</NavLink>
-            <NavLink to="/register">{t('register')}</NavLink>
+            <PublicNavLinks disclosure={false} />
+            <Link to="/login">{t('login')}</Link>
           </nav>
         </div>
       </footer>
@@ -89,7 +83,7 @@ function Shell() {
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
+        <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
         <div className="desktop-quick-entry"><QuickEntry/></div>
         <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
         <div className="desktop-preferences">

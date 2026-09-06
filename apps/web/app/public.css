@@ -12,10 +12,11 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-4);
+  min-height: 64px;
   padding: var(--space-3) var(--page-gutter);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -23,18 +24,23 @@
 }
 
 .public-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--text);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
 }
 
+.public-header .brand .brand-name strong,
+.public-footer-brand .brand-name strong {
+  font-weight: 750;
+}
+
 .public-header nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-1);
+  display: none;
 }
 
 .public-header nav a {
@@ -45,6 +51,7 @@
   color: var(--text);
   font-size: 0.9375rem;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .public-header nav a:hover {
@@ -58,43 +65,255 @@
   font-weight: 650;
 }
 
-.public-actions,
-.public-preferences {
+/* Tools: the label links to /tools, the chevron discloses shortcuts. */
+.nav-tools {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-tools > a {
+  padding-right: 8px;
+}
+
+.nav-tools-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.nav-tools-trigger:hover,
+.nav-tools-trigger[aria-expanded="true"] {
+  background: var(--tint-neutral);
+  color: var(--text);
+}
+
+.nav-tools-trigger svg {
+  transition: transform 120ms ease;
+}
+
+.nav-tools-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.tools-menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 6;
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.tools-menu-panel a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: 0.875rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tools-menu-panel a:hover {
+  background: var(--tint-neutral);
+}
+
+.public-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .public-actions .secondary {
   box-shadow: none;
 }
 
-.public-preferences {
-  grid-column: 1 / -1;
-  justify-content: flex-end;
-  padding-bottom: var(--space-1);
+/* Compact language/appearance controls live in the header row; the labeled
+   versions stay in the drawer. */
+.public-actions > .preferences {
+  display: none;
 }
 
-.public-preferences > .preferences {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin: 0;
-}
-
-.public-preferences label {
+.preferences-compact {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.preferences-compact select {
+  width: auto;
+  min-height: 36px;
+  padding: 5px 8px;
+  font-size: 0.8125rem;
+}
+
+/* Compact mode below the full single-row width: brand, login and menu stay in
+   the bar; navigation, register and preferences move into the drawer. */
+.public-header .mobile-menu-trigger {
+  display: inline-flex;
+}
+
+.public-actions .public-register {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .public-actions > .preferences {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .public-header {
+    min-height: 72px;
+  }
+
+  .public-header nav {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .public-header .mobile-menu-trigger {
+    display: none;
+  }
+
+  .public-actions .public-register {
+    display: inline-flex;
+  }
+}
+
+/* ---- Public drawer (compact mode) ---- */
+
+.public-menu-dialog {
+  width: min(calc(100% - 24px), 560px);
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.public-menu-dialog::backdrop {
+  background: rgb(32 36 42 / 0.45);
+}
+
+.public-menu-dialog[open] {
+  display: block;
+}
+
+.public-menu-panel {
+  display: grid;
+  gap: var(--space-5);
+  max-height: calc(100dvh - 24px);
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.public-menu-panel nav {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.public-menu-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.public-menu-panel nav a:hover {
+  background: var(--tint-neutral);
+}
+
+.public-menu-panel nav a[aria-current="page"] {
+  background: var(--selected);
+  font-weight: 650;
+}
+
+.public-menu-tools-title {
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.public-menu-tools {
+  display: grid;
+}
+
+.public-menu-tools a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.public-menu-tools a:hover {
+  background: var(--tint-neutral);
+}
+
+.public-menu-preferences {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.public-menu-preferences .preferences {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.public-menu-preferences .preferences > div[role="alert"] {
+  grid-column: 1 / -1;
+}
+
+.public-menu-preferences .preferences label {
+  display: grid;
+  gap: 6px;
+  align-items: center;
   color: var(--muted);
   font-size: 0.75rem;
 }
 
-.public-preferences select {
-  width: auto;
-  min-height: 36px;
-  padding: 5px 9px;
-  font-size: 0.8125rem;
+.public-menu-preferences .button {
+  justify-content: center;
 }
 
 .public-shell > main {
@@ -532,20 +751,13 @@
   align-items: center;
   gap: 8px;
   color: var(--text);
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 500;
 }
 
 .public-footer-brand .brand-name {
   display: block;
   line-height: 1.2;
-}
-
-.public-footer-brand .brand-sub {
-  display: block;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.35;
 }
 
 .public-footer nav {
@@ -616,23 +828,7 @@
 
 @media (max-width: 850px) {
   .public-header {
-    grid-template-columns: 1fr auto;
     gap: var(--space-3);
-  }
-
-  .public-header nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .public-actions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .public-preferences {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
   }
 
   .home-hero {
@@ -652,11 +848,11 @@
 
 @media (max-width: 560px) {
   .public-header {
-    padding: var(--space-3) var(--page-gutter);
+    gap: var(--space-2);
   }
 
   .public-header .brand {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
   .public-header .button {
@@ -665,9 +861,9 @@
     font-size: 0.875rem;
   }
 
-  .public-header nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+  .public-header .mobile-menu-trigger {
+    min-width: 0;
+    padding-inline: 10px;
   }
 
   .public-page {

@@ -27,7 +27,7 @@ function translateWarning(warning: string, copy: typeof positionSizingCopy.en) {
   return warning
 }
 
-export function meta() { return [{ title: 'Position sizing — diary-v3' }] }
+export function meta() { return [{ title: 'Position sizing — Trade basic' }] }
 
 export default function PositionSizing() {
   const { locale } = useUi()

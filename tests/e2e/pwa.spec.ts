@@ -26,7 +26,7 @@ test('installs static shell metadata without caching private API responses', asy
     const requests = (await Promise.all(keys.map(async key => (await caches.open(key)).keys()))).flat()
     return { keys, privateApiRequests: requests.filter(request => new URL(request.url).pathname.startsWith('/api/')).map(request => request.url) }
   })
-  expect(cacheState.keys).toContain('diary-static-v1')
+  expect(cacheState.keys).toContain('diary-static-v2')
   expect(cacheState.privateApiRequests).toEqual([])
 
   await context.setOffline(true)
