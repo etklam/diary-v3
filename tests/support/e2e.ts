@@ -12,14 +12,28 @@ export const test = base.extend<{ isolatedApi: void }>({
 export { expect };
 
 async function selectPreference(page: Page, desktopTestId: string, mobileTestId: string, value: string) {
+  // Session bootstrap decides the shell: SSR renders the public shell, so on
+  // phones the desktop select can disappear mid-action when the private shell
+  // swaps in its menu. Let selectOption retry briefly, then pick the control
+  // that actually belongs to the resolved shell.
   const desktopControl = page.getByTestId(desktopTestId);
-  if (await desktopControl.isVisible()) {
+  try {
+    await desktopControl.selectOption(value, { timeout: 1500 });
+    return;
+  } catch {
+    // Either the private shell hid the desktop control (use the menu) or the
+    // public select is still loading its saved preference (keep waiting).
+  }
+
+  const menu = page.getByTestId('mobile-menu');
+  const hasMenu = await menu.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+  if (!hasMenu) {
     await desktopControl.selectOption(value);
     return;
   }
 
   const dialog = page.getByTestId('mobile-menu-dialog');
-  if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+  await menu.click();
   await page.getByTestId(mobileTestId).selectOption(value);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();

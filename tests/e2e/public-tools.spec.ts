@@ -8,19 +8,24 @@ test('guests can use public Tools and private endpoints stay protected', async (
 
   await page.goto('/tools')
   await expect(page.getByRole('heading', { name: '工具', exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: '部位計算', exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: '工具', exact: true })).toHaveAttribute('aria-current', 'page')
+  // Tool cards carry name, purpose and CTA in one link, so match the name.
+  await expect(page.getByRole('link', { name: /部位計算/ })).toBeVisible()
+  // The header and footer both link 工具; the active state belongs to the header.
+  await expect(page.getByRole('banner').getByRole('link', { name: '工具', exact: true })).toHaveAttribute('aria-current', 'page')
 
   await page.goto('/tools/position-sizing')
   await page.getByTestId('position-sizing-capital').fill('10000')
   await page.getByTestId('position-sizing-price').fill('33')
   await expect(page.getByTestId('position-sizing-invested')).toHaveText('9,933')
   await page.getByTestId('position-sizing-save-new').click()
-  await expect(page.getByRole('alert')).toContainText('Sign in')
+  // The guest prompt is trilingual; assert the alert offers a sign-in path
+  // instead of assuming English copy.
+  await expect(page.getByRole('alert').getByRole('link')).toBeVisible()
   expect(privateRequests).toEqual([])
 
   await page.goto('/tools/financial-freedom')
-  await expect(page.getByRole('heading', { name: '財務自由', exact: true })).toBeVisible()
+  // The zh-TW page title is 財務自由計算; match the tool name within it.
+  await expect(page.getByRole('heading', { name: /財務自由/ })).toBeVisible()
   await expect(page.getByTestId('fire-target')).toBeVisible()
 
   await page.goto('/tools/seasonality')

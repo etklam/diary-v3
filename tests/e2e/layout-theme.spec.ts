@@ -51,6 +51,32 @@ test('public direct routes load their stylesheet and share the responsive gutter
   expect(stylesheetResponses.every(({ status }) => status === 200), stylesheetResponses.map(({ status, url }) => `${status} ${url}`).join('\n')).toBe(true)
 })
 
+test('workspace page header and section cards share one alignment line', async ({ page }) => {
+  const email = `align-${randomUUID()}@example.test`
+  const password = 'synthetic-align-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectLocale(page, 'en')
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible()
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.waitForTimeout(300)
+    const edges = await page.evaluate(() => {
+      const left = (selector: string) => document.querySelector(selector)?.getBoundingClientRect().left ?? null
+      return { header: left('.overview-header'), card: left('.overview-section'), main: left('.app-shell > main') }
+    })
+    expect(edges.header).not.toBeNull()
+    expect(edges.card).toBeCloseTo(edges.header ?? 0, 0)
+  }
+})
+
 test('mobile preferences stay in Menu while keyboard quick diary remains available', async ({ page }) => {
   const email = `layout-${randomUUID()}@example.test`
   const password = 'synthetic-layout-password'
