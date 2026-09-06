@@ -1,4 +1,4 @@
-import { test, expect, clickNav } from '../support/e2e';
+import { test, expect, clickNav, selectLocale, selectTheme } from '../support/e2e';
 
 const locales = [
   { value: 'en', overview: 'Overview', company: 'Company research', review: 'Review' },
@@ -11,7 +11,7 @@ test('representative design supports languages, keyboard selection, themes and n
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: width > 1000 ? 1000 : 844 });
     for (const locale of locales) {
-      await page.getByTestId('locale-select').selectOption(locale.value);
+      await selectLocale(page, locale.value);
       await expect(page.locator('html')).toHaveAttribute('lang', locale.value);
       await page.getByTestId('preview-empty').check();
       await expect(page.locator('main [role=status]:visible')).toBeVisible();
@@ -23,14 +23,14 @@ test('representative design supports languages, keyboard selection, themes and n
         await expect(page.locator('main h1:visible')).toHaveCount(1);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
         if (width !== 320 && locale.value === 'en' && surface !== 'overview') {
-          await page.getByTestId('theme-select').selectOption(width < 500 ? 'dark' : 'light');
+          await selectTheme(page, width < 500 ? 'dark' : 'light');
           await page.screenshot({ path: `test-results/${surface}-${width}.png`, fullPage: true });
         }
       }
     }
   }
-  await page.getByTestId('locale-select').selectOption('en');
-  await page.getByTestId('theme-select').selectOption('dark');
+  await selectLocale(page, 'en');
+  await selectTheme(page, 'dark');
   await page.reload();
   await expect(page.getByTestId('theme-select')).toHaveValue('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

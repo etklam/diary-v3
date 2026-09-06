@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test } from '../support/e2e'
+import { expect, test, selectLocale, selectTheme } from '../support/e2e'
 
 for (const width of [1440, 390]) {
   test(`position sizing calculation and Diary/Trade Plan handoffs at ${width}px`, async ({ page, context }) => {
@@ -9,13 +9,13 @@ for (const width of [1440, 390]) {
     const password = 'synthetic-position-sizing-password'
     expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
     await page.goto('/login')
-    await page.getByTestId('locale-select').selectOption('en')
+    await selectLocale(page, 'en')
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/diaries\/new$/)
     await page.goto('/tools/position-sizing')
-    await page.getByTestId('locale-select').selectOption('en')
+    await selectLocale(page, 'en')
     await expect(page.getByRole('heading', { name: 'Position sizing', exact: true })).toBeVisible()
     await page.getByTestId('position-sizing-capital').fill('10000')
     await page.getByTestId('position-sizing-price').fill('33')
@@ -34,10 +34,10 @@ for (const width of [1440, 390]) {
     await page.getByTestId('position-sizing-rounding').selectOption('nearest')
     await expect(page.locator('.position-sizing-table-wrap')).toHaveAttribute('tabindex', '0')
     for (const [locale, heading] of [['zh-TW', '部位計算'], ['zh-CN', '仓位计算'], ['en', 'Position sizing']] as const) {
-      await page.getByTestId('locale-select').selectOption(locale)
+      await selectLocale(page, locale)
       await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     }
-    if (width === 390) await page.getByTestId('theme-select').selectOption('dark')
+    if (width === 390) await selectTheme(page, 'dark')
     await page.evaluate(() => { window.scrollTo({ top: 0, behavior: 'instant' }); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
     await page.screenshot({ path: `docs/design/evidence/position-sizing/${width}.png`, fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

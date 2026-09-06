@@ -1,8 +1,8 @@
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 
 test('guests can inspect quotes, change historical range, and resolve an index alias',async({page})=>{
   await page.goto('/stocks/SPY');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByTestId('market-price')).toHaveText('110');
   await expect(page.getByRole('table')).toContainText('2026-09-04');
   const history=page.waitForResponse(response=>response.url().includes('/api/market/historical')&&response.url().includes('range=1mo'));
@@ -14,11 +14,11 @@ test('guests can inspect quotes, change historical range, and resolve an index a
   await expect(page.getByTestId('market-price')).toHaveText('110');
   await expect(page.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();
   await page.setViewportSize({width:1440,height:1000});
-  await page.getByTestId('theme-select').selectOption('light');
+  await selectTheme(page, 'light');
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'.impeccable/review/market-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
-  await page.getByTestId('theme-select').selectOption('dark');
+  await selectTheme(page, 'dark');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'.impeccable/review/market-mobile.png',fullPage:true});
@@ -26,9 +26,10 @@ test('guests can inspect quotes, change historical range, and resolve an index a
 
 test('missing metadata stays unknown and quote/history errors recover independently',async({page})=>{
   await page.goto('/stocks/PARTIAL');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByTestId('market-price')).toHaveText('90');
-  await expect(page.getByText('Not provided',{exact:true})).toHaveCount(6);
+  await expect(page.getByText('Not provided',{exact:true})).toHaveCount(3);
+  await expect(page.getByText('—',{exact:true})).toHaveCount(3);
   await expect(page.getByRole('table')).toBeVisible();
   await page.goto('/stocks/HISTFAIL');
   await expect(page.getByTestId('market-price')).toHaveText('110');
@@ -46,7 +47,7 @@ test('missing metadata stays unknown and quote/history errors recover independen
 
 test('a failed quote refresh is identified as stale without presenting a new quote timestamp',async({page})=>{
   await page.goto('/stocks/STALE');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByTestId('market-price')).toHaveText('110');
   const time=page.locator('time').first();
   await expect(time).toHaveAttribute('datetime','2026-09-04T15:00:00.000Z');
@@ -56,8 +57,8 @@ test('a failed quote refresh is identified as stale without presenting a new quo
   await expect(page.getByRole('status')).toContainText('Showing the last successful data');
   await expect(page.getByTestId('market-price')).toHaveText('110');
   await expect(time).toHaveAttribute('datetime','2026-09-04T15:00:00.000Z');
-  await page.getByTestId('locale-select').selectOption('zh-TW');
+  await selectLocale(page, 'zh-TW');
   await expect(page.getByRole('heading',{name:'最新報價',exact:true})).toBeVisible();
-  await page.getByTestId('locale-select').selectOption('zh-CN');
+  await selectLocale(page, 'zh-CN');
   await expect(page.getByRole('heading',{name:'最新报价',exact:true})).toBeVisible();
 });

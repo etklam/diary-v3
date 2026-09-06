@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { test, expect } from '../support/e2e'
+import { test, expect, selectLocale, selectTheme } from '../support/e2e'
 
 const adminEmail = 'etf-admin@example.test'
 const adminPassword = 'synthetic-etf-admin-password'
@@ -8,6 +8,15 @@ const adminPassword = 'synthetic-etf-admin-password'
 async function signInAdmin(page: Page) {
   expect((await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status()).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
+}
+
+async function gotoWithPreferences(page: Page, path: string) {
+  const preferences = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return url.pathname === '/api/user/settings' && response.request().method() === 'GET' && response.ok()
+  })
+  await page.goto(path)
+  await preferences
 }
 
 test('admin account inventory preserves current-account guard and manages a synthetic account', async ({ page, browser }) => {
@@ -33,8 +42,8 @@ test('admin account inventory preserves current-account guard and manages a synt
   }
 
   await signInAdmin(page)
-  await page.goto('/admin/users')
-  await page.getByTestId('locale-select').selectOption('en')
+  await gotoWithPreferences(page, '/admin/users')
+  await selectLocale(page, 'en')
   await expect(page.getByRole('heading', { name: 'Admin accounts', exact: true })).toBeVisible()
   const targetRow = page.locator('tr').filter({ hasText: targetEmail })
   const adminRow = page.locator('tr').filter({ hasText: adminEmail })
@@ -55,7 +64,7 @@ test('admin account inventory preserves current-account guard and manages a synt
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.locator('.admin-users-page').screenshot({ path: 'docs/design/evidence/admin-users/1440.png' })
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByTestId('theme-select').selectOption('dark')
+  await selectTheme(page, 'dark')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.locator('.admin-users-page').screenshot({ path: 'docs/design/evidence/admin-users/390.png' })
 
@@ -71,8 +80,8 @@ test('ordinary account sees the protected admin route without admin controls', a
   const password = 'synthetic-admin-users-ordinary-password'
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
   expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
-  await page.goto('/admin/users')
-  await page.getByTestId('locale-select').selectOption('en')
+  await gotoWithPreferences(page, '/admin/users')
+  await selectLocale(page, 'en')
   await expect(page.getByRole('alert')).toContainText('permission')
   await expect(page.getByRole('heading', { name: 'Admin accounts', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toHaveCount(0)

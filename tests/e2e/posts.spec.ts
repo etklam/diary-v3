@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { test, expect } from '../support/e2e'
+import { test, expect, selectLocale, selectTheme } from '../support/e2e'
 
 const adminEmail = 'etf-admin@example.test'
 const adminPassword = 'synthetic-etf-admin-password'
@@ -14,7 +14,7 @@ test('admin draft publishes to SSR public article, archives, republishes, and ke
   const title = `Synthetic article ${randomUUID()}`
   await signInAdmin(page)
   await page.goto('/admin/blog/new')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Title', { exact: true }).fill(title)
   await page.getByLabel('Content', { exact: true }).fill('# Published body\n\nA source-safe **Markdown** paragraph.')
   await page.getByLabel('Excerpt (optional)', { exact: true }).fill('A published synthetic excerpt.')
@@ -44,7 +44,7 @@ test('admin draft publishes to SSR public article, archives, republishes, and ke
     await guest.screenshot({ path: 'docs/design/evidence/public-content/1440.png', fullPage: true })
 
     await page.goto('/admin/blog')
-    await page.getByTestId('locale-select').selectOption('en')
+    await selectLocale(page, 'en')
     const row = page.locator('tr').filter({ hasText: title })
     await row.getByRole('button', { name: 'Archive', exact: true }).click()
     await expect(row.getByText('ARCHIVED', { exact: true })).toBeVisible()
@@ -61,7 +61,7 @@ test('admin draft publishes to SSR public article, archives, republishes, and ke
   try {
     const mobilePage = await mobile.newPage()
     await mobilePage.goto(`/articles/${encodeURIComponent(published.slug)}`)
-    await mobilePage.getByTestId('theme-select').selectOption('dark')
+    await selectTheme(mobilePage, 'dark')
     await expect(mobilePage.getByRole('heading', { name: title, exact: true })).toBeVisible()
     expect(await mobilePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await mobilePage.screenshot({ path: 'docs/design/evidence/public-content/390.png', fullPage: true })
@@ -74,7 +74,7 @@ test('admin draft publishes to SSR public article, archives, republishes, and ke
     expect((await ordinary.request.post('/api/auth/register', { data: { email, password: 'synthetic-ordinary-password' } })).status()).toBe(200)
     expect((await ordinary.request.post('/api/auth/login', { data: { email, password: 'synthetic-ordinary-password' } })).status()).toBe(200)
     await ordinary.goto('/admin/blog')
-    await ordinary.getByTestId('locale-select').selectOption('en')
+    await selectLocale(ordinary, 'en')
     await expect(ordinary.getByRole('alert')).toContainText('permission')
   } finally { await ordinaryContext.close() }
 })

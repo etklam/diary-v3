@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Watchlist persistence and recovery at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `watch-${randomUUID()}@example.test`, password = 'synthetic-watchlist-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en'); await page.goto('/stocks/watchlist');
+  await selectLocale(page, 'en'); await page.goto('/stocks/watchlist');
   await expect(page.getByText('No companies yet. Add a symbol to start your research.')).toBeVisible();
   const add = async (symbol: string) => { await page.getByLabel('Stock symbol', { exact: true }).fill(symbol); await page.getByRole('button', { name: 'Add company', exact: true }).click(); await expect(page.getByTestId(`watch-${symbol.trim().toUpperCase()}`)).toBeVisible(); };
   await add(' aapl '); await add('UNKNOWN'); await add('aapl');
@@ -36,11 +36,11 @@ for (const width of [1440, 390]) test(`Watchlist persistence and recovery at ${w
   await aapl.getByRole('button', { name: 'Remove', exact: true }).click(); await expect(page.getByTestId('request-id')).toHaveText('watch-retry'); await expect(aapl).toBeVisible();
   await page.unroute('**/api/stocks/watchlist/*'); await aapl.getByRole('button', { name: 'Remove', exact: true }).click(); await expect(aapl).toHaveCount(0);
   await add('AAPL'); await expect(aapl.getByLabel('Sort order')).toHaveValue('9');
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await page.screenshot({ path: `docs/design/evidence/watchlist/${width}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  for (const [locale, title] of [['zh-TW', '關注清單'], ['zh-CN', '关注清单'], ['en', 'Watchlist']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  for (const [locale, title] of [['zh-TW', '關注清單'], ['zh-CN', '关注清单'], ['en', 'Watchlist']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
   await page.getByTestId('watch-UNKNOWN').getByRole('link', { name: 'UNKNOWN', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/UNKNOWN$/);
   await page.goto('/stocks/watchlist'); await expect(aapl).toBeVisible();
-  await page.getByTestId('sign-out').click(); await expect(aapl).toHaveCount(0);
+  await signOut(page); await expect(aapl).toHaveCount(0);
 });

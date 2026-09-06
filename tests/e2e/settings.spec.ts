@@ -1,18 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 test.use({timezoneId:'America/Los_Angeles'});
 const password='synthetic-preferences-password';
 async function account(page:Page) {
   const email=`settings-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
   await page.goto('/login');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await page.getByLabel('Email',{exact:true}).fill(email);
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
   await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.locator('html')).toHaveAttribute('lang','en');
   await page.goto('/settings');
   await expect(page.getByLabel('Name',{exact:true})).toBeVisible();
@@ -37,10 +37,10 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   const settings=await(await page.request.get('/api/user/settings')).json();
   expect(settings.settings).toMatchObject({name:null,expectedMonthlyTrades:0,expectedProfit:'1234567890.13',expectedAvgHolding:'0.00',timezone:'America/New_York',locale:'zh-CN',excludeHolidaysInStats:false});
   const logout=page.waitForResponse(response=>response.url().endsWith('/api/auth/logout'));
-  await page.getByTestId('sign-out').click();
+  await signOut(page);
   await logout;
   await page.goto('/login');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await page.getByLabel('Email',{exact:true}).fill(email);
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
@@ -71,11 +71,11 @@ test('invalid timezone keeps unsaved values and marks the field; saved settings 
 test('preferences support narrow layouts and both themes',async({page})=>{
   await account(page);
   await page.setViewportSize({width:1440,height:1000});
-  await page.getByTestId('theme-select').selectOption('light');
+  await selectTheme(page, 'light');
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'.impeccable/review/settings-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
-  await page.getByTestId('theme-select').selectOption('dark');
+  await selectTheme(page, 'dark');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:'.impeccable/review/settings-mobile.png',fullPage:true});
@@ -94,10 +94,10 @@ test('a language-save response arriving after logout cannot alter the signed-out
     await held;
     await route.fulfill({response});
   });
-  await page.getByTestId('locale-select').selectOption('zh-CN');
+  await selectLocale(page, 'zh-CN');
   await requested;
   const signedOut=page.waitForResponse(response=>response.url().endsWith('/api/auth/logout'));
-  await page.getByTestId('sign-out').click();
+  await signOut(page);
   await signedOut;
   const delivered=page.waitForResponse(response=>response.url().endsWith('/api/user/settings')&&response.request().method()==='PUT');
   release();

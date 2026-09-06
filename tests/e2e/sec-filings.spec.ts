@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { expect, test } from '../support/e2e'
+import { expect, test, selectLocale } from '../support/e2e'
 
 const company = { cik: '0000000001', name: 'Synthetic Holdings', tickers: ['SYN'], exchanges: ['NYSE'], matchedBy: 'ticker' }
 const filing = { cik: company.cik, accession: '0000000001-24-000001', filingDate: '2024-04-01', reportDate: '2023-12-31', acceptanceDateTime: '2024-04-01 12:00:00', form: '10-K', isAmendment: false, primaryDocument: 'syn-10k.htm', primaryDocumentDescription: 'Annual report', fileNumber: '1', filmNumber: null, items: null, size: 120 }
@@ -15,7 +15,7 @@ function assertZip(downloadPath: string, expectedNames: string[], bodyEntry: str
 
 test('searches SEC company, filters filings, selects a batch and reads document detail', async ({ page }) => {
   await page.goto('/tools/sec-filings')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Company, ticker, or CIK', { exact: true }).fill('SYN')
   await page.getByRole('button', { name: 'Search SEC', exact: true }).click()
   await expect(page.getByRole('button', { name: /Synthetic Holdings/ })).toBeVisible()
@@ -41,6 +41,6 @@ test('searches SEC company, filters filings, selects a batch and reads document 
   assertZip(singlePath!, ['manifest.json', 'syn-10k.htm', `${filing.accession}.txt`], 'syn-10k.htm', 'synthetic-sec-document:')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: 'docs/design/evidence/sec-filings/mobile.png', fullPage: true })
-  await page.getByTestId('locale-select').selectOption('zh-TW')
+  await selectLocale(page, 'zh-TW')
   await expect(page.getByRole('link', { name: /返回申報/ })).toBeVisible()
 })

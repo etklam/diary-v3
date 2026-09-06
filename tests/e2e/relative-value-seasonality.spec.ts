@@ -1,16 +1,16 @@
-import { expect, test } from '../support/e2e'
+import { expect, test, selectLocale } from '../support/e2e'
 
 test('relative value and seasonality preserve scoped history and real capture destinations', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/login')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill('rotation-admin@example.test')
   await page.getByLabel('Password', { exact: true }).fill('synthetic-rotation-admin-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/new$/)
 
   await page.goto('/tools/relative-value')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await expect(page.getByRole('heading', { level: 1, name: 'Relative value', exact: true })).toBeVisible()
   await expect(page.getByRole('row').filter({ hasText: 'Primary price' }).first()).toBeVisible()
   await expect(page.getByText(/Primary ÷ comparison/)).toBeVisible()
@@ -37,14 +37,14 @@ test('relative value and seasonality preserve scoped history and real capture de
   expect((await diarySave).status()).toBe(201)
 
   await page.goto('/tools/seasonality')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await expect(page.getByRole('heading', { level: 1, name: 'Seasonality', exact: true })).toBeVisible()
   await expect(page.getByText('S&P 500 · monthly averages · 1950+', { exact: true })).toBeVisible()
   await expect(page.getByRole('table')).toHaveCount(1)
   await expect(page.getByRole('row')).toHaveCount(13)
-  await page.getByTestId('locale-select').selectOption('zh-TW')
+  await selectLocale(page, 'zh-TW')
   await expect(page.getByText('S&P 500・月度平均・1950 年起', { exact: true })).toBeVisible()
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   const seasonalityCapture = page.getByRole('region', { name: 'Research capture', exact: true })
   await seasonalityCapture.getByRole('button', { name: 'Capture this read', exact: true }).click()
   await expect(seasonalityCapture.getByRole('combobox', { name: 'Destination', exact: true })).toHaveValue('diary-append')

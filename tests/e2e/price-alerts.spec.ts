@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`price reminder CRUD and rearm at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `price-ui-${randomUUID()}@example.test`, password = 'synthetic-price-ui-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.goto('/stocks/AAPL');
   await page.locator('main').getByRole('link', { name: 'Price reminders', exact: true }).click();
   await expect(page.getByLabel('Symbol', { exact: true })).toHaveValue('AAPL');
@@ -50,10 +50,10 @@ for (const width of [1440, 390]) test(`price reminder CRUD and rearm at ${width}
   await aboveItem.getByRole('button', { name: 'Edit', exact: true }).click(); await expect(page.getByLabel('Price threshold', { exact: true })).toBeFocused();
   await page.getByLabel('Price threshold', { exact: true }).fill('120.0001'); await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   const editedItem = items.filter({ hasText: '120.0001' }); await expect(editedItem).toContainText('Triggered');
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await page.locator('main').screenshot({ path: `docs/design/evidence/price-alerts/${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await editedItem.getByRole('button', { name: 'Monitor again', exact: true }).click(); await expect(editedItem).toContainText('Monitoring');
-  for (const [locale, title] of [['zh-TW', '價格提醒'], ['zh-CN', '价格提醒'], ['en', 'Price reminders']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  for (const [locale, title] of [['zh-TW', '價格提醒'], ['zh-CN', '价格提醒'], ['en', 'Price reminders']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
   await editedItem.getByRole('button', { name: 'Delete reminder', exact: true }).click(); await expect(editedItem).toHaveCount(0);
-  await page.getByTestId('sign-out').click(); await expect(page.getByRole('button', { name: 'Create price reminder', exact: true })).toHaveCount(0);
+  await signOut(page); await expect(page.getByRole('button', { name: 'Create price reminder', exact: true })).toHaveCount(0);
 });

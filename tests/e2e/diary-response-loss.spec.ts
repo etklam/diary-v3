@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '../support/e2e'
+import { test, expect, selectLocale } from '../support/e2e'
 
 test('Diary create and explicit reminder replacement reconcile a committed response loss', async ({ page }) => {
   const email = `diary-response-loss-${randomUUID()}@example.test`
@@ -10,7 +10,7 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 
   await page.goto('/diaries/new')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Diary date', { exact: true }).fill(createDate)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Response loss create')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The committed create must be reconciled.')

@@ -1,17 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { decodeJwt, SignJWT } from 'jose';
 import type { BrowserContext, Page } from '@playwright/test';
-import { expect, test } from '../support/e2e';
+import { expect, test, selectLocale, signOut } from '../support/e2e';
 
 const password = 'web-e2e-synthetic-password';
 async function account(page: Page) {
   const email = `web-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
   await page.goto('/login');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await login(page, email);
   await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
   return email;
 }
@@ -72,7 +72,7 @@ test('sign-out clears private views across tabs and a later visit cannot recover
   await expect(other.getByRole('heading', { name: title })).toBeVisible();
   await expect(other.getByTestId('sign-out')).toBeVisible();
   const logout = page.waitForResponse(response => response.url().endsWith('/api/auth/logout'));
-  await page.getByTestId('sign-out').click();
+  await signOut(page);
   expect((await logout).status()).toBe(200);
   await expect(page).toHaveURL(/\/login\?returnTo=/);
   await expect(other).toHaveURL(/\/login\?returnTo=/);
@@ -91,7 +91,7 @@ test('failed login preserves the return context', async ({ page }) => {
   const diaryUrl = await saveDiary(page, title);
   const diaryPath = new URL(diaryUrl).pathname;
   const logout = page.waitForResponse(response => response.url().endsWith('/api/auth/logout'));
-  await page.getByTestId('sign-out').click();
+  await signOut(page);
   await logout;
   await expect(page).toHaveURL(new RegExp(`/login\\?returnTo=${encodeURIComponent(diaryPath)}$`));
   await login(page, email, 'incorrect-synthetic-password');
@@ -108,7 +108,7 @@ test('external return destinations are rejected', async ({ page }) => {
   const email = `external-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
   await page.goto('/login?returnTo=https%3A%2F%2Foutside.example%2Fsteal');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await login(page, email);
   await expect(page).toHaveURL('http://127.0.0.1:3200/diaries/new');
 });

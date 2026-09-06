@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`principles CRUD, keyboard reorder and random at ${width}px`, async ({ page }) => {
  await page.setViewportSize({ width, height: 900 });
  const email = `principles-${randomUUID()}@example.test`, password = 'synthetic-principles-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/);
- await page.getByTestId('locale-select').selectOption('en');
+ await selectLocale(page, 'en');
  await page.getByRole('button', { name: 'Read a random principle', exact: true }).click(); await expect(page.getByText('A reminder to keep writing', { exact: true })).toBeVisible();
  for (const content of ['Define the risk before placing a trade.', 'Review the original thesis before adding to a position.']) {
   await page.getByLabel('Principle', { exact: true }).fill(content); await page.getByRole('button', { name: 'Add principle', exact: true }).click();
@@ -22,21 +22,21 @@ for (const width of [1440, 390]) test(`principles CRUD, keyboard reorder and ran
  await page.getByLabel('Principle', { exact: true }).fill('Review the original thesis. Record what changed before increasing risk.');
  await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await expect(rows.first()).toContainText('Record what changed');
  await page.getByRole('button', { name: 'Read a random principle', exact: true }).click(); await expect(page.getByText('From your principles', { exact: true })).toBeVisible();
- if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+ if (width === 390) await selectTheme(page, 'dark');
  await page.locator('.plan-page').screenshot({ path: `docs/design/evidence/discipline/${width}.png` });
  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
  for (const [locale, title] of [['zh-TW', '交易紀律'], ['zh-CN', '交易纪律'], ['en', 'Trading principles']]) {
-  await page.getByTestId('locale-select').selectOption(locale!); await expect(page.getByRole('heading', { name: title!, exact: true })).toBeVisible();
+  await selectLocale(page, locale!); await expect(page.getByRole('heading', { name: title!, exact: true })).toBeVisible();
  }
  await rows.first().getByRole('button', { name: 'Delete principle', exact: true }).click(); await expect(rows).toHaveCount(1);
  await rows.first().getByRole('button', { name: 'Delete principle', exact: true }).click(); await expect(rows).toHaveCount(0);
- await page.getByTestId('sign-out').click(); await expect(page.getByLabel('Principle', { exact: true })).toHaveCount(0);
+ await signOut(page); await expect(page.getByLabel('Principle', { exact: true })).toHaveCount(0);
 });
 
 test('failed principle reads and writes recover without losing a dirty draft or optimistic order', async ({ page }) => {
  const email = `principles-recovery-${randomUUID()}@example.test`, password = 'synthetic-principles-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  let failRead = true, failWrite = true, failReorder = true;
  await page.route('**/api/discipline', async route => {
   const method = route.request().method();
@@ -45,7 +45,7 @@ test('failed principle reads and writes recover without losing a dirty draft or 
  });
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/);
- await page.getByTestId('locale-select').selectOption('en');
+ await selectLocale(page, 'en');
  await expect(page.getByTestId('api-error')).toBeVisible(); failRead = false;
  await page.getByRole('button', { name: 'Try again', exact: true }).click();
  const input = page.getByLabel('Principle', { exact: true });
@@ -78,10 +78,10 @@ test('failed principle reads and writes recover without losing a dirty draft or 
 test('a lost create response reconciles the committed row without retrying the POST', async ({ page }) => {
  const email = `principles-create-recovery-${randomUUID()}@example.test`, password = 'synthetic-principles-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/);
- await page.getByTestId('locale-select').selectOption('en');
+ await selectLocale(page, 'en');
  let postCount = 0;
  await page.route('**/api/discipline', async route => {
   if (route.request().method() !== 'POST') { await route.continue(); return; }
@@ -100,9 +100,9 @@ test('long principle collections remain reachable on a narrow viewport', async (
  await page.setViewportSize({ width: 390, height: 900 });
  const email = `principles-long-${randomUUID()}@example.test`, password = 'synthetic-principles-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
- await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await page.getByTestId('locale-select').selectOption('en');
+ await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
  for (let index = 0; index < 120; index++) {
   const response = await page.request.post('/api/discipline', { headers, data: { content: `Long collection principle ${index}` } });

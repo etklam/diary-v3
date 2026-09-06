@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '../support/e2e';
+import { expect, test, selectLocale, selectTheme } from '../support/e2e';
 
 const baseRow = {
   symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', groupType: 'sector', sectorName: 'Technology',
@@ -75,7 +75,7 @@ function monitorControlsFixture() {
 test('admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/login');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill('rotation-admin@example.test');
   await page.getByLabel('Password', { exact: true }).fill('synthetic-rotation-admin-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -96,7 +96,7 @@ test('admin rotation batch writes controlled indexes and guest monitor renders d
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(marketStateHistoryFixture()) });
     });
     await guest.goto('/tools/market-rotation');
-    await guest.getByTestId('locale-select').selectOption('en');
+    await selectLocale(guest, 'en');
     await expect(guest.getByRole('heading', { level: 1, name: 'Market rotation', exact: true })).toBeVisible();
     await guest.getByLabel('Rank scope', { exact: true }).selectOption('indexes');
     await expect(guest.getByTestId('rotation-row')).toHaveCount(8);
@@ -112,7 +112,7 @@ test('admin rotation batch writes controlled indexes and guest monitor renders d
     await expect(guest.locator('.rotation-signal-insufficient_data').first()).toContainText('Insufficient data');
     await guest.screenshot({ path: 'docs/design/evidence/market-rotation/desktop.png', fullPage: true });
     await guest.setViewportSize({ width: 390, height: 844 });
-    await guest.getByTestId('theme-select').selectOption('dark');
+    await selectTheme(guest, 'dark');
     expect(await guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await guest.screenshot({ path: 'docs/design/evidence/market-rotation/mobile.png', fullPage: true });
   } finally {
@@ -141,7 +141,7 @@ test('public monitor handles no snapshot retry, localized states/signals, keyboa
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
   });
   await page.goto('/tools/market-rotation');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByRole('status')).toContainText('No latest market snapshot is available for this scope yet.');
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(page.getByTestId('rotation-row')).toHaveCount(1);
@@ -163,7 +163,7 @@ test('public monitor handles no snapshot retry, localized states/signals, keyboa
   await expect(historyWindow).toHaveValue('90');
   await expect(page.getByTestId('market-state-history')).toBeVisible();
   for (const [locale, state, signal] of [['zh-TW', '風險規避', '跌破轉弱'], ['zh-CN', '风险规避', '跌破转弱'], ['en', 'Risk off', 'Breaking down']] as const) {
-    await page.getByTestId('locale-select').selectOption(locale);
+    await selectLocale(page, locale);
     await expect(page.getByRole('definition').filter({ hasText: state })).toBeVisible();
     await expect(page.getByTestId('rotation-row').first().locator('.rotation-signal')).toHaveText(signal);
     const localizedRead = page.getByRole('region', { name: locale === 'en' ? 'Current read' : locale === 'zh-TW' ? '目前讀法' : '目前读法', exact: true });
@@ -171,7 +171,7 @@ test('public monitor handles no snapshot retry, localized states/signals, keyboa
     await expect(localizedRead).toContainText(locale === 'zh-TW' ? '市場處於風險規避狀態' : locale === 'zh-CN' ? '市场处于风险规避状态' : 'Risk-off conditions');
     await expect(localizedRead).toContainText(locale === 'zh-TW' ? '資本保全' : locale === 'zh-CN' ? '资本保全' : 'capital preservation');
   }
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   const scope = page.getByLabel('Rank scope', { exact: true });
   await scope.focus();
   await page.keyboard.press('i');
@@ -206,7 +206,7 @@ test('market state snapshot errors stay separate from pending and empty history'
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
   });
   await page.goto('/tools/market-rotation');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByTestId('rotation-row')).toHaveCount(1);
   const historySection = page.getByRole('region', { name: 'Market state history' });
   await expect(historySection.getByText('Loading…', { exact: true })).toBeVisible();
@@ -233,8 +233,40 @@ test('filters, sorts and exports the current rows only', async ({ page, context 
   });
 
   await page.goto('/tools/market-rotation');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByTestId('rotation-row')).toHaveCount(3);
+  const rotationRows = page.getByTestId('rotation-row');
+  await expect(rotationRows.nth(0).locator('td').nth(3)).toHaveClass(/market-up/);
+  await expect(rotationRows.nth(1).locator('td').nth(3)).toHaveClass(/market-down/);
+  await expect(rotationRows.nth(2).locator('td').nth(3)).toHaveClass(/market-flat/);
+  await expect(rotationRows.nth(0).locator('td').nth(5)).toHaveClass(/market-up/);
+  await expect(rotationRows.nth(1).locator('td').nth(5)).toHaveClass(/market-down/);
+  await expect(rotationRows.nth(2).locator('td').nth(5)).toHaveClass(/market-flat/);
+  await expect(rotationRows.nth(0).locator('td').nth(6)).toHaveText('+4.80');
+  await expect(rotationRows.nth(1).locator('td').nth(6)).toHaveText('-4.80');
+  await expect(rotationRows.nth(2).locator('td').nth(6)).toHaveText('0.00');
+  const lightColors = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const resolve = (token: string) => { const probe = document.createElement('span'); probe.style.color = root.getPropertyValue(token); document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; };
+    return { up: resolve('--market-up'), down: resolve('--market-down'), flat: resolve('--market-flat') };
+  });
+  await expect(rotationRows.nth(0).locator('td').nth(5)).toHaveCSS('color', lightColors.up);
+  await expect(rotationRows.nth(1).locator('td').nth(5)).toHaveCSS('color', lightColors.down);
+  await expect(rotationRows.nth(2).locator('td').nth(5)).toHaveCSS('color', lightColors.flat);
+  await selectTheme(page, 'dark');
+  const darkColors = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const resolve = (token: string) => { const probe = document.createElement('span'); probe.style.color = root.getPropertyValue(token); document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; };
+    return { up: resolve('--market-up'), down: resolve('--market-down'), flat: resolve('--market-flat') };
+  });
+  await expect(rotationRows.nth(0).locator('td').nth(5)).toHaveCSS('color', darkColors.up);
+  await expect(rotationRows.nth(1).locator('td').nth(5)).toHaveCSS('color', darkColors.down);
+  await expect(rotationRows.nth(2).locator('td').nth(5)).toHaveCSS('color', darkColors.flat);
+  await selectLocale(page, 'zh-TW');
+  await expect(rotationRows.nth(0).locator('td').nth(5)).toHaveClass(/market-up/);
+  await expect(rotationRows.nth(1).locator('td').nth(5)).toHaveClass(/market-down/);
+  await expect(rotationRows.nth(2).locator('td').nth(5)).toHaveClass(/market-flat/);
+  await selectLocale(page, 'en');
   const firstTrend = page.getByTestId('rotation-row').first().locator('svg');
   await expect(firstTrend).toBeVisible();
   await expect(firstTrend.locator('polyline')).toHaveCount(1);
@@ -282,7 +314,7 @@ test('filters, sorts and exports the current rows only', async ({ page, context 
   const png = await pngDownload;
   expect(png.suggestedFilename()).toMatch(/\.png$/);
   await png.saveAs('docs/design/evidence/market-rotation/export.png');
-  await page.getByTestId('locale-select').selectOption('zh-TW');
+  await selectLocale(page, 'zh-TW');
   const localizedPngDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: '下載 PNG', exact: true }).click();
   const localizedPng = await localizedPngDownload;

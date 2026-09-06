@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test } from '../support/e2e'
+import { expect, test, selectLocale } from '../support/e2e'
 
 test('installs static shell metadata without caching private API responses', async ({ page, context }) => {
   const manifest = await page.request.get('/manifest.webmanifest')
@@ -47,12 +47,12 @@ test('mobile menu keeps every route reachable and returns focus on close', async
   await page.request.post('/api/auth/register', { data: { email, password } })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/new$/)
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.screenshot({ path: 'docs/design/evidence/pwa/1440.png', fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
@@ -85,12 +85,12 @@ test('applies a waiting worker update without losing an unsaved editor', async (
   const password = 'synthetic-pwa-update-password'
   await page.request.post('/api/auth/register', { data: { email, password } })
   await page.goto('/login')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/new$/)
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   const title = page.getByRole('textbox', { name: 'Title', exact: true })
   await title.fill('Unsaved title survives update')
   const controllerBefore = await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null)

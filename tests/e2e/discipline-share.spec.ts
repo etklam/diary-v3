@@ -1,4 +1,4 @@
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 import { createDisciplineShare, disciplineShareUrl } from '@diary/contracts/discipline-share';
 test('public discipline share renders without JavaScript and safely exposes OG metadata', async ({ browser, request }) => {
  const share = createDisciplineShare([{ content: '原則 😀 <script>unsafe()</script> & risk', order: 0 }], { title: '公開原則 & <標題>', author: '作者'.repeat(30), description: 'Shared intentionally' }, '2026-01-01T00:00:00Z');
@@ -21,9 +21,9 @@ test('public discipline share renders without JavaScript and safely exposes OG m
 test('file preview imports and exported download roundtrips into public sharing', async ({ page }) => {
  const email = `transfer-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
- await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await page.getByTestId('locale-select').selectOption('en');
+ await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const source = createDisciplineShare([{ content: '紀律 😀 & risk', order: 0 }, { content: 'Second principle', order: 1 }], {}, '2026-01-01T00:00:00Z');
  await page.getByLabel('Choose JSON file').setInputFiles({ name: 'principles.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
  await expect(page.getByRole('heading', { name: 'Principles to import: 2', exact: true })).toBeVisible();
@@ -49,9 +49,9 @@ test('file preview imports and exported download roundtrips into public sharing'
 test('a lost import response reconciles committed rows without duplicating a retry', async ({ page }) => {
  const email = `uncertain-import-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
- await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await page.getByTestId('locale-select').selectOption('en');
+ await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const source = createDisciplineShare([{ content: 'Commit before the response arrives', order: 0 }, { content: 'Keep the recovery path explicit', order: 1 }], {}, '2026-01-01T00:00:00Z');
  await page.getByLabel('Choose JSON file').setInputFiles({ name: 'uncertain.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
  await expect(page.getByRole('heading', { name: 'Principles to import: 2', exact: true })).toBeVisible();
@@ -72,15 +72,15 @@ test('guest import survives sign-in and changing locale preserves edited preview
  await page.request.post('/api/auth/register', { data: { email, password } });
  const source = createDisciplineShare([{ content: 'Original shared rule', order: 0 }], {}, '2026-01-01T00:00:00Z');
  await page.goto(disciplineShareUrl(source, 'http://127.0.0.1:3200'));
- await page.getByTestId('locale-select').selectOption('en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
+ await selectLocale(page, 'en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
  await page.getByRole('link', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/login\?returnTo=/);
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/);
- await page.getByTestId('locale-select').selectOption('en'); await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
+ await selectLocale(page, 'en'); await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
  const changed = JSON.stringify({ ...source, disciplines: [{ content: 'Edited before import', order: 0 }] });
  await page.getByLabel('Share JSON', { exact: true }).fill(changed);
  page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary library', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
- await page.getByTestId('locale-select').selectOption('zh-TW'); await expect(page.getByLabel('分享 JSON', { exact: true })).toHaveValue(changed);
+ await selectLocale(page, 'zh-TW'); await expect(page.getByLabel('分享 JSON', { exact: true })).toHaveValue(changed);
  await page.getByRole('button', { name: '預覽匯入', exact: true }).click(); await page.getByRole('button', { name: '匯入紀律', exact: true }).click();
  await expect(page.getByTestId('principle')).toHaveText(/Edited before import/); await expect(page).toHaveURL(/\/discipline$/);
 });
@@ -88,7 +88,7 @@ test('guest import survives sign-in and changing locale preserves edited preview
 test('new account registration preserves the shared import destination through sign-in', async ({ page }) => {
  const source = createDisciplineShare([{ content: 'A new account can import this rule', order: 0 }], {}, '2026-01-01T00:00:00Z');
  await page.goto(disciplineShareUrl(source, 'http://127.0.0.1:3200'));
- await page.getByTestId('locale-select').selectOption('en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
+ await selectLocale(page, 'en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
  await page.getByRole('link', { name: 'Sign in', exact: true }).click();
  await page.locator('#main').getByRole('link', { name: 'Create account', exact: true }).click(); await expect(page).toHaveURL(/\/register\?returnTo=/);
  const email = `new-share-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
@@ -97,7 +97,7 @@ test('new account registration preserves the shared import destination through s
  await page.locator('#main').getByRole('link', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/login\?returnTo=/);
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/);
- await page.getByTestId('locale-select').selectOption('en');
+ await selectLocale(page, 'en');
  await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
  await expect(page.getByRole('region', { name: 'Import and share', exact: true })).toContainText('A new account can import this rule');
  await expect(page.getByTestId('principle')).toHaveCount(0);
@@ -107,13 +107,13 @@ for (const width of [1440, 390]) test(`sharing remains readable and clipboard de
  await page.setViewportSize({ width, height: 900 });
  const email = `share-layout-${width}-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiscipline'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/login?returnTo=%2Fdiscipline'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
- await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await page.getByTestId('locale-select').selectOption('en');
+ await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
  await page.request.post('/api/discipline', { headers, data: { content: 'Review the original evidence before increasing risk. 原則與理由。' } });
  await page.reload();
- if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+ if (width === 390) await selectTheme(page, 'dark');
  await page.getByLabel('Share title', { exact: true }).fill('Principles for the next decision'); await page.getByRole('button', { name: 'Prepare export', exact: true }).click();
  const link = page.getByLabel('Public share link', { exact: true }); await expect(link).toBeVisible(); const url = await link.inputValue();
  await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new DOMException('Synthetic denial', 'NotAllowedError'); } } }); });

@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, clickNav } from '../support/e2e';
+import { test, expect, clickNav, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Diary reminders navigation, series dismissal and recovery at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `alerts-${randomUUID()}@example.test`, password = 'synthetic-alerts-password';
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   expect((await page.request.put('/api/user/settings', { headers, data: { timezone: 'America/New_York' } })).status()).toBe(200);
   const response = await page.request.post('/api/diaries', { headers, data: { title: 'Demand decision', date: '2026-03-02', content: 'Private decision body', alerts: [
@@ -17,7 +17,7 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
   const items = page.getByTestId('diary-reminder'); await expect(items).toHaveCount(6);
   await expect(page.locator('main')).toContainText('America/New_York'); await expect(items.nth(1).locator('time')).toContainText('9:00 AM');
   await expect(page.locator('main')).not.toContainText('Private decision body');
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await page.locator('main').screenshot({ path: `docs/design/evidence/alerts/${width}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await items.first().getByRole('link', { name: 'Demand decision' }).click(); await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
@@ -31,18 +31,18 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
   await page.route('**/api/alerts', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'alerts-retry' } }) }));
   await page.reload(); await expect(page.getByTestId('request-id')).toHaveText('alerts-retry'); await page.unroute('**/api/alerts');
   await page.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(items).toHaveCount(1);
-  for (const [locale, title] of [['zh-TW', '日記提醒'], ['zh-CN', '日记提醒'], ['en', 'Diary reminders']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  for (const [locale, title] of [['zh-TW', '日記提醒'], ['zh-CN', '日记提醒'], ['en', 'Diary reminders']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
   await page.getByRole('button', { name: 'Dismiss reminder', exact: true }).click(); await expect(page.locator('main')).toContainText('No active reminders.');
-  await page.getByTestId('sign-out').click(); await expect(items).toHaveCount(0); await expect(page.locator('main').getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login?returnTo=%2Falerts');
+  await signOut(page); await expect(items).toHaveCount(0); await expect(page.locator('main').getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login?returnTo=%2Falerts');
 });
 
 for (const width of [1440, 390]) test(`Diary reminder authoring and preservation at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `alert-editor-${randomUUID()}@example.test`, password = 'synthetic-alert-editor-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.getByLabel('Diary date', { exact: true }).fill('2026-03-02');
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Reminder from the editor');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Revisit this reasoning.');
@@ -75,7 +75,7 @@ for (const width of [1440, 390]) test(`Diary reminder authoring and preservation
   const preservedWeeklyChild = preserved.alerts.find((row: { id: string }) => row.id === weeklyChild.id)!;
   expect(preservedWeeklyChild).toBeDefined(); expect(preservedWeeklyChild.isDismissed).toBe(true);
   await page.goto(`${path}/edit`); await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(3); await expect(page.getByLabel('Reminder message', { exact: true }).first()).toHaveValue('Read the next report');
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await page.getByRole('group', { name: 'Diary reminders', exact: true }).screenshot({ path: `docs/design/evidence/alerts/editor-${width}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   for (const index of [3, 2, 1]) await page.getByRole('button', { name: `Remove reminder ${index}`, exact: true }).click();
@@ -88,9 +88,9 @@ test.describe('Reminder device timezone boundaries', () => {
   test('rejects missing DST time, selects the repeated occurrence and retains exact instant on edit', async ({ page, context }) => {
     const email = `alert-dst-${randomUUID()}@example.test`, password = 'synthetic-alert-dst-password';
     await page.request.post('/api/auth/register', { data: { email, password } });
-    await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+    await page.goto('/login'); await selectLocale(page, 'en');
     await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
     await page.getByLabel('Diary date', { exact: true }).fill('2026-11-01');
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Clock change reminder');
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Synthetic clock test');

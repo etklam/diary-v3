@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 
 const password = 'synthetic-security-password';
 async function login(page: Page, email: string, value = password) {
   await page.goto('/login');
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(value);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -15,7 +15,7 @@ async function account(page: Page) {
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
   await login(page, email);
   await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
   await page.goto('/settings/security');
   await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
@@ -74,14 +74,14 @@ test('wrong current password preserves the form; all-device logout clears the fo
 test('account security remains readable in three languages, both themes, and a narrow viewport', async ({ page }) => {
   await account(page);
   for (const [locale, title] of [['zh-TW', '帳戶安全'], ['zh-CN', '账户安全'], ['en', 'Account security']]) {
-    await page.getByTestId('locale-select').selectOption(locale!);
+    await selectLocale(page, locale!);
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByTestId('theme-select').selectOption('light');
+  await selectTheme(page, 'light');
   await page.screenshot({ path: '.impeccable/review/security-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByTestId('theme-select').selectOption('dark');
+  await selectTheme(page, 'dark');
   await expect(page.getByRole('button', { name: 'Change password', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: '.impeccable/review/security-mobile.png', fullPage: true });

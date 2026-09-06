@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 test('two independent accounts accept, share separately and remove a partnership', async ({ page: a, browser, playwright }) => {
  const context = await browser.newContext({ viewport: { width: 390, height: 900 } }); const b = await context.newPage();
  const emailA = `partner-a-${randomUUID()}@example.test`, emailB = `partner-b-${randomUUID()}@example.test`, password = 'synthetic-partner-password';
  async function signIn(page: Page, email: string) {
-  await page.goto('http://127.0.0.1:3200/login?returnTo=%2Fpartners'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('http://127.0.0.1:3200/login?returnTo=%2Fpartners'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/partners$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/partners$/); await selectLocale(page, 'en');
  }
  async function login(page: Page, email: string) {
   await page.request.post('http://127.0.0.1:3200/api/auth/register', { data: { email, password } });
@@ -25,12 +25,12 @@ test('two independent accounts accept, share separately and remove a partnership
   await expect(b.getByTestId('partner-sharing')).toHaveText('Diaries: Shared · Stock notes: Private');
   await a.reload(); await expect(a.getByTestId('partner-sharing')).toHaveText('Diaries: Private · Stock notes: Shared');
   await expect(a.getByRole('button', { name: 'Stop sharing my diaries', exact: true })).toBeVisible();
-  await a.getByTestId('sign-out').click(); await expect(a.getByTestId('sign-out')).toHaveCount(0);
+  await signOut(a); await expect(a.getByTestId('sign-out')).toHaveCount(0);
   await signIn(a, emailA);
   await expect(a.getByTestId('partner-sharing')).toHaveText('Diaries: Private · Stock notes: Shared');
   await expect(a.getByRole('button', { name: 'Stop sharing my diaries', exact: true })).toBeVisible();
   await expect(a.getByRole('button', { name: 'Share my stock notes', exact: true })).toBeVisible();
-  await b.getByTestId('theme-select').selectOption('dark');
+  await selectTheme(b, 'dark');
   for (const [page, width] of [[a, 1440], [b, 390]] as const) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.locator('.plan-page').screenshot({ path: `docs/design/evidence/partners/${width}.png` }); }
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   expect((await b.request.post('http://127.0.0.1:3200/api/diaries', { headers, data: { date: '2026-03-08', title: 'Partner comparison entry', content: '**Shared perspective**', thesis: 'Do not expose this private thesis' } })).status()).toBe(201);
@@ -45,7 +45,7 @@ test('two independent accounts accept, share separately and remove a partnership
   await expect(a.locator('.pair-page')).not.toContainText('Do not expose this private thesis');
   await expect(a.locator('.pair-page')).not.toContainText(emailB);
   for (const width of [1440, 390]) { await a.setViewportSize({ width, height: 900 }); expect(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await a.locator('.pair-page').screenshot({ path: `docs/design/evidence/partners/compare-${width}.png` }); }
-  for (const [locale, title] of [['zh-TW', '日記對照'], ['zh-CN', '日记对照'], ['en', 'Pair View']] as const) { await a.getByTestId('locale-select').selectOption(locale); await expect(a.getByRole('heading', { name: title, exact: true })).toBeVisible(); await expect(a.getByTestId('partner-diary')).toContainText('Partner comparison entry'); }
+  for (const [locale, title] of [['zh-TW', '日記對照'], ['zh-CN', '日记对照'], ['en', 'Pair View']] as const) { await selectLocale(a, locale); await expect(a.getByRole('heading', { name: title, exact: true })).toBeVisible(); await expect(a.getByTestId('partner-diary')).toContainText('Partner comparison entry'); }
   await a.route('**/api/partners/compare?*', route => route.abort());
   await a.getByRole('button', { name: 'Refresh comparison', exact: true }).click();
   await expect(a.getByTestId('compare-day')).toHaveCount(0);
@@ -86,14 +86,14 @@ test('two independent accounts accept, share separately and remove a partnership
   await a.goto('/partners');
   b.once('dialog', dialog => dialog.accept()); await b.getByRole('button', { name: 'Remove connection', exact: true }).click(); await expect(b.getByTestId('partner')).toHaveCount(0);
   await a.getByRole('button', { name: 'Refresh partners', exact: true }).click(); await expect(a.getByTestId('partner')).toHaveCount(0);
-  await a.getByTestId('sign-out').click(); await expect(a.getByLabel('Partner email', { exact: true })).toHaveCount(0);
+  await signOut(a); await expect(a.getByLabel('Partner email', { exact: true })).toHaveCount(0);
  } finally { await context.close(); }
 });
 
 test('comparison login preserves an explicit partner selection', async ({ page }) => {
  const email = `compare-login-${randomUUID()}@example.test`, password = 'synthetic-partner-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/partners/compare?partnerId=999999'); await page.getByTestId('locale-select').selectOption('en');
+ await page.goto('/partners/compare?partnerId=999999'); await selectLocale(page, 'en');
  await page.locator('.pair-page').getByRole('link', { name: 'Sign in', exact: true }).click();
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click();

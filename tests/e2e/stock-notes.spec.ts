@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Company notes edit and recover at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `notes-${randomUUID()}@example.test`, password = 'synthetic-notes-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en'); await page.goto('/stocks/AAPL');
+  await selectLocale(page, 'en'); await page.goto('/stocks/AAPL');
   const notes = page.getByRole('region', { name: 'Company notes', exact: true });
   await expect(notes.getByText('No notes yet.', { exact: true })).toBeVisible();
   await notes.getByRole('button', { name: 'New note', exact: true }).click();
@@ -24,19 +24,19 @@ for (const width of [1440, 390]) test(`Company notes edit and recover at ${width
   await notes.getByRole('button', { name: 'Save note', exact: true }).click(); await expect(notes.getByTestId('request-id')).toHaveText('note-retry'); await expect(notes.getByLabel('Note title', { exact: true })).toHaveValue('Updated view');
   await page.unroute('**/api/stocks/AAPL/notes/*'); await notes.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(notes.getByTestId('stock-note')).toContainText('Updated view'); await expect(notes.getByTestId('stock-note')).toHaveCount(1);
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await notes.screenshot({ path: `docs/design/evidence/stock-notes/${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await notes.getByLabel('Note source').selectOption('AGENT'); await expect(notes.getByText('No notes yet.', { exact: true })).toBeVisible(); await notes.getByLabel('Note source').selectOption('USER'); await expect(notes.getByTestId('stock-note')).toHaveCount(1);
-  for (const [locale, title] of [['zh-TW', '公司筆記'], ['zh-CN', '公司笔记'], ['en', 'Company notes']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  for (const [locale, title] of [['zh-TW', '公司筆記'], ['zh-CN', '公司笔记'], ['en', 'Company notes']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
   page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(0);
 });
 
 test('Company note pagination, exact instant preservation and unsaved navigation', async ({ page, context }) => {
   const email = `notes-pages-${randomUUID()}@example.test`, password = 'synthetic-notes-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   for (let i = 0; i < 21; i++) expect((await page.request.post('/api/stocks/AAPL/notes', { headers, data: { title: `Research ${i}`, content: 'Synthetic long research.\n\n'.repeat(100), date: '2026-09-05T10:30:45.123Z' } })).status()).toBe(200);
   await page.goto('/stocks/AAPL'); const notes = page.getByRole('region', { name: 'Company notes', exact: true });
@@ -50,5 +50,5 @@ test('Company note pagination, exact instant preservation and unsaved navigation
   page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toBeDisabled();
   await notes.getByRole('button', { name: 'New note', exact: true }).click(); await notes.getByLabel('Note title', { exact: true }).fill('Discard me');
   page.once('dialog', dialog => dialog.accept()); await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/watchlist$/);
-  await page.goto('/stocks/AAPL'); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await page.getByTestId('sign-out').click(); await expect(page.getByTestId('stock-note')).toHaveCount(0);
+  await page.goto('/stocks/AAPL'); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await signOut(page); await expect(page.getByTestId('stock-note')).toHaveCount(0);
 });

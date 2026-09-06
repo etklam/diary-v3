@@ -1,4 +1,4 @@
-import { expect, test } from '../support/e2e';
+import { expect, test, selectLocale, selectTheme } from '../support/e2e';
 
 for (const width of [1440,390]) {
   test(`FIRE assumptions, projection and copy work at ${width}px`, async ({page,context}) => {
@@ -7,12 +7,12 @@ for (const width of [1440,390]) {
     const apiWrites:string[]=[];
     page.on('request',request=>{if(request.url().includes('/api/')&&request.method()!=='GET'&&!request.url().includes('/api/auth/')) apiWrites.push(request.url());});
     await page.goto('/tools/financial-freedom');
-    await page.getByTestId('locale-select').selectOption('zh-CN');
+    await selectLocale(page, 'zh-CN');
     await expect(page.getByRole('heading',{name:'财务自由计算',exact:true})).toBeVisible();
-    await page.getByTestId('locale-select').selectOption('zh-TW');
+    await selectLocale(page, 'zh-TW');
     await expect(page.getByRole('heading',{name:'財務自由計算',exact:true})).toBeVisible();
-    await page.getByTestId('locale-select').selectOption('en');
-    if(width===390) await page.getByTestId('theme-select').selectOption('dark');
+    await selectLocale(page, 'en');
+    if(width===390) await selectTheme(page, 'dark');
     await expect(page.getByTestId('fire-target')).toHaveText('15,000,000');
     await expect(page.getByTestId('fire-projection').locator('tbody tr')).toHaveCount(10);
     await page.getByRole('button',{name:'Show all projected years'}).click();

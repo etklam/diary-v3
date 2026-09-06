@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Thesis activation review and snapshot at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); const email = `thesis-${randomUUID()}@example.test`, password = 'synthetic-thesis-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.goto('/stocks/AAPL/thesis'); const current = page.getByRole('form', { name: 'Current thesis', exact: true });
   await current.getByRole('textbox', { name: 'Summary', exact: true }).fill('Original investment view'); await current.getByRole('button', { name: 'Save thesis', exact: true }).click(); await expect(page.getByTestId('thesis-health')).toHaveText('Draft');
   await current.getByRole('textbox', { name: 'Why I own it', exact: true }).fill('Durable demand'); await current.getByRole('combobox', { name: 'Status', exact: true }).selectOption('ACTIVE'); await current.getByLabel('Review due at (UTC)').fill('2026-09-05T10:30'); await current.getByRole('button', { name: 'Save thesis', exact: true }).click();
@@ -12,17 +12,17 @@ for (const width of [1440, 390]) test(`Thesis activation review and snapshot at 
   await review.getByRole('button', { name: 'Complete thesis review', exact: true }).click(); await expect(page.getByTestId('thesis-review')).toHaveCount(1);
   await current.getByRole('textbox', { name: 'Summary', exact: true }).fill('Revised investment view'); await expect(review.getByRole('button', { name: 'Complete thesis review', exact: true })).toBeDisabled(); await current.getByRole('button', { name: 'Save thesis', exact: true }).click();
   await page.getByTestId('thesis-review').getByText('Thesis at review time', { exact: true }).click(); await expect(page.getByTestId('thesis-review')).toContainText('Original investment view'); await expect(page.getByTestId('thesis-review')).not.toContainText('Revised investment view');
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark'); await page.getByTestId('thesis-review').screenshot({ path: `docs/design/evidence/thesis/review-${width}.png` }); await current.screenshot({ path: `docs/design/evidence/thesis/editor-${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  if (width === 390) await selectTheme(page, 'dark'); await page.getByTestId('thesis-review').screenshot({ path: `docs/design/evidence/thesis/review-${width}.png` }); await current.screenshot({ path: `docs/design/evidence/thesis/editor-${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await current.getByRole('combobox', { name: 'Status', exact: true }).selectOption('ARCHIVED'); await current.getByRole('button', { name: 'Save thesis', exact: true }).click(); await expect(page.getByTestId('thesis-health')).toHaveText('Archived'); await expect(review).toHaveCount(0);
   await page.reload(); await expect(page.getByTestId('thesis-review')).toHaveCount(1); await expect(current.getByRole('textbox', { name: 'Summary', exact: true })).toHaveValue('Revised investment view');
-  for (const [locale, title] of [['zh-TW', 'AAPL · 投資論點'], ['zh-CN', 'AAPL · 投资论点'], ['en', 'AAPL · Investment thesis']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
-  await page.getByTestId('sign-out').click(); await expect(page.getByTestId('thesis-review')).toHaveCount(0);
+  for (const [locale, title] of [['zh-TW', 'AAPL · 投資論點'], ['zh-CN', 'AAPL · 投资论点'], ['en', 'AAPL · Investment thesis']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  await signOut(page); await expect(page.getByTestId('thesis-review')).toHaveCount(0);
 });
 
 test('Thesis failed save preserves both edits and unsaved reflection', async ({ page, context }) => {
   const email = `thesis-retry-${randomUUID()}@example.test`, password = 'synthetic-thesis-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await page.getByTestId('locale-select').selectOption('en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   expect((await page.request.put('/api/stocks/AAPL/thesis', { headers, data: { status: 'ACTIVE', summary: 'Original', whyIOwnIt: 'Reason', reviewDueAt: '2026-09-05T10:30:45.123Z' } })).status()).toBe(200);
   await page.goto('/stocks/AAPL/thesis'); const current = page.getByRole('form', { name: 'Current thesis', exact: true }), review = page.getByRole('form', { name: 'Complete thesis review', exact: true });

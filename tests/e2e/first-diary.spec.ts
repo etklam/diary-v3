@@ -1,4 +1,4 @@
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`register, sign in and persist a diary at ${viewport.width}px`, async ({ page }) => {
@@ -6,7 +6,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('/register');
-    await page.getByTestId('locale-select').selectOption('en');
+    await selectLocale(page, 'en');
     const email = `e2e-${viewport.width}-${Date.now()}@example.test`;
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Password', { exact: true }).fill('e2e-safe-password-123');
@@ -18,7 +18,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.getByLabel('Password', { exact: true }).fill('e2e-safe-password-123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/diaries\/new$/);
-    await page.getByTestId('locale-select').selectOption('en');
+    await selectLocale(page, 'en');
     await page.getByLabel('Diary date', { exact: true }).fill('2026-09-05');
     await page.getByLabel('Title', { exact: true }).fill('Wait for evidence before increasing the position');
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The price moved, but the original thesis has not yet been confirmed.\nI will review the next earnings report before changing the position.');
@@ -34,7 +34,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.getByRole('heading', { name: 'Wait for evidence before increasing the position' })).toBeVisible();
     await page.reload();
     await expect(page.getByText('The price moved, but the original thesis has not yet been confirmed.', { exact: false })).toBeVisible();
-    if (viewport.width < 500) await page.getByTestId('theme-select').selectOption('dark');
+    if (viewport.width < 500) await selectTheme(page, 'dark');
     await page.screenshot({ path: `test-results/diary-${viewport.width}.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);

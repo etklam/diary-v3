@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect, clickNav } from '../support/e2e'
+import { test, expect, clickNav, selectLocale, selectTheme } from '../support/e2e'
 
 for (const width of [1440, 390]) {
   test(`Diary library filtering, pagination and recovery at ${width}px`, async ({ page, context }) => {
@@ -7,12 +7,12 @@ for (const width of [1440, 390]) {
     const email = `library-${randomUUID()}@example.test`, password = 'synthetic-library-password'
     expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
     await page.goto('/login')
-    await page.getByTestId('locale-select').selectOption('en')
+    await selectLocale(page, 'en')
     await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/diaries\/new$/)
-    await page.getByTestId('locale-select').selectOption('en')
+    await selectLocale(page, 'en')
     await clickNav(page, 'Diary library')
     await expect(page.getByText('Your diary library is empty.', { exact: true })).toBeVisible()
     const csrf = (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value
@@ -41,10 +41,10 @@ for (const width of [1440, 390]) {
     await expect(page.locator('.diary-records > li')).toHaveCount(3)
     await expect(page).not.toHaveURL(/page=2/)
     for (const [locale, title] of [['zh-TW', '日記資料庫'], ['zh-CN', '日记资料库'], ['en', 'Diary library']] as const) {
-      await page.getByTestId('locale-select').selectOption(locale)
+      await selectLocale(page, locale)
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
     }
-    if (width === 390) await page.getByTestId('theme-select').selectOption('dark')
+    if (width === 390) await selectTheme(page, 'dark')
     await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0) })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: `docs/design/evidence/diary-list/${width}.png`, fullPage: true })

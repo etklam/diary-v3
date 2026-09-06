@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '../support/e2e';
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Evidence capture and immutable retry at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en'); await page.goto('/stocks/UNKNOWN');
+  await selectLocale(page, 'en'); await page.goto('/stocks/UNKNOWN');
   const evidence = page.getByRole('region', { name: 'Research evidence', exact: true });
   await expect(evidence.getByText('No evidence captured yet.', { exact: true })).toBeVisible();
   await evidence.getByLabel('Evidence summary').fill('Synthetic research, even without a quote.');
@@ -33,21 +33,21 @@ for (const width of [1440, 390]) test(`Evidence capture and immutable retry at $
   await expect(evidence.getByTestId('evidence-record')).toContainText('6:30 PM · Asia/Taipei');
   await expect(evidence.getByRole('link', { name: 'Read source', exact: true })).toHaveAttribute('href', 'https://example.test/research');
   await page.reload(); await expect(evidence.getByTestId('evidence-record')).toHaveCount(1);
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark');
+  if (width === 390) await selectTheme(page, 'dark');
   await evidence.screenshot({ path: `docs/design/evidence/capture/${width}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  for (const [locale, title] of [['zh-TW', '研究證據'], ['zh-CN', '研究证据'], ['en', 'Research evidence']] as const) { await page.getByTestId('locale-select').selectOption(locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
+  for (const [locale, title] of [['zh-TW', '研究證據'], ['zh-CN', '研究证据'], ['en', 'Research evidence']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
   await page.goto('/stocks/watchlist'); await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Research records: 1'); await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Synthetic research, even without a quote.');
-  await page.goto('/stocks/UNKNOWN'); await expect(evidence.getByTestId('evidence-record')).toHaveCount(1); await page.getByTestId('sign-out').click(); await expect(page.getByTestId('evidence-record')).toHaveCount(0);
+  await page.goto('/stocks/UNKNOWN'); await expect(evidence.getByTestId('evidence-record')).toHaveCount(1); await signOut(page); await expect(page.getByTestId('evidence-record')).toHaveCount(0);
 });
 
 test('Diary evidence retains captured summary and opens its original source', async ({ page, context }) => {
   const email = `diary-evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await page.getByTestId('locale-select').selectOption('en');
+  await page.goto('/login'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await page.getByTestId('locale-select').selectOption('en');
+  await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   const created = await page.request.post('/api/diaries', { headers, data: { title: 'Original source diary', content: 'Original reasoning', date: '2026-09-05' } });
   expect(created.status()).toBe(201); const diary = await created.json();

@@ -1,18 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import type { BrowserContext, Page } from '@playwright/test'
-import { test, expect } from '../support/e2e'
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e'
 
 async function signInAndSeed(page: Page, context: BrowserContext) {
   const email = `overview-${randomUUID()}@example.test`
   const password = 'synthetic-overview-password'
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
   await page.goto('/login')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/new$/)
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
 
   const csrf = (await context.cookies()).find((cookie: { name: string; value: string }) => cookie.name === 'csrf-token')?.value
   expect(csrf).toBeTruthy()
@@ -64,15 +64,15 @@ for (const width of [1440, 390]) test(`Overview composes bounded decision projec
   await page.goBack()
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible()
 
-  if (width === 390) await page.getByTestId('theme-select').selectOption('dark')
+  if (width === 390) await selectTheme(page, 'dark')
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }) })
   await page.screenshot({ path: `docs/design/evidence/overview/${width}.png`, fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   for (const [locale, title] of [['zh-TW', '總覽'], ['zh-CN', '总览'], ['en', 'Overview']] as const) {
-    await page.getByTestId('locale-select').selectOption(locale)
+    await selectLocale(page, locale)
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
   }
-  await page.getByTestId('sign-out').click()
+  await signOut(page)
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toHaveCount(0)
 })
 
@@ -104,14 +104,14 @@ test('Overview keeps other sections readable when attention needs retry', async 
 
 test('Overview empty state keeps first-diary and research paths available', async ({ page }) => {
   await page.goto('/login')
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   const email = `overview-empty-${randomUUID()}@example.test`, password = 'synthetic-overview-empty-password'
   await page.request.post('/api/auth/register', { data: { email, password } })
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/new$/)
-  await page.getByTestId('locale-select').selectOption('en')
+  await selectLocale(page, 'en')
   await page.goto('/')
   await expect(page.getByText('No diary decisions yet. Start with one entry.')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Recent decisions', exact: true }).getByRole('link', { name: 'Write your first diary', exact: true })).toHaveAttribute('href', '/diaries/new')
