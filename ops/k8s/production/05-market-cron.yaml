@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: diary-v3-market
+  namespace: diary-v3
+spec:
+  # Weekdays after US close, Asia/Taipei time.
+  schedule: "30 21 * * 0-5"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: diary-v3-market
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: market
+              image: git.913555.xyz/etklam/diary-v3-api:placeholder
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-ec"]
+              args:
+                - >-
+                  node dist/api/rotation.js --scope=all &&
+                  node dist/api/market-state.js
+              env:
+                - name: NODE_ENV
+                  value: production
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: diary-v3-app
+                      key: DATABASE_URL

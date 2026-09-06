@@ -1,0 +1,231 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: diary-v3-production-deploy
+  cancel-in-progress: true
+
+env:
+  REGISTRY: git.913555.xyz
+  OWNER: etklam
+  DEPLOY_HOST: 82.22.63.196
+  DEPLOY_USER: root
+  DEPLOY_NAMESPACE: diary-v3
+
+jobs:
+  verify-and-deploy:
+    runs-on: hk
+    steps:
+      - name: Install Docker CLI
+        env:
+          DOCKER_CLI_SHA256: ${{ secrets.DOCKER_CLI_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$DOCKER_CLI_SHA256" || { echo 'DOCKER_CLI_SHA256 secret is required' >&2; exit 1; }
+          archive=/tmp/docker-27.5.1.tgz
+          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz -o "$archive"
+          echo "$DOCKER_CLI_SHA256  $archive" | sha256sum -c -
+          tar xz --strip-components=1 -C /usr/bin docker/docker
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tracked secret scan
+        run: |
+          set -euo pipefail
+          # Fail on obvious credentials tracked in git; keep it dependency-free.
+          if git grep -nE '(postgres(ql)?://[^@[:space:]]+:[^@[:space:]]+@|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)' -- ':!*.md' ':!ops/k3s/deploy-production-secrets.sh'; then
+            echo 'Potential secret detected in tracked files' >&2
+            exit 1
+          fi
+          git ls-files --error-unmatch .dockerignore
+          grep -qxF '.env' .dockerignore
+          grep -qxF '.env.*' .dockerignore
+          grep -qxF '**/.env' .dockerignore || true
+          grep -qxF '**/.env.*' .dockerignore || true
+
+      - name: Install deps and audit
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm audit --omit=dev
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Contracts check
+        run: npm run contracts:check
+
+      - name: Start disposable PostgreSQL
+        run: |
+          set -euo pipefail
+          docker run -d --name diary-v3-ci-postgres \
+            -e POSTGRES_DB=diary_v3 -e POSTGRES_USER=diary -e POSTGRES_PASSWORD=ci_disposable_only \
+            -p 127.0.0.1:55433:5432 \
+            postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+          for attempt in $(seq 1 30); do
+            if docker exec diary-v3-ci-postgres pg_isready -U diary -d diary_v3 >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs diary-v3-ci-postgres
+          exit 1
+
+      - name: API integration tests
+        env:
+          DATABASE_URL: postgresql://diary:ci_disposable_only@127.0.0.1:55433/diary_v3
+          JWT_SECRET: ci-only-diary-secret-not-for-use-outside-tests-123456
+          NODE_ENV: test
+        run: npm run test:integration
+
+      - name: Production build
+        run: npm run build
+
+      - name: Browser acceptance
+        env:
+          DATABASE_URL: postgresql://diary:ci_disposable_only@127.0.0.1:55433/diary_v3
+          JWT_SECRET: ci-only-diary-secret-not-for-use-outside-tests-123456
+          SEC_USER_AGENT: "Diary-v3 CI sec-contact@example.com"
+          CI: "true"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Stop disposable PostgreSQL
+        if: always()
+        run: docker rm -f diary-v3-ci-postgres || true
+
+      - name: Login to Forgejo Registry
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push API image
+        run: |
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          docker build --platform linux/amd64 --target api -t $REGISTRY/$OWNER/diary-v3-api:$SHA .
+          docker push $REGISTRY/$OWNER/diary-v3-api:$SHA
+
+      - name: Build and push web image
+        run: |
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          docker build --platform linux/amd64 --target web -t $REGISTRY/$OWNER/diary-v3-web:$SHA .
+          docker push $REGISTRY/$OWNER/diary-v3-web:$SHA
+
+      - name: Resolve digests
+        run: |
+          set -euo pipefail
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          API_IMAGE="$REGISTRY/$OWNER/diary-v3-api:$SHA"
+          WEB_IMAGE="$REGISTRY/$OWNER/diary-v3-web:$SHA"
+          API_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' $API_IMAGE | sed 's/.*@//')
+          WEB_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' $WEB_IMAGE | sed 's/.*@//')
+          [[ "$API_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'API image digest is not a canonical sha256 digest' >&2; exit 1; }
+          [[ "$WEB_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'web image digest is not a canonical sha256 digest' >&2; exit 1; }
+          echo "API_DIGEST=$API_DIGEST" >> $GITHUB_ENV
+          echo "WEB_DIGEST=$WEB_DIGEST" >> $GITHUB_ENV
+          echo "API image: $API_IMAGE -> $API_DIGEST"
+          echo "WEB image: $WEB_IMAGE -> $WEB_DIGEST"
+
+      - name: Validate deployment manifests
+        env:
+          K8S_REQUIRE_IMAGE_DIGESTS: "true"
+        run: |
+          set -euo pipefail
+          # node:lts has no ruby; validate YAML with the bundled npm deps instead.
+          node --input-type=module -e "
+            import { readFileSync, readdirSync } from 'node:fs';
+            import { parseAllDocuments } from 'yaml';
+            const dir = 'ops/k8s/production';
+            for (const file of readdirSync(dir).filter(f => f.endsWith('.yaml'))) {
+              const docs = parseAllDocuments(readFileSync(\`\${dir}/\${file}\`, 'utf8'));
+              for (const doc of docs) {
+                if (doc.errors.length) { console.error(\`\${file}: \${doc.errors[0]}\`); process.exit(1); }
+              }
+              console.log(\`\${file}: ok\`);
+            }
+          "
+
+      - name: Deploy to K3s
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo 'DEPLOY_SSH_KEY secret is required' >&2; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo 'DEPLOY_KNOWN_HOSTS secret is required' >&2; exit 1; }
+          SSH_KEY=$(mktemp)
+          KNOWN_HOSTS=$(mktemp)
+          trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"
+          chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
+          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"
+          REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          API_D="$API_DIGEST"
+          WEB_D="$WEB_DIGEST"
+
+          ssh $SSH_OPTS $REMOTE "mkdir -p /tmp/diary-v3-release"
+          scp $SSH_OPTS ops/k8s/00-namespace.yaml ops/k8s/production/01-postgres.yaml $REMOTE:/tmp/diary-v3-release/
+          scp $SSH_OPTS ops/k8s/production/02-api.yaml ops/k8s/production/03-web.yaml ops/k8s/production/04-ingress.yaml ops/k8s/production/05-market-cron.yaml ops/k8s/production/06-seed-job.yaml $REMOTE:/tmp/diary-v3-release/
+
+          # Namespace + database once; idempotent on every later run.
+          ssh $SSH_OPTS $REMOTE "kubectl apply -f /tmp/diary-v3-release/00-namespace.yaml && kubectl apply -f /tmp/diary-v3-release/01-postgres.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-postgres --timeout=300s"
+
+          # Seed runs before scaling up the API so first-boot data is present.
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/06-seed-job.yaml > /tmp/diary-v3-seed-job.yaml
+          scp $SSH_OPTS /tmp/diary-v3-seed-job.yaml $REMOTE:/tmp/diary-v3-release/seed-job.yaml
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/seed-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
+
+          # App manifests carry digest-pinned images and the API migrate init container.
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/02-api.yaml > /tmp/diary-v3-release/api.yaml
+          sed -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/03-web.yaml > /tmp/diary-v3-release/web.yaml
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/05-market-cron.yaml > /tmp/diary-v3-release/market-cron.yaml
+          scp $SSH_OPTS /tmp/diary-v3-release/api.yaml /tmp/diary-v3-release/web.yaml /tmp/diary-v3-release/market-cron.yaml $REMOTE:/tmp/diary-v3-release/
+          ssh $SSH_OPTS $REMOTE "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/api.yaml && kubectl apply -f /tmp/diary-v3-release/web.yaml && kubectl apply -f /tmp/diary-v3-release/market-cron.yaml"
+
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-api deployment/diary-v3-web --replicas=1 && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"
+
+      - name: Smoke test production
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo 'DEPLOY_SSH_KEY secret is required' >&2; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo 'DEPLOY_KNOWN_HOSTS secret is required' >&2; exit 1; }
+          SSH_KEY=$(mktemp)
+          KNOWN_HOSTS=$(mktemp)
+          trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"
+          chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
+          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"
+          REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
+          WEB_CODE=$(curl -s -o /dev/null -w '%{http_code}' https://v3.trade-basic.com/ || echo 000)
+          echo "WEB /: $WEB_CODE"
+          [ "$WEB_CODE" = "200" ]
+
+      - name: Rollback on failure
+        if: failure()
+        continue-on-error: true
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo 'DEPLOY_SSH_KEY secret is required' >&2; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo 'DEPLOY_KNOWN_HOSTS secret is required' >&2; exit 1; }
+          SSH_KEY=$(mktemp)
+          KNOWN_HOSTS=$(mktemp)
+          trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"
+          chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
+          ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -i "$SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" "kubectl -n $DEPLOY_NAMESPACE rollout undo deployment/diary-v3-api || true; kubectl -n $DEPLOY_NAMESPACE rollout undo deployment/diary-v3-web || true"

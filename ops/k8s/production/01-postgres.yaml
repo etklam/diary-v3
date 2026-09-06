@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diary-v3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: diary-v3-postgres-data
+  namespace: diary-v3
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diary-v3-postgres
+  namespace: diary-v3
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: diary-v3-postgres
+  template:
+    metadata:
+      labels:
+        app: diary-v3-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: diary_v3
+            - name: POSTGRES_USER
+              value: diary
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-db
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["sh", "-ec", "pg_isready -U diary -d diary_v3"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          # Conservative resource policy: this host runs many stacks.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: diary-v3-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diary-v3-postgres
+  namespace: diary-v3
+spec:
+  selector:
+    app: diary-v3-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
