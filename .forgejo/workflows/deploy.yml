@@ -185,10 +185,16 @@ jobs:
 
           ssh $SSH_OPTS $REMOTE "mkdir -p /tmp/diary-v3-release"
           scp $SSH_OPTS ops/k8s/00-namespace.yaml ops/k8s/production/01-postgres.yaml $REMOTE:/tmp/diary-v3-release/
-          scp $SSH_OPTS ops/k8s/production/02-api.yaml ops/k8s/production/03-web.yaml ops/k8s/production/04-ingress.yaml ops/k8s/production/05-market-cron.yaml ops/k8s/production/06-seed-job.yaml $REMOTE:/tmp/diary-v3-release/
+          scp $SSH_OPTS ops/k8s/production/02-api.yaml ops/k8s/production/03-web.yaml ops/k8s/production/04-ingress.yaml ops/k8s/production/05-market-cron.yaml ops/k8s/production/06-seed-job.yaml ops/k8s/production/07-migrate-job.yaml $REMOTE:/tmp/diary-v3-release/
 
           # Namespace + database once; idempotent on every later run.
           ssh $SSH_OPTS $REMOTE "kubectl apply -f /tmp/diary-v3-release/00-namespace.yaml && kubectl apply -f /tmp/diary-v3-release/01-postgres.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-postgres --timeout=300s"
+
+          # Run migrations before seed. The API deployment is intentionally at 0 replicas
+          # until both jobs pass, so its initContainer cannot be the migration gate.
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/07-migrate-job.yaml > /tmp/diary-v3-migrate-job.yaml
+          scp $SSH_OPTS /tmp/diary-v3-migrate-job.yaml $REMOTE:/tmp/diary-v3-release/migrate-job.yaml
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-migrate --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/migrate-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
 
           # Seed runs before scaling up the API so first-boot data is present.
           sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/06-seed-job.yaml > /tmp/diary-v3-seed-job.yaml

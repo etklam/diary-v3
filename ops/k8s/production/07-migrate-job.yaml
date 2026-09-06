@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: diary-v3-migrate
+  namespace: diary-v3
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app: diary-v3-migrate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: git.913555.xyz/etklam/diary-v3-api:placeholder
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/api/migrate.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: DATABASE_URL
+            - name: MIGRATIONS_FOLDER
+              value: /app/packages/db/migrations
