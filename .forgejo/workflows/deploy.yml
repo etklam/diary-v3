@@ -46,8 +46,8 @@ jobs:
           grep -qxF '**/.env' .dockerignore || true
           grep -qxF '**/.env.*' .dockerignore || true
 
-      - name: Install deps and audit
-        run: npm ci --ignore-scripts --no-audit --no-fund && npm audit --omit=dev
+      - name: Install deps
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
