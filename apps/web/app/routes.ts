@@ -29,6 +29,7 @@ export default [
   route('stocks/:symbol/thesis', 'routes/thesis.tsx'),
   route('stocks/:symbol', 'routes/company-market.tsx'),
   route('tools/etf', 'routes/etf-research.tsx'),
+  route('tools', 'routes/tools.tsx'),
   route('tools/market-rotation', 'routes/market-rotation.tsx'),
   route('tools/relative-value', 'routes/relative-value.tsx'),
   route('tools/seasonality', 'routes/seasonality.tsx'),

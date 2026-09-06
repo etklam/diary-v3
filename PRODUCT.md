@@ -62,6 +62,12 @@ diary-v3 is the current project name; the external product name is still TBD.
 4. The API is the shared business entry point for web and the future app.
 5. Reusable logic stays independent of Vue, React DOM, and native platforms.
 
+## Tools access model
+
+Tools are public product capabilities, not membership features. Guests can open the Tools index and the confirmed tool URLs, complete calculations, query and filter public research, view charts and filing details, copy results, export results, and download bounded SEC documents or ZIP packages without authentication. The same tool implementations are available to signed-in users from the workspace.
+
+Authentication is required only for private additions: saving or appending a Diary, creating a Trade Plan, adding a Watchlist item, saving research evidence or notes, creating reminders, reading personal holdings or settings, and all administration. Guest attempts show an explicit sign-in prompt, preserve the current tool state, use a safe in-site return path, and require confirmation after sign-in before any private write.
+
 ## Accessibility & Inclusion
 
 The existing product docs take WCAG AA, keyboard operation, screen readers, and reduced motion as the baseline.

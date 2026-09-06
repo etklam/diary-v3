@@ -2,7 +2,7 @@ import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 test('public research and catalog-backed watchlist work at both viewport sizes',async({page})=>{
  await page.goto('/tools/etf');await selectLocale(page, 'en');
  await expect(page.getByTestId('etf-profile')).toBeVisible();await expect(page.getByTestId('etf-profile')).toContainText('Some data is unavailable.');
- await page.getByRole('link',{name:'ETF watchlist',exact:true}).click();await expect(page.getByRole('alert')).toBeVisible();await page.getByRole('link',{name:'Sign in',exact:true}).click();
+ await page.getByRole('link',{name:/ETF watchlist/}).click();await expect(page.getByRole('alert')).toBeVisible();await page.getByRole('link',{name:'Sign in',exact:true}).click();
  await page.getByLabel('Email',{exact:true}).fill('etf-admin@example.test');await page.getByLabel('Password',{exact:true}).fill('synthetic-etf-admin-password');await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/etf\/watchlist$/);
  await page.goto('/admin/etf');await selectLocale(page, 'en');await page.getByRole('button',{name:'Add common ETFs',exact:true}).click();await expect(page.getByRole('status')).toContainText('Added:');
 const seed=/Added: (\d+) · Skipped: (\d+) · Total: (\d+)/.exec(await page.getByRole('status').innerText())!;expect(Number(seed[1])+Number(seed[2])).toBe(24);

@@ -184,6 +184,10 @@ The language menu supports zh-TW/zh-CN/en and the theme menu supports light/dark
 
 ## Do's and Don'ts
 
+### Public Tools and private workspace
+
+The `/tools` index and confirmed `/tools/*` routes use the public shell: neutral canvas, shared page gutter and container rules, and no private reminders, diary controls, holdings, or settings requests. Public calculations and research remain fully interactive for guests. Private actions are separated visually and use direct copy such as “Sign in to save”; they preserve local inputs and return to the same safe in-site tool path after sign-in. Green and red remain reserved for market direction, not page backgrounds.
+
 ### Implemented account security and FIRE surfaces
 
 Account security uses form and device action sections separated by two thin rules, keeping reading width on desktop and full-width controls on mobile; errors keep field values, and a successful revocation offers a way to sign in again. FIRE uses assumptions/results in two columns, dropping to one below 850px; numbers are presented in tables, the projection stays in its own focusable horizontal-scroll region, and if copy fails the text is directly selectable. Both reuse existing tokens; no new color roles were added.

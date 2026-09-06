@@ -23,6 +23,8 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
   if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
+  if (candidate === '/tools' || candidate === '/tools/etf' || candidate === '/tools/financial-freedom' || candidate === '/tools/market-rotation' || candidate === '/tools/relative-value' || candidate === '/tools/seasonality' || candidate === '/tools/sec-filings') return candidate;
+  if (candidate && /^\/tools\/sec-filings\/\d{1,10}\/\d{10}-\d{2}-\d{6}$/.test(candidate)) return candidate;
   return candidate && /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/.test(candidate) ? candidate : '/diaries/new';
 }
 export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
@@ -68,7 +70,7 @@ export const sessionFetch: typeof fetch = async (input, init) => {
   if (locallySignedOut && (privatePath || /^\/api\/stocks\/[^/]+\/(?:timeline|evidence|notes|thesis|hub)(?:\/|$)/.test(pathname))) return invalidatedSessionResponse();
   const revision = state.revision;
   const response = await webSession.fetch(input, init);
-  if (revision !== state.revision) return invalidatedSessionResponse();
+  if (revision !== state.revision && (privatePath || pathname === '/api/auth/me')) return invalidatedSessionResponse();
   if (pathname.startsWith('/api/alerts') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention') {
     if (response.ok) markSignedIn();
     else if (response.status === 401 && state.authenticated !== false) {

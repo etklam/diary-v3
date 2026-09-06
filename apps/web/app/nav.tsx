@@ -43,6 +43,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: 
       {link('/tools/etf', label(locale, { en: 'ETF research', 'zh-CN': 'ETF 研究', 'zh-TW': 'ETF 研究' }))}
     </div></section>
     <section className="nav-group" aria-labelledby={`${idPrefix}-tools`}><h2 id={`${idPrefix}-tools`}>{sections.tools}</h2><div className="nav-group-links">
+      {link('/tools', label(locale, { en: 'All tools', 'zh-CN': '全部工具', 'zh-TW': '全部工具' }), true)}
       {link('/tools/market-rotation', label(locale, { en: 'Market rotation', 'zh-CN': '市场轮动', 'zh-TW': '市場輪動' }))}
       {link('/tools/relative-value', label(locale, { en: 'Relative value', 'zh-CN': '相对价值', 'zh-TW': '相對價值' }))}
       {link('/tools/seasonality', label(locale, { en: 'Seasonality', 'zh-CN': '季节性', 'zh-TW': '季節性' }))}

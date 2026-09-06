@@ -117,6 +117,20 @@
   padding-inline: var(--page-gutter);
 }
 
+.public-shell > main > .tools-index-page,
+.public-shell > main > .position-sizing-page,
+.public-shell > main > .fire-page,
+.public-shell > main > .market-research-page,
+.public-shell > main > .sec-filings-page,
+.public-shell > main > .plan-page {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: var(--page-block) var(--page-gutter) 64px;
+}
+
+.tools-index-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-8); margin: 0; padding: 0; list-style: none; }
+.tools-index-list a { display: block; padding: var(--space-4) 0; border-bottom: 1px solid var(--border); font-size: 1.05rem; font-weight: 650; }
+
 .public-page {
   width: min(1160px, 100%);
   margin: 0 auto;
@@ -370,4 +384,6 @@
   .public-guide-list .button {
     justify-self: start;
   }
+
+  .tools-index-list { grid-template-columns: 1fr; }
 }

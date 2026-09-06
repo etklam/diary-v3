@@ -1227,6 +1227,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Guest-accessible persisted market rotation monitor. Filters, sorting and exports are computed from the public payload. */
         get: operations["rotationMonitor"];
         put?: never;
         post?: never;
@@ -1293,6 +1294,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Guest-accessible ETF research with partial and stale metadata. */
         get: operations["etfProfile"];
         put?: never;
         post?: never;
@@ -1309,6 +1311,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Guest-accessible ETF risk research with partial and stale metadata. */
         get: operations["etfRisk"];
         put?: never;
         post?: never;
@@ -1325,6 +1328,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Guest-accessible ETF fund details with partial and stale metadata. */
         get: operations["etfValuation"];
         put?: never;
         post?: never;
@@ -1341,6 +1345,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Guest-accessible ETF relative-return research with partial and stale metadata. */
         get: operations["etfRs"];
         put?: never;
         post?: never;
@@ -10542,6 +10547,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description HTTP 404 error */
             404: {
                 headers: {
@@ -10584,6 +10598,15 @@ export interface operations {
             };
             /** @description HTTP 400 error */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11128,6 +11151,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description HTTP 429 error */
             429: {
                 headers: {
@@ -11188,6 +11220,15 @@ export interface operations {
             };
             /** @description HTTP 400 error */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11263,6 +11304,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description HTTP 404 error */
             404: {
                 headers: {
@@ -11326,6 +11376,15 @@ export interface operations {
             };
             /** @description HTTP 400 error */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11413,6 +11472,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description HTTP 404 error */
             404: {
                 headers: {
@@ -11485,6 +11553,15 @@ export interface operations {
             };
             /** @description HTTP 400 error */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

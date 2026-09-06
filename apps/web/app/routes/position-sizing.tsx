@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { calculatePositionSizing, positionSizingStrategies, type PositionSizingOutput, type PositionSizingRounding, type PositionSizingStrategyId } from '@diary/domain/position-sizing'
 import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
-import { signInPath } from '../session'
+import { signInPath, useSessionState } from '../session'
 import { positionSizingCopy } from '../position-sizing-copy'
 import '../position-sizing.css'
 
@@ -32,6 +32,7 @@ export default function PositionSizing() {
   const { locale } = useUi()
   const copy = positionSizingCopy[locale]
   const navigate = useNavigate()
+  const session = useSessionState()
   const [values, setValues] = useState(initialValues)
   const [strategyId, setStrategyId] = useState<PositionSizingStrategyId>('pyramid')
   const [roundingMode, setRoundingMode] = useState<PositionSizingRounding>('down')
@@ -39,6 +40,16 @@ export default function PositionSizing() {
   const [failure, setFailure] = useState<Failure | null>(null)
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState(false)
+  const [authPrompt, setAuthPrompt] = useState(false)
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(sessionStorage.getItem('position-sizing-draft') ?? 'null') as { values?: typeof initialValues; strategyId?: PositionSizingStrategyId; roundingMode?: PositionSizingRounding } | null
+      if (draft?.values) setValues(draft.values)
+      if (draft?.strategyId) setStrategyId(draft.strategyId)
+      if (draft?.roundingMode) setRoundingMode(draft.roundingMode)
+      sessionStorage.removeItem('position-sizing-draft')
+    } catch { /* A disabled session store must not block the calculator. */ }
+  }, [])
   const capital = numberValue(values.capital)
   const price = numberValue(values.price)
   const reserve = numberValue(values.reserve)
@@ -79,6 +90,7 @@ export default function PositionSizing() {
 
   async function saveDiary(appendToToday: boolean) {
     if (!markdown || pending) return
+    if (session.authenticated !== true) { setAuthPrompt(true); return }
     setPending(true)
     setFailure(null)
     setNotice('')
@@ -102,6 +114,7 @@ export default function PositionSizing() {
 
   function prepareTradePlan() {
     if (!markdown || !summary) return
+    if (session.authenticated !== true) { setAuthPrompt(true); return }
     try {
       sessionStorage.setItem('tradePlanPrefill', JSON.stringify({
         symbol: values.symbol.trim().toUpperCase(),
@@ -144,6 +157,7 @@ export default function PositionSizing() {
           {summary.isOverBudget && <p className="position-sizing-overbudget" data-testid="position-sizing-overbudget">{copy.overBudget}: {money(summary.overBudgetAmount)}</p>}
           <div className="position-sizing-actions"><button type="button" data-testid="position-sizing-copy" onClick={() => void copyMarkdown()}>{copyState === 'copied' ? copy.copied : copy.copy}</button><button type="button" className="secondary" disabled={pending} data-testid="position-sizing-save-new" onClick={() => void saveDiary(false)}>{copy.saveNew}</button><button type="button" className="secondary" disabled={pending} data-testid="position-sizing-append" onClick={() => void saveDiary(true)}>{copy.appendToday}</button><button type="button" className="secondary" data-testid="position-sizing-trade-plan" onClick={prepareTradePlan}>{copy.tradePlan}</button></div>
           {notice && <p className="success" role="status">{notice}</p>}
+          {authPrompt && <p className="position-sizing-auth-prompt" role="alert">{locale === 'en' ? 'Sign in to save this result to your private workspace.' : locale === 'zh-CN' ? '登录后即可将结果保存到私人工作区。' : '登入後即可將結果保存到私人工作區。'} <a href={signInPath('/tools/position-sizing')} onClick={() => { try { sessionStorage.setItem('position-sizing-draft', JSON.stringify({ values, strategyId, roundingMode })) } catch { /* The result remains selectable if storage is unavailable. */ } }}>{copy.signIn}</a></p>}
           {copyState === 'failed' && <label className="position-sizing-markdown">{copy.savedCopyLabel}<textarea aria-label={copy.markdown} rows={8} readOnly value={markdown} onFocus={event => event.currentTarget.select()} /><small>{copy.copyFailed}</small></label>}
         </>}
         {failure && <><FailureNotice failure={failure} />{failure.code?.startsWith('AUTH_') && <a className="inline-link" href={signInPath('/tools/position-sizing')}>{copy.signIn}</a>}</>}

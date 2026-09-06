@@ -21525,6 +21525,16 @@
           "Market"
         ],
         "operationId": "rotationMonitor",
+        "description": "Guest-accessible persisted market rotation monitor. Filters, sorting and exports are computed from the public payload.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -22910,6 +22920,15 @@
         ],
         "operationId": "marketStateSnapshot",
         "description": "Guest-accessible persisted market breadth state. Stale or under-covered rows resolve to unknown.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Latest configured-universe market state",
@@ -22923,6 +22942,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -22961,6 +22990,15 @@
         ],
         "operationId": "marketStateHistory",
         "description": "Guest-accessible persisted market breadth history, newest first.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -22987,6 +23025,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -23309,6 +23357,16 @@
           "ETF"
         ],
         "operationId": "etfProfile",
+        "description": "Guest-accessible ETF research with partial and stale metadata.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -23751,6 +23809,16 @@
           "ETF"
         ],
         "operationId": "etfRisk",
+        "description": "Guest-accessible ETF risk research with partial and stale metadata.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24020,6 +24088,16 @@
           "ETF"
         ],
         "operationId": "etfValuation",
+        "description": "Guest-accessible ETF fund details with partial and stale metadata.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24255,6 +24333,16 @@
           "ETF"
         ],
         "operationId": "etfRs",
+        "description": "Guest-accessible ETF relative-return research with partial and stale metadata.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24499,6 +24587,15 @@
         ],
         "operationId": "secCompanySearch",
         "description": "Guest-accessible SEC company search backed by a configured SEC EDGAR provider.",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24535,6 +24632,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -24582,6 +24689,15 @@
           "SEC Filings"
         ],
         "operationId": "secFilingList",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24693,6 +24809,16 @@
               }
             }
           },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "HTTP 404 error",
             "content": {
@@ -24742,6 +24868,15 @@
           "SEC Filings"
         ],
         "operationId": "secFilingDetail",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24775,6 +24910,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -24832,6 +24977,15 @@
           "SEC Filings"
         ],
         "operationId": "secFilingDocument",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -24882,6 +25036,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -24949,6 +25113,15 @@
           "SEC Filings"
         ],
         "operationId": "secFilingPackage",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -25016,6 +25189,16 @@
               }
             }
           },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "HTTP 404 error",
             "content": {
@@ -25075,6 +25258,15 @@
           "SEC Filings"
         ],
         "operationId": "secFilingBatchPackage",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -25136,6 +25328,16 @@
           },
           "400": {
             "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {

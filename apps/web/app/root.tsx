@@ -51,7 +51,7 @@ function Shell() {
   const { t, locale } = useUi();
   const preferences = <PreferencesControls/>;
   const mobilePreferences = <PreferencesControls mobile/>;
-  const publicPath = location.pathname === '/' || location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
+  const publicPath = location.pathname === '/' || location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/tools' || location.pathname.startsWith('/tools/') || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
   if (publicPath && session.authenticated !== true) return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">
@@ -62,6 +62,7 @@ function Shell() {
           <NavLink to="/guide">{locale==='en'?'Guide':locale==='zh-CN'?'使用说明':'使用說明'}</NavLink>
           <NavLink to="/about">{locale==='en'?'About':locale==='zh-CN'?'关于':'關於'}</NavLink>
           <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
+          <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
         </nav>
         <div className="public-actions"><Link className="button secondary" to="/login">{t('login')}</Link><Link className="button" to="/register">{t('register')}</Link></div>
         <div className="public-preferences">{preferences}</div>
