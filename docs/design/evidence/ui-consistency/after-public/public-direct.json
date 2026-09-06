@@ -1,0 +1,284 @@
+[
+  {
+    "name": "login",
+    "width": 1440,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "20px 32px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  },
+  {
+    "name": "register",
+    "width": 1440,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "20px 32px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  },
+  {
+    "name": "articles",
+    "width": 1440,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/trade-plan-CvHSUchz.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "20px 32px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  },
+  {
+    "name": "login",
+    "width": 390,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "dark",
+      "themeColor": "#17191d",
+      "overflow": false
+    }
+  },
+  {
+    "name": "register",
+    "width": 390,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "dark",
+      "themeColor": "#17191d",
+      "overflow": false
+    }
+  },
+  {
+    "name": "articles",
+    "width": 390,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/trade-plan-CvHSUchz.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "dark",
+      "themeColor": "#17191d",
+      "overflow": false
+    }
+  },
+  {
+    "name": "login",
+    "width": 320,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  },
+  {
+    "name": "register",
+    "width": 320,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  },
+  {
+    "name": "articles",
+    "width": 320,
+    "styles": [
+      {
+        "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+        "status": 200
+      },
+      {
+        "url": "http://127.0.0.1:3300/assets/trade-plan-CvHSUchz.css",
+        "status": 200
+      }
+    ],
+    "result": {
+      "headerDisplay": "grid",
+      "headerPadding": "16px",
+      "mainPadding": "0px",
+      "theme": "light",
+      "themeColor": "#f6f7f8",
+      "overflow": false
+    }
+  }
+]

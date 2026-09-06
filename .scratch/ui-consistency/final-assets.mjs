@@ -1,0 +1,12 @@
+import {chromium} from '@playwright/test';
+import {writeFile} from 'node:fs/promises';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const page=await browser.newPage();
+const assets=[];
+page.on('response',response=>{if(['script','stylesheet'].includes(response.request().resourceType()))assets.push({url:response.url(),status:response.status()});});
+await page.goto('http://127.0.0.1:3300/tools/market-rotation');
+await page.waitForLoadState('networkidle');
+await writeFile('docs/design/evidence/ui-consistency/final-build-assets.json',JSON.stringify(assets,null,2));
+await browser.close();
+if(!assets.length||assets.some(asset=>asset.status!==200))throw new Error('Static asset verification failed');
+console.log(`${assets.length} CSS/JS responses: all HTTP 200`);

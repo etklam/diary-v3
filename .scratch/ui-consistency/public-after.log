@@ -1,0 +1,119 @@
+[
+  {
+    name: 'login',
+    width: 1440,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '20px 32px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  },
+  {
+    name: 'register',
+    width: 1440,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '20px 32px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  },
+  {
+    name: 'articles',
+    width: 1440,
+    styles: [ [Object], [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '20px 32px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  },
+  {
+    name: 'login',
+    width: 390,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'dark',
+      themeColor: '#17191d',
+      overflow: false
+    }
+  },
+  {
+    name: 'register',
+    width: 390,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'dark',
+      themeColor: '#17191d',
+      overflow: false
+    }
+  },
+  {
+    name: 'articles',
+    width: 390,
+    styles: [ [Object], [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'dark',
+      themeColor: '#17191d',
+      overflow: false
+    }
+  },
+  {
+    name: 'login',
+    width: 320,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  },
+  {
+    name: 'register',
+    width: 320,
+    styles: [ [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  },
+  {
+    name: 'articles',
+    width: 320,
+    styles: [ [Object], [Object], [Object], [Object], [Object] ],
+    result: {
+      headerDisplay: 'grid',
+      headerPadding: '16px',
+      mainPadding: '0px',
+      theme: 'light',
+      themeColor: '#f6f7f8',
+      overflow: false
+    }
+  }
+]

@@ -1,0 +1,9 @@
+
+ RUN  v5.0.0 /Users/klam/Desktop/project/diary-v3
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:51:42
+   Duration  93ms (tests 45%, transform 35%, import 15%, worker 5%)
+

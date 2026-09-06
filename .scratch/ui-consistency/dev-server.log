@@ -1,0 +1,117 @@
+
+> @diary/web@0.0.0 dev
+> react-router dev --host 127.0.0.1 --port 3100 --port 3200
+
+[restart] Relaunching with NODE_OPTIONS: --conditions=development
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+  ➜  Local:   http://127.0.0.1:3200/
+8:36:45 PM [vite] (ssr) connected.
+8:36:46 PM [vite] (client) dependencies optimized: openapi-fetch, react-markdown, remark-gfm, socket.io-client, zod
+8:36:46 PM [vite] (client) optimized dependencies changed. reloading
+8:36:47 PM [vite] (client) [Unhandled rejection] TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:3200/app/entry.client.tsx
+
+8:40:31 PM [vite] (ssr) page reload app/portfolio-exposure.css
+8:40:31 PM [vite] (ssr) program reload
+8:42:29 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:42:30 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:42:30 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:42:40 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:42:40 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:42:58 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:42:58 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:42:58 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:05 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:05 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:10 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:10 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:10 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:10 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:15 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:43:17 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:43:17 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:17 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:18 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:18 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:20 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:20 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:21 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:43:24 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:43:25 PM [vite] ws proxy error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:25 PM [vite] ws proxy socket error:
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+8:43:30 PM [vite] (client) [console.error] Failed to fetch manifest patches TypeError: Failed to fetch
+    at fetchAndApplyManifestPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8708:19)
+    at fetchPatches (http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8639:11)
+    at http://127.0.0.1:3200/node_modules/.vite/deps/development-CNhqM-Vi.js?v=7b66ca82:8741:39
+8:51:07 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:07 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:07 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:07 PM [vite] (ssr) page reload app/routes/market-rotation.tsx
+8:51:07 PM [vite] (ssr) program reload
+8:51:14 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:14 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:14 PM [vite] (client) hmr update /app/routes/market-rotation.tsx
+8:51:14 PM [vite] (ssr) page reload app/routes/market-rotation.tsx
+8:51:14 PM [vite] (ssr) program reload

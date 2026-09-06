@@ -1,0 +1,369 @@
+{
+  "assets": 540,
+  "badAssets": [],
+  "errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failedResponses": [
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssfque33",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssgi0hrm",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssh88ej9",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sshyyb00",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssihl95t",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssipyrdu",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssjekbbd",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssjxc4o7",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/state/snapshot",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/rotation-monitor?scope=sectors",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssk5apau",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sskt1ut8",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sslhzhqc",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssly9nk5",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssm6kro9",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssmxcimm",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssnl4u0t",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sso9cz24",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/state/snapshot",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/rotation-monitor?scope=sectors",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssoxmong",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sspm2mpc",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssq4vulz",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssqag6up",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssqz524f",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssrg4ccq",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=ssrnzarj",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sss4wd2g",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sssemvi9",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sst6dthr",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sstplbzn",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/state/snapshot",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/api/market/rotation-monitor?scope=sectors",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=sstw2lz6",
+      "status": 404
+    }
+  ],
+  "checks": [
+    {
+      "name": "overview",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "editor",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/diaries/new",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "portfolio",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "company",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/stocks/AAPL",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "seasonality",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/tools/seasonality",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "performance",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/strategy-performance",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "rotation",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/tools/market-rotation",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "overview",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "editor",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/diaries/new",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "portfolio",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "company",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/stocks/AAPL",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "seasonality",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/tools/seasonality",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "performance",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/strategy-performance",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "rotation",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/tools/market-rotation",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "overview",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "editor",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/diaries/new",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "portfolio",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "company",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/stocks/AAPL",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "seasonality",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/tools/seasonality",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "performance",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/strategy-performance",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "rotation",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/tools/market-rotation",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    }
+  ]
+}

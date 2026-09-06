@@ -1,0 +1,457 @@
+{
+  "assets": [
+    {
+      "url": "http://127.0.0.1:3300/assets/jsx-runtime-BtqsFBTO.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/lib-C83XrkCU.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/components-Cxhdjfip.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/errorBoundaries-C5xFTlpQ.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-Bpy5hP2G.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/entry.client-BIJRb_ZL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-B4a8nyMC.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-DcSFDtr9.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-B21zmO4X.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/price-alerts-DbIwkoEN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/calendar-date-QgHV1G74.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/watchlist-BxS298-f.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-CJHk_OpL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-input-ViPgwQ3v.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/src-Cz_AcnGB.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-display-BZKctE4g.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/api-error-DSsU7f0p.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/portfolio-BbfVOZgr.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ui-BCY-GFjb.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-copy-DOG_W1oj.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-DW0j1JE4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-policy-copy-CqqrQPX4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-BBYguj_O.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/jsx-runtime-BtqsFBTO.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/lib-C83XrkCU.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/errorBoundaries-C5xFTlpQ.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-Bpy5hP2G.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/components-Cxhdjfip.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-B4a8nyMC.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-DcSFDtr9.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-B21zmO4X.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/watchlist-BxS298-f.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/price-alerts-DbIwkoEN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-input-ViPgwQ3v.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/calendar-date-QgHV1G74.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-CJHk_OpL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/entry.client-BIJRb_ZL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/src-Cz_AcnGB.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/api-error-DSsU7f0p.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-display-BZKctE4g.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ui-BCY-GFjb.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/portfolio-BbfVOZgr.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-DW0j1JE4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-copy-DOG_W1oj.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-policy-copy-CqqrQPX4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-BBYguj_O.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/jsx-runtime-BtqsFBTO.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/lib-C83XrkCU.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/errorBoundaries-C5xFTlpQ.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-Bpy5hP2G.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/root-DH2tyNM_.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/components-Cxhdjfip.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/public-87d2hBvx.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-dobKDKzH.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-CxEXFlAy.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/entry.client-BIJRb_ZL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-B4a8nyMC.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-DcSFDtr9.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-B21zmO4X.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/price-alerts-DbIwkoEN.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/watchlist-BxS298-f.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/company-context-input-ViPgwQ3v.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-CJHk_OpL.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/calendar-date-QgHV1G74.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ui-BCY-GFjb.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-display-BZKctE4g.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/src-Cz_AcnGB.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/api-error-DSsU7f0p.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/portfolio-BbfVOZgr.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/holdings-DW0j1JE4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/ledger-copy-DOG_W1oj.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/market-policy-copy-CqqrQPX4.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-BBYguj_O.js",
+      "status": 200,
+      "type": "text/javascript; charset=utf-8"
+    }
+  ],
+  "errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failedResponses": [
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=t2x8bgm6",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=t2y4mdph",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=t2ywjsbi",
+      "status": 404
+    }
+  ],
+  "checks": [
+    {
+      "name": "portfolio",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "portfolio",
+      "width": 768,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px 24px",
+      "canvas": "rgb(246, 247, 248)"
+    },
+    {
+      "name": "portfolio",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(246, 247, 248)"
+    }
+  ]
+}

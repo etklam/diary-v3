@@ -1,0 +1,51 @@
+
+> @diary/web@0.0.0 build
+> react-router build
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Using Vite Environment API
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 683 modules transformed.
+rendering chunks...
+✗ Build failed in 578ms
+Build failed with 1 error:
+
+[plugin vite:css-post]
+SyntaxError: [lightningcss minify] Unexpected end of input
+985 |      animation: none !important;
+986 |    }
+987 |  }\n
+    |     ^
+    at Module.<anonymous> (/Users/klam/Desktop/project/diary-v3/node_modules/lightningcss/node/index.js:56:14)
+    at minifyCSS (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:23484:59)
+    at async finalizeCss (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:23326:36)
+    at async Promise.all (index 1)
+    at async Object.run (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:3068:22)
+    at async PluginContextImpl.renderChunk (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:22831:19)
+    at async plugin (file:///Users/klam/Desktop/project/diary-v3/node_modules/rolldown/dist/shared/bindingify-input-options-DrImMHKQ.mjs:1626:16)
+    at async plugin.<computed> (file:///Users/klam/Desktop/project/diary-v3/node_modules/rolldown/dist/shared/bindingify-input-options-DrImMHKQ.mjs:2127:12)
+    at aggregateBindingErrorsIntoJsError (file:///Users/klam/Desktop/project/diary-v3/node_modules/rolldown/dist/shared/error-BP8lJHle.mjs:48:18)
+    at unwrapBindingResult (file:///Users/klam/Desktop/project/diary-v3/node_modules/rolldown/dist/shared/error-BP8lJHle.mjs:18:128)
+    at #build (file:///Users/klam/Desktop/project/diary-v3/node_modules/rolldown/dist/shared/rolldown-DfXO5K1m.mjs:133:34)
+    at async buildEnvironment (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:33821:66)
+    at async Object.build (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:34242:19)
+    at async buildApp (file:///Users/klam/Desktop/project/diary-v3/node_modules/@react-router/dev/dist/vite.js:1537:8)
+    at async buildApp (file:///Users/klam/Desktop/project/diary-v3/node_modules/@react-router/dev/dist/vite.js:794:6)
+    at async Object.buildApp (file:///Users/klam/Desktop/project/diary-v3/node_modules/@react-router/dev/dist/vite.js:2202:8)
+    at async Object.buildApp (file:///Users/klam/Desktop/project/diary-v3/node_modules/vite/dist/node/chunks/node.js:34238:38)
+    at async build (file:///Users/klam/Desktop/project/diary-v3/node_modules/@react-router/dev/dist/build-Ou3B3epu.js:16:2) {
+  errors: [Getter/Setter]
+}
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+npm error path /Users/klam/Desktop/project/diary-v3/apps/web
+npm error workspace @diary/web@0.0.0
+npm error location /Users/klam/Desktop/project/diary-v3/apps/web
+npm error command failed
+npm error command sh -c react-router build

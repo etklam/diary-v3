@@ -1,0 +1,168 @@
+
+Running 45 tests using 1 worker
+
+(node:7304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 tests/e2e/admin-users.spec.ts:13:1 › admin account inventory preserves current-account guard and manages a synthetic account (30.2s)
+(node:7474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 tests/e2e/admin-users.spec.ts:69:1 › ordinary account sees the protected admin route without admin controls (1.0s)
+  ✓   3 tests/e2e/buy-ledger.spec.ts:4:31 › BUY decimal ledger and holdings at 1440px (2.4s)
+  ✘   4 tests/e2e/buy-ledger.spec.ts:4:31 › BUY decimal ledger and holdings at 390px (2.9s)
+(node:7595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 tests/e2e/company-hub.spec.ts:3:34 › Company Hub connects position, original decision and review at 1440px (3.6s)
+  ✓   6 tests/e2e/company-hub.spec.ts:3:34 › Company Hub connects position, original decision and review at 390px (3.6s)
+  ✓   7 tests/e2e/company-hub.spec.ts:26:1 › Company Hub readers fail and retry independently while other sections remain available (2.3s)
+  ✓   8 tests/e2e/company-market.spec.ts:3:1 › guests can inspect quotes, change historical range, and resolve an index alias (997ms)
+  ✓   9 tests/e2e/company-market.spec.ts:27:1 › missing metadata stays unknown and quote/history errors recover independently (1.6s)
+  ✓  10 tests/e2e/company-market.spec.ts:48:1 › a failed quote refresh is identified as stale without presenting a new quote timestamp (718ms)
+  ✓  11 tests/e2e/design.spec.ts:9:1 › representative design supports languages, keyboard selection, themes and narrow reflow (2.8s)
+  ✓  12 tests/e2e/diary-editor.spec.ts:5:2 › full diary authoring, safe Markdown and deletion at 1440px (3.5s)
+  ✓  13 tests/e2e/diary-editor.spec.ts:5:2 › full diary authoring, safe Markdown and deletion at 390px (3.9s)
+  ✓  14 tests/e2e/market-colors.spec.ts:37:1 › quote direction colors retain semantics across themes and locales (2.0s)
+  ✓  15 tests/e2e/market-rotation.spec.ts:75:1 › admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence (2.3s)
+  ✓  16 tests/e2e/market-rotation.spec.ts:123:1 › public monitor handles no snapshot retry, localized states/signals, keyboard scopes and unknown values (1.2s)
+  ✓  17 tests/e2e/market-rotation.spec.ts:195:1 › market state snapshot errors stay separate from pending and empty history (688ms)
+  ✘  18 tests/e2e/market-rotation.spec.ts:220:1 › filters, sorts and exports the current rows only (5.7s)
+(node:7869) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  19 tests/e2e/overview.spec.ts:43:34 › Overview composes bounded decision projections at 1440px (2.0s)
+  ✓  20 tests/e2e/overview.spec.ts:43:34 › Overview composes bounded decision projections at 390px (2.0s)
+  ✓  21 tests/e2e/overview.spec.ts:79:1 › Overview keeps other sections readable when attention needs retry (1.9s)
+  ✓  22 tests/e2e/overview.spec.ts:105:1 › Overview empty state keeps first-diary and research paths available (1.2s)
+  ✓  23 tests/e2e/performance.spec.ts:3:34 › Performance filters, tables and charts at 1440px (3.3s)
+  ✓  24 tests/e2e/performance.spec.ts:3:34 › Performance filters, tables and charts at 390px (3.7s)
+  ✓  25 tests/e2e/performance.spec.ts:31:1 › Performance keeps long names, large values and paged data readable on mobile (1.7s)
+  ✓  26 tests/e2e/performance.spec.ts:44:1 › Keyboard skip link reveals on focus and moves into main content (644ms)
+  ✓  27 tests/e2e/portfolio-exposure.spec.ts:14:34 › Portfolio separates exposure and priced concentration at 1440px (2.8s)
+  ✓  28 tests/e2e/portfolio-exposure.spec.ts:14:34 › Portfolio separates exposure and priced concentration at 390px (3.0s)
+  ✓  29 tests/e2e/portfolio.spec.ts:22:31 › Portfolio complete and incomplete valuation at 1440px (3.5s)
+  ✓  30 tests/e2e/portfolio.spec.ts:22:31 › Portfolio complete and incomplete valuation at 390px (3.6s)
+  ✓  31 tests/e2e/portfolio.spec.ts:38:34 › Portfolio stale decimal fixture and keyboard retry at 1440px (2.3s)
+  ✓  32 tests/e2e/portfolio.spec.ts:38:34 › Portfolio stale decimal fixture and keyboard retry at 390px (2.3s)
+  ✓  33 tests/e2e/pwa.spec.ts:4:1 › installs static shell metadata without caching private API responses (1.3s)
+  ✓  34 tests/e2e/pwa.spec.ts:44:1 › mobile menu keeps every route reachable and returns focus on close (1.5s)
+  ✓  35 tests/e2e/pwa.spec.ts:83:1 › applies a waiting worker update without losing an unsaved editor (931ms)
+  ✓  36 tests/e2e/quick-diary.spec.ts:3:31 › Quick templates, drafts, snippets and append at 1440px (2.7s)
+  ✓  37 tests/e2e/quick-diary.spec.ts:3:31 › Quick templates, drafts, snippets and append at 390px (3.0s)
+  ✓  38 tests/e2e/quick-diary.spec.ts:23:1 › SPX reflection recovery preserves manual condition and writing (1.2s)
+  ✓  39 tests/e2e/quick-related-trades.spec.ts:3:31 › reflection selects real closed trades and restores decimals at 1440px (2.1s)
+  ✓  40 tests/e2e/quick-related-trades.spec.ts:3:31 › reflection selects real closed trades and restores decimals at 390px (2.2s)
+  ✓  41 tests/e2e/relative-value-seasonality.spec.ts:3:1 › relative value and seasonality preserve scoped history and real capture destinations (2.5s)
+  ✓  42 tests/e2e/settings.spec.ts:22:1 › preferences persist exact zero/decimal amounts, explicit timezone, language and holiday choice across sign-in (2.6s)
+  ✓  43 tests/e2e/settings.spec.ts:60:1 › invalid timezone keeps unsaved values and marks the field; saved settings stay unchanged (1.3s)
+  ✓  44 tests/e2e/settings.spec.ts:71:1 › preferences support narrow layouts and both themes (1.6s)
+  ✓  45 tests/e2e/settings.spec.ts:84:1 › a language-save response arriving after logout cannot alter the signed-out UI (1.4s)
+
+
+  1) tests/e2e/admin-users.spec.ts:13:1 › admin account inventory preserves current-account guard and manages a synthetic account 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('tr').filter({ hasText: 'admin-users-a0d7fbce-7456-4fea-b250-6d355810fd96@example.test' }).getByRole('combobox', { name: 'Role: admin-users-a0d7fbce-7456-4fea-b250-6d355810fd96@example.test', exact: true })
+
+
+      45 |
+      46 |   const role = targetRow.getByRole('combobox', { name: `Role: ${targetEmail}`, exact: true })
+    > 47 |   await role.selectOption('ADMIN')
+         |              ^
+      48 |   await targetRow.getByRole('button', { name: 'Save', exact: true }).click()
+      49 |   await expect(page.getByRole('status')).toContainText('Role updated.')
+      50 |   await role.selectOption('USER')
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/admin-users.spec.ts:47:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/admin-users-admin-account--ea2a5-manages-a-synthetic-account/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/admin-users-admin-account--ea2a5-manages-a-synthetic-account/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/admin-users-admin-account--ea2a5-manages-a-synthetic-account/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/admin-users-admin-account--ea2a5-manages-a-synthetic-account/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/admin-users-admin-account--ea2a5-manages-a-synthetic-account/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/e2e/buy-ledger.spec.ts:4:31 › BUY decimal ledger and holdings at 390px ──────────────────
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 390
+    Received:    435.65625
+
+      16 |  await page.getByRole('link',{name:'View holdings',exact:true}).click();await expect(page.getByRole('heading',{name:'Cost holdings',exact:true})).toBeVisible();const holdings=page.getByRole('table',{name:'Cost holdings',exact:true});const holding=holdings.getByRole('row').filter({has:page.getByRole('link',{name:'AAPL',exact:true})});await expect(holding).toContainText('10.925');await expect(holding).toContainText('21.85');expect(await(await page.request.get('/api/stocks/holdings')).json()).toEqual([{symbol:'AAPL',quantity:'2',avgCost:'10.925',totalCost:'21.85'}]);
+      17 |  for(const [locale,title] of [['zh-TW','成本持倉'],['zh-CN','成本持仓'],['en','Cost holdings']] as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();}
+    > 18 |  for(const header of await holdings.getByRole('columnheader').all()){const box=await header.boundingBox();expect(box).not.toBeNull();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(width);}
+         |                                                                                                                                                                                                         ^
+      19 |  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`.impeccable/review/buy-holdings-${width}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
+      20 | });
+      21 |
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/buy-ledger.spec.ts:18:201
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/buy-ledger-BUY-decimal-ledger-and-holdings-at-390px/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/buy-ledger-BUY-decimal-ledger-and-holdings-at-390px/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/buy-ledger-BUY-decimal-ledger-and-holdings-at-390px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/buy-ledger-BUY-decimal-ledger-and-holdings-at-390px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests/e2e/market-rotation.spec.ts:220:1 › filters, sorts and exports the current rows only ────
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByTestId('rotation-row').first().locator('td').nth(6)
+    Expected: "+4.80%"
+    Received: "+4.80"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" getByTestId('rotation-row').first().locator('td').nth(6) with timeout 5000ms
+      - waiting for getByTestId('rotation-row').first().locator('td').nth(6)
+        14 × locator resolved to <td class="market-up">+4.80</td>
+           - unexpected value "+4.80"
+
+
+      240 |   await expect(rotationRows.nth(1).locator('td').nth(5)).toHaveClass(/market-down/);
+      241 |   await expect(rotationRows.nth(2).locator('td').nth(5)).toHaveClass(/market-flat/);
+    > 242 |   await expect(rotationRows.nth(0).locator('td').nth(6)).toHaveText('+4.80%');
+          |                                                          ^
+      243 |   await expect(rotationRows.nth(1).locator('td').nth(6)).toHaveText('-4.80%');
+      244 |   await expect(rotationRows.nth(2).locator('td').nth(6)).toHaveText('0.00%');
+      245 |   const lightColors = await page.evaluate(() => {
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/market-rotation.spec.ts:242:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-filters-so-4f060-ports-the-current-rows-only/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/market-rotation-filters-so-4f060-ports-the-current-rows-only/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-filters-so-4f060-ports-the-current-rows-only/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/market-rotation-filters-so-4f060-ports-the-current-rows-only/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    tests/e2e/admin-users.spec.ts:13:1 › admin account inventory preserves current-account guard and manages a synthetic account 
+    tests/e2e/buy-ledger.spec.ts:4:31 › BUY decimal ledger and holdings at 390px ───────────────────
+    tests/e2e/market-rotation.spec.ts:220:1 › filters, sorts and exports the current rows only ─────
+  42 passed (2.2m)

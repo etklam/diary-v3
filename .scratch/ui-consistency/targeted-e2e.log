@@ -1,0 +1,244 @@
+
+Running 7 tests using 1 worker
+
+(node:4087) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter (471ms)
+(node:4116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/layout-theme.spec.ts:47:1 › mobile preferences stay in Menu while keyboard quick diary remains available (30.1s)
+(node:4264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 tests/e2e/market-colors.spec.ts:37:1 › quote direction colors retain semantics across themes and locales (30.1s)
+(node:4420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 tests/e2e/market-rotation.spec.ts:75:1 › admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence (30.1s)
+(node:4591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 tests/e2e/market-rotation.spec.ts:123:1 › public monitor handles no snapshot retry, localized states/signals, keyboard scopes and unknown values (30.1s)
+(node:4782) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 tests/e2e/market-rotation.spec.ts:195:1 › market state snapshot errors stay separate from pending and empty history (13.7s)
+
+
+  1) tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter 
+
+    Error: login at 1440px
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      18 |     await page.setViewportSize({ width, height: 844 })
+      19 |     const response = await page.goto('/login')
+    > 20 |     expect(response?.status(), `login at ${width}px`).toBe(200)
+         |                                                       ^
+      21 |     await expect(page.locator('.public-header')).toBeVisible()
+      22 |     await expect(page.locator('.form-page')).toBeVisible()
+      23 |
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/layout-theme.spec.ts:20:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/e2e/layout-theme.spec.ts:47:1 › mobile preferences stay in Menu while keyboard quick diary remains available 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mobile-menu')
+
+
+       at ../support/e2e.ts:22
+
+      20 |
+      21 |   const dialog = page.getByTestId('mobile-menu-dialog');
+    > 22 |   if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+         |                                                                          ^
+      23 |   await page.getByTestId(mobileTestId).selectOption(value);
+      24 |   await page.keyboard.press('Escape');
+      25 |   await expect(dialog).toBeHidden();
+        at selectPreference (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:22:74)
+        at selectLocale (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:29:3)
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/layout-theme.spec.ts:53:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-mobile-prefer-c6d7e-ick-diary-remains-available/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/layout-theme-mobile-prefer-c6d7e-ick-diary-remains-available/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-mobile-prefer-c6d7e-ick-diary-remains-available/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/layout-theme-mobile-prefer-c6d7e-ick-diary-remains-available/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) tests/e2e/market-colors.spec.ts:37:1 › quote direction colors retain semantics across themes and locales 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mobile-menu')
+
+
+       at ../support/e2e.ts:22
+
+      20 |
+      21 |   const dialog = page.getByTestId('mobile-menu-dialog');
+    > 22 |   if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+         |                                                                          ^
+      23 |   await page.getByTestId(mobileTestId).selectOption(value);
+      24 |   await page.keyboard.press('Escape');
+      25 |   await expect(dialog).toBeHidden();
+        at selectPreference (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:22:74)
+        at selectLocale (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:29:3)
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/market-colors.spec.ts:48:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-colors-quote-direct-e7948-s-across-themes-and-locales/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/market-colors-quote-direct-e7948-s-across-themes-and-locales/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-colors-quote-direct-e7948-s-across-themes-and-locales/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/market-colors-quote-direct-e7948-s-across-themes-and-locales/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) tests/e2e/market-rotation.spec.ts:75:1 › admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mobile-menu')
+
+
+       at ../support/e2e.ts:22
+
+      20 |
+      21 |   const dialog = page.getByTestId('mobile-menu-dialog');
+    > 22 |   if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+         |                                                                          ^
+      23 |   await page.getByTestId(mobileTestId).selectOption(value);
+      24 |   await page.keyboard.press('Escape');
+      25 |   await expect(dialog).toBeHidden();
+        at selectPreference (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:22:74)
+        at selectLocale (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:29:3)
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/market-rotation.spec.ts:78:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-admin-rota-c92f0-ers-desktop-mobile-evidence/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/market-rotation-admin-rota-c92f0-ers-desktop-mobile-evidence/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-admin-rota-c92f0-ers-desktop-mobile-evidence/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/market-rotation-admin-rota-c92f0-ers-desktop-mobile-evidence/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) tests/e2e/market-rotation.spec.ts:123:1 › public monitor handles no snapshot retry, localized states/signals, keyboard scopes and unknown values 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mobile-menu')
+
+
+       at ../support/e2e.ts:22
+
+      20 |
+      21 |   const dialog = page.getByTestId('mobile-menu-dialog');
+    > 22 |   if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+         |                                                                          ^
+      23 |   await page.getByTestId(mobileTestId).selectOption(value);
+      24 |   await page.keyboard.press('Escape');
+      25 |   await expect(dialog).toBeHidden();
+        at selectPreference (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:22:74)
+        at selectLocale (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:29:3)
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/market-rotation.spec.ts:144:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-public-mon-86ecb-d-scopes-and-unknown-values/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/market-rotation-public-mon-86ecb-d-scopes-and-unknown-values/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-public-mon-86ecb-d-scopes-and-unknown-values/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/market-rotation-public-mon-86ecb-d-scopes-and-unknown-values/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) tests/e2e/market-rotation.spec.ts:195:1 › market state snapshot errors stay separate from pending and empty history 
+
+    Test was interrupted.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for getByTestId('mobile-menu')
+
+
+       at ../support/e2e.ts:22
+
+      20 |
+      21 |   const dialog = page.getByTestId('mobile-menu-dialog');
+    > 22 |   if (!(await dialog.isVisible())) await page.getByTestId('mobile-menu').click();
+         |                                                                          ^
+      23 |   await page.getByTestId(mobileTestId).selectOption(value);
+      24 |   await page.keyboard.press('Escape');
+      25 |   await expect(dialog).toBeHidden();
+        at selectPreference (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:22:74)
+        at selectLocale (/Users/klam/Desktop/project/diary-v3/tests/support/e2e.ts:29:3)
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/market-rotation.spec.ts:209:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-market-sta-170cb-m-pending-and-empty-history/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/market-rotation-market-sta-170cb-m-pending-and-empty-history/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/market-rotation-market-sta-170cb-m-pending-and-empty-history/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/market-rotation-market-sta-170cb-m-pending-and-empty-history/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter 
+    tests/e2e/layout-theme.spec.ts:47:1 › mobile preferences stay in Menu while keyboard quick diary remains available 
+    tests/e2e/market-colors.spec.ts:37:1 › quote direction colors retain semantics across themes and locales 
+    tests/e2e/market-rotation.spec.ts:75:1 › admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence 
+    tests/e2e/market-rotation.spec.ts:123:1 › public monitor handles no snapshot retry, localized states/signals, keyboard scopes and unknown values 
+  1 interrupted
+    tests/e2e/market-rotation.spec.ts:195:1 › market state snapshot errors stay separate from pending and empty history 
+  1 did not run

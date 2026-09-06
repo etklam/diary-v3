@@ -1,0 +1,44 @@
+
+Running 2 tests using 1 worker
+
+(node:5423) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter (2.9s)
+(node:5510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 tests/e2e/layout-theme.spec.ts:47:1 › mobile preferences stay in Menu while keyboard quick diary remains available (1.5s)
+
+
+  1) tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "32px"
+    Received: ""
+
+      35 |     })
+      36 |
+    > 37 |     expect(values.gutter).toBe(gutters.get(width))
+         |                           ^
+      38 |     expect(values.headerPadding).toBe(gutters.get(width))
+      39 |     expect(values.formPadding).toBe(gutters.get(width))
+      40 |     expect(values.mainPadding).toBe('0px')
+        at /Users/klam/Desktop/project/diary-v3/tests/e2e/layout-theme.spec.ts:37:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/ui-consistency/layout-theme-public-direct-6d0b6-share-the-responsive-gutter/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/layout-theme.spec.ts:11:1 › public direct routes load their stylesheet and share the responsive gutter 
+  1 passed (5.8s)

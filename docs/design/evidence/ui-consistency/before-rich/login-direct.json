@@ -1,0 +1,22 @@
+{
+  "styles": [
+    {
+      "url": "http://127.0.0.1:3300/assets/root-Def1WjAs.css",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/quick-composer-p4LLui8d.css",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:3300/assets/markdown-D1r5DXmw.css",
+      "status": 200
+    }
+  ],
+  "result": {
+    "headerDisplay": "block",
+    "headerPadding": "0px",
+    "mainPadding": "32px 16px 48px",
+    "overflow": false
+  }
+}

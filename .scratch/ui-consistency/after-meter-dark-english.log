@@ -1,0 +1,38 @@
+{
+  "assets": 54,
+  "badAssets": [],
+  "errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failedResponses": [
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=t318298l",
+      "status": 404
+    },
+    {
+      "url": "http://127.0.0.1:3300/socket.io/?EIO=4&transport=polling&t=t321tm0e",
+      "status": 404
+    }
+  ],
+  "checks": [
+    {
+      "name": "portfolio",
+      "width": 1440,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": true,
+      "mainPadding": "32px",
+      "canvas": "rgb(23, 25, 29)"
+    },
+    {
+      "name": "portfolio",
+      "width": 390,
+      "path": "http://127.0.0.1:3300/stocks",
+      "overflow": false,
+      "preferencesVisible": false,
+      "mainPadding": "24px 16px 32px",
+      "canvas": "rgb(23, 25, 29)"
+    }
+  ]
+}

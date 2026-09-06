@@ -1,0 +1,149 @@
+
+> @diary/web@0.0.0 build
+> react-router build
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./proxy" without a file extension (vite.config.ts:3:26). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Using Vite Environment API
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 683 modules transformed.
+rendering chunks...
+computing gzip size...
+build/client/.vite/manifest.json                          33.68 kB │ gzip:  3.36 kB
+build/client/assets/reviews-BW1Wp_QZ.css                   0.15 kB │ gzip:  0.12 kB
+build/client/assets/evidence-D_FRn9Xu.css                  0.20 kB │ gzip:  0.13 kB
+build/client/assets/alerts-Gx29q3Zh.css                    0.48 kB │ gzip:  0.26 kB
+build/client/assets/account-security-cD50r0_U.css          0.51 kB │ gzip:  0.23 kB
+build/client/assets/company-context-B21zmO4X.css           0.56 kB │ gzip:  0.25 kB
+build/client/assets/partner-compare-CjbNAWSk.css           0.76 kB │ gzip:  0.34 kB
+build/client/assets/etf-research-DOCiZ031.css              0.95 kB │ gzip:  0.39 kB
+build/client/assets/settings-BT6zpp75.css                  1.02 kB │ gzip:  0.41 kB
+build/client/assets/performance-CrdK2FPz.css               1.39 kB │ gzip:  0.53 kB
+build/client/assets/trade-plan-CvHSUchz.css                1.40 kB │ gzip:  0.53 kB
+build/client/assets/fire-CbjI_QMr.css                      1.49 kB │ gzip:  0.52 kB
+build/client/assets/diary-list-CKh9hZjw.css                1.69 kB │ gzip:  0.59 kB
+build/client/assets/ledger-DcSFDtr9.css                    1.70 kB │ gzip:  0.59 kB
+build/client/assets/timeline-BqlzHQzl.css                  1.99 kB │ gzip:  0.68 kB
+build/client/assets/company-market-BxgrWF5W.css            2.00 kB │ gzip:  0.68 kB
+build/client/assets/quick-composer-dobKDKzH.css            2.25 kB │ gzip:  0.74 kB
+build/client/assets/holdings-B4a8nyMC.css                  2.33 kB │ gzip:  0.68 kB
+build/client/assets/markdown-CxEXFlAy.css                  2.35 kB │ gzip:  0.74 kB
+build/client/assets/calendar-B6w9V4uw.css                  2.49 kB │ gzip:  0.80 kB
+build/client/assets/diary-review-CAqBa5cJ.css              2.91 kB │ gzip:  0.88 kB
+build/client/assets/position-sizing-BcVh_jHp.css           3.36 kB │ gzip:  0.85 kB
+build/client/assets/admin-users-DpZ0uDmr.css               3.70 kB │ gzip:  0.95 kB
+build/client/assets/sec-filings-DZvVJmr8.css               4.99 kB │ gzip:  1.28 kB
+build/client/assets/market-research-DnPdCAeB.css           5.16 kB │ gzip:  1.28 kB
+build/client/assets/home-D_sZy6MO.css                      5.46 kB │ gzip:  1.18 kB
+build/client/assets/public-87d2hBvx.css                    5.48 kB │ gzip:  1.41 kB
+build/client/assets/market-rotation-B2DF2dNg.css           5.70 kB │ gzip:  1.43 kB
+build/client/assets/root-DH2tyNM_.css                     13.37 kB │ gzip:  3.39 kB
+build/client/assets/new-WuVQoGl7.js                        0.05 kB │ gzip:  0.07 kB
+build/client/assets/trade-plan-Bcr5USjd.js                 0.06 kB │ gzip:  0.08 kB
+build/client/assets/trade-plan-new-Bcr5USjd.js             0.06 kB │ gzip:  0.08 kB
+build/client/assets/blog-index-redirect-BZuiSnvc.js        0.09 kB │ gzip:  0.10 kB
+build/client/assets/blog-redirect-BZuiSnvc.js              0.09 kB │ gzip:  0.10 kB
+build/client/assets/sitemap-BZuiSnvc.js                    0.09 kB │ gzip:  0.10 kB
+build/client/assets/login-CtIAFQuC.js                      0.20 kB │ gzip:  0.16 kB
+build/client/assets/admin-blog-new-7c9uqnu6.js             0.20 kB │ gzip:  0.16 kB
+build/client/assets/register-I_QggViA.js                   0.21 kB │ gzip:  0.17 kB
+build/client/assets/calendar-date-QgHV1G74.js              0.22 kB │ gzip:  0.19 kB
+build/client/assets/admin-blog-edit-DXWuCoFz.js            0.22 kB │ gzip:  0.18 kB
+build/client/assets/jsx-runtime-BtqsFBTO.js                0.42 kB │ gzip:  0.29 kB
+build/client/assets/quick-B6SptAue.js                      0.46 kB │ gzip:  0.31 kB
+build/client/assets/diary-list-B5gfIyBa.js                 0.72 kB │ gzip:  0.38 kB
+build/client/assets/review-queue-dRoJiLpS.js               0.96 kB │ gzip:  0.47 kB
+build/client/assets/market-display-BZKctE4g.js             0.99 kB │ gzip:  0.49 kB
+build/client/assets/etf-C_SsE3Sb.js                        1.02 kB │ gzip:  0.43 kB
+build/client/assets/diary-edit-CqMDsDvC.js                 1.22 kB │ gzip:  0.68 kB
+build/client/assets/market-CrWDrZ8h.js                     1.25 kB │ gzip:  0.62 kB
+build/client/assets/partners-D-ySr4hr.js                   1.29 kB │ gzip:  0.62 kB
+build/client/assets/watchlist-BxS298-f.js                  1.32 kB │ gzip:  0.65 kB
+build/client/assets/article-Cqo3p1PJ.js                    1.55 kB │ gzip:  0.82 kB
+build/client/assets/diary-copy-po0Btsyw.js                 1.60 kB │ gzip:  0.84 kB
+build/client/assets/new-_X1AYMm4.js                        1.60 kB │ gzip:  0.80 kB
+build/client/assets/company-context-input-ViPgwQ3v.js      1.70 kB │ gzip:  1.04 kB
+build/client/assets/evidence-BZubmkxY.js                   1.73 kB │ gzip:  0.67 kB
+build/client/assets/discipline-share-BNKXWYiL.js           1.80 kB │ gzip:  0.92 kB
+build/client/assets/price-alerts-DbIwkoEN.js               2.03 kB │ gzip:  0.88 kB
+build/client/assets/investment-thesis-C6-zOHiM.js          2.32 kB │ gzip:  0.94 kB
+build/client/assets/review-scheduling-D2DTpgqU.js          2.40 kB │ gzip:  1.26 kB
+build/client/assets/portfolio-BbfVOZgr.js                  2.43 kB │ gzip:  0.89 kB
+build/client/assets/auth-form-Bxf1t25X.js                  2.44 kB │ gzip:  1.07 kB
+build/client/assets/articles-WaYj7xV5.js                   3.40 kB │ gzip:  1.48 kB
+build/client/assets/about-BNcSH14R.js                      3.43 kB │ gzip:  1.64 kB
+build/client/assets/trade-plan-copy-C8UtNVBN.js            3.44 kB │ gzip:  1.51 kB
+build/client/assets/trade-plans-Bz2genb9.js                3.78 kB │ gzip:  1.50 kB
+build/client/assets/preview-PyUpj3YH.js                    3.98 kB │ gzip:  1.09 kB
+build/client/assets/ledger-copy-DOG_W1oj.js                4.10 kB │ gzip:  1.96 kB
+build/client/assets/api-error-DSsU7f0p.js                  4.14 kB │ gzip:  2.21 kB
+build/client/assets/thesis-copy-BJ7yu3Hc.js                4.28 kB │ gzip:  1.81 kB
+build/client/assets/market-research-capture-DQTKIKoZ.js    4.64 kB │ gzip:  2.09 kB
+build/client/assets/alerts-CkyJ-2bu.js                     4.66 kB │ gzip:  2.09 kB
+build/client/assets/guide-D4uKjSN0.js                      4.69 kB │ gzip:  2.10 kB
+build/client/assets/partner-compare-BW5Kf9C-.js            4.83 kB │ gzip:  2.11 kB
+build/client/assets/reviews-BfG-R4fx.js                    4.95 kB │ gzip:  2.28 kB
+build/client/assets/etf-watchlist-DOEE5X4O.js              5.27 kB │ gzip:  2.38 kB
+build/client/assets/diary-CGv8T1cW.js                      5.28 kB │ gzip:  2.03 kB
+build/client/assets/watchlist-YMnoEtlU.js                  5.36 kB │ gzip:  2.35 kB
+build/client/assets/sec-filing-detail-ClVYaAKS.js          5.83 kB │ gzip:  2.27 kB
+build/client/assets/admin-post-BDC5CKZ-.js                 5.95 kB │ gzip:  2.49 kB
+build/client/assets/admin-blog-BCm60tSD.js                 6.11 kB │ gzip:  2.37 kB
+build/client/assets/account-security-ChczXroL.js           6.75 kB │ gzip:  2.61 kB
+build/client/assets/partners-CBK_zq3e.js                   6.94 kB │ gzip:  2.79 kB
+build/client/assets/trade-plan-Dt_L5m2t.js                 7.12 kB │ gzip:  2.62 kB
+build/client/assets/etf-admin-Cx7GPrGz.js                  7.25 kB │ gzip:  2.89 kB
+build/client/assets/thesis-DlHZ8N_x.js                     7.52 kB │ gzip:  2.64 kB
+build/client/assets/diary-list-BcJ4M6kE.js                 7.64 kB │ gzip:  2.99 kB
+build/client/assets/evidence-CrP0G42d.js                   7.73 kB │ gzip:  3.43 kB
+build/client/assets/settings-P3xux4Ac.js                   7.83 kB │ gzip:  2.96 kB
+build/client/assets/timeline-XTtk_ro4.js                   8.40 kB │ gzip:  3.49 kB
+build/client/assets/api-keys-PeRBPjFK.js                   8.66 kB │ gzip:  3.83 kB
+build/client/assets/market-policy-copy-CqqrQPX4.js         9.18 kB │ gzip:  3.00 kB
+build/client/assets/src-Cz_AcnGB.js                        9.56 kB │ gzip:  3.44 kB
+build/client/assets/calendar-CygysNbT.js                  10.33 kB │ gzip:  4.07 kB
+build/client/assets/lib-C83XrkCU.js                       11.07 kB │ gzip:  4.42 kB
+build/client/assets/price-alerts-nSMoy2P6.js              12.74 kB │ gzip:  4.72 kB
+build/client/assets/diary-review-D0gsQQjX.js              12.94 kB │ gzip:  4.82 kB
+build/client/assets/performance-X7saxspv.js               12.95 kB │ gzip:  4.95 kB
+build/client/assets/admin-users-D84eVZv4.js               13.28 kB │ gzip:  4.04 kB
+build/client/assets/sec-filings-DSYjdNTL.js               13.93 kB │ gzip:  4.66 kB
+build/client/assets/fire-Cr92a3QO.js                      14.58 kB │ gzip:  5.51 kB
+build/client/assets/diary-editor-C1kOVRCG.js              16.31 kB │ gzip:  5.59 kB
+build/client/assets/seasonality-Di5VMoaD.js               17.93 kB │ gzip:  6.82 kB
+build/client/assets/discipline-DQWNueYf.js                18.12 kB │ gzip:  6.62 kB
+build/client/assets/position-sizing-DlgGAOi2.js           18.64 kB │ gzip:  6.40 kB
+build/client/assets/relative-value-BrR18BBd.js            21.38 kB │ gzip:  7.20 kB
+build/client/assets/etf-research-UOVq20kG.js              24.21 kB │ gzip:  8.67 kB
+build/client/assets/quick-composer-CJHk_OpL.js            24.97 kB │ gzip:  8.82 kB
+build/client/assets/holdings-DW0j1JE4.js                  25.38 kB │ gzip:  7.81 kB
+build/client/assets/home-2ubJgbJr.js                      26.99 kB │ gzip:  8.40 kB
+build/client/assets/company-market-DOBGW-Bq.js            28.39 kB │ gzip:  9.22 kB
+build/client/assets/errorBoundaries-C5xFTlpQ.js           33.31 kB │ gzip: 11.62 kB
+build/client/assets/market-rotation-CqO5Ab69.js           36.70 kB │ gzip: 11.77 kB
+build/client/assets/root-Bpy5hP2G.js                      59.97 kB │ gzip: 18.97 kB
+build/client/assets/components-Cxhdjfip.js                85.61 kB │ gzip: 28.41 kB
+build/client/assets/ui-BCY-GFjb.js                       132.06 kB │ gzip: 39.43 kB
+build/client/assets/markdown-BBYguj_O.js                 154.41 kB │ gzip: 46.04 kB
+build/client/assets/entry.client-BIJRb_ZL.js             185.90 kB │ gzip: 58.64 kB
+
+✓ built in 688ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 187 modules transformed.
+rendering chunks...
+
+✓ 1 asset cleaned from React Router server build.
+build/server/assets/server-build-B_FYsbL3.css
+
+computing gzip size...
+build/server/.vite/manifest.json                 0.22 kB │ gzip:   0.15 kB
+build/server/assets/server-build-B_FYsbL3.css   75.93 kB │ gzip:  12.67 kB
+build/server/index.js                          994.64 kB │ gzip: 223.73 kB
+
+✓ built in 601ms

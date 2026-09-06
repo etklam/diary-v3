@@ -1,0 +1,20 @@
+import { chromium } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
+const phase=process.argv[2]??'before';
+const dir=`docs/design/evidence/ui-consistency/${phase}`;await mkdir(dir,{recursive:true});
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const context=await browser.newContext({baseURL:'http://127.0.0.1:3300',extraHTTPHeaders:{'x-e2e-test-id':`ui-${Date.now()}`}});
+await context.addInitScript(({theme})=>{localStorage.setItem('diary-theme',theme)}, {theme:phase.includes('dark')?'dark':'light'});
+await context.route('**/api/**',async route=>{const url=new URL(route.request().url());url.port='3201';const response=await route.fetch({url:url.href});await route.fulfill({response})});
+const email=`ui-${Date.now()}@example.test`,password='synthetic-ui-password';
+await context.request.post('http://127.0.0.1:3201/api/auth/register',{data:{email,password}});
+await context.request.post('http://127.0.0.1:3201/api/auth/login',{data:{email,password}});
+await context.request.get('http://127.0.0.1:3201/api/auth/me');
+const csrf=(await context.cookies()).find(c=>c.name==='csrf-token')?.value;
+if(phase.includes('english'))await context.request.put('http://127.0.0.1:3201/api/user/settings',{headers:{'x-csrf-token':csrf},data:{locale:'en'}});
+const seedResponse=await context.request.post('http://127.0.0.1:3201/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:'2026-09-05',title:'Synthetic decision record',content:'Review demand evidence before adding exposure.',transactions:[...['AAPL','LOSS','ZERO','UNKNOWN'].map((symbol,i)=>({symbol,type:'BUY',quantity:'2',price:['100','120','110','100'][i],tradeDate:'2026-09-05T00:00:00Z'})),...['AAPL','LOSS'].map((symbol,i)=>({symbol,type:'SELL',quantity:'1',price:['120','100'][i],tradeDate:'2026-09-05T01:00:00Z'}))]}});
+if(seedResponse.status()!==201)throw new Error(await seedResponse.text());const page=await context.newPage();const assets=[],errors=[],failedResponses=[];
+page.on('response',r=>{if(r.status()>=400)failedResponses.push({url:r.url(),status:r.status()});if(/\/assets\/.*\.(css|js)(\?|$)/.test(r.url()))assets.push({url:r.url(),status:r.status(),type:r.headers()['content-type']})});page.on('pageerror',e=>errors.push(e.message));
+page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});const checks=[];
+for(const width of (phase.includes('dark')?[1440,390]:phase==='before-extra'?[1440,390]:[1440,768,390])){await page.setViewportSize({width,height:900});for(const [name,path] of (phase.startsWith('after-meter')?[['portfolio','/stocks']]:phase==='before-extra'?[['performance','/strategy-performance'],['rotation','/tools/market-rotation']]:[['overview','/'],['editor','/diaries/new'],['portfolio','/stocks'],['company','/stocks/AAPL'],['seasonality','/tools/seasonality'],['performance','/strategy-performance'],['rotation','/tools/market-rotation']])){await page.goto(path);await page.waitForTimeout(700);if(await page.locator('.boundary').count())throw new Error('Page error boundary: '+path);await page.screenshot({path:`${dir}/${name}-${width}.png`,fullPage:true});await page.screenshot({path:`${dir}/${name}-${width}-viewport.png`});if(phase.startsWith('after-meter'))await page.locator('.portfolio-exposure').filter({has:page.locator('meter')}).screenshot({path:`${dir}/exposure-${width}.png`});checks.push({name,width,path:page.url(),...await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,preferencesVisible:!!document.querySelector('.desktop-preferences')?.getBoundingClientRect().height,mainPadding:getComputedStyle(document.querySelector('main')??document.body).padding,canvas:getComputedStyle(document.documentElement).backgroundColor}))})}}
+await writeFile(`${dir}/checks.json`,JSON.stringify({assets,errors,failedResponses,checks},null,2));console.log(JSON.stringify({assets:assets.length,badAssets:assets.filter(x=>x.status!==200),errors,failedResponses,checks},null,2));await browser.close();
