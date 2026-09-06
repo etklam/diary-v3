@@ -27,7 +27,7 @@ jobs:
           archive=/tmp/docker-27.5.1.tgz
           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz -o "$archive"
           echo "$DOCKER_CLI_SHA256  $archive" | sha256sum -c -
-          tar xz --strip-components=1 -C /usr/bin docker/docker
+          tar xz --strip-components=1 -C /usr/bin docker/docker < "$archive"
 
       - name: Checkout
         uses: actions/checkout@v4
