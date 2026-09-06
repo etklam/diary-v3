@@ -202,11 +202,11 @@ jobs:
           ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/seed-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
 
           # App manifests carry digest-pinned images and the API migrate init container.
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/02-api.yaml > /tmp/diary-v3-release/api.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/03-web.yaml > /tmp/diary-v3-release/web.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/05-market-cron.yaml > /tmp/diary-v3-release/market-cron.yaml
-          scp $SSH_OPTS /tmp/diary-v3-release/api.yaml /tmp/diary-v3-release/web.yaml /tmp/diary-v3-release/market-cron.yaml $REMOTE:/tmp/diary-v3-release/
-          ssh $SSH_OPTS $REMOTE "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/api.yaml && kubectl apply -f /tmp/diary-v3-release/web.yaml && kubectl apply -f /tmp/diary-v3-release/market-cron.yaml"
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/02-api.yaml > /tmp/diary-v3-api.yaml
+          sed -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_D|" ops/k8s/production/03-web.yaml > /tmp/diary-v3-web.yaml
+          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_D|" ops/k8s/production/05-market-cron.yaml > /tmp/diary-v3-market-cron.yaml
+          scp $SSH_OPTS /tmp/diary-v3-api.yaml /tmp/diary-v3-web.yaml /tmp/diary-v3-market-cron.yaml $REMOTE:/tmp/diary-v3-release/
+          ssh $SSH_OPTS $REMOTE "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/diary-v3-api.yaml && kubectl apply -f /tmp/diary-v3-release/diary-v3-web.yaml && kubectl apply -f /tmp/diary-v3-release/diary-v3-market-cron.yaml"
 
           ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-api deployment/diary-v3-web --replicas=1 && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"
 
