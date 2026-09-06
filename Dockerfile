@@ -40,5 +40,8 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/apps/web/build ./apps/web/build
 USER node
 EXPOSE 3000
+# react-router-serve resolves the build's relative "build/client" assets dir
+# against the process CWD, so the web stage must run from apps/web.
+WORKDIR /app/apps/web
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "node_modules/@react-router/serve/bin.cjs", "apps/web/build/server/index.js"]
+CMD ["node", "../../node_modules/@react-router/serve/bin.cjs", "./build/server/index.js"]
