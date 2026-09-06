@@ -4,28 +4,44 @@ description: Neutral visual system and responsive layout rules for the investmen
 colors:
   canvas: "#f6f7f8"
   surface: "#fff"
+  surface-raised: "#fff"
   muted-surface: "#eef0f2"
   text: "#20242a"
   muted: "#59616c"
   border: "#d5d9df"
+  border-strong: "#b9c0c9"
   control: "#7b8491"
   action: "#2459b8"
+  action-strong: "#1d4a9c"
   on-action: "#fff"
   selected: "#e5e8ed"
   negative: "#b62e3c"
   focus: "#2459b8"
+  tint-info: "rgb(79 117 194 / 0.12)"
+  tint-info-text: "#2c4f92"
+  tint-warn: "rgb(162 112 31 / 0.13)"
+  tint-warn-text: "#7a5312"
+  tint-neutral: "rgb(89 97 108 / 0.1)"
   dark-canvas: "#17191d"
   dark-surface: "#202329"
+  dark-surface-raised: "#24282f"
   dark-muted-surface: "#292d34"
   dark-text: "#edf0f4"
   dark-muted: "#b1b8c3"
   dark-border: "#454c57"
+  dark-border-strong: "#5a626e"
   dark-control: "#858f9e"
   dark-action: "#9bbcff"
+  dark-action-strong: "#bcd4ff"
   dark-on-action: "#10234a"
   dark-selected: "#343a44"
   dark-negative: "#ff939c"
   dark-focus: "#9bbcff"
+  dark-tint-info: "rgb(155 188 255 / 0.14)"
+  dark-tint-info-text: "#b9d2ff"
+  dark-tint-warn: "rgb(228 188 119 / 0.14)"
+  dark-tint-warn-text: "#eccf9b"
+  dark-tint-neutral: "rgb(177 184 195 / 0.14)"
   market-up: "#167044"
   market-down: "#b62e3c"
   market-flat: "#59616c"
@@ -34,6 +50,8 @@ colors:
   dark-market-flat: "#b1b8c3"
   series-1: "#4f75c2"
   series-2: "#785ca8"
+  series-3: "#a2701f"
+  dark-series-3: "#e4bc77"
 typography:
   headline:
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang TC\", \"Microsoft JhengHei\", sans-serif"
@@ -61,8 +79,15 @@ typography:
     fontWeight: 400
     lineHeight: 1.85
 rounded:
-  control: "4px"
+  control: "6px"
+  card: "10px"
+  pill: "999px"
   container: "8px"
+shadows:
+  shadow-1: "0 1px 2px rgb(18 22 30 / 0.05)"
+  shadow-2: "0 1px 2px rgb(18 22 30 / 0.05), 0 4px 14px rgb(18 22 30 / 0.06)"
+  dark-shadow-1: "0 1px 2px rgb(0 0 0 / 0.35)"
+  dark-shadow-2: "0 1px 2px rgb(0 0 0 / 0.35), 0 4px 14px rgb(0 0 0 / 0.3)"
 spacing:
   space-1: "4px"
   space-2: "8px"
@@ -101,12 +126,14 @@ components:
 
 Neutral gray canvas, white surfaces, and dark graphite text organize dates, judgments, and later reflections. The main workspace builds order through headings, dividers, and whitespace; the diary reading area lowers density so the original text stays reviewable. This is a direction name the agent adopted under the user's delegated design authority, not a confirmed external brand commitment.
 
-This record is based on `apps/web/app/styles.css` and the existing React components, covering the initial web flows and the design preview. Sign-up, sign-in, creating and reading diaries, and the API-connected quick capture in the preview are implemented; Overview/Company/Review remain clearly labeled synthetic representative screens. No claim is made that full business modules or a React Native app are complete.
+> Superseding note (2026-09-07, delegated design authority): the user approved a visual upgrade with more layering and product polish. The former "Flat Surface Rule" (no shadows anywhere) and the 4px/8px radius record are superseded by the `shadow-1`/`shadow-2` tokens, the `--radius-control` (6px) / `--radius-card` (10px) / `--radius-pill` tokens, and raised card surfaces. Everything else in the earlier record that is not restated here remains in force: semantic theme swapping, financial color isolation, gutter ownership, and reading-density rules.
+
+This record is based on `apps/web/app/styles.css`, `public.css`, and the existing React components. All public pages, public Tools, the private workspace, and the mobile web/PWA shell are implemented against real APIs; Overview sections show only real account data. No claim is made that a React Native app exists.
 
 **Key Characteristics:**
 
-- Flat workspace, grouped by dividers and neutral gray surfaces.
-- Blue interaction accents; text explains status and data gaps.
+- Layered workspace: canvas, surface cards with hairline borders and one-step shadows, and muted context surfaces.
+- Blue interaction accents; tinted badges (info/warn/neutral) for categories and status; text still explains status and data gaps.
 - Working and reading density kept separate, with long text wrapping naturally.
 - The same neutral and semantic color roles support light, dark, and system themes.
 
@@ -134,31 +161,35 @@ Reading body uses the reading line height and preserves line breaks and whitespa
 
 ## Layout
 
-The desktop shell is a 216px sidebar with a collapsible main content area; the sidebar is sticky, full viewport height, with 32px 20px padding. Main content is the sole workspace owner of the page gutter, using 24px vertical spacing and responsive horizontal gutters: 16px on phones, 24px on tablets, and 32px on wide desktop. Data pages cap at 1280px, while reading and editor pages use about 880px or 72ch. Below 1099px the sidebar is 180px and the two-column preview collapses to one column.
+The desktop shell is a 216px sidebar with a collapsible main content area; the sidebar is sticky, full viewport height. Main content is the sole workspace owner of the page gutter, using 24px vertical spacing and responsive horizontal gutters: 16px on phones, 24px on tablets, and 32px on wide desktop. Data pages cap at 1280px, while reading and editor pages use about 880px or 72ch. Below 1099px the sidebar is 180px and the two-column preview collapses to one column.
 
-Below 768px the sidebar becomes top navigation: the brand and menu trigger share one row, while the language and theme controls live in the Menu dialog. Main content keeps the same 16px page gutter. The desktop preferences and quick-entry trigger are hidden at this size, but the menu preferences and keyboard quick-entry dialog remain available. This is the scoped adaptation for the current shell; the deck's mobile bottom navigation and full module list are not built.
+Sidebar navigation is grouped under small uppercase headings; every item carries an icon from the single `icons.tsx` family (24px grid, 1.7 stroke, `currentColor`). The active item is a raised surface pill (surface background, hairline border, `shadow-1`) with the icon in the action color; hover uses a neutral tint. The brand block pairs the rounded brand mark with the wordmark and the "投資決策日記" subline.
 
-The work preview uses a two-column layout only when the available width supports it; its secondary column has a 240px minimum and collapses before tablet content becomes cramped. Agenda groups use a top divider and the 24px section gap. The editor maxes at 880px, sign-in/sign-up forms at 440px, with a 20px form gap. Shared `--space-1` through `--space-8`, `--section-gap`, and `--page-gutter` tokens cover repeated spacing.
+Below 768px the sidebar becomes a sticky top app bar: brand and menu trigger share one row, language and theme controls live in the Menu dialog, and the bar respects `env(safe-area-inset-top)`. Main content keeps the same 16px page gutter. The desktop preferences and quick-entry trigger are hidden at this size, but the menu preferences and keyboard quick-entry dialog remain available.
+
+The public shell has a sticky surface header (brand mark, primary nav, sign-in/registration pair, preference selects) and a shared footer with real links only (Start, Tools, Articles, Guide, About, Sign in, Create account). The `/tools` index and every `/tools/*` route render inside the 1280px page wrapper — including `.rotation-page`, which previously missed the gutter and is now fixed.
+
+Overview and the public Tools build from shared primitives: `.card` (raised surface), `.section-head`, `.stat`/`.stat-value`, `.badge` with `info`/`warn`/`up`/`down` variants, `.toolbar` for filter rows, and `.empty-state`. Tool pages share one `ToolShell` header (breadcrumb `工具 / 分類`, icon tile, title, lede, optional actions) fed by a single tool registry in `tool-shell.tsx` that also renders the tools index and the home exploration grid.
 
 Wide tables live in named, horizontally scrolling regions with page-specific minimum widths. Mobile keeps all columns inside those regions; the page itself does not widen to fit a table.
 
 ## Elevation & Depth
 
-There are currently no box shadows in the workspace. Forms are distinguished by surface, thin borders, and rounding; background context areas by muted-surface. The native modal isolates the background with a neutral graphite scrim and does not apply the deck's unimplemented shadow.
+Elevation is deliberately quiet: `shadow-1` (a one-step hairline shadow) sits on standard cards, tables, secondary buttons, and the sticky shells; `shadow-2` is reserved for the hero preview and card hover. The dark theme switches to higher-alpha black shadows because borders alone cannot separate graphite surfaces. Contextual background areas still use muted-surface without shadows, and the native modal isolates the background with a neutral graphite scrim.
 
-**The Flat Surface Rule.** Build working hierarchy from backgrounds and dividers, and keep the current shadow-free look for components.
+**The Layered Surface Rule (supersedes the Flat Surface Rule).** Hierarchy comes from canvas → surface cards → muted context areas, hairline borders, and restrained shadows — never from large blurs, glows, or floating panels. Nothing else on the page lifts on hover except `.tool-card` (1px translate).
 
-No entrance animations or general transitions are set; the reduced-motion rules disable transitions, animations, and smooth scrolling. Do not record the deck's 160ms motion as an implemented token.
+No entrance animations exist; the only motion is the tool-card hover transition, which the reduced-motion rules disable along with transitions, animations, and smooth scrolling.
 
 ## Shapes
 
-Controls and navigation use the control radius; the editor frame and desktop dialogs use the container radius. General dividers and control borders are 1px. Research context areas keep square corners; the mobile full-viewport dialog has no border and no radius. There is no implemented chip/badge component library.
+Controls and inputs use the 6px control radius; cards, panels, dialogs, and the tool icon tile use the 10px card radius; badges and the allocation bar use the pill radius. General dividers and control borders are 1px. The mobile full-viewport dialog keeps no border and no radius.
 
 ## Components
 
 ### Buttons
 
-Primary buttons are solid action; secondary buttons are surface with a control border. Both have a 44px minimum height, 600 font weight, and 1.4 line height. Hover brightness is .94; disabled is .6 opacity with a waiting cursor. Keyboard focus is a 2px focus outline with a 3px offset. The existing components have no quiet/danger variants.
+Primary buttons are solid action; secondary buttons are surface with a strong border and `shadow-1` (their hover strengthens the border). Both have a 44px minimum height, 600 font weight, 1.4 line height, and an inline icon slot with a 8px gap. Hover dims primaries with brightness .94; disabled is .6 opacity with a waiting cursor. Keyboard focus is a 2px focus outline with a 3px offset. `.button-compact` (36px) exists for toolbars and dense rows; the existing components still have no quiet/danger variants.
 
 ### Inputs / Fields
 
@@ -168,17 +199,21 @@ Fields have a visible label, a control border, and a surface background, with a 
 
 There are just two main entries: "Start" and "Write diary". The item matching the route gets `aria-current=page`, a selected background, and 650 font weight. The diary detail page has no invented "current list" page. The skip link appears on focus; a pathname change moves focus to main, and main has a 4px inset keyboard outline. The preview's three toggle buttons use `aria-pressed`; they are not full business navigation.
 
+### Containers, cards and status primitives
+
+`.card` is the standard raised surface (surface background, hairline border, card radius, `shadow-1`, 24px padding) used by Overview sections, tool panels, research sections, filter toolbars, and table containers. `.section-head` keeps titles, icons, and "view all" actions on one baseline. `.stat` pairs a muted label with a 22px tabular-nums figure. `.badge` variants are bounded: neutral tint for categories, `info` tint for informational status, `warn` tint for needs-attention, and `up`/`down` reserved strictly for financial direction. `.empty-state` renders a dashed-border quiet block; loading stays a text status. `.table-scroll` and equivalent page-level wraps are now bordered, rounded surface containers with a muted header row — data still scrolls horizontally inside them.
+
 ### Containers and reading
 
 The editor aligns its header and form to the shared workspace gutter; the form itself does not add a second page frame. The footer separates save status from actions with a divider. On the reading page the date precedes the title, header/footer use thin rules, and the body keeps 72ch and original line breaks. Body content renders as safe Markdown/GFM — raw HTML is rejected and unsafe URLs are stripped. The editor offers a preview, a separate tags field, and the original thesis/risk/execution fields; failed submissions keep the input.
 
 ### Quick Diary
 
-The native dialog is `min(680px, calc(100% - 32px))` wide on desktop, at most `calc(100dvh - 48px)` tall, with 24px padding; on mobile it is full viewport height with 16px padding. The footer sticks to the bottom edge of the dialog and gains safe-area on mobile. Opening moves focus to the text area; Escape closes and returns focus to the trigger. It reuses the real create-diary form; this representative entry lives in the design preview and is not a finished global shortcut, template, follow-on entry, or unsaved-changes confirmation.
+The native dialog is `min(680px, calc(100% - 32px))` wide on desktop, at most `calc(100dvh - 48px)` tall, with 24px padding; on mobile it is full viewport height with 16px padding. The footer sticks to the bottom edge of the dialog and gains safe-area on mobile. On the full `/diaries/quick` page the submit button is sticky at the viewport bottom on phones — it keeps its own layout slot with a surface background and an upward shadow, so it never covers content that cannot be scrolled past. Opening moves focus to the text area; Escape closes and returns focus to the trigger. It reuses the real create-diary form; date and save-mode stay side by side on phones.
 
 ### First representatives and preferences
 
-Overview leads with pending items and recent theses, then research context; Company separates current views from follow-up evidence; Review separates the original judgment from later reflection, and the narrow layout reads original → retrospective. All three keep synthetic-data labels and explicit missing-quote text, and empty states can be toggled in the preview; missing quotes are never shown as 0.
+Overview leads with pending items and recent theses, then research context; Company separates current views from follow-up evidence; Review separates the original judgment from later reflection, and the narrow layout reads original → retrospective. Overview sections are raised cards in a 2:1 grid with icon-led section headers; portfolio figures render as stat tiles, the account date is a pill beside the title, and the quick-diary CTA carries a zap icon. All sections keep real data and explicit missing-quote text; missing quotes are never shown as 0.
 
 The language menu supports zh-TW/zh-CN/en and the theme menu supports light/dark/system. When signed in, language is restored and saved through account settings, and the menu is disabled while loading so a stored value is not overwritten; guest language and theme stay local, the theme is read early in head so a stored theme is not applied late, and locale updates html.lang. Main interface copy uses full translation keys and the preview's fixed sample dates stay visible; the route boundary currently falls back to bilingual Chinese/English and the table Symbol header is fixed text — do not misrecord these as full trilingual coverage.
 
@@ -186,7 +221,7 @@ The language menu supports zh-TW/zh-CN/en and the theme menu supports light/dark
 
 ### Public Tools and private workspace
 
-The `/tools` index and confirmed `/tools/*` routes use the public shell: neutral canvas, shared page gutter and container rules, and no private reminders, diary controls, holdings, or settings requests. Public calculations and research remain fully interactive for guests. Private actions are separated visually and use direct copy such as “Sign in to save”; they preserve local inputs and return to the same safe in-site tool path after sign-in. Green and red remain reserved for market direction, not page backgrounds.
+The `/tools` index and confirmed `/tools/*` routes use the public shell: sticky surface header, neutral canvas, shared page gutter and container rules, a real-link footer, and no private reminders, diary controls, holdings, or settings requests. The index is a grouped icon-card grid (calculators, then research); the home page renders the same cards as a "start with the tools" exploration grid. Every tool page opens with the shared `ToolShell` breadcrumb and icon-tile header; calculators keep left inputs / right results on desktop and stack input → results → actions on mobile, with the position-sizing total as a large figure above a real ratio allocation bar. Public calculations and research remain fully interactive for guests. Private actions stay secondary and use direct copy such as "Sign in to save"; they preserve local inputs and return to the same safe in-site tool path after sign-in. Green and red remain reserved for market direction, not page backgrounds. The home hero pairs the headline with a synthetic interface preview explicitly labeled 介面示意 with a `SYN` ticker and synthetic note — no fabricated user counts, market events, or unreachable buttons.
 
 ### Implemented account security and FIRE surfaces
 
@@ -204,7 +239,7 @@ Mobile navigation has its own row and can wrap, so new entries do not crowd the 
 ### Don't:
 
 - **Don't** claim unimplemented interactions from the preview templates or the deck as finished product features.
-- **Don't** turn every background context area into shadowed cards, breaking the existing flat hierarchy.
+- **Don't** stack decorative shadows, glows, or floating panels on top of the quiet card elevation; muted context areas stay flat.
 - **Don't** replace status text with color alone.
 - **Don't** fill screens with missing quotes shown as 0 or unlabeled sample account data.
 
