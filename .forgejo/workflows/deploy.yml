@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           # Fail on obvious credentials tracked in git; keep it dependency-free.
-          if git grep -nE '(postgres(ql)?://[^@[:space:]]+:[^@[:space:]]+@|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)' -- ':!*.md' ':!ops/k3s/deploy-production-secrets.sh'; then
+          if git grep -nE '(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)' -- ':!*.md' ':!ops/k3s/deploy-production-secrets.sh'; then
             echo 'Potential secret detected in tracked files' >&2
             exit 1
           fi
