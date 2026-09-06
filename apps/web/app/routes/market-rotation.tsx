@@ -7,6 +7,7 @@ import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { localizeAllocationMode, localizePolicyExplanation, localizePolicyWarning } from '../market-policy-copy';
 import { formatMarketValue, marketClass, marketDirection } from '../market-display';
+import { ToolShell, toolByHref } from '../tool-shell';
 import './market-rotation.css';
 
 const copy = {
@@ -843,10 +844,12 @@ export default function MarketRotation() {
   }
 
   return <section className="rotation-page">
-    <header className="rotation-header">
-      <div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div>
-      <label>{c.scope}<select aria-label={c.scope} value={scope} onChange={event => changeScope(event.target.value as Scope)}>{scopes.map(value => <option key={value} value={value}>{c[value]}</option>)}</select></label>
-    </header>
+    <ToolShell
+      tool={toolByHref('/tools/market-rotation')}
+      title={c.title}
+      intro={c.intro}
+      actions={<label>{c.scope}<select aria-label={c.scope} value={scope} onChange={event => changeScope(event.target.value as Scope)}>{scopes.map(value => <option key={value} value={value}>{c[value]}</option>)}</select></label>}
+    />
     {error ? error.code === 'SYS_NOT_FOUND' ? <><p role="status">{c.empty}</p><button onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : <><FailureNotice failure={error}/><button onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
       <section className="rotation-meta" aria-label={c.asOf}>
         <p><span>{c.asOf}</span> <time dateTime={data.asOfDate}>{date(locale, data.asOfDate)}</time></p>

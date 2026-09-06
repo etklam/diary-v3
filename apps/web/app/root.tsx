@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, NavLink, useLocation, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router';
 import { clearPrivateSession, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
+import { BrandMark } from './icons';
 import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
@@ -56,25 +57,39 @@ function Shell() {
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">
       <header className="public-header">
-        <Link className="brand" to="/">diary-v3<span>{t('workspace')}</span></Link>
+        <Link className="brand" to="/"><BrandMark /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></Link>
         <nav aria-label={t('navigation')}>
           <NavLink to="/" end>{t('home')}</NavLink>
+          <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
+          <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
           <NavLink to="/guide">{locale==='en'?'Guide':locale==='zh-CN'?'使用说明':'使用說明'}</NavLink>
           <NavLink to="/about">{locale==='en'?'About':locale==='zh-CN'?'关于':'關於'}</NavLink>
-          <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
-          <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
         </nav>
         <div className="public-actions"><Link className="button secondary" to="/login">{t('login')}</Link><Link className="button" to="/register">{t('register')}</Link></div>
         <div className="public-preferences">{preferences}</div>
       </header>
       <main id="main" tabIndex={-1}><PwaStatus/><Outlet key={session.revision} /></main>
+      <footer className="public-footer">
+        <div className="public-footer-inner">
+          <div className="public-footer-brand"><BrandMark size={24} /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></div>
+          <nav aria-label={t('navigation')}>
+            <NavLink to="/" end>{t('home')}</NavLink>
+            <NavLink to="/tools">{locale==='en'?'Tools':'工具'}</NavLink>
+            <NavLink to="/articles">{locale==='en'?'Articles':'文章'}</NavLink>
+            <NavLink to="/guide">{locale==='en'?'Guide':locale==='zh-CN'?'使用说明':'使用說明'}</NavLink>
+            <NavLink to="/about">{locale==='en'?'About':locale==='zh-CN'?'关于':'關於'}</NavLink>
+            <NavLink to="/login">{t('login')}</NavLink>
+            <NavLink to="/register">{t('register')}</NavLink>
+          </nav>
+        </div>
+      </footer>
     </div>
   </>;
   return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="desktop-shell-header"><Link className="brand" to="/">diary-v3<span>{t('workspace')}</span></Link></div>
+        <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name">diary-v3</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
         <div className="desktop-quick-entry"><QuickEntry/></div>
         <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
         <div className="desktop-preferences">

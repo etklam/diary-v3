@@ -4,6 +4,7 @@ import { alignRelativeRatioHistory, calculateRelativeValue, generateRelativePric
 import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { MarketResearchCapture } from '../market-research-capture'
+import { ToolShell, toolByHref } from '../tool-shell'
 import '../market-research.css'
 
 type Locale = 'en' | 'zh-TW' | 'zh-CN'
@@ -187,7 +188,7 @@ export default function RelativeValue() {
   }
 
   return <section className="market-research-page">
-    <header className="market-research-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><button type="button" className="secondary" onClick={() => void copyMarkdown()} disabled={!markdown}>{copyState === 'copied' ? c.copied : copyState === 'failed' ? c.copyFailed : c.copy}</button></header>{copyFallback && <textarea readOnly className="market-research-copy-fallback" aria-label={c.copyFailed} value={copyFallback} />}
+    <ToolShell tool={toolByHref('/tools/relative-value')} title={c.title} intro={c.intro} actions={<button type="button" className="secondary" onClick={() => void copyMarkdown()} disabled={!markdown}>{copyState === 'copied' ? c.copied : copyState === 'failed' ? c.copyFailed : c.copy}</button>} />{copyFallback && <textarea readOnly className="market-research-copy-fallback" aria-label={c.copyFailed} value={copyFallback} />}
     <form className="market-research-section" onSubmit={submit}>
       <div className="market-research-inputs">
         <div className="market-research-pair"><label>{c.primary} · {c.symbol}<input value={primarySymbol} onChange={event => setPrimarySymbol(event.target.value)} maxLength={32} spellCheck={false} autoCapitalize="characters" aria-label={`${c.primary} ${c.symbol}`} /></label><label>{c.primary} · {c.price}<input value={primaryPrice} onChange={event => { setPrimaryPrice(event.target.value); setPrimaryOrigin('manual') }} inputMode="decimal" aria-label={`${c.primary} ${c.price}`} /></label><button type="button" className="secondary" onClick={() => void fetchQuote('primary', primarySymbol)} disabled={primaryQuote.pending}>{primaryQuote.pending ? t('loading') : c.fetch}</button>{primaryQuote.error && <FailureNotice failure={primaryQuote.error} id="relative-primary-quote-error" />}</div>

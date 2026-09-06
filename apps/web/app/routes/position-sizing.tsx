@@ -5,6 +5,7 @@ import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath, useSessionState } from '../session'
 import { positionSizingCopy } from '../position-sizing-copy'
+import { ToolShell, toolByHref } from '../tool-shell'
 import '../position-sizing.css'
 
 const initialValues = { capital: '', price: '', reserve: '0', symbol: '', context: '' }
@@ -130,10 +131,7 @@ export default function PositionSizing() {
   }
 
   return <section className="position-sizing-page">
-    <header>
-      <h1>{copy.title}</h1>
-      <p className="lede">{copy.intro}</p>
-    </header>
+    <ToolShell tool={toolByHref('/tools/position-sizing')} title={copy.title} intro={copy.intro} />
     <div className="position-sizing-grid">
       <section className="position-sizing-panel" aria-labelledby="position-sizing-inputs">
         <h2 id="position-sizing-inputs">{copy.inputs}</h2>
@@ -152,6 +150,9 @@ export default function PositionSizing() {
         <h2 id="position-sizing-results">{copy.results}</h2>
         {!summary ? <p className={showInvalid ? 'position-sizing-error' : 'muted'} data-testid={showInvalid ? 'position-sizing-invalid' : 'position-sizing-hint'}>{showInvalid ? copy.invalid : copy.calculateHint}</p> : <>
           <dl className="position-sizing-total"><dt>{copy.invested}</dt><dd data-testid="position-sizing-invested">{money(summary.totalInvested)}</dd></dl>
+          <div className="position-sizing-allocation" role="img" aria-label={copy.strategy}>
+            {output!.results.map((row, index) => <span key={`${row.ratio}-${index}`} className={`allocation-segment allocation-series-${index % 3 + 1}`} style={{ inlineSize: `${row.ratio}%` }} title={`${row.ratio}%`} />)}
+          </div>
           <dl className="position-sizing-summary"><div><dt>{copy.shares}</dt><dd data-testid="position-sizing-shares">{shares(summary.totalShares)}</dd></div><div><dt>{copy.averagePrice}</dt><dd>{money(summary.avgPrice)}</dd></div><div><dt>{copy.utilization}</dt><dd>{money(summary.utilizationRate)}%</dd></div></dl>
           <dl className="position-sizing-cash"><div><dt>{copy.reserveCash}</dt><dd data-testid="position-sizing-reserved">{money(summary.reservedCash)}</dd></div><div><dt>{copy.unallocatedCash}</dt><dd data-testid="position-sizing-unallocated">{money(summary.unallocatedCash)}</dd></div><div><dt>{copy.remainingCash}</dt><dd data-testid="position-sizing-remaining">{money(summary.totalRemainingCash)}</dd></div></dl>
           {summary.isOverBudget && <p className="position-sizing-overbudget" data-testid="position-sizing-overbudget">{copy.overBudget}: {money(summary.overBudgetAmount)}</p>}

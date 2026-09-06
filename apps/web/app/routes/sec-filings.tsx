@@ -4,6 +4,7 @@ import { secCompanySearchResultSchema, secFilingPageSchema, type SecCompanySearc
 import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { MarketResearchCapture } from '../market-research-capture'
+import { ToolShell, toolByHref } from '../tool-shell'
 import './sec-filings.css'
 
 const copy = {
@@ -102,7 +103,7 @@ export default function SecFilings() {
   const retry = () => selectedCompany ? void loadFilings(selectedCompany, filters, cursors.current[pageIndex.current]) : void search()
 
   return <section className="sec-filings-page">
-    <header className="sec-filings-header"><div><p className="sec-filings-kicker">{c.kicker}</p><h1>{c.title}</h1><p className="lede">{c.subtitle}</p></div><form className="sec-company-search" onSubmit={search}><label htmlFor="sec-company-query">{c.search}</label><div><input id="sec-company-query" value={query} onChange={event => setQuery(event.target.value)} maxLength={120} required spellCheck={false} /><button type="submit" disabled={pending}>{pending ? '…' : c.searchAction}</button></div></form></header>
+    <ToolShell tool={toolByHref('/tools/sec-filings')} title={c.title} intro={c.subtitle} actions={<form className="sec-company-search" onSubmit={search}><label htmlFor="sec-company-query">{c.search}</label><div><input id="sec-company-query" value={query} onChange={event => setQuery(event.target.value)} maxLength={120} required spellCheck={false} /><button type="submit" disabled={pending}>{pending ? '…' : c.searchAction}</button></div></form>} />
     {stale && <p className="sec-filings-stale" role="status">{c.stale}</p>}
     {error && <><FailureNotice failure={failureFor(error, c.failed)} id="sec-filings-error" /><button type="button" className="secondary" onClick={retry}>{c.retry}</button></>}
     {companies.length > 0 && !selectedCompany && <section className="sec-filings-section" aria-labelledby="sec-company-results"><h2 id="sec-company-results">{c.results}</h2><div className="sec-company-results">{companies.map(company => <button type="button" className="sec-company-result" key={company.cik} onClick={() => selectCompany(company)}><strong>{company.name}</strong><span>{company.tickers.join(', ') || '—'} · {c.cik} {company.cik}</span></button>)}</div></section>}

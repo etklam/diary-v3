@@ -2,16 +2,6 @@
   max-width: 1280px;
 }
 
-.sec-filings-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
-  align-items: end;
-  gap: var(--space-8);
-  padding-bottom: var(--space-7);
-  border-bottom: 1px solid var(--border);
-}
-
-.sec-filings-header h1,
 .sec-detail-header h1 {
   margin: var(--space-2) 0 0;
   font-size: clamp(2rem, 4vw, 3rem);
@@ -291,11 +281,6 @@
 }
 
 @media (max-width: 900px) {
-  .sec-filings-header {
-    grid-template-columns: 1fr;
-    gap: var(--space-5);
-  }
-
   .sec-filings-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
