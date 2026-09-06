@@ -1,6 +1,6 @@
 # diary-v3
 
-Use Traditional Chinese for user-facing updates. Read PLAN.md, PRODUCT.md and the active PRD before changing behavior. The diary-vue source is read-only; parity must use the recorded sanitized source baseline. Never use real user data or production services in tests.
+Use Traditional Chinese for user-facing updates. Write all code comments and documentation (README, PLAN, PRODUCT, DESIGN, docs/) in English — this includes every new or edited comment and doc; Chinese stays only in product i18n copy, test fixtures and parity evidence data. Read PLAN.md, PRODUCT.md and the active PRD before changing behavior. The diary-vue source is read-only; parity must use the recorded sanitized source baseline. Never use real user data or production services in tests.
 
 ## Collaboration
 

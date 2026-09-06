@@ -14,7 +14,7 @@ Email lookup and uniqueness are case-insensitive, matching the legacy database. 
 
 ## User clarification
 
-「舊有既bug和tech debt 順手fix左佢，唔需要死跟。」Feature parity means preserving intended capabilities and valid business rules. Proven bugs and unnecessary coupling should be corrected with targeted regression tests. Legacy fixtures describe observations, not an obligation to recreate defects. Security, data integrity and useful public/native contracts remain deliberate requirements. The original PRD is retained as historical scope; this later instruction supersedes its strict legacy-error-equivalence interpretation.
+"Pre-existing bugs and tech debt — fix them in passing; there is no need to follow legacy behavior rigidly." Feature parity means preserving intended capabilities and valid business rules. Proven bugs and unnecessary coupling should be corrected with targeted regression tests. Legacy fixtures describe observations, not an obligation to recreate defects. Security, data integrity and useful public/native contracts remain deliberate requirements. The original PRD is retained as historical scope; this later instruction supersedes its strict legacy-error-equivalence interpretation.
 
 ## Additional verified corrections
 

@@ -1,10 +1,10 @@
 # diary-v3
 
-React／PostgreSQL／Drizzle 重構中的投資日記。完整範圍及每項驗收見 [tickets](.scratch/diary-v3-rebuild/ISSUES.md)；尚未完成整個產品，不能作正式替換版本。
+The investment diary, rebuilt with React/PostgreSQL/Drizzle. See [tickets](.scratch/diary-v3-rebuild/ISSUES.md) for the full scope and per-item acceptance; the product is not complete and must not yet serve as the production replacement.
 
-## 本機開發
+## Local development
 
-需要 Node.js ≥22.22、npm 及 Docker。請先確認本機 3100、3101、55433 ports 可用。
+Requires Node.js ≥22.22, npm, and Docker. Make sure local ports 3100, 3101, and 55433 are free first.
 
 ```sh
 npm ci
@@ -12,16 +12,16 @@ docker compose -p diary-v3-dev up -d postgres
 cp .env.example .env
 ```
 
-在 `.env` 設定自行產生的 `JWT_SECRET`（至少 32 字元，勿使用範例字串），然後：
+Set your own generated `JWT_SECRET` in `.env` (at least 32 characters; never use the sample string), then:
 
 ```sh
 npm run db:migrate
 npm run dev
 ```
 
-Web 位於 http://127.0.0.1:3100。註冊後另行登入，再建立日記。本機 Compose 只啟動開發 PostgreSQL；正式 Docker／K3s 部署由 ticket 59 交付。
+The web app is at http://127.0.0.1:3100. Register, then sign in separately before creating a diary. Local Compose only starts the development PostgreSQL; production Docker/K3s deployment is delivered by ticket 59.
 
-## 驗證
+## Verification
 
 ```sh
 npm run contracts:check
@@ -33,15 +33,15 @@ npm run test:e2e
 npm run build
 ```
 
-整合與瀏覽器測試從 `DATABASE_URL` 的 PostgreSQL 建立隨機命名測試 DB，最後刪除。測試帳戶需有建立／刪除測試 DB 權限，絕不可指向正式服務。E2E 使用 3200／3201 ports，不能重用其他 app server。此處列出命令不代表所有 gates 已完成；請查看當前 ticket 的實測證據。
+Integration and browser tests create a randomly named test database from the PostgreSQL in `DATABASE_URL` and drop it when done. The test account needs permission to create and drop test databases and must never point at production services. E2E uses ports 3200/3201 and must not reuse another app server. Listing these commands does not mean all gates have passed; check the recorded evidence for the current ticket.
 
-## 結構
+## Structure
 
-- `apps/web`：React Router SSR、React UI。
-- `apps/api`：Hono HTTP API 與權威業務入口。
-- `packages/contracts`：runtime schemas 與 OpenAPI。
-- `packages/api-client`：產生的型別與可注入 fetch 的 client。
-- `packages/domain`：無 DOM／server 依賴的純規則。
-- `packages/db`：Drizzle PostgreSQL schema 與 migrations。
+- `apps/web`: React Router SSR and the React UI.
+- `apps/api`: the Hono HTTP API and the authoritative business entry point.
+- `packages/contracts`: runtime schemas and OpenAPI.
+- `packages/api-client`: generated types and a client with injectable fetch.
+- `packages/domain`: pure rules with no DOM or server dependencies.
+- `packages/db`: the Drizzle PostgreSQL schema and migrations.
 
-來源快照及功能映射見 [baseline](docs/parity/README.md)。舊 bug 與技術債依使用者要求修正，原因和回歸證據另行記錄，詳見 [決策](docs/adr/0001-parity-baseline-and-contract-corrections.md)。
+See [baseline](docs/parity/README.md) for the source snapshot and feature mapping. Legacy bugs and tech debt were fixed at the user's request; the reasons and regression evidence are recorded separately in [these decisions](docs/adr/0001-parity-baseline-and-contract-corrections.md).

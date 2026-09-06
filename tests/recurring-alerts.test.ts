@@ -2,10 +2,11 @@
  * tests/lib/recurring-alerts.test.ts
  * Unit tests for recurring alert date calculation logic.
  *
- * 序列全程在 user-local 日曆空間計算，觸發時間固定 09:00 user-local。
- * 斷言方式：驗證每個 triggerAt 的 UTC instant 在指定 timezone 下
- * 反查出 09:00 的 wall-clock（用 Intl.DateTimeFormat，不依賴 runtime TZ），
- * 以及日曆日 / 星期。這樣測試在任何 server timezone 下都成立。
+ * The sequence is computed entirely in user-local calendar space with a fixed
+ * 09:00 user-local trigger time. Assertions verify that each triggerAt UTC
+ * instant maps back to a 09:00 wall-clock in the given timezone (via
+ * Intl.DateTimeFormat, no runtime TZ dependency), plus the calendar day /
+ * weekday. This keeps the tests valid under any server timezone.
  */
 import { describe, it, expect } from 'vitest'
 import {
@@ -14,9 +15,9 @@ import {
 } from '../packages/domain/src/recurring-alerts'
 import type { RecurringAlertConfig } from '../packages/domain/src/recurring-alerts'
 
-const TZ = 'Asia/Taipei' // UTC+8, 無 DST — 便於斷言
+const TZ = 'Asia/Taipei' // UTC+8, no DST — easy to assert against
 
-/** 在指定 timezone 下取 date 的 wall-clock parts（時區無關斷言用）。 */
+/** Get the wall-clock parts of date in the given timezone (for timezone-independent assertions). */
 function zonedParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -38,7 +39,7 @@ function zonedParts(date: Date, timeZone: string) {
   }
 }
 
-/** 該 date 在 timezone 下的星期（0=Sun..6=Sat），時區無關。 */
+/** Weekday of date in the timezone (0=Sun..6=Sat), timezone-independent. */
 function zonedWeekday(date: Date, timeZone: string): number {
   const p = zonedParts(date, timeZone)
   return new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()
@@ -63,7 +64,7 @@ describe('calculateRecurringAlertDates - WEEK mode', () => {
     }))
 
     expect(dates.length).toBe(5)
-    // 全部是工作日
+    // All should be weekdays
     dates.forEach((d) => {
       const wd = zonedWeekday(d, TZ)
       expect(wd).not.toBe(0)
@@ -71,7 +72,7 @@ describe('calculateRecurringAlertDates - WEEK mode', () => {
     })
     expect(zonedWeekday(dates[0]!, TZ)).toBe(1) // Monday
     expect(zonedWeekday(dates[dates.length - 1]!, TZ)).toBe(5) // Friday
-    // 觸發時間固定 09:00 user-local
+    // Trigger time is fixed at 09:00 user-local
     dates.forEach((d) => {
       const p = zonedParts(d, TZ)
       expect(p.hour).toBe(9)
@@ -140,7 +141,7 @@ describe('calculateRecurringAlertDates - MONTH mode', () => {
       startDate: new Date('2025-07-01T00:00:00Z'), // Taipei Tue 08:00
       mode: 'MONTH',
     }))
-    // July 2025: 31 天，週一起始週數 → 23 個工作日
+    // July 2025: 31 days, weeks starting Monday → 23 weekdays
     expect(dates.length).toBe(23)
     dates.forEach((d) => expect(zonedParts(d, TZ).month).toBe(7))
   })
@@ -160,7 +161,7 @@ describe('calculateRecurringAlertDates - MONTH mode', () => {
       startDate: new Date('2028-02-01T00:00:00Z'), // Taipei Tue 08:00
       mode: 'MONTH',
     }))
-    // Feb 2028: 29 天，8 個週末日 → 21 個工作日
+    // Feb 2028: 29 days, 8 weekend days → 21 weekdays
     expect(dates.length).toBe(21)
     dates.forEach((d) => {
       expect(zonedParts(d, TZ).month).toBe(2)
@@ -171,7 +172,7 @@ describe('calculateRecurringAlertDates - MONTH mode', () => {
 
 describe('timezone independence (the core regression)', () => {
   it('materializes the same user-local 09:00 regardless of the startDate instant time', () => {
-    // 兩個不同 UTC instant，但都落在 Taipei 的同一天（2025-06-02）
+    // Two different UTC instants that both land on the same Taipei day (2025-06-02)
     const early = calculateRecurringAlertDates(makeConfig({
       startDate: new Date('2025-06-01T20:00:00Z'), // Taipei 06-02 04:00
       mode: 'WEEK',
@@ -180,7 +181,7 @@ describe('timezone independence (the core regression)', () => {
       startDate: new Date('2025-06-02T10:00:00Z'), // Taipei 06-02 18:00
       mode: 'WEEK',
     }))
-    // 兩者第一個觸發應是同一 UTC instant（Taipei 06-02 09:00 = 06-02 01:00Z）
+    // Both should produce the same first trigger UTC instant (Taipei 06-02 09:00 = 06-02 01:00Z)
     expect(early[0]!.toISOString()).toBe('2025-06-02T01:00:00.000Z')
     expect(late[0]!.toISOString()).toBe('2025-06-02T01:00:00.000Z')
     expect(early.length).toBe(late.length)

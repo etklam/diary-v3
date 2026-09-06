@@ -17,7 +17,7 @@ function getZonedParts(date: Date, timeZone: string) {
     year: part('year'),
     month: part('month'),
     day: part('day'),
-    // Intl 在 hour12: false 下可能回傳 "24"，需歸零
+    // Intl may return "24" with hour12: false; normalize to 0
     hour: hour === 24 ? 0 : hour,
     minute: part('minute'),
     second: part('second'),
@@ -25,8 +25,8 @@ function getZonedParts(date: Date, timeZone: string) {
 }
 
 /**
- * 計算 date 在指定 timezone 的 offset（毫秒）。
- * offset = zoned wall-clock 對應的 UTC instant - date 的 UTC instant。
+ * Compute the offset (ms) of date in the given timezone.
+ * offset = UTC instant of the zoned wall-clock - UTC instant of date.
  */
 function getZonedOffsetMs(date: Date, timeZone: string): number {
   const parts = getZonedParts(date, timeZone)
@@ -38,8 +38,8 @@ function getZonedOffsetMs(date: Date, timeZone: string): number {
 }
 
 /**
- * 把 user-local 的 wall-clock parts（年月日時分秒毫秒）轉成 UTC Date。
- * 用兩段式 offset 驗證處理 DST 跳躍。
+ * Convert user-local wall-clock parts (Y/M/D h:m:s.ms) into a UTC Date.
+ * Uses a two-pass offset check to handle DST jumps.
  */
 export function zonedPartsToUtc(
   parts: {

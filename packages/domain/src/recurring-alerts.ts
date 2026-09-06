@@ -1,13 +1,13 @@
 import { zonedPartsToUtc } from './zoned-time.js'
 
-/** 固定的 user-local 觸發時間（時、分）。使用者只輸入日期，時間統一鎖 09:00。 */
+/** Fixed user-local trigger time (hour, minute). Users only pick a date; the time is always 09:00. */
 const TRIGGER_HOUR = 9
 const TRIGGER_MINUTE = 0
 
 export interface RecurringAlertConfig {
-  /** 起始日（任意 UTC instant，只取其 user-local 日曆日） */
+  /** Start date (any UTC instant; only its user-local calendar day is used) */
   startDate: Date
-  /** IANA timezone，決定日曆日與觸發 instant */
+  /** IANA timezone that determines the calendar day and the trigger instant */
   timezone: string
   mode: 'WEEK' | 'MONTH'
   message: string
@@ -15,8 +15,9 @@ export interface RecurringAlertConfig {
 }
 
 /**
- * User-local 日曆日的 (year, month, day)。month 為 1-based。
- * 星期由 Date.UTC(...).getUTCDay() 推導，時區無關且不受 runtime TZ 影響。
+ * (year, month, day) of a user-local calendar day. month is 1-based.
+ * Weekday is derived via Date.UTC(...).getUTCDay(), which is
+ * timezone-independent and unaffected by the runtime TZ.
  */
 interface CalendarDay {
   year: number
@@ -47,7 +48,7 @@ function isWeekdayDay(d: CalendarDay): boolean {
 }
 
 /**
- * 取得 startDate 在指定 timezone 下的 user-local 日曆日。
+ * Get the user-local calendar day of startDate in the given timezone.
  */
 function getStartCalendarDay(startDate: Date, timezone: string): CalendarDay {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -61,7 +62,8 @@ function getStartCalendarDay(startDate: Date, timezone: string): CalendarDay {
 }
 
 /**
- * 把 user-local 日曆日 + 固定 09:00 觸發時間 materialize 成 UTC instant。
+ * Materialize a user-local calendar day plus the fixed 09:00 trigger time
+ * into a UTC instant.
  */
 function dayToTriggerUtc(d: CalendarDay, timezone: string): Date {
   return zonedPartsToUtc(
@@ -79,8 +81,9 @@ function dayToTriggerUtc(d: CalendarDay, timezone: string): Date {
 }
 
 /**
- * 計算序列結束日（含）——皆在 user-local 日曆空間，時區無關的星期推導。
- * WEEK: 該週週五。MONTH: 該月最後一天。
+ * Compute the last day of the sequence (inclusive) — all in user-local
+ * calendar space with timezone-independent weekday derivation.
+ * WEEK: that week's Friday. MONTH: the last day of the month.
  */
 function calculateEndDay(start: CalendarDay, mode: 'WEEK' | 'MONTH'): CalendarDay {
   if (mode === 'WEEK') {
@@ -88,7 +91,7 @@ function calculateEndDay(start: CalendarDay, mode: 'WEEK' | 'MONTH'): CalendarDa
     const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 5 + (7 - dayOfWeek)
     return addCalendarDays(start, daysUntilFriday)
   }
-  // MONTH: 該月最後一天 = 下個月第 0 天
+  // MONTH: last day of the month = day 0 of the next month
   const lastDayAnchor = new Date(Date.UTC(start.year, start.month, 0))
   return {
     year: lastDayAnchor.getUTCFullYear(),
@@ -100,9 +103,10 @@ function calculateEndDay(start: CalendarDay, mode: 'WEEK' | 'MONTH'): CalendarDa
 /**
  * Calculate all trigger dates for recurring alerts (skip weekends).
  *
- * 全程在 user-local 日曆空間計算：星期用時區無關的 Date.UTC(...).getUTCDay()
- * 推導，每個日期用固定的 09:00 user-local 觸發時間 materialize 成 UTC instant。
- * 不再依賴 runtime-local 的 setHours/getDay/setDate，故不受 server TZ 影響。
+ * Everything is computed in user-local calendar space: weekdays are derived
+ * with the timezone-independent Date.UTC(...).getUTCDay(), and each date is
+ * materialized into a UTC instant using the fixed 09:00 user-local trigger
+ * time. No runtime-local setHours/getDay/setDate, so the server TZ is irrelevant.
  */
 export function calculateRecurringAlertDates(config: RecurringAlertConfig): Date[] {
   const { startDate, timezone, mode } = config

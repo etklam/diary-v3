@@ -1,37 +1,37 @@
-# Market rotation — Astra 設計定義
+# Market Rotation — Astra Design Definition
 
-定義日期：2026-09-06。Astra 負責本設計與最終驗收，Luna 按規格實作。沿用 [DESIGN.md](../../DESIGN.md) 的「決策議程」視覺語言。
+Definition date: 2026-09-06. Astra owns this design and the final acceptance; Luna implements to spec. It carries over the "decision agenda" visual language of [DESIGN.md](../../DESIGN.md).
 
-## 閱讀順序
+## Reading Order
 
-先回答目前正在看甚麼市場範圍、資料是哪一天，再看市場摘要、領先／轉弱群組，最後讀排名明細。排名日期與板塊摘要日期分別顯示，避免不同觀察日期被誤認成同一份資料。
+First answer which market scope you are looking at and which day the data is from; then read the market summary and the leading/weakening groups; finally the ranking detail. The rank date and the sector summary date are displayed separately so different observation dates are never mistaken for one dataset.
 
-桌面以左側標題、右側 scope 選擇器開場；下一行用細分隔線組織日期。摘要使用四欄數值區，靠邊線與留白分組。領先與轉弱各佔一欄，以短文字清單呈現；排名表格置於下方。手機依次堆疊標題與選擇器，摘要改兩欄，領先與轉弱改單欄。寬表格只在自身容器橫向捲動，頁面保持正常寬度。
+On desktop, the title opens on the left and the scope selector on the right; the next row organizes the dates with a thin divider. The summary is a four-column figure area, grouped by edge lines and whitespace. Leading and weakening each take one column, presented as short text lists; the ranking table sits below. On mobile, title and selector stack in order, the summary drops to two columns, and leading/weakening go single-column. Wide tables scroll horizontally only inside their own container; the page keeps its normal width.
 
-## 視覺與互動
+## Visual and Interaction
 
-- 字體、色彩與 focus 使用現有設計 tokens。頁標題 1.5rem／700，區塊標題 1.125rem／700，本文 1rem，次要日期及標籤 .875rem；數字採 tabular numerals。
-- 主要段落相隔 32–40px，區內間距 16–24px。資訊依靠字級、排列與分隔線形成層次，不添加裝飾性漸層、陰影或大型卡片。
-- 綠色用於操作與正向數據，紅色只標記負向數據。未知值顯示中性破折號或「資料不足」，不得以零、正向顏色或正常市場狀態代替。
-- scope 操作保留於 URL；切換時清除上一範圍資料並顯示載入狀態。無快照時說明尚無資料並提供重試。錯誤重試與 scope 均可用鍵盤操作。
-- 市場狀態及訊號顯示三語可讀標籤；不顯示程式 enum、儲存架構用語，亦不將固定 core universe 稱為使用者的個人持倉。
+- Type, color, and focus use the existing design tokens. Page title 1.5rem/700, section heading 1.125rem/700, body 1rem, secondary dates and labels .875rem; figures use tabular numerals.
+- Major sections sit 32–40px apart, with 16–24px spacing inside. Hierarchy comes from type size, arrangement, and dividers — no decorative gradients, shadows, or oversized cards.
+- Green is for actions and positive figures; red marks only negative figures. Unknown values render as a neutral dash or "insufficient data" — never as zero, a positive color, or a normal market state.
+- The scope lives in the URL; switching clears the previous scope's data and shows a loading state. With no snapshot, explain that no data exists yet and offer retry. Error retry and the scope control are both keyboard operable.
+- Market state and signals show readable labels in all three languages; program enums and storage-schema jargon are never displayed, and the fixed core universe is never called the user's personal holdings.
 
-## 驗收證據
+## Acceptance Evidence
 
-驗收需同時檢查真實批次寫入到訪客讀取的流程，以及缺值、不同摘要日期、無資料／錯誤重試的受控情境。截圖涵蓋桌面明亮與手機深色；檢查文字層次、日期可見性、數值可讀性、鍵盤 focus 與表格局部捲動。視覺方向有實質變更時由 Astra 更新本定義。
+Acceptance must check both the real batch-write-to-guest-read flow and controlled scenarios for missing values, differing summary dates, and no-data/error retries. Screenshots cover desktop light and mobile dark; check text hierarchy, date visibility, figure readability, keyboard focus, and in-table scrolling. Astra updates this definition when the visual direction materially changes.
 
-## Tickets 45／46：比較與匯出延伸
+## Tickets 45/46: Comparison and Export Extensions
 
-本段由 Astra 在 2026-09-06 定義，延伸同一市場頁，模式為 Operate。來源為凍結的 `pages/tools/market-rotation.vue`；以下是待實作方向，未宣稱完成。
+This section was defined by Astra on 2026-09-06 and extends the same market page in Operate mode. The source is the frozen `pages/tools/market-rotation.vue`; what follows is direction to implement, not a claim of completion.
 
-排名表上方加入有可見標籤的訊號篩選 select；保留 all、turning strong、losing momentum、rank up/down、above/below 50d、near high、extended 全部功能並翻譯顯示名稱。表頭用可鍵盤操作的排序按鈕及 `aria-sort`，沿用來源各欄預設排序方向。篩選後就地更新筆數與表格，不跳焦點；無符合項目時保留篩選並提供清除動作。桌面篩選與三個匯出動作可同列，手機自然換行；不增加第二組大型頁首。core 維持 API-only。
+Above the ranking table, add a visibly labeled signal filter select; keep every option — all, turning strong, losing momentum, rank up/down, above/below 50d, near high, extended — and translate their display names. Column headers use keyboard-operable sort buttons with `aria-sort`, keeping each column's default sort direction from the source. Filtering updates the count and the table in place without moving focus; when nothing matches, the filter is kept and a clear action is offered. On desktop the filter and the three export actions can share one row, wrapping naturally on mobile; no second large page header is added. core stays API-only.
 
-比較日期緊鄰排名日期，明寫兩週比較使用第十個較早的合格快照日。每列保留排名變化、RSI 變化、表現、均線及訊號等來源欄位。小型趨勢圖使用同一比較日起點 100 的 payload；標示起訖日期並提供文字或可展開的數值等價內容。SVG 線條沿用 action 色、淡分隔線作基準。缺值切斷線段，不跨越缺口連線；不到兩個連續有效點則顯示資料不足。手機透過表格的獨立可聚焦捲動區閱讀全部欄位。
+The comparison date sits right beside the rank date, stating explicitly that the two-week comparison uses the tenth earlier qualifying snapshot day. Each row keeps the source columns: rank change, RSI change, performance, moving averages, and signals. The small trend chart uses the payload rebased to 100 at the same comparison date; label the start and end dates and provide text or an expandable numeric equivalent. The SVG line uses the action color against a faint divider baseline. Missing values break the line — never bridge a gap; with fewer than two consecutive valid points, show "insufficient data". On mobile, all columns are read through the table's separately focusable scroll region.
 
-CSV、Copy Table、PNG 只讀當前已載入、篩選及排序的同一組 rows。按下匯出時固定該 payload 與語言，進行中的資料刷新不可混入輸出。CSV／PNG 保留來源七項 metadata（summary、market state、breadth condition、confirmation、as-of、comparison date、scope）與十二欄；額外標明當前 filter、sort 及不同觀察日期。Copy Table 保持來源五格 tab-separated 簡表。空結果允許產出 metadata 與表頭，Copy Table 明示沒有可複製列。
+CSV, Copy Table, and PNG read only the same rows currently loaded, filtered, and sorted. Exporting pins that payload and language; an in-flight data refresh must never leak into the output. CSV/PNG keep the source's seven metadata items (summary, market state, breadth condition, confirmation, as-of, comparison date, scope) and twelve columns, additionally noting the current filter, sort, and differing observation dates. Copy Table keeps the source's five-cell tab-separated mini table. Empty results may still emit metadata and headers; Copy Table states plainly that there are no rows to copy.
 
-PNG 是可分享的閱讀表格，沿用系統字體與淺色語意 palette，固定不透明背景、24px 外距、18px 標題及至少 14px 表格文字。寬度以完整十二欄為準，長名稱、summary、trend 數列先換行再計算高度；不得截斷列或以縮小到不可讀來塞入固定高度。輸出前等待字體可用。所有供應商文字用文字繪製或安全 escaping，禁止插入未跳脫 HTML。複製失敗保留可選取的簡表文字並提供重試；匯出成功／錯誤使用安靜的狀態訊息。
+The PNG is a shareable reading table: system fonts and the light semantic palette, a fixed opaque background, 24px outer margin, an 18px title, and table text of at least 14px. Width is sized to all twelve columns; long names, summaries, and trend series wrap before height is computed — rows must never be truncated or shrunk to unreadability to fit a fixed height. Wait for fonts to be ready before rendering. All provider text is drawn as text or safely escaped; injecting unescaped HTML is forbidden. If copying fails, keep the selectable mini-table text and offer retry; export success/error uses quiet status messages.
 
-來源技術債修正：舊 sparkline 過濾 null 後將缺口連起來；新圖必須斷線。舊 numeric comparator 用負無限表示 null，兩個 null 相減得 NaN；新比較器須明確處理 null 並以 symbol 穩定 tie-break，保持來源 null 的方向位置及有效數值排序。用回歸案例記錄這些修正，不改權威排名公式。
+Source tech-debt fixes: the old sparkline filtered out nulls and bridged the gaps; the new chart must break the line. The old numeric comparator represented null as negative infinity, so two nulls subtracting produced NaN; the new comparator must handle null explicitly with a stable symbol tie-break, preserving the source's directional placement of nulls and the ordering of valid values. Record these fixes with regression cases; the authoritative ranking formula is unchanged.
 
-驗收篩選、排序、切換 scope 後的桌面／手機操作，並直接檢查下載 CSV、剪貼文字與 PNG 實際內容。加入引號、換行、長名稱、缺值和空結果，證明沒有混入其他 rows 或額外行情請求。Astra 檢視桌面／手機與一張真實匯出 PNG 後決定最終視覺驗收。
+Acceptance covers desktop/mobile operation of filtering, sorting, and scope switching, and directly inspects the downloaded CSV, clipboard text, and PNG content. Include quotes, newlines, long names, missing values, and empty results to prove that no other rows or extra quote requests were mixed in. Astra reviews desktop/mobile plus one real exported PNG and decides the final visual acceptance.

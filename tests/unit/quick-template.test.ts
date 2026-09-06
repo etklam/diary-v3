@@ -118,7 +118,7 @@ describe('generateTemplateDraft', () => {
     expect(observation.content).toContain('Sector momentum')
   })
 
-  it('reflection with relatedTrades → 在 content 中加入相關交易回顧區塊', () => {
+  it('reflection with relatedTrades → appends the related-trade review block to content', () => {
     const result = generateTemplateDraft({
       templateKind: 'reflection',
       date: '2026-04-12',
@@ -146,23 +146,23 @@ describe('generateTemplateDraft', () => {
       },
     })
 
-    // 標題保持不變
+    // Title stays unchanged
     expect(result.title).toBe('2026/04/12 盤後反思')
-    // 包含交易回顧區塊
+    // Includes the trade review section
     expect(result.content).toContain('相關交易回顧')
-    // AAPL 正損益
+    // AAPL positive P&L
     expect(result.content).toContain('AAPL')
     expect(result.content).toContain('+200')
     expect(result.content).toContain('+20.0%')
-    // TSLA 負損益
+    // TSLA negative P&L
     expect(result.content).toContain('TSLA')
     expect(result.content).toContain('-100')
     expect(result.content).toContain('-10.0%')
-    // 日期顯示（ISO 截取 date 部分）
+    // Date display (ISO string truncated to the date part)
     expect(result.content).toContain('2026-04-11')
   })
 
-  it('reflection with relatedTrades (en locale) → Related Trade Review 標頭', () => {
+  it('reflection with relatedTrades (en locale) → Related Trade Review heading', () => {
     const result = generateTemplateDraft({
       templateKind: 'reflection',
       date: '2026-04-12',
@@ -187,7 +187,7 @@ describe('generateTemplateDraft', () => {
     expect(result.content).toContain('+50')
   })
 
-  it('reflection with empty relatedTrades → 不產生交易區塊', () => {
+  it('reflection with empty relatedTrades → no trade block generated', () => {
     const result = generateTemplateDraft({
       templateKind: 'reflection',
       date: '2026-04-12',
@@ -199,12 +199,12 @@ describe('generateTemplateDraft', () => {
     })
 
     expect(result.content).not.toContain('Related Trade Review')
-    // 原本的區塊應該正常存在
+    // The original section should still be present
     expect(result.content).toContain("Today's rating")
     expect(result.content).toContain('⭐⭐⭐')
   })
 
-  it('reflection without relatedTrades field → 不產生交易區塊', () => {
+  it('reflection without relatedTrades field → no trade block generated', () => {
     const result = generateTemplateDraft({
       templateKind: 'reflection',
       date: '2026-04-12',

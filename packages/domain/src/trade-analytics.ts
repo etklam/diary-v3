@@ -1,21 +1,21 @@
 /**
  * lib/trade-analytics.ts
- * 集中式交易績效分析引擎
+ * Centralized trade performance analytics engine
  *
- * 設計原則：
- * - 純函數，無副作用，無 DB 依賴
- * - 使用平均成本法（與 calculateHoldings() 一致）
- * - 所有除法運算前先做零值保護
- * - Decimal 在輸入層轉 number，避免 Prisma runtime 依賴
+ * Design principles:
+ * - Pure functions, no side effects, no DB dependencies
+ * - Average cost method (consistent with calculateHoldings())
+ * - Zero-value guards before every division
+ * - Decimals converted to number at the input layer to avoid a Prisma runtime dependency
  */
 
-// ─── 輸入類型 ────────────────────────────────────────────────────────────────
+// ─── Input types ─────────────────────────────────────────────────────────────
 
 export interface RawTransaction {
   id: string | bigint | number
   symbol: string
   type: 'BUY' | 'SELL'
-  /** 可接受 Prisma Decimal（已有 toString/valueOf）或 number */
+  /** Accepts a Prisma Decimal (already has toString/valueOf) or a number */
   quantity: { valueOf(): number } | number | string
   price: { valueOf(): number } | number | string
   tradeDate: Date | string
@@ -23,18 +23,18 @@ export interface RawTransaction {
   emotion?: string | null
 }
 
-// ─── 輸出類型 ────────────────────────────────────────────────────────────────
+// ─── Output types ────────────────────────────────────────────────────────────
 
-/** 一筆已配對（已關閉）的交易：一次 SELL 對應到的平均成本 */
+/** A matched (closed) trade: one SELL paired against the average cost */
 export interface ClosedTrade {
   id: string
   symbol: string
   sellDate: Date
   sellQuantity: number
   sellPrice: number
-  avgCostBasis: number      // 賣出時的平均成本
-  realizedPnL: number       // 已實現損益（稅前）
-  realizedPnLPct: number    // 已實現損益百分比
+  avgCostBasis: number      // average cost at the time of sale
+  realizedPnL: number       // realized P&L (pre-tax)
+  realizedPnLPct: number    // realized P&L percentage
   strategy: string | null
   emotion: string | null
 }
@@ -44,18 +44,18 @@ export interface WinRateResult {
   losses: number
   breakEven: number
   total: number
-  winRate: number           // 0–100，N/A 時為 null
+  winRate: number           // 0–100, null when N/A
 }
 
 export interface RealizedDrawdownResult {
-  maxDrawdownPct: number    // 0–100（正值表示虧損幅度，相對累積已投入成本）
-  maxDrawdownDollars: number // 累積已實現損益的 peak-to-trough 最大回撤（美元）
+  maxDrawdownPct: number    // 0–100 (positive value = loss magnitude, relative to cumulative invested cost)
+  maxDrawdownDollars: number // peak-to-trough max drawdown of cumulative realized P&L (USD)
   peakPnL: number
   troughPnL: number
 }
 
 export interface SharpeResult {
-  sharpe: number | null     // null = 零波動（無法計算）
+  sharpe: number | null     // null = zero volatility (cannot compute)
   avgReturn: number
   stdDev: number
 }
@@ -70,7 +70,7 @@ export interface PeriodStats {
   winRate: number           // 0–100
 }
 
-// ─── 輔助函數 ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 import { replayLedger } from './ledger.js'
 
@@ -82,18 +82,18 @@ function periodKey(date: Date, period: GroupPeriod): string {
   return `${y}-${String(m).padStart(2, '0')}`
 }
 
-// ─── 核心函數 ────────────────────────────────────────────────────────────────
+// ─── Core functions ──────────────────────────────────────────────────────────
 
 /**
  * matchTrades
- * 使用平均成本法，將 SELL 交易配對到對應的 BUY 批次，
- * 計算每筆 SELL 的已實現損益。
+ * Uses the average cost method to match SELL transactions against their BUY
+ * lots and compute the realized P&L of each SELL.
  *
- * 演算法：
- * 1. 按 tradeDate 升序排序（同日同記錄，以原始順序為次排序）
- * 2. 遇到 BUY → 更新該 symbol 的平均成本和持倉數量
- * 3. 遇到 SELL → 計算 (賣價 - 平均成本) × 數量 為已實現損益
- * 4. 與寫入帳本共用精確配對；無效超賣由帳本拒絕。
+ * Algorithm:
+ * 1. Sort ascending by tradeDate (ties broken by original order)
+ * 2. On BUY → update that symbol's average cost and position size
+ * 3. On SELL → realized P&L = (sell price - average cost) × quantity
+ * 4. Shares exact matching with the ledger writer; invalid oversells are rejected by the ledger.
  */
 export function matchTrades(transactions: RawTransaction[]): ClosedTrade[] {
   const rows = transactions.map((tx, index) => ({ ...tx, index,
@@ -123,9 +123,9 @@ export function matchTrades(transactions: RawTransaction[]): ClosedTrade[] {
 
 /**
  * calcWinRate
- * 計算勝率。以 realizedPnL > 0 為「贏」，< 0 為「輸」，= 0 為「平手」。
+ * Win rate: realizedPnL > 0 is a win, < 0 a loss, = 0 a break-even.
  *
- * 邊界：空陣列時 winRate = 0（不除以零）。
+ * Edge case: empty array → winRate = 0 (no division by zero).
  */
 export function calcWinRate(trades: ClosedTrade[]): WinRateResult {
   const wins = trades.filter((t) => t.realizedPnL > 0).length
@@ -139,17 +139,17 @@ export function calcWinRate(trades: ClosedTrade[]): WinRateResult {
 
 /**
  * calcRealizedDrawdown
- * 從已關閉交易計算最大回撤。
+ * Max drawdown computed from closed trades.
  *
- * 沒有帳戶出入金資料，無法重建真實權益曲線，因此：
- * - 美元回撤 = 累積已實現損益的 peak-to-trough（從 0 起算，精確）
- * - 百分比 = 該時點美元回撤 ÷ 當時累積已投入成本（已平倉的成本基礎）
+ * Without deposit/withdrawal data the true equity curve can't be rebuilt, so:
+ * - Dollar drawdown = peak-to-trough of cumulative realized P&L (starting from 0, exact)
+ * - Percentage = dollar drawdown at that point ÷ cumulative invested cost at that point (closed cost basis)
  *
- * ponytail: 基底假設「每筆平倉的 basis 都是獨立投入的資金」；
- * 若同一筆資金反覆滾動，百分比會低估（美元值仍精確）。
- * 要更準確需要匯入帳戶出入金紀錄。
+ * ponytail: assumes each closed trade's basis is independently invested capital;
+ * if the same capital keeps rolling over, the percentage understates (the dollar value stays exact).
+ * More accuracy would require importing deposit/withdrawal records.
  *
- * 邊界：空陣列或無回撤 → 全部為 0。
+ * Edge case: empty array or no drawdown → all zeros.
  */
 export function calcRealizedDrawdown(trades: ClosedTrade[]): RealizedDrawdownResult {
   const result: RealizedDrawdownResult = {
@@ -164,7 +164,7 @@ export function calcRealizedDrawdown(trades: ClosedTrade[]): RealizedDrawdownRes
 
   let cumPnL = 0
   let cumBasis = 0
-  let peak = 0 // 起點 0 視為初始權益
+  let peak = 0 // starting at 0 counts as the initial equity
 
   for (const trade of sorted) {
     cumPnL += trade.realizedPnL
@@ -185,13 +185,13 @@ export function calcRealizedDrawdown(trades: ClosedTrade[]): RealizedDrawdownRes
 
 /**
  * calcSharpe
- * 計算夏普比率（年化）。
+ * Annualized Sharpe ratio.
  *
- * @param returns - 每期收益率陣列（百分比，例如 [2.1, -1.3, 0.8]）
- * @param riskFreeRate - 無風險利率（年化百分比，預設 0）
- * @param periodsPerYear - 每年幾期（日頻=252，月頻=12，預設 12）
+ * @param returns - per-period return rates (percent, e.g. [2.1, -1.3, 0.8])
+ * @param riskFreeRate - risk-free rate (annualized percent, default 0)
+ * @param periodsPerYear - periods per year (daily=252, monthly=12, default 12)
  *
- * 邊界：收益率標準差 = 0 → sharpe = null。
+ * Edge case: return std dev = 0 → sharpe = null.
  */
 export function calcSharpe(
   returns: number[],
@@ -222,7 +222,7 @@ export function calcSharpe(
 
 /**
  * groupByPeriod
- * 將已關閉的交易按時間段分群。
+ * Group closed trades by time period.
  */
 export function groupByPeriod(
   trades: ClosedTrade[],
@@ -242,7 +242,7 @@ export function groupByPeriod(
 
 /**
  * calcPeriodStats
- * 將分群後的交易計算每期統計摘要，按時間升序返回。
+ * Compute per-period stats for the grouped trades, returned in ascending time order.
  */
 export function calcPeriodStats(
   grouped: Map<string, ClosedTrade[]>
@@ -263,18 +263,19 @@ export function calcPeriodStats(
     })
   }
 
-  // 按時間升序排序（lexicographic 對 "2024-01", "2024-Q1", "2024" 格式都有效）
+  // Sort ascending by time (lexicographic works for "2024-01", "2024-Q1", "2024" formats alike)
   return result.sort((a, b) => a.period.localeCompare(b.period))
 }
 
 /**
  * buildMonthlyReturnPcts
- * 建立每月已實現報酬序列（百分比），供 calcSharpe 使用。
+ * Builds the monthly realized-return series (percent) for calcSharpe.
  *
- * 每月報酬 = 該月 ΣrealizedPnL / 該月已平倉 round-trips 的 Σ成本基礎 × 100。
- * 首個至最後一個活躍月份之間沒有平倉的月份補 0（該月無已實現損益）。
+ * Monthly return = the month's ΣrealizedPnL / Σcost basis of that month's
+ * closed round-trips × 100. Months with no closes between the first and last
+ * active months get 0 (no realized P&L that month).
  *
- * 邊界：空陣列 → []。
+ * Edge case: empty array → [].
  */
 export function buildMonthlyReturnPcts(trades: ClosedTrade[]): number[] {
   if (!trades.length) return []
@@ -305,12 +306,12 @@ export function buildMonthlyReturnPcts(trades: ClosedTrade[]): number[] {
 
 /**
  * buildEquityCurveWithDates
- * 累積已實現損益曲線，每個點帶上日期，方便前端圖表 X 軸使用。
- * cumPnL = 累積已實現損益（從 0 開始，不含任何虛構初始資本）
+ * Cumulative realized P&L curve with a date on each point, ready for a frontend chart X axis.
+ * cumPnL = cumulative realized P&L (starts at 0, no fictional initial capital)
  */
 export interface EquityCurvePoint {
   date: string    // ISO date string (YYYY-MM-DD)
-  cumPnL: number  // 累積損益（從第一筆交易起算，初始為 0）
+  cumPnL: number  // cumulative P&L (from the first trade onward, starting at 0)
 }
 
 export function buildEquityCurveWithDates(

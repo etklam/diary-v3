@@ -21,8 +21,9 @@ export interface QuickNoteReminders {
 }
 
 /**
- * 用於 reflection 模板選擇器顯示的輕量交易摘要
- * （從 /api/stats/recent-trades 取得，存在 templateData 側方便生成 markdown）
+ * Lightweight trade summary shown in the reflection template picker
+ * (fetched from /api/stats/recent-trades and kept on templateData
+ * for easy markdown generation)
  */
 export interface RecentClosedTrade {
   id: string
@@ -51,7 +52,7 @@ export interface QuickNoteTemplateData {
   observationType?: string
   observationContent?: string
   action?: string
-  /** reflection 模板：用戶選擇的相關交易（用於在 markdown 中顯示交易回顧） */
+  /** reflection template: user-selected related trades (rendered as the trade review in markdown) */
   relatedTrades?: RecentClosedTrade[]
 }
 

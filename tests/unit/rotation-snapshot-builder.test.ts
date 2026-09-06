@@ -12,8 +12,8 @@ const defaultMeta: SnapshotMeta = {
 }
 
 /**
- * 產生指定天數的 DailyPrice 陣列（oldest first, latest last）。
- * close 從 100 起每天 +1，adjustedClose 從 100 起每天 +1.5。
+ * Build a DailyPrice array of the given length (oldest first, latest last).
+ * close starts at 100 and gains +1 per day; adjustedClose starts at 100 and gains +1.5 per day.
  */
 function generatePrices(days: number): DailyPrice[] {
   const result: DailyPrice[] = []
@@ -28,12 +28,12 @@ function generatePrices(days: number): DailyPrice[] {
   return result
 }
 
-/** 產生 close 上升趨勢的價格，但最後一天價格刻意低於各均線 */
+/** Build rising prices, but with the last day deliberately below all moving averages */
 function generateBearishPrices(days: number): DailyPrice[] {
   const result: DailyPrice[] = []
   for (let i = 0; i < days; i++) {
     const day = String(i + 1).padStart(2, '0')
-    const close = i < days - 1 ? 100 + i : 50 // 最後一天大跌
+    const close = i < days - 1 ? 100 + i : 50 // big drop on the last day
     result.push({
       date: `2025-01-${day}`,
       close,
@@ -46,13 +46,13 @@ function generateBearishPrices(days: number): DailyPrice[] {
 // ─── Test Suite ─────────────────────────────────────────────────
 
 describe('buildSnapshot', () => {
-  // ── 1. 空 prices → null ─────────────────────────────────────
+  // ── 1. empty prices → null ──────────────────────────────────
 
   it('returns null for empty prices array', () => {
     expect(buildSnapshot(defaultMeta, [])).toBeNull()
   })
 
-  // ── 2. 單日資料 ─────────────────────────────────────────────
+  // ── 2. single day of data ───────────────────────────────────
 
   it('returns snapshot with lastPrice but all indicators null for single day', () => {
     const prices: DailyPrice[] = [
@@ -86,7 +86,7 @@ describe('buildSnapshot', () => {
     expect(result!.distanceFromHighScore).toBeNull()
   })
 
-  // ── 3. 基本 30 天資料 ───────────────────────────────────────
+  // ── 3. basic 30-day data ────────────────────────────────────
 
   it('computes ema10, ema20, rsi14 but leaves sma50 null with 30 days', () => {
     const prices = generatePrices(30)
@@ -123,7 +123,7 @@ describe('buildSnapshot', () => {
     expect(result!.rolling252dHigh).toBe(129) // last close = 100 + 29
   })
 
-  // ── 4. 252 天完整資料 ───────────────────────────────────────
+  // ── 4. full 252 days of data ────────────────────────────────
 
   it('computes all fields with 252 days of data', () => {
     const prices = generatePrices(252)
@@ -147,7 +147,7 @@ describe('buildSnapshot', () => {
     expect(result!.rolling252dHigh).toBe(351)
   })
 
-  // ── 5. dailyChangePct 計算 ───────────────────────────────────
+  // ── 5. dailyChangePct computation ───────────────────────────
 
   it('computes dailyChangePct from second-to-last to last price', () => {
     const prices: DailyPrice[] = [
@@ -159,7 +159,7 @@ describe('buildSnapshot', () => {
     expect(result!.dailyChangePct).toBeCloseTo(10, 1) // (110-100)/100 * 100 = 10
   })
 
-  // ── 6. weeklyChangePct 計算 ──────────────────────────────────
+  // ── 6. weeklyChangePct computation ──────────────────────────
 
   it('computes weeklyChangePct from 5 trading days ago to last price', () => {
     // 7 trading days; weeklyChangePct = day[1] → day[6] (5 days apart)
@@ -186,7 +186,7 @@ describe('buildSnapshot', () => {
     expect(result!.weeklyChangePct).toBeNull()
   })
 
-  // ── 7. above10d 為 false 時 maScore 不含 10d 權重 ─────────
+  // ── 7. maScore excludes the 10d weight when above10d is false ─────────
 
   it('maScore excludes 10d weight when above10d is false', () => {
     // Use bearish prices: last price = 50, way below any EMA
@@ -223,7 +223,7 @@ describe('buildSnapshot', () => {
     }
   })
 
-  // ── 8. 資料不足 60 天 distanceFromHigh 為 null ──────────────
+  // ── 8. distanceFromHigh is null with fewer than 60 days ──────
 
   it('returns null distanceFromHigh fields with fewer than 60 trading days', () => {
     const prices = generatePrices(59)

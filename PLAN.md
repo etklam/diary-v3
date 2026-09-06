@@ -1,215 +1,215 @@
-# diary-v3 完整重構計劃
+# diary-v3 Full Rebuild Plan
 
-狀態：原始規劃記錄；模組分工與測試範圍已確認，現已依本地 tickets 開始實作。進度以各票驗收證據為準。
-盤點日期：2026-09-05。
+Status: original planning record; the module breakdown and test scope are confirmed, and implementation has now started against the local tickets. Progress is judged by each ticket's acceptance evidence.
+Inventory date: 2026-09-05.
 
-後續規格：[完整重構 PRD](/Users/klam/Desktop/project/diary-v3/.scratch/diary-v3-rebuild/PRD.md)。使用者已確認沿用本計劃的模組分工及測試範圍；具體驗收以 PRD 為準。
+Follow-up spec: [full rebuild PRD](/Users/klam/Desktop/project/diary-v3/.scratch/diary-v3-rebuild/PRD.md). The user has confirmed carrying over this plan's module breakdown and test scope; the PRD governs concrete acceptance.
 
-## 1. 目標與已確認範圍
+## 1. Goals and Confirmed Scope
 
-1. 與 diary-vue 所有目前有效功能及業務行為對等。
-2. Web 全面改用 React。
-3. 資料庫改用 PostgreSQL，schema／查詢採 Drizzle。
-4. 現階段不做 React Native App；先提供它可直接使用的 API、原生認證、共用契約及可共用業務邏輯。
-5. UI／UX 依 Impeccable 重新設計，舊版視覺不構成限制。
-6. 不搬遷舊系統資料；新資料庫由空庫建立。
-7. 使用者已確認沿用 Docker／K3s；推播與離線寫入留待 App 階段。
+1. Feature and business-behavior parity with everything currently live in diary-vue.
+2. The Web app moves entirely to React.
+3. The database moves to PostgreSQL, with Drizzle for schema and queries.
+4. No React Native app at this stage; instead, deliver the API it will consume directly, native authentication, shared contracts, and reusable business logic.
+5. UI/UX is redesigned under Impeccable; the old visuals impose no constraints.
+6. No legacy data migration; the new database is built from empty.
+7. The user has confirmed keeping Docker/K3s; push notifications and offline writes are deferred to the app phase.
 
-「功能對等」涵蓋使用者操作、權限、資料結果、API、排程、匯入匯出、公開內容及錯誤情境。頁面布局和實作方式可以改；不可在重構中默默刪除功能或改變交易公式。
+"Feature parity" covers user operations, permissions, data outcomes, APIs, scheduling, import/export, public content, and error scenarios. Page layout and implementation approach may change; features must not be silently dropped and trading formulas must not change during the rebuild.
 
-## 2. 目前基準與限制
+## 2. Current Baseline and Constraints
 
-- diary-v3 盤點時為空資料夾。
-- diary-vue 目前有 43 個 page 檔案、124 個 API handler 檔案；這是盤點入口，不等於 43 項獨立功能或完整驗收結果。
-- 來源 HEAD：`72b5bf7bb5cd841eff2fca9795a5fa977bff0196`。
-- 來源有未提交的 auth、schema、market jobs、Socket.IO 與其他修正。Phase 0 必須凍結包含這些變更的 worktree 快照，不能只取 HEAD。
-- 舊 OpenAPI 主要覆蓋 mobile/core API，並未涵蓋全部 handlers；需另建完整功能矩陣。
-- 此次是程式與文件盤點，未執行舊系統整套測試，也未聲稱已完成 runtime 功能對等驗證。
+- diary-v3 was an empty folder at inventory time.
+- diary-vue currently has 43 page files and 124 API handler files; this is the inventory entry point, not 43 independent features or a completed acceptance result.
+- Source HEAD: `72b5bf7bb5cd841eff2fca9795a5fa977bff0196`.
+- The source carries uncommitted fixes to auth, schema, market jobs, Socket.IO, and more. Phase 0 must freeze a worktree snapshot that includes these changes; taking HEAD alone is not acceptable.
+- The legacy OpenAPI spec mostly covers the mobile/core API and does not cover every handler; a complete feature matrix must be built separately.
+- This was a code and documentation inventory: the legacy system's full test suite was not run, and no completed runtime feature-parity verification is claimed.
 
-主要證據：
+Primary evidence:
 
-- [現有產品範圍](/Users/klam/Desktop/project/diary-vue/PRODUCT.md)
-- [領域語言與規則](/Users/klam/Desktop/project/diary-vue/CONTEXT.md)
-- [功能流程](/Users/klam/Desktop/project/diary-vue/docs/WORKFLOWS.md)
+- [Current product scope](/Users/klam/Desktop/project/diary-vue/PRODUCT.md)
+- [Domain language and rules](/Users/klam/Desktop/project/diary-vue/CONTEXT.md)
+- [Feature workflows](/Users/klam/Desktop/project/diary-vue/docs/WORKFLOWS.md)
 - [React Native readiness](/Users/klam/Desktop/project/diary-vue/docs/backend-readiness.md)
-- [資料模型](/Users/klam/Desktop/project/diary-vue/prisma/schema.prisma)
-- [舊資料庫 migrations](/Users/klam/Desktop/project/diary-vue/prisma/migrations)
+- [Data model](/Users/klam/Desktop/project/diary-vue/prisma/schema.prisma)
+- [Legacy database migrations](/Users/klam/Desktop/project/diary-vue/prisma/migrations)
 
-## 3. 建議技術架構
+## 3. Proposed Technical Architecture
 
-TypeScript monorepo，採 npm workspaces 與單一 lockfile。
+A TypeScript monorepo using npm workspaces and a single lockfile.
 
-| 層級 | 建議 | 責任 |
+| Layer | Choice | Responsibility |
 | --- | --- | --- |
-| Web | React + React Router framework mode + Vite | 路由、React UI、公開內容 SSR、互動頁面 |
-| API | Hono on Node.js | REST、認證授權、業務用例、Socket.IO、排程啟動 |
-| Database | PostgreSQL + Drizzle + node-postgres | schema、SQL migrations、查詢、交易與資料約束 |
-| Contracts | Zod + OpenAPI | request／response／error 的執行期驗證與對外協議 |
-| Client | openapi-typescript + openapi-fetch | 共用 typed fetch client、native refresh 協調 |
-| 驗證 | Vitest + Playwright + disposable PostgreSQL | 純邏輯、API／DB 整合、瀏覽器流程 |
+| Web | React + React Router framework mode + Vite | Routing, React UI, SSR of public content, interactive pages |
+| API | Hono on Node.js | REST, authentication and authorization, business use cases, Socket.IO, scheduler startup |
+| Database | PostgreSQL + Drizzle + node-postgres | Schema, SQL migrations, queries, transactions and data constraints |
+| Contracts | Zod + OpenAPI | Runtime validation of requests/responses/errors and the external protocol |
+| Client | openapi-typescript + openapi-fetch | Shared typed fetch client, coordination of native refresh |
+| Testing | Vitest + Playwright + disposable PostgreSQL | Pure logic, API/DB integration, browser flows |
 
-React Router framework mode 支援 SSR、client rendering 與 prerender，可用同一個 React Web 保留公開文章的首次 HTML 正文及互動工作區。[官方 rendering 文件](https://reactrouter.com/start/framework/rendering)
+React Router framework mode supports SSR, client rendering, and prerendering, so a single React web app can preserve the first-HTML body of public articles along with the interactive workspace. [Official rendering docs](https://reactrouter.com/start/framework/rendering)
 
-Hono 有 Node.js adapter，適合承載獨立的 HTTP API runtime；此次選擇依據是清晰的 API 邊界與自架需求。[官方 Node 文件](https://hono.dev/docs/getting-started/nodejs)
+Hono has a Node.js adapter and suits hosting a standalone HTTP API runtime; the choice here rests on a clean API boundary and self-hosting requirements. [Official Node docs](https://hono.dev/docs/getting-started/nodejs)
 
-Drizzle 提供 PostgreSQL 欄位與版本化 migrations 工作流；需明確設定日期與 numeric 型別，而非依賴自動序列化。[欄位文件](https://orm.drizzle.team/docs/column-types)、[migrations 文件](https://orm.drizzle.team/docs/migrations)
+Drizzle provides PostgreSQL column types and a versioned migrations workflow; date and numeric types must be configured explicitly rather than relying on automatic serialization. [Column docs](https://orm.drizzle.team/docs/column-types), [migrations docs](https://orm.drizzle.team/docs/migrations)
 
-實作開始時鎖定經相容性檢查的穩定版本；本計劃不預先寫死未驗證的版本組合。
+Pin compatibility-checked stable versions when implementation starts; this plan does not pre-commit to unverified version combinations.
 
 ```text
 diary-v3/
   apps/
-    web/                  React UI、routes、styles、i18n、PWA
+    web/                  React UI, routes, styles, i18n, PWA
     api/
-      modules/            按 diary、portfolio、research 等功能組織
-      jobs/               排程與 CronJob CLI 入口
+      modules/            organized by feature: diary, portfolio, research, etc.
+      jobs/               scheduler and CronJob CLI entry points
   packages/
-    contracts/            Zod schemas、API errors、OpenAPI registry
-    api-client/           標準 fetch client、single-flight refresh
-    domain/               純計算、驗證與狀態規則
-    db/                   Drizzle schema、migrations、DB functions
+    contracts/            Zod schemas, API errors, OpenAPI registry
+    api-client/           standard fetch client, single-flight refresh
+    domain/               pure computation, validation and state rules
+    db/                   Drizzle schema, migrations, DB functions
   tests/
-    parity/               新舊行為 fixtures 與功能映射
-    e2e/                  完整使用者流程
+    parity/               old-vs-new behavior fixtures and feature mapping
+    e2e/                  full user flows
   docs/
-    adr/                  需要長期保留的架構決定
+    adr/                  architecture decisions kept long-term
 ```
 
-依賴邊界：Web 和未來 Native 可以引用 contracts、api-client 及適用的純 domain 函式。DB、伺服器憑證、Node-only 模組只供 API／jobs 使用。授權及權威業務驗證仍在 API，不能因共用前端驗證而移走。
+Dependency boundaries: Web and a future native app may import contracts, api-client, and applicable pure domain functions. The DB, server credentials, and Node-only modules are for the API/jobs only. Authorization and authoritative business validation stay in the API; sharing validation with the frontend must not move them out.
 
-Web 的公開 SSR loader 負責取資料與呈現，透過 API 讀取；不建立第二套業務或 session 系統。互動頁面由共用 API client 進入同一套 API。前端共用 state/cache 抽象只在有實際重複需求時提取。
+The web public SSR loader fetches and renders data through the API; no second business or session system is created. Interactive pages reach the same API through the shared API client. A shared frontend state/cache abstraction is extracted only when actual duplication demands it.
 
-K3s 拓撲：
+K3s topology:
 
 ```text
-同一 origin 的 Ingress
-  ├─ /api/**、/socket.io/** → API runtime → PostgreSQL
-  └─ 其餘網址              → Web SSR runtime → API
+Ingress on a single origin
+  ├─ /api/**, /socket.io/** → API runtime → PostgreSQL
+  └─ every other URL        → Web SSR runtime → API
 
-Market Rotation CronJob → 同一 API image 的 jobs CLI → 業務函式／PostgreSQL
-未來 React Native      → 相同 REST API
+Market Rotation CronJob → jobs CLI of the same API image → business functions/PostgreSQL
+Future React Native     → the same REST API
 ```
 
-API 維持模組化單體。一個啟用中的 scheduler／realtime instance；初期部署要避免 rollout 時兩個 scheduler 同時運行。Web 可以獨立部署，API 擴展方式留待有實際需求再決定。
+The API stays a modular monolith. One active scheduler/realtime instance; early deployments must avoid two schedulers running at once during a rollout. Web can deploy independently; how the API scales is decided when real demand exists.
 
-## 4. 初步功能對等範圍
+## 4. Initial Feature-Parity Scope
 
-| 功能群 | 必須保留的能力 |
+| Feature group | Capabilities that must be preserved |
 | --- | --- |
-| 帳戶與設定 | 註冊、Web 登入登出／續期、原生 session、logout-all、改密碼、角色、語言、時區、既有偏好 |
-| 日記 | Markdown、標籤、CRUD、搜尋／篩選／分頁、每日唯一、交易及提醒關聯 |
-| Quick Diary | 全域入口、快捷鍵、自由書寫、模板、儲存與追加至當日的既有流程 |
-| Overview／Timeline／Calendar | 投資概況、近期活動、日期導覽、日記閱讀、待關注事項、雙人比較入口 |
-| Review／Trade Plans | 日記結構化複盤、review queue、thesis review、交易計劃及狀態轉換、日記關聯 |
-| Portfolio／績效 | 交易記錄、持倉、估值、成本及損益、曝險／集中度、注意事項、策略績效、交易匯出 |
-| Company／Watchlist | 關注清單、Company Hub、Stock Notes、不可變時間線、Investment Thesis、證據收集 |
-| Alerts／Discipline | 日記回頭提醒、WEEK／MONTH 重複規則、價格警示、前景即時提示、紀律 CRUD／排序／隨機／分享／匯入匯出 |
-| Partner／Agent | 邀請接受與解除、雙向分享設定、Pair View、API key 範圍、外部 agent 寫入及冪等 |
-| 市場及工具 | ETF 關注／研究、市場狀態、Market Rotation／歷史快照、部位計算、FIRE、相對價值、季節性、SEC filings 瀏覽／下載／打包 |
-| 公開內容與管理 | 首頁、About、使用說明、Articles／Blog、SSR／SEO／sitemap／OG、文章草稿／發布／封存／批次操作、使用者及 ETF 管理、批次觸發 |
-| 跨頁體驗與運維 | zh-TW／zh-CN／en、明暗主題、responsive、PWA、權限／錯誤／空狀態、health、logs、CI、備份還原 |
+| Accounts & settings | Registration, web login/logout and renewal, native session, logout-all, password change, roles, language, timezone, existing preferences |
+| Diary | Markdown, tags, CRUD, search/filter/pagination, one-per-day uniqueness, transaction and reminder links |
+| Quick Diary | Global entry point, keyboard shortcut, free-form writing, templates, and the existing save/append-to-current-day flows |
+| Overview/Timeline/Calendar | Investment overview, recent activity, date navigation, diary reading, items to watch, partner-comparison entry |
+| Review/Trade Plans | Structured diary review, review queue, thesis review, trade plans and status transitions, diary links |
+| Portfolio/performance | Trade records, positions, valuation, cost and P/L, exposure/concentration, cautions, strategy performance, trade export |
+| Company/Watchlist | Watchlist, Company Hub, Stock Notes, immutable timeline, Investment Thesis, evidence collection |
+| Alerts/Discipline | Diary follow-up reminders, WEEK/MONTH recurrence rules, price alerts, foreground realtime prompts, discipline CRUD/reorder/random/share/import-export |
+| Partner/Agent | Invitation acceptance and removal, two-way sharing settings, Pair View, API key scopes, external agent writes and idempotency |
+| Markets & tools | ETF watch/research, market state, Market Rotation and historical snapshots, position sizing, FIRE, relative value, seasonality, SEC filings browse/download/bundle |
+| Public content & admin | Home, About, usage guide, Articles/Blog, SSR/SEO/sitemap/OG, article draft/publish/archive/bulk operations, user and ETF administration, batch triggers |
+| Cross-page experience & ops | zh-TW/zh-CN/en, light and dark themes, responsive, PWA, permission/error/empty states, health, logs, CI, backup and restore |
 
-Phase 0 將每一項展開成「舊入口、操作、角色、API、資料規則、新位置、測試、完成狀態」。所有目前有效功能都需要新位置及驗收；只有確認已退役的舊內部實作可不帶入，例如歷史資料修補工具。文件與程式不一致時，先查實際行為；已知 bug 另列，不能當作重寫期間隨意改規格的理由。
+Phase 0 expands each item into "legacy entry point, operations, roles, API, data rules, new location, tests, completion status". Every currently live feature needs a new home and acceptance; only legacy internal implementations confirmed as retired may be left behind, such as historical data-repair tools. When documentation and code disagree, check actual behavior first; known bugs are listed separately and are not license to change specs at will during the rewrite.
 
-## 5. App ready 的具體定義
+## 5. Concrete Definition of App-Ready
 
-今期完成：
+Completed in this phase:
 
-- REST + JSON 可由普通 fetch 使用，不依賴 React Router loaders/actions、瀏覽器 cookie jar 或 DOM。
-- Web 使用 HttpOnly cookie 與 CSRF；Native 使用 JSON token pair、Bearer access 與 rotating refresh token。
-- 保留 refresh family／replay detection／single-flight refresh／登出撤銷等行為。
-- 明確 Bearer 無效時直接拒絕，不退回有效 cookie；權限由伺服器驗證。
-- 共用 client 可注入 base URL、fetch、access-token provider；future native 儲存 token 的平台 adapter 與 API 分離。
-- ID 與 persisted Decimal 使用字串；Calendar Date 為 `YYYY-MM-DD`，Instant 為 UTC `Z`。
-- 穩定 error code、requestId、分頁及 ownership contract。
-- 沿用 `/api/**` 的既有兼容範圍；未來 App 發版落後 backend 時，既有 contract 不原地破壞。
-- Socket.IO 用於前景更新提示；重新連線／回到前景後用 REST 重新取得權威資料。
-- lint／dependency gate 阻止 shared client/domain 引用 Vue、React DOM、Hono、Drizzle 或 Node-only server 模組。
-- 真 API + PostgreSQL 的無 DOM native-client 測試：登入、讀寫日記、並發 401 共用一次 refresh、retry、登出與撤銷。
+- REST + JSON usable with plain fetch, with no dependence on React Router loaders/actions, the browser cookie jar, or the DOM.
+- Web uses HttpOnly cookies and CSRF; native uses a JSON token pair with a Bearer access token and a rotating refresh token.
+- Behaviors such as refresh families, replay detection, single-flight refresh, and revocation on logout are preserved.
+- An invalid Bearer token is rejected outright and never falls back to a valid cookie; permissions are verified server-side.
+- The shared client accepts an injected base URL, fetch, and access-token provider; the future native platform adapter for token storage is separate from the API.
+- IDs and persisted decimals are strings; calendar dates are `YYYY-MM-DD` and instants are UTC `Z`.
+- Stable error codes, requestId, pagination, and ownership contracts.
+- Keep the existing compatibility envelope under `/api/**`; when a future app release lags the backend, existing contracts are not broken in place.
+- Socket.IO signals foreground updates; after reconnecting or returning to the foreground, authoritative data is re-fetched over REST.
+- Lint and dependency gates stop the shared client/domain from importing Vue, React DOM, Hono, Drizzle, or Node-only server modules.
+- DOM-free native-client tests against a real API + PostgreSQL: login, diary read/write, concurrent 401s sharing a single refresh, retry, logout, and revocation.
 
-React Native 階段才做畫面、navigation、Keychain／Keystore 整合、deep-link handlers、APNs／FCM／Expo Push、offline writes 與衝突處理。
+Screens, navigation, Keychain/Keystore integration, deep-link handlers, APNs/FCM/Expo Push, offline writes, and conflict handling come only in the React Native phase.
 
-共用重點是 contracts、client 和純邏輯。Web HTML／CSS 元件留在 Web；日後原生 UI 依平台實作。語系文字與可攜的 semantic token 值可沿用，無需今期建立空的 mobile app。
+What gets shared is contracts, the client, and pure logic. Web HTML/CSS components stay in Web; a future native UI is implemented per platform. Locale strings and portable semantic token values carry over; there is no need to build an empty mobile app this phase.
 
-## 6. PostgreSQL／Drizzle 設計重點
+## 6. PostgreSQL/Drizzle Design Focus
 
-不搬舊資料讓初始化簡單，但仍要完整重建資料的最終約束。
+Skipping legacy data migration keeps initialization simple, but the final constraints on the data must still be rebuilt in full.
 
-| 風險 | 計劃 |
+| Risk | Plan |
 | --- | --- |
-| Prisma schema 不能反映所有 SQL 約束 | 同時讀 migrations 中的 check、composite FK、trigger；將有效規則寫入新的 Drizzle／custom SQL migrations |
-| 金額、價格、數量精度 | PostgreSQL numeric、明確精度與 API string；以既有 fixture 驗證計算及 rounding，不任意轉成 JS Number |
-| 日期／時區 | 日記及市場 civil date 採 date；事件時間採 timestamptz；測 DST、跨日及使用者時區 |
-| 每日唯一與併發追加 | `(user_id, date)` 唯一約束 + transaction／必要 row lock；測同時建立、追加及交易修改 |
-| 交易帳本完整性 | 保留按時間驗證完整帳本與不可超賣等現有規則；日記、交易、提醒關聯修改保持原子性 |
-| 使用者隔離 | ownership、同一使用者複合外鍵、伙伴分享 whitelist；交易／持倉／私人 review 不外洩 |
-| Refresh token 並發 | 保留原子 claim、single winner、family revoke，改寫 PostgreSQL 錯誤映射 |
-| 搜尋及大小寫 | 明確 email／symbol normalization，重做 MariaDB collation／FULLTEXT 等價行為；中文、英文、混合文字搜尋獨立驗收 |
-| enums 與缺值 | 對照 wire contract 的大小寫與 lifecycle；unknown／null／缺報價不可被 0 取代 |
-| 排程與效能 | 重建索引與分頁查詢，保留觸發順序、冪等鍵、排程單實例與 job 失敗紀錄 |
+| The Prisma schema does not reflect every SQL constraint | Read the checks, composite FKs, and triggers in the migrations too; write the effective rules into new Drizzle/custom SQL migrations |
+| Money, price, and quantity precision | PostgreSQL numeric with explicit precision and API strings; verify calculation and rounding against existing fixtures, never casually cast to JS Number |
+| Dates/timezones | Diary and market civil dates use date; event times use timestamptz; test DST, day boundaries, and user timezones |
+| Daily uniqueness and concurrent appends | A `(user_id, date)` unique constraint plus transactions/row locks where needed; test concurrent creation, appends, and trade edits |
+| Trade ledger integrity | Keep existing rules such as validating the whole ledger in time order and no overselling; edits to diary, trade, and reminder links stay atomic |
+| User isolation | Ownership checks, same-user composite foreign keys, partner-sharing allowlists; trades, positions, and private reviews never leak |
+| Refresh token concurrency | Keep atomic claim, single winner, and family revocation; rewrite the error mapping for PostgreSQL |
+| Search and casing | Explicit email/symbol normalization; rebuild MariaDB collation/FULLTEXT-equivalent behavior; Chinese, English, and mixed-text search are accepted independently |
+| Enums and missing values | Match wire-contract casing and lifecycle; unknown/null/missing quotes must never be substituted with 0 |
+| Scheduling and performance | Rebuild indexes and paginated queries; keep trigger ordering, idempotency keys, single-instance scheduling, and job failure records |
 
-中文全文搜尋不預設以 PostgreSQL 英文分詞取代舊能力；Phase 0 的搜尋 fixtures 決定最小可行實作及所需索引。
+Chinese full-text search does not default to replacing the old capability with PostgreSQL's English tokenizer; the Phase 0 search fixtures decide the minimal viable implementation and the indexes it needs.
 
-全新初始化只包含系統需要的市場 universe、ETF 定義及安全的管理員建立流程。測試／展示資料使用合成內容。新的 schema migrations 與 PostgreSQL 備份還原仍屬交付範圍。
+A fresh initialization contains only the market universe and ETF definitions the system needs, plus a safe admin-creation flow. Test/demo data is synthetic. New schema migrations and PostgreSQL backup/restore remain in scope for delivery.
 
-## 7. UI／UX 計劃
+## 7. UI/UX Plan
 
-以下是建議的設計起點，並非已實作或已鎖定的視覺規格。Impeccable 的產品事實記錄見 [PRODUCT.md](/Users/klam/Desktop/project/diary-v3/PRODUCT.md)。
+What follows is a proposed design starting point, not an implemented or locked visual spec. The Impeccable product-fact record lives in [PRODUCT.md](/Users/klam/Desktop/project/diary-v3/PRODUCT.md).
 
-**方向：一張清楚、沉著的投資研究桌。** 以文字、日期、投資判斷及資料層次建立辨識度。暖白閱讀面、墨色正文、克制的深綠操作色是候選；漲跌和風險保持獨立語意。數字對齊、表格密度及長時間閱讀優先於裝飾。
+**Direction: a clear, calm investment research desk.** Identity comes from text, dates, investment judgments, and data hierarchy. Warm-white reading surfaces, ink-colored body text, and a restrained deep-green action color are candidates; up/down and risk keep independent semantics. Number alignment, table density, and long-session reading outrank decoration.
 
-| Surface | 模式與設計任務 |
+| Surface | Mode and design task |
 | --- | --- |
-| Overview／Timeline | Operate／Read：先看到需要處理的事，再按日期閱讀自己的決策脈絡 |
-| Diary composer／Review | Operate：主要編輯區清楚，thesis、risk、execution、事後反思層次分明 |
-| Portfolio／Company | Operate：持倉資料密度合理；可由公司進入論點、證據及複盤 |
-| Research tools | Operate：先理解輸入及資料時間，再比較結果與限制 |
-| Articles | Read：正文、標題、目錄和閱讀寬度為主 |
-| 公開首頁 | Persuade：準確呈現產品做得到的工作，使用真實功能或清楚標示的示例 |
+| Overview/Timeline | Operate/Read: see what needs handling first, then read your own decision context by date |
+| Diary composer/Review | Operate: a clear main editing area, with thesis, risk, execution, and retrospective visually distinct |
+| Portfolio/Company | Operate: sensible position data density; from a company, reach theses, evidence, and reviews |
+| Research tools | Operate: understand inputs and data timing first, then compare results and limits |
+| Articles | Read: body text, headings, table of contents, and reading width lead |
+| Public home | Persuade: show accurately what the product can actually do, using real features or clearly labeled examples |
 
-初步資訊架構：桌面固定導航，分成總覽、日記、持倉、研究、複盤；伙伴、提醒、紀律、設定及管理仍有清晰入口。Quick Diary 保持全域操作。
+Initial information architecture: fixed desktop navigation split into Overview, Diary, Portfolio, Research, Review; Partner, Alerts, Discipline, Settings, and Admin keep clear entries. Quick Diary stays a global action.
 
-桌面可使用「列表／主要內容／上下文」視需要組合；手機改為單欄任務流程、適合觸控的底部導航與記錄入口。寬表格在手機採摘要、展開或可辨識的橫向捲動，保留所有資料與操作。
+Desktop can compose "list / main content / context" as needed; mobile switches to single-column task flows with touch-friendly bottom navigation and a capture entry. Wide tables on mobile use a summary, expandable rows, or clearly visible horizontal scrolling, keeping all data and actions.
 
-正式大量建頁前，先完成 Overview、Quick Diary、Company／Review 三條代表流程的設計提案與可互動樣板；同時覆蓋桌面／手機、長內容、零資料、缺報價、載入、錯誤、權限拒絕及長翻譯。視覺工法的選擇在該階段處理。
+Before mass page production, complete design proposals and interactive templates for three representative flows: Overview, Quick Diary, and Company/Review; cover desktop/mobile, long content, zero data, missing quotes, loading, errors, permission denial, and long translations at the same time. The visual construction approach is settled in that phase.
 
-建立 semantic tokens、表單、表格、導航、dialog、狀態訊息、Markdown 與 chart 容器等實際需要的基礎元件。採 WCAG AA、keyboard／focus、reduced motion 與三語為品質基準。每次完整 UI 交付使用 Impeccable 的有界桌面／手機檢查與獨立 finish review，再記錄實際設計系統。
+Build only the foundation components actually needed: semantic tokens, forms, tables, navigation, dialogs, status messages, and Markdown and chart containers. WCAG AA, keyboard/focus, reduced motion, and three languages are the quality bar. Each full UI delivery goes through Impeccable's bounded desktop/mobile checks and an independent finish review before the actual design system is recorded.
 
-## 8. 分階段交付
+## 8. Phased Delivery
 
-每個功能階段都同時完成 DB、API、React UI 和測試；中途的登入日記骨架只是第一條驗證流程，最終仍須全部功能對等。
+Every feature phase delivers DB, API, React UI, and tests together; the interim login-and-diary skeleton is only the first validated flow — full feature parity is still required at the end.
 
-| 階段 | 交付 | 通過條件 |
+| Phase | Deliverables | Pass criteria |
 | --- | --- | --- |
-| 0：固定基準 | 含未提交變更的來源快照、完整 route／API／排程／資料規則矩陣、可重現 fixtures、已知問題表 | 每個有效功能都有歸屬；來源中的新變更有追蹤方式 |
-| 1：端到端基礎 | monorepo、PostgreSQL、migration、API／Web runtime、contracts、雙模式 auth、CI、登入→新增→讀取日記最小流程 | 真 DB + Web + 無 DOM client 都能完成；auth／ownership gate 通過 |
-| 2：設計與日記主線 | 代表流程樣板、App shell、Quick Diary、完整 diary authoring、Timeline、搜尋、Calendar、diary review、Trade Plans | 快速記錄到複盤全程可用；併發追加與帳本關聯正確；desktop/mobile 驗收 |
-| 3：投資工作流 | Watchlist、Company Hub、Notes／Evidence／Thesis、thesis review、交易、Portfolio、績效、匯出 | 固定 fixtures 的持倉／損益／曝險／績效符合舊語意；缺資料狀態一致 |
-| 4：提醒與協作 | Diary alerts、Price Alerts、Discipline、Socket.IO、Partner／Pair View、API keys／Agent ingestion | scheduler 與觸發行為、分享隔離、replay／冪等、斷線回復驗收 |
-| 5：研究與公開內容 | Yahoo／ETF／Market State／Rotation、SEC、全部計算工具、Articles／Blog、管理後台 | batch 可重跑、provider 故障／限流／partial data 可處理；公開文章首次 HTML 可讀 |
-| 6：完整驗收與交付 | 補齊三語／主題／PWA、全功能 parity、效能與 a11y、K3s manifests、PostgreSQL 備份還原、運維文件 | 全矩陣通過、所有 release gates 綠燈、乾淨環境部署及還原演練成功 |
+| 0: Frozen baseline | Source snapshot including uncommitted changes, a complete route/API/scheduling/data-rule matrix, reproducible fixtures, a known-issues table | Every live feature has a home; new source changes have a tracking path |
+| 1: End-to-end foundation | Monorepo, PostgreSQL, migrations, API/Web runtimes, contracts, dual-mode auth, CI, and the minimal login → create → read diary flow | Real DB + Web + a DOM-free client all complete it; auth/ownership gates pass |
+| 2: Design and the diary main line | Representative-flow templates, app shell, Quick Diary, full diary authoring, Timeline, search, Calendar, diary review, Trade Plans | Quick capture through review is usable end to end; concurrent appends and ledger links are correct; desktop/mobile acceptance |
+| 3: Investment workflows | Watchlist, Company Hub, Notes/Evidence/Thesis, thesis review, trades, Portfolio, performance, export | Positions/P/L/exposure/performance on fixed fixtures match legacy semantics; missing-data states are consistent |
+| 4: Alerts and collaboration | Diary alerts, Price Alerts, Discipline, Socket.IO, Partner/Pair View, API keys/agent ingestion | Scheduler and trigger behavior, sharing isolation, replay/idempotency, and reconnect recovery accepted |
+| 5: Research and public content | Yahoo/ETF/Market State/Rotation, SEC, all calculation tools, Articles/Blog, admin console | Batches are re-runnable; provider failures/rate limits/partial data are handled; public articles' first HTML is readable |
+| 6: Full acceptance and delivery | Complete the three languages/themes/PWA, full-feature parity, performance and a11y, K3s manifests, PostgreSQL backup/restore, ops docs | Full matrix passes, all release gates green, clean-environment deployment and restore drills succeed |
 
-部署設定與驗證在 Phase 1 就開始，Phase 6 完成正式交付檢查。PWA／三語／主題採每個階段持續支援，不能到最後才補救整個 UI。
+Deployment configuration and verification start in Phase 1; Phase 6 completes the formal delivery check. PWA, three languages, and themes are supported continuously in every phase — the whole UI must not be patched up at the end.
 
-## 9. 最終驗收
+## 9. Final Acceptance
 
-- 功能矩陣每列有實際證據；不能用「頁面已存在」判斷完成。
-- 從舊程式抽取可重現的業務 fixtures／behavior tests，使用固定時鐘及固定行情，在新系統比對。ID 與時間等非決定性欄位只做明確的映射，不忽略有意義差異。
-- 真 PostgreSQL 測試：empty migration、約束、transactions、並發、刪除關聯、查詢與 native refresh。
-- API 測試：角色、ownership、partner 隱私、Web CSRF、invalid Bearer fail-closed、refresh replay、登出／改密碼撤銷 sockets、pagination、ID／Decimal／日期格式。
-- Native-ready 測試直接連新 backend，不只 mock fetch；不要求建立或交付 React Native App。
-- Playwright 驗證核心完整流程，並與 API parity 補足所有剩餘功能。
-- 公開文章初始 HTML 有正文、title、canonical／meta；關閉 JavaScript 仍可閱讀。
-- Yahoo／SEC 使用可控的 upstream fixtures 驗證限流、快取、stale data、下載限制與失敗；CI 不依賴即時市場網路結果。
-- PWA 保留安裝及更新能力；個人 API 資料維持 NetworkOnly，不因加入 service worker 導致跨帳號快取或暗中提供離線寫入。
-- CI 包含 lint、typecheck、build、contracts／client drift、domain tests、PostgreSQL integration、核心 E2E；發布由這些結果把關。
-- 以代表性大型日記、長時間序列、分頁及市場資料測量效能；Phase 0 建立基線及門檻，避免現在捏造時間保證。
-- 自架環境提供 health／readiness、結構化 requestId／jobId logs、migration Job、單實例 scheduler、備份還原與發布回復流程。
+- Every feature-matrix row has concrete evidence; "the page exists" never counts as done.
+- Extract reproducible business fixtures/behavior tests from the legacy code, run them with a fixed clock and fixed market data, and compare against the new system. Nondeterministic fields such as IDs and timestamps get an explicit mapping only; meaningful differences are never ignored.
+- Real PostgreSQL tests: empty migration, constraints, transactions, concurrency, link deletion, queries, and native refresh.
+- API tests: roles, ownership, partner privacy, web CSRF, invalid-Bearer fail-closed, refresh replay, socket revocation on logout/password change, pagination, and ID/decimal/date formats.
+- Native-ready tests hit the new backend directly, not just a mocked fetch; building or delivering a React Native app is not required.
+- Playwright verifies the core end-to-end flows, with API parity covering all remaining features.
+- Public articles' initial HTML has body content, title, and canonical/meta tags, and stays readable with JavaScript disabled.
+- Yahoo/SEC use controlled upstream fixtures to verify rate limiting, caching, stale data, download limits, and failures; CI does not depend on live market network results.
+- The PWA keeps install and update capability; personal API data stays NetworkOnly, so adding a service worker never causes cross-account caching or covert offline writes.
+- CI includes lint, typecheck, build, contracts/client drift, domain tests, PostgreSQL integration, and core E2E; releases are gated on these results.
+- Performance is measured with representative large diaries, long time series, pagination, and market data; Phase 0 establishes baselines and thresholds instead of inventing timing guarantees now.
+- The self-hosted environment provides health/readiness, structured requestId/jobId logs, a migration Job, a single-instance scheduler, backup/restore, and a release-rollback flow.
 
-## 10. 本輪決策狀態
+## 10. Decision Status for This Round
 
-已確認：React、PostgreSQL／Drizzle、完整功能對等、UI／UX 可重設計、不搬舊資料、Docker／K3s、推播及離線寫入延後。
+Confirmed: React, PostgreSQL/Drizzle, full feature parity, UI/UX free to redesign, no legacy data migration, Docker/K3s, and deferral of push notifications and offline writes.
 
-本計劃建議：React Router framework Web + Hono API 的 TypeScript monorepo；按完整功能流程逐階段交付；正式 coding 從 Phase 0／1 開始。
+This plan proposes: a TypeScript monorepo with a React Router framework web app and a Hono API; delivery stage by stage along complete feature flows; formal coding starts at Phase 0/1.
 
-尚待實作階段落實：相容套件版本、視覺樣板、完整逐項 parity 清單、效能基線與公開品牌名稱。這些不影響本輪計劃的範圍，不能視為已完成。
+Still to be settled during implementation: compatible package versions, visual templates, a complete item-by-item parity checklist, performance baselines, and the public brand name. These do not change this round's scope and must not be treated as done.

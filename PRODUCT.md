@@ -8,61 +8,61 @@ web
 
 ## Stack
 
-使用者已指定 React Web、PostgreSQL、Drizzle，並確認沿用 Docker／K3s 部署。
-未來 App 預計採用 React Native；現階段不建立 App。
-已開始建立 React Router Web、Hono API 及共用 contracts／client 的 TypeScript monorepo。
+The user has specified React Web, PostgreSQL, and Drizzle, and confirmed keeping the Docker/K3s deployment.
+A future app is expected to use React Native; no app is being built at this stage.
+A TypeScript monorepo with a React Router web app, a Hono API, and shared contracts/client is underway.
 
 ## Users
 
-沿用 diary-vue 現有產品服務的投資日記使用者。
-依現有程式與產品文件，主要情境為盤中快速記錄、追蹤投資判斷、整理交易與持倉、盤後及定期複盤。
-使用者年資與對外品牌名稱尚未重新定義；不沿用舊文件互相不一致的年資描述。
+The investment-diary users already served by the existing diary-vue product.
+Based on the existing code and product docs, the main scenarios are quick capture during trading hours, tracking investment theses, organizing trades and holdings, and after-hours and periodic reviews.
+User tenure and the external brand name have not been redefined; the mutually inconsistent tenure descriptions in the old docs are not carried over.
 
 ## Product Purpose
 
-完整重構 diary-vue，保留所有目前有效的產品功能與業務行為。
-日記、交易、投資論點、研究證據、提醒和複盤共同構成可回看的投資決策脈絡。
-功能範圍以來源程式、API contracts 與驗收案例為依據，不以頁面數或歷史計劃文件代替。
+A complete rebuild of diary-vue that preserves every currently valid product feature and business behavior.
+Diaries, trades, investment theses, research evidence, reminders, and reviews together form a reviewable record of investment decisions.
+Feature scope is grounded in the source code, API contracts, and acceptance cases — not in page counts or historical planning docs.
 
 ## Operating Context
 
-- Web 需支援桌面與行動瀏覽器。
-- 既有能力包括日記、Timeline、Calendar、Reviews、Trade Plans、Portfolio、Company Hub、Watchlists、研究工具、伙伴分享、Agent API、公開文章及管理後台。
-- 保留現有三語（zh-TW／zh-CN／en）、明暗主題、時區設定、PWA 與公開內容 SEO 能力。
-- 以上能力由 diary-vue 現有程式與產品文件盤點；完整逐項驗收矩陣在計劃 Phase 0 建立。
+- The web app must support desktop and mobile browsers.
+- Existing capabilities include diaries, Timeline, Calendar, Reviews, Trade Plans, Portfolio, Company Hub, Watchlists, research tools, partner sharing, Agent API, public articles, and an admin console.
+- Keep the existing trilingual support (zh-TW/zh-CN/en), light and dark themes, timezone settings, PWA, and SEO for public content.
+- These capabilities were inventoried from the diary-vue code and product docs; the complete item-by-item acceptance matrix is built in Phase 0 of the plan.
 
 ## Capabilities and Constraints
 
-- 功能與 diary-vue 完全對等，UI／UX 由 Impeccable 重新設計。
-- 不需要從舊系統搬遷使用者資料；新系統從空 PostgreSQL 資料庫初始化。
-- 新系統仍需版本化 schema migrations、必要系統種子資料與備份還原能力。
-- App ready 今期涵蓋共用 API、可共用的業務邏輯、原生登入與續期。
-- 使用者已確認：推播及離線寫入留待 React Native 階段。
-- 使用者已授權依本地 tickets 並行實作，並明確要求順手修正舊 bug 及技術債；保留功能意圖，不重現錯誤。
+- Feature parity with diary-vue is complete; the UI/UX is redesigned by Impeccable.
+- No user data is migrated from the old system; the new system initializes from an empty PostgreSQL database.
+- The new system still needs versioned schema migrations, required system seed data, and backup restore.
+- App readiness this phase covers the shared API, reusable business logic, and native sign-in and renewal.
+- The user has confirmed: push notifications and offline writes are deferred to the React Native phase.
+- The user has authorized parallel implementation against the local tickets and explicitly asked that old bugs and tech debt be fixed along the way; preserve feature intent, do not reproduce the defects.
 
 ## Brand Commitments
 
-使用者明確允許替換既有 UI／UX，未指定需要沿用的配色、字體或視覺系統。
-diary-v3 是目前專案名稱；對外產品名稱仍待定。
+The user explicitly allows replacing the existing UI/UX and has not specified any colors, typography, or visual system to carry over.
+diary-v3 is the current project name; the external product name is still TBD.
 
 ## Evidence on Hand
 
-- 來源：`/Users/klam/Desktop/project/diary-vue`。
-- 產品及領域文件：來源專案的 PRODUCT.md、CONTEXT.md、docs/WORKFLOWS.md。
-- 實作：pages、server/api、lib、prisma/schema.prisma、tests。
-- App contract：docs/backend-readiness.md、lib/contracts、lib/api-client、openapi/openapi.json。
-- 現有 UI 證據：layouts/default.vue、pages/timeline/index.vue、assets/css/design-tokens.css。
-- 2026-09-05 盤點時來源 worktree 有未提交變更，不能單以 HEAD 代表功能基準。
+- Source: `/Users/klam/Desktop/project/diary-vue`.
+- Product and domain docs: the source project's PRODUCT.md, CONTEXT.md, docs/WORKFLOWS.md.
+- Implementation: pages, server/api, lib, prisma/schema.prisma, tests.
+- App contract: docs/backend-readiness.md, lib/contracts, lib/api-client, openapi/openapi.json.
+- Existing UI evidence: layouts/default.vue, pages/timeline/index.vue, assets/css/design-tokens.css.
+- At the 2026-09-05 inventory the source worktree had uncommitted changes, so HEAD alone does not represent the feature baseline.
 
 ## Product Principles
 
-1. 功能對等須由行為與測試證明。
-2. 快速記錄維持低摩擦，閱讀、管理與複盤各有清晰入口。
-3. 交易結果、時區及分享權限保持一致。
-4. API 是 Web 與未來 App 的共同業務入口。
-5. 可共用邏輯保持獨立於 Vue、React DOM 和 native 平台。
+1. Feature parity must be proven by behavior and tests.
+2. Quick capture stays low-friction, while reading, management, and review each get a clear entry point.
+3. Trade results, timezones, and sharing permissions stay consistent.
+4. The API is the shared business entry point for web and the future app.
+5. Reusable logic stays independent of Vue, React DOM, and native platforms.
 
 ## Accessibility & Inclusion
 
-既有產品文件以 WCAG AA、鍵盤操作、螢幕閱讀器及 reduced motion 為基準。
-重設計計劃保留這些能力，並驗收三語、長內容與行動操作。
+The existing product docs take WCAG AA, keyboard operation, screen readers, and reduced motion as the baseline.
+The redesign plan keeps these capabilities and accepts trilingual content, long content, and mobile use.

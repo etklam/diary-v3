@@ -158,7 +158,7 @@ function newYorkLocalTimeToUtc(year: number, month: number, day: number, hour: n
   const localTimestamp = Date.UTC(year, month - 1, day, hour, minute, 0)
   let utcTimestamp = localTimestamp
 
-  // 用 IANA 時區換算，避免美東夏令時間把固定 UTC offset 搞翻車。
+  // Convert via the IANA timezone so US Eastern DST doesn't break a fixed UTC offset.
   for (let i = 0; i < 2; i += 1) {
     const offset = getNewYorkOffsetMs(new Date(utcTimestamp))
     utcTimestamp = localTimestamp - offset

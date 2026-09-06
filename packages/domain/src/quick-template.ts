@@ -204,7 +204,7 @@ export function generateTemplateDraft(input: GenerateTemplateDraftInput): Templa
       content += `## ${copy.reflection.improvePoints}\n\n${input.templateData.improvePoints}\n\n`
     }
 
-    // 相關交易回顧區塊
+    // Related trades review section
     const relatedTrades = input.templateData.relatedTrades ?? []
     if (relatedTrades.length > 0) {
       content += `## ${copy.reflection.relatedTrades}\n\n`

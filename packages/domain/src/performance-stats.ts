@@ -1,8 +1,9 @@
 /**
  * server/utils/performance-stats.ts
  *
- * 純計算層：接收 Prisma 原始交易紀錄與設定，回傳完整的績效統計結果。
- * 無 DB、無 HTTP 依賴，方便單元測試。
+ * Pure calculation layer: takes raw Prisma transaction records plus config
+ * and returns the full performance stats result. No DB or HTTP dependencies,
+ * which makes it easy to unit test.
  */
 
 import {
@@ -25,7 +26,7 @@ import type {
   SymbolBreakdownEntry as SharedSymbolBreakdownEntry,
 } from './performance-types.js'
 
-// ─── 輸入型別 ──────────────────────────────────────────────────────────────────
+// ─── Input types ──────────────────────────────────────────────────────────────
 
 export interface RawTransactionRecord {
   id: bigint | string | number
@@ -42,7 +43,7 @@ export interface PerformanceConfig {
   period: GroupPeriod
 }
 
-// ─── 輸出型別 ──────────────────────────────────────────────────────────────────
+// ─── Output types ─────────────────────────────────────────────────────────────
 
 export type FormattedTrade = Omit<SharedPerformanceTrade, 'sellDate'> & { sellDate: Date }
 export type SymbolBreakdownEntry = SharedSymbolBreakdownEntry
@@ -97,7 +98,7 @@ function buildAttributeBreakdown(
     .sort((a, b) => b.realizedPnL - a.realizedPnL || b.tradeCount - a.tradeCount || a.name.localeCompare(b.name))
 }
 
-// ─── 主函數 ────────────────────────────────────────────────────────────────────
+// ─── Main entry point ─────────────────────────────────────────────────────────
 
 export function computePerformanceStats(
   rawTxs: RawTransactionRecord[],
@@ -117,8 +118,9 @@ export function computePerformanceStats(
 
   const grouped = groupByPeriod(closedTrades, 'month')
   const periodStatsResult = calcPeriodStats(grouped)
-  // Sharpe 必須吃百分比報酬（月報酬 = 該月 ΣrealizedPnL / Σ平倉成本基礎），
-  // 不能直接餵美元損益 —— 否則大倉位月份會被放大，與報酬率無關。
+  // Sharpe must consume percentage returns (monthly return = the month's
+  // ΣrealizedPnL / Σclosed cost basis), not raw dollar P&L — otherwise large
+  // position months get amplified, detached from the actual return rate.
   const monthlyReturnPcts = buildMonthlyReturnPcts(closedTrades)
   const sharpeResult = calcSharpe(monthlyReturnPcts)
 
@@ -129,7 +131,8 @@ export function computePerformanceStats(
       ? periodStatsResult
       : calcPeriodStats(requestedGrouped)
 
-  // 先 filter 再 slice：slice(0,5).filter 會在前 5 名夾雜虧損時擠掉第 6 名的獲利
+  // Filter before slicing: slice(0,5).filter would drop the 6th-ranked winner
+  // when a loss lands inside the top 5
   const sortedByPnL = [...closedTrades].sort((a, b) => b.realizedPnL - a.realizedPnL)
   const topWins = sortedByPnL.filter((t) => t.realizedPnL > 0).slice(0, 5)
   const topLosses = [...closedTrades]

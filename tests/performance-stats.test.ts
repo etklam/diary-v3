@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { computePerformanceStats } from '../packages/domain/src/performance-stats'
 import type { RawTransactionRecord } from '../packages/domain/src/performance-stats'
 
-// ─── 測試輔助 ────────────────────────────────────────────────────────────────
+// ─── Test helpers ────────────────────────────────────────────────────────────
 
 function makeTx(
   overrides: Partial<RawTransactionRecord> &
@@ -16,7 +16,7 @@ function makeTx(
   }
 }
 
-/** 產生一組完整的 round-trip（BUY 後 SELL 全平） */
+/** Build one full round-trip (BUY followed by a full SELL exit) */
 function roundTrip(
   id: string,
   symbol: string,
@@ -32,11 +32,11 @@ function roundTrip(
   ]
 }
 
-// ─── Sharpe：百分比報酬，非美元損益 ──────────────────────────────────────────
+// ─── Sharpe: percentage returns, not dollar P&L ──────────────────────────────
 
 describe('computePerformanceStats — sharpe', () => {
-  it('尺度不變：10x 損益 + 10x 成本基礎 → 相同 sharpe', () => {
-    // 月報酬序列：1月 +20%、2月（無平倉）0、3月 -10%
+  it('scale invariant: 10x PnL + 10x cost basis → same sharpe', () => {
+    // Monthly return series: Jan +20%, Feb (no closes) 0, Mar -10%
     const small = computePerformanceStats(
       [
         ...roundTrip('1', 'AAA', 10, 100, 120, '2024-01-01', '2024-01-15'),
@@ -57,9 +57,9 @@ describe('computePerformanceStats — sharpe', () => {
     expect(big.summary.sharpe!).toBeCloseTo(small.summary.sharpe!, 10)
   })
 
-  it('各月報酬率相同但美元規模不同 → 零波動 → sharpe = null', () => {
-    // 1月 小倉位 +10%（+$100）、2月 大倉位 +10%（+$1000）
-    // 餵美元損益的舊實作會算出非 null 的 sharpe（[100, 1000] 有波動）
+  it('identical monthly returns at different dollar scales → zero variance → sharpe = null', () => {
+    // Jan small position +10% (+$100), Feb large position +10% (+$1000)
+    // The old implementation fed dollar P&L and got a non-null sharpe ([100, 1000] has variance)
     const result = computePerformanceStats(
       [
         ...roundTrip('1', 'AAA', 10, 100, 110, '2024-01-01', '2024-01-15'),
@@ -71,12 +71,12 @@ describe('computePerformanceStats — sharpe', () => {
   })
 })
 
-// ─── topWins / topLosses：先 filter 再 slice ─────────────────────────────────
+// ─── topWins / topLosses: filter before slice ────────────────────────────────
 
 describe('computePerformanceStats — topWins/topLosses', () => {
-  it('top 5 窗口內夾雜虧損時，不擠掉第 6 名的獲利', () => {
-    // pnl 由大到小：+100, +90, -80, +70, +60, +50
-    // 舊實作 slice(0,5).filter(>0) 只剩 4 筆，丟掉 +50 那筆
+  it('losses inside the top-5 window do not displace the 6th-ranked gain', () => {
+    // PnL descending: +100, +90, -80, +70, +60, +50
+    // The old slice(0,5).filter(>0) leaves only 4 trades, dropping the +50 one
     const txs = [
       ...roundTrip('1', 'A', 10, 100, 110, '2024-01-01', '2024-01-02'), // +100
       ...roundTrip('2', 'B', 10, 100, 109, '2024-01-03', '2024-01-04'), // +90
@@ -92,8 +92,8 @@ describe('computePerformanceStats — topWins/topLosses', () => {
     expect(result.topWins.every((t) => t.realizedPnL > 0)).toBe(true)
   })
 
-  it('top 5 虧損窗口內夾雜獲利時，不擠掉第 6 名的虧損', () => {
-    // pnl 由小到大：-100, -90, +80, -70, -60, -50
+  it('gains inside the top-5 loss window do not displace the 6th-ranked loss', () => {
+    // PnL ascending: -100, -90, +80, -70, -60, -50
     const txs = [
       ...roundTrip('1', 'A', 10, 100, 90, '2024-01-01', '2024-01-02'),  // -100
       ...roundTrip('2', 'B', 10, 100, 91, '2024-01-03', '2024-01-04'),  // -90
