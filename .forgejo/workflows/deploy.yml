@@ -47,7 +47,11 @@ jobs:
           grep -qxF '**/.env.*' .dockerignore || true
 
       - name: Install deps
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: |
+          set -euxo pipefail
+          node --version
+          npm --version
+          npm ci --ignore-scripts --no-audit --no-fund --loglevel=verbose
 
       - name: Lint
         run: npm run lint
