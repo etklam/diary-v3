@@ -228,7 +228,9 @@ jobs:
           REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
           ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
-          WEB_CODE=$(curl -s -o /dev/null -w '%{http_code}' https://v3.trade-basic.com/ || echo 000)
+          # cert-manager DNS-01 issuance can lag rollout by a few minutes.
+          ssh $SSH_OPTS $REMOTE "kubectl -n $DEPLOY_NAMESPACE wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"
+          WEB_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/ || echo 000)
           echo "WEB /: $WEB_CODE"
           [ "$WEB_CODE" = "200" ]
 
