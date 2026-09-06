@@ -4,12 +4,13 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, NavLink, useLoca
 import { clearPrivateSession, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import './styles.css';
+import './public.css';
 import { QuickEntry } from './quick-entry';
 import { MobileMenu, NavigationLinks } from './nav';
 import { PwaStatus } from './pwa';
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  return <html lang="zh-TW" suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="theme-color" content="#215c43" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
+  return <html lang="zh-TW" suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
 }
 
 function PreferencesControls({ mobile = false }: { mobile?: boolean }) {
@@ -73,7 +74,7 @@ function Shell() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="desktop-shell-header"><Link className="brand" to="/">diary-v3<span>{t('workspace')}</span></Link></div>
-        <QuickEntry/>
+        <div className="desktop-quick-entry"><QuickEntry/></div>
         <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
         <div className="desktop-preferences">
           {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}

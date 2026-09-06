@@ -1,2 +1,210 @@
-.diary-review{max-width:1120px}.review-heading{display:flex;justify-content:space-between;gap:24px;align-items:start;margin:24px 0}.review-heading h1{margin:0}.review-diary-title{font-size:1.125rem;margin:8px 0;overflow-wrap:anywhere}.review-heading time{color:var(--muted);font-size:.875rem}.review-status{background:var(--selected);color:var(--text);padding:8px 12px;white-space:nowrap;border-radius:4px;font-size:.875rem}.review-schedule{display:flex;justify-content:space-between;align-items:center;gap:24px;border-block:1px solid var(--border);padding:16px 0;margin:24px 0 32px}.review-schedule p{margin:4px 0;font-size:.875rem}.review-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}.review-columns h2{font-size:1.25rem;margin-top:0}.review-original,.review-reflection{min-width:0}.review-reflection{border-left:1px solid var(--border);padding-left:32px}.review-columns dl{margin:24px 0}.review-columns dt{font-weight:650;margin-bottom:8px}.review-columns dd{margin:0 0 24px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85}.review-reflection fieldset{padding:0;margin:0;border:0;min-width:0}.review-reflection legend{font-weight:650}.review-outcomes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 24px}.review-outcomes label{display:flex;align-items:center;gap:10px;border:1px solid var(--control);padding:12px;cursor:pointer;border-radius:4px;margin:0}.review-outcomes label:has(input:checked){background:var(--selected);border-color:var(--action)}.review-outcomes input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--action)}.review-field-hint{display:block;font-size:.875rem;color:var(--muted);font-weight:400;margin:4px 0 8px}.review-reflection form>fieldset>label{margin-bottom:24px}.review-outcome{font-size:1.125rem;font-weight:650}.review-related{margin-top:40px;border-top:1px solid var(--border);padding-top:20px}.review-related ul{list-style:none;padding:0}.review-related li{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 24px;border-bottom:1px solid var(--border);padding:16px 0;overflow-wrap:anywhere}.review-related li p{flex-basis:100%;white-space:pre-wrap;margin:0}.review-decimal{font-variant-numeric:tabular-nums}.review-reflection h2:focus{outline:2px solid var(--focus);outline-offset:4px}
-@media(max-width:900px){.review-columns{grid-template-columns:1fr;gap:32px}.review-reflection{border-left:0;padding-left:0;border-top:1px solid var(--border);padding-top:24px}.review-schedule{align-items:start;flex-direction:column;gap:16px}.review-heading{flex-wrap:wrap}.review-outcomes{grid-template-columns:1fr}}
+.diary-review {
+  max-width: 1120px;
+}
+
+.review-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+}
+
+.review-heading h1 {
+  margin: 0;
+}
+
+.review-diary-title {
+  margin: var(--space-2) 0;
+  overflow-wrap: anywhere;
+  font-size: 1.125rem;
+}
+
+.review-heading time {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.review-status {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--selected);
+  color: var(--text);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.review-schedule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin: var(--space-6) 0 var(--space-8);
+  padding: var(--space-4) 0;
+  border-block: 1px solid var(--border);
+}
+
+.review-schedule p {
+  margin: var(--space-1) 0;
+  font-size: 0.875rem;
+}
+
+.review-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-8);
+}
+
+.review-original,
+.review-reflection {
+  min-width: 0;
+}
+
+.review-reflection {
+  padding-left: var(--space-8);
+  border-left: 1px solid var(--border);
+}
+
+.review-columns h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
+}
+
+.review-columns dl {
+  margin: var(--space-6) 0;
+}
+
+.review-columns dt {
+  margin-bottom: var(--space-2);
+  font-weight: 650;
+}
+
+.review-columns dd {
+  margin: 0 0 var(--space-6);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.85;
+}
+
+.review-reflection fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.review-reflection legend {
+  font-weight: 650;
+}
+
+.review-outcomes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 var(--space-6);
+}
+
+.review-outcomes label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--control);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.review-outcomes label:has(input:checked) {
+  border-color: var(--action);
+  background: var(--selected);
+}
+
+.review-outcomes input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--action);
+}
+
+.review-field-hint {
+  display: block;
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.review-reflection form > fieldset > label {
+  margin-bottom: var(--space-6);
+}
+
+.review-outcome {
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+.review-related {
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.review-related ul {
+  padding: 0;
+  list-style: none;
+}
+
+.review-related li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.review-related li p {
+  flex-basis: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.review-decimal {
+  font-variant-numeric: tabular-nums;
+}
+
+.review-reflection h2:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+@media (max-width: 900px) {
+  .review-columns {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .review-reflection {
+    padding-top: var(--space-6);
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .review-schedule {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .review-heading {
+    flex-wrap: wrap;
+  }
+
+  .review-outcomes {
+    grid-template-columns: 1fr;
+  }
+}

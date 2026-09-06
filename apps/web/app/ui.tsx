@@ -26,7 +26,16 @@ export function UiProvider({children}:{children:ReactNode}) {
   const [theme,setTheme] = useState<Theme>('system');
   useEffect(() => { try { const l=localStorage.getItem('diary-locale'); const th=localStorage.getItem('diary-theme'); if(l==='en'||l==='zh-CN'||l==='zh-TW') applyLocale(l); if(th==='dark'||th==='light'||th==='system') setTheme(th); } catch { /* Preferences remain usable when storage is disabled. */ } },[]);
   useEffect(() => { document.documentElement.lang=locale; try { localStorage.setItem('diary-locale',locale); } catch { /* Optional preference storage. */ } },[locale]);
-  useEffect(() => { if (!ready) return; document.documentElement.dataset.theme=theme; try { localStorage.setItem('diary-theme',theme); } catch { /* Optional preference storage. */ } },[theme,ready]);
+  useEffect(() => {
+    if (!ready) return;
+    document.documentElement.dataset.theme=theme;
+    const media=window.matchMedia('(prefers-color-scheme: dark)');
+    const updateThemeColor=()=>document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'||(theme==='system'&&media.matches)?'#17191d':'#f6f7f8');
+    updateThemeColor();
+    media.addEventListener('change',updateThemeColor);
+    try { localStorage.setItem('diary-theme',theme); } catch { /* Optional preference storage. */ }
+    return () => media.removeEventListener('change',updateThemeColor);
+  },[theme,ready]);
   useEffect(() => {
     if (!session.authenticated) { setLoadedRevision(null); setLocaleError(false); setLocalePending(false); return; }
     let active = true;

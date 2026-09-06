@@ -1,31 +1,39 @@
 ---
 name: diary-v3
-description: Implemented initial visual system for the investment decision diary web app
+description: Neutral visual system and responsive layout rules for the investment decision diary web app
 colors:
-  canvas: "#f5f7f6"
+  canvas: "#f6f7f8"
   surface: "#fff"
-  muted-surface: "#eaf0ec"
-  text: "#182b23"
-  muted: "#4e6258"
-  border: "#cad5ce"
-  control: "#73867a"
-  action: "#215c43"
+  muted-surface: "#eef0f2"
+  text: "#20242a"
+  muted: "#59616c"
+  border: "#d5d9df"
+  control: "#7b8491"
+  action: "#2459b8"
   on-action: "#fff"
-  selected: "#dcece2"
-  negative: "#a32938"
-  focus: "#285dc2"
-  dark-canvas: "#101916"
-  dark-surface: "#17231e"
-  dark-muted-surface: "#1e2e26"
-  dark-text: "#eaf1ed"
-  dark-muted: "#adbcb3"
-  dark-border: "#405249"
-  dark-control: "#7c9486"
-  dark-action: "#8bd2af"
-  dark-on-action: "#102c1e"
-  dark-selected: "#284c39"
-  dark-negative: "#ff9ea8"
-  dark-focus: "#a3bfff"
+  selected: "#e5e8ed"
+  negative: "#b62e3c"
+  focus: "#2459b8"
+  dark-canvas: "#17191d"
+  dark-surface: "#202329"
+  dark-muted-surface: "#292d34"
+  dark-text: "#edf0f4"
+  dark-muted: "#b1b8c3"
+  dark-border: "#454c57"
+  dark-control: "#858f9e"
+  dark-action: "#9bbcff"
+  dark-on-action: "#10234a"
+  dark-selected: "#343a44"
+  dark-negative: "#ff939c"
+  dark-focus: "#9bbcff"
+  market-up: "#167044"
+  market-down: "#b62e3c"
+  market-flat: "#59616c"
+  dark-market-up: "#70d49a"
+  dark-market-down: "#ff939c"
+  dark-market-flat: "#b1b8c3"
+  series-1: "#4f75c2"
+  series-2: "#785ca8"
 typography:
   headline:
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang TC\", \"Microsoft JhengHei\", sans-serif"
@@ -56,15 +64,18 @@ rounded:
   control: "4px"
   container: "8px"
 spacing:
-  step-4: "4px"
-  step-8: "8px"
-  step-12: "12px"
-  step-16: "16px"
-  step-20: "20px"
-  step-24: "24px"
-  step-32: "32px"
-  step-40: "40px"
-  step-48: "48px"
+  space-1: "4px"
+  space-2: "8px"
+  space-3: "12px"
+  space-4: "16px"
+  space-5: "20px"
+  space-6: "24px"
+  space-7: "28px"
+  space-8: "32px"
+  section-gap: "24px"
+  page-gutter-mobile: "16px"
+  page-gutter-tablet: "24px"
+  page-gutter-desktop: "32px"
 components:
   button-primary:
     backgroundColor: "{colors.action}"
@@ -88,28 +99,28 @@ components:
 
 **Creative North Star: "Decision Agenda"**
 
-Cool white, gray-green surfaces, and deep ink text organize dates, judgments, and later reflections. The main workspace builds order through headings, dividers, and whitespace; the diary reading area lowers density so the original text stays reviewable. This is a direction name the agent adopted under the user's delegated design authority, not a confirmed external brand commitment.
+Neutral gray canvas, white surfaces, and dark graphite text organize dates, judgments, and later reflections. The main workspace builds order through headings, dividers, and whitespace; the diary reading area lowers density so the original text stays reviewable. This is a direction name the agent adopted under the user's delegated design authority, not a confirmed external brand commitment.
 
 This record is based on `apps/web/app/styles.css` and the existing React components, covering the initial web flows and the design preview. Sign-up, sign-in, creating and reading diaries, and the API-connected quick capture in the preview are implemented; Overview/Company/Review remain clearly labeled synthetic representative screens. No claim is made that full business modules or a React Native app are complete.
 
 **Key Characteristics:**
 
-- Flat workspace, grouped by dividers and gray-green backgrounds.
-- Deep green primary actions; text explains status and data gaps.
+- Flat workspace, grouped by dividers and neutral gray surfaces.
+- Blue interaction accents; text explains status and data gaps.
 - Working and reading density kept separate, with long text wrapping naturally.
-- The same semantic color roles support light, dark, and system themes.
+- The same neutral and semantic color roles support light, dark, and system themes.
 
 ## Colors
 
 ### Primary
 
-`action` is the deep green for primary buttons, links, and short status text; `on-action` keeps button text legible. `selected` backs the current nav item, selections, and success messages. The dark theme swaps the same CSS roles for the corresponding `dark-*` values; these are alternative themes, not extra brand colors.
+`action` is the restrained blue for primary buttons, links, and focus states; `on-action` keeps button text legible. `selected` backs the current nav item and selections with a neutral surface. The dark theme swaps the same CSS roles for the corresponding `dark-*` values; these are alternative themes, not extra brand colors.
 
 ### Neutral
 
-`canvas` is the page background, `surface` covers forms and dialogs, and `muted-surface` backs the sidebar and research context areas. `text` and `muted` carry primary and secondary copy; `border` draws general dividers and `control` borders interactive fields.
+`canvas` is the page background, `surface` covers forms and dialogs, and `muted-surface` backs the sidebar and research context areas. `text` and `muted` carry primary and secondary copy; `border` draws general dividers and `control` borders interactive fields. Theme backgrounds stay neutral in both modes; red and green are reserved for financial direction.
 
-`negative` covers error text and invalid field borders; `focus` marks keyboard focus. No separate positive/warning color roles are implemented yet.
+`negative` covers error text and invalid field borders; `focus` marks keyboard focus. `market-up`, `market-down`, and `market-flat` are independent financial tokens: positive movement/profit is green, negative movement/loss is red, and zero or unknown direction is neutral. `series-1` and `series-2` are chart series colors and do not imply gain or loss. Financial colors are never selected from locale, market, or brand/action roles.
 
 **The Semantic Theme Rule.** Light and dark themes swap semantic roles; components never invert the whole page.
 
@@ -123,17 +134,17 @@ Reading body uses the reading line height and preserves line breaks and whitespa
 
 ## Layout
 
-The desktop shell is a 216px sidebar with a collapsible main content area; the sidebar is sticky, full viewport height, with 32px 20px padding. Main content maxes out at 1440px with 48px 40px padding. Below 1099px the sidebar is 180px and main content padding becomes 32px 24px; the two-column preview collapses to one column.
+The desktop shell is a 216px sidebar with a collapsible main content area; the sidebar is sticky, full viewport height, with 32px 20px padding. Main content is the sole workspace owner of the page gutter, using 24px vertical spacing and responsive horizontal gutters: 16px on phones, 24px on tablets, and 32px on wide desktop. Data pages cap at 1280px, while reading and editor pages use about 880px or 72ch. Below 1099px the sidebar is 180px and the two-column preview collapses to one column.
 
-Below 759px the sidebar becomes top navigation: the brand and the two real nav entries share one row, with the language and theme menus on the next row. Main content padding is 32px 16px 48px. This is the scoped adaptation for the current two-entry shell; the deck's collapsible tablet menu, mobile bottom navigation, and full module list are not built.
+Below 768px the sidebar becomes top navigation: the brand and menu trigger share one row, while the language and theme controls live in the Menu dialog. Main content keeps the same 16px page gutter. The desktop preferences and quick-entry trigger are hidden at this size, but the menu preferences and keyboard quick-entry dialog remain available. This is the scoped adaptation for the current shell; the deck's mobile bottom navigation and full module list are not built.
 
-The work preview uses 2:1 columns with 40px gap and a 240px minimum for the secondary column; agenda groups use a top divider and 24px top padding. The editor maxes at 880px, sign-in/sign-up forms at 440px, with a 20px form gap. No abstract spacing token API exists in the frontend; the frontmatter spacing records values already repeated in the code.
+The work preview uses a two-column layout only when the available width supports it; its secondary column has a 240px minimum and collapses before tablet content becomes cramped. Agenda groups use a top divider and the 24px section gap. The editor maxes at 880px, sign-in/sign-up forms at 440px, with a 20px form gap. Shared `--space-1` through `--space-8`, `--section-gap`, and `--page-gutter` tokens cover repeated spacing.
 
-Wide tables are at least 800px and live in named, keyboard-focusable, horizontally scrolling regions. Mobile keeps all columns; the page itself does not widen to fit a table.
+Wide tables live in named, horizontally scrolling regions with page-specific minimum widths. Mobile keeps all columns inside those regions; the page itself does not widen to fit a table.
 
 ## Elevation & Depth
 
-There are currently no box shadows. Forms are distinguished by surface, thin borders, and rounding; background context areas by muted-surface. The native modal isolates the background with an `rgb(10 25 17 / .5)` scrim and does not apply the deck's unimplemented shadow.
+There are currently no box shadows in the workspace. Forms are distinguished by surface, thin borders, and rounding; background context areas by muted-surface. The native modal isolates the background with a neutral graphite scrim and does not apply the deck's unimplemented shadow.
 
 **The Flat Surface Rule.** Build working hierarchy from backgrounds and dividers, and keep the current shadow-free look for components.
 
@@ -159,7 +170,7 @@ There are just two main entries: "Start" and "Write diary". The item matching th
 
 ### Containers and reading
 
-The editor is a single bordered form container with 28px desktop padding and 20px 16px on mobile; the footer separates save status from actions with a divider. On the reading page the date precedes the title, header/footer use thin rules, and the body keeps 72ch and original line breaks. Body content renders as safe Markdown/GFM — raw HTML is rejected and unsafe URLs are stripped. The editor offers a preview, a separate tags field, and the original thesis/risk/execution fields; failed submissions keep the input.
+The editor aligns its header and form to the shared workspace gutter; the form itself does not add a second page frame. The footer separates save status from actions with a divider. On the reading page the date precedes the title, header/footer use thin rules, and the body keeps 72ch and original line breaks. Body content renders as safe Markdown/GFM — raw HTML is rejected and unsafe URLs are stripped. The editor offers a preview, a separate tags field, and the original thesis/risk/execution fields; failed submissions keep the input.
 
 ### Quick Diary
 

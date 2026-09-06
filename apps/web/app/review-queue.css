@@ -1,1 +1,13 @@
-.queue-group{margin-top:40px}.queue-summary{max-width:75ch;white-space:pre-wrap;overflow-wrap:anywhere}.queue-group h3{overflow-wrap:anywhere}
+.queue-group {
+  margin-top: var(--space-8);
+}
+
+.queue-summary {
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.queue-group h3 {
+  overflow-wrap: anywhere;
+}

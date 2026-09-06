@@ -8,6 +8,7 @@ import { marketSymbolSchema, type MarketQuote, type MarketHistorical, type Marke
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { useSessionState } from '../session';
+import { formatMarketValue, formatMarketValueWithSuffix, formatNeutralValue, marketClass } from '../market-display';
 import './company-market.css';
 
 const copy={
@@ -25,7 +26,8 @@ export default function CompanyMarket(){
   const navigate=useNavigate();const [input,setInput]=useState(params.symbol??'');const [inputError,setInputError]=useState(false);
   const [quote,setQuote]=useState<ReadState<MarketQuote>>(initial);const [history,setHistory]=useState<ReadState<MarketHistorical>>(initial);
   const [range,setRange]=useState<MarketRange>('1y');const [page,setPage]=useState(0);const quoteVersion=useRef(0);const historyVersion=useRef(0);
-  const number=(value:number|null)=>value===null?text.unknown:new Intl.NumberFormat(locale,{maximumFractionDigits:6}).format(value);
+  const number=(value:number|null)=>formatNeutralValue(locale,value,6);
+  const signed=(value:number|null)=>formatMarketValue(locale,value,6);
   const instant=(value:string|null)=>value===null?text.unknown:new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(value))+' UTC';
   async function loadQuote(bypass=false){
     const version=++quoteVersion.current;setQuote(initial());
@@ -52,7 +54,7 @@ export default function CompanyMarket(){
     {symbol&&<><section className="market-section" aria-labelledby="market-quote-title"><div className="market-heading"><h2 id="market-quote-title">{text.quote}</h2><button type="button" className="secondary" disabled={quote.pending} onClick={()=>void loadQuote(true)}>{quote.pending?t('loading'):text.refresh}</button></div>
       {quote.pending?<p role="status">{t('loading')}</p>:quote.error?<FailureNotice failure={quoteFailure} id="quote-error"/>:quote.data&&<>
         {quote.source==='stale'&&<p role="status" className="market-stale">{text.stale}</p>}
-        <dl className="market-metrics"><div><dt>{text.price}</dt><dd data-testid="market-price">{number(quote.data.regularMarketPrice)}</dd></div><div><dt>{text.currency}</dt><dd>{quote.data.currency??text.unknown}</dd></div><div><dt>{text.previous}</dt><dd>{number(quote.data.previousClose)}</dd></div><div><dt>{text.change}</dt><dd>{number(quote.data.change)}</dd></div><div><dt>{text.percent}</dt><dd>{quote.data.changePercent===null?text.unknown:`${number(quote.data.changePercent)}%`}</dd></div><div><dt>{text.state}</dt><dd>{quote.data.marketState?(text.states[quote.data.marketState as keyof typeof text.states]??quote.data.marketState):text.unknown}</dd></div></dl>
+        <dl className="market-metrics"><div><dt>{text.price}</dt><dd data-testid="market-price">{number(quote.data.regularMarketPrice)}</dd></div><div><dt>{text.currency}</dt><dd>{quote.data.currency??text.unknown}</dd></div><div><dt>{text.previous}</dt><dd>{number(quote.data.previousClose)}</dd></div><div><dt>{text.change}</dt><dd className={marketClass(quote.data.change)}>{signed(quote.data.change)}</dd></div><div><dt>{text.percent}</dt><dd className={marketClass(quote.data.changePercent)}>{formatMarketValueWithSuffix(locale, quote.data.changePercent, '%', 6)}</dd></div><div><dt>{text.state}</dt><dd>{quote.data.marketState?(text.states[quote.data.marketState as keyof typeof text.states]??quote.data.marketState):text.unknown}</dd></div></dl>
         <p className="market-timestamp">{text.time}: <time dateTime={quote.data.lastUpdateTime??undefined}>{instant(quote.data.lastUpdateTime)}</time></p><p className="market-timestamp">{text.fetched}: <time dateTime={quote.fetchedAt??undefined}>{instant(quote.fetchedAt)}</time></p>
       </>}
     </section>

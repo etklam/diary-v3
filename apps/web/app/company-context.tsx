@@ -4,6 +4,7 @@ import { companyHubResponseSchema, type CompanyHubResponse } from '@diary/contra
 import { api, useUi } from './ui';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 import { thesisCopy } from './thesis-copy';
+import { formatNeutralValue } from './market-display';
 import './company-context.css';
 const copy = {
   en: { title: 'Your company research', position: 'Your position', current: 'Current view', original: 'Original decisions', review: 'Later reviews', empty: 'Nothing recorded yet.', edit: 'Open thesis and reviews', diary: 'Read diary', reviewDiary: 'Review diary', quantity: 'Quantity', averageCost: 'Average cost', totalCost: 'Cost basis', marketValue: 'Market value', concentration: 'Portfolio share · cost basis', missing: 'Quote unavailable. Your research and cost basis are still available.', held: 'Currently held', closed: 'Position closed', research_only: 'Research only', untracked: 'Not tracked', hint: 'Recent context, up to ten original decisions and ten thesis reviews. Notes remain editable; evidence preserves the recorded event.' },
@@ -22,7 +23,7 @@ export function CompanyContext({ symbol }: { symbol: string }) {
     }).catch(() => { if (!controller.signal.aborted) setError(apiFailure(null, t('connection'))); });
     return () => controller.abort();
   }, [symbol, attempt]);
-  const number = (value: number | null) => value === null ? '—' : new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(value);
+  const number = (value: number | null) => formatNeutralValue(locale, value, 6);
   return <section className="company-context" aria-label={c.title}><h2>{c.title}</h2><p>{c.hint}</p>{error ? <><FailureNotice failure={error} id="company-context-error"/><button onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
     <section aria-label={c.position}><h3>{c.position} · {c[data.position.state]}</h3>{data.position.quoteStatus === 'missing' && <p role="status">{c.missing}</p>}
       <dl className="market-metrics">{(['quantity', 'averageCost', 'totalCost', 'marketValue'] as const).map(key => <div key={key}><dt>{c[key]}</dt><dd data-testid={`company-${key}`}>{number(data.position[key])}</dd></div>)}<div><dt>{c.concentration}</dt><dd>{number(data.position.concentrationPct)}{data.position.concentrationPct !== null && '%'}</dd></div></dl>

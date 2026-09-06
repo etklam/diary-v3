@@ -1,2 +1,138 @@
-.diary-timeline{max-width:1040px}.timeline-filters{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:20px;border-block:1px solid var(--border);padding:24px 0;margin:28px 0}.timeline-filters label{margin:0}.timeline-filters .actions{margin:0}.timeline-month{margin-top:40px}.timeline-month>header{display:flex;justify-content:space-between;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:12px}.timeline-month h2{margin:0;font-size:1.2rem}.timeline-month>ol{list-style:none;padding:0;margin:0}.timeline-month>ol>li{display:grid;grid-template-columns:120px minmax(0,1fr);gap:28px;padding:32px 0;border-bottom:1px solid var(--border)}.timeline-month time{color:var(--muted);font-size:.875rem;font-variant-numeric:tabular-nums;padding-top:5px}.timeline-month article{min-width:0}.timeline-month h3{font-size:1.125rem;line-height:1.5;margin:0 0 12px;overflow-wrap:anywhere}.timeline-meta{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0;margin:0;color:var(--muted);font-size:.875rem}.timeline-excerpt{color:var(--muted);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;max-width:75ch}.timeline-month summary{cursor:pointer;color:var(--action);padding:8px 0;min-height:44px;font-weight:600}.timeline-month details .safe-markdown{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}.timeline-more,.timeline-recovery,.timeline-empty{margin-top:32px}
-@media(max-width:760px){.timeline-filters{grid-template-columns:1fr}.timeline-month>ol>li{grid-template-columns:1fr;gap:12px;padding:24px 0}.timeline-month>header{align-items:start}.timeline-filters .actions{flex-wrap:wrap}.timeline-month h3{font-size:1.05rem}}
+.diary-timeline {
+  max-width: 1040px;
+}
+
+.diary-timeline > .page-heading {
+  margin-bottom: var(--space-6);
+}
+
+.timeline-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: flex-end;
+  gap: var(--space-5);
+  margin: var(--space-6) 0;
+  padding: var(--space-6) 0;
+  border-block: 1px solid var(--border);
+}
+
+.timeline-filters label,
+.timeline-filters .actions {
+  margin: 0;
+}
+
+.timeline-month {
+  margin-top: var(--space-8);
+}
+
+.timeline-month > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-month h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.timeline-month > ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-month > ol > li {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: var(--space-7);
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-month time {
+  padding-top: 5px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-month article {
+  min-width: 0;
+}
+
+.timeline-month h3 {
+  margin: 0 0 var(--space-3);
+  overflow-wrap: anywhere;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.timeline-excerpt {
+  display: -webkit-box;
+  max-width: 75ch;
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.timeline-month summary {
+  min-height: 44px;
+  padding: 8px 0;
+  color: var(--action);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.timeline-month details .safe-markdown {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.timeline-more,
+.timeline-recovery,
+.timeline-empty {
+  margin-top: var(--space-8);
+}
+
+@media (max-width: 767px) {
+  .timeline-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-month > ol > li {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    padding: var(--space-6) 0;
+  }
+
+  .timeline-month > header {
+    align-items: flex-start;
+  }
+
+  .timeline-filters .actions {
+    flex-wrap: wrap;
+  }
+
+  .timeline-month h3 {
+    font-size: 1.05rem;
+  }
+}

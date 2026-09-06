@@ -1,42 +1,373 @@
-.public-shell{min-height:100dvh;background:var(--canvas)}
-.public-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;padding:20px max(24px,4vw);border-bottom:1px solid var(--border);background:var(--surface)}
-.public-header .brand{color:var(--text);font-size:1.25rem;font-weight:700;text-decoration:none;white-space:nowrap}
-.public-header .brand span{display:block;font-size:.75rem;font-weight:400;margin-top:4px;color:var(--muted)}
-.public-header nav{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
-.public-header nav a{display:block;min-height:44px;padding:8px 10px;color:var(--text);text-decoration:none;border-radius:4px}
-.public-header nav a:hover,.public-header nav a[aria-current=page]{background:var(--selected);font-weight:650}
-.public-actions,.public-preferences{display:flex;align-items:center;gap:8px}
-.public-preferences{grid-column:1/-1;justify-content:flex-end}
-.public-preferences>.preferences{display:flex;align-items:center;gap:16px;margin:0}
-.public-preferences label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.75rem}
-.public-preferences select{width:auto;min-height:40px;padding:7px 10px;font-size:.8125rem}
-.public-shell>main{max-width:none;padding:0;outline:none}
-.public-page{width:min(1160px,100%);margin:0 auto;padding:clamp(40px,7vw,96px) max(20px,4vw) 80px}
-.public-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.8fr);align-items:start;gap:clamp(40px,8vw,120px);padding-bottom:clamp(56px,9vw,112px)}
-.public-eyebrow{margin-bottom:16px;color:var(--action);font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.public-hero h1{max-width:12ch;font-size:clamp(2.5rem,6vw,5rem);line-height:1.08;margin-bottom:28px}
-.public-hero .lede{max-width:54ch;font-size:clamp(1.05rem,1.6vw,1.25rem)}
-.public-example{margin:0;border:1px solid var(--border);border-radius:8px;padding:28px;background:var(--surface);box-shadow:0 10px 28px rgb(24 43 35 / .05)}
-.public-example figcaption{margin-bottom:24px;font-size:.8125rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.public-example-label{margin-bottom:4px;font-weight:700}
-.public-example time{display:block;margin-bottom:4px}
-.public-example small{display:block;margin-top:28px;color:var(--muted);font-size:.8rem}
-.public-section{border-top:1px solid var(--border);padding:clamp(32px,5vw,56px) 0}
-.public-section>h2{font-size:clamp(1.5rem,3vw,2.25rem);max-width:22ch;margin-bottom:32px}
-.public-steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
-.public-steps li{padding:20px 28px 8px 0;border-right:1px solid var(--border);margin-right:28px}
-.public-steps li:last-child{border-right:0;margin-right:0}
-.public-steps h3{font-size:1.15rem;margin-bottom:12px}
-.public-steps p{color:var(--muted)}
-.public-closing{display:flex;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid var(--border);padding-top:32px}
-.public-closing p{font-size:1.15rem;font-weight:650;margin:0}
-.public-reading{max-width:850px}
-.public-reading header{border-bottom:1px solid var(--border);padding-bottom:40px;margin-bottom:8px}
-.public-reading h1{font-size:clamp(2rem,4vw,3.5rem);max-width:18ch}
-.public-reading .public-section h2{font-size:1.5rem;margin-bottom:12px}
-.public-guide-list{list-style:none;padding:0;margin:0}
-.public-guide-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:24px;border-top:1px solid var(--border);padding:28px 0}
-.public-guide-list h2{margin-bottom:8px}
-.public-guide-list p{color:var(--muted);margin-bottom:0}
-@media(max-width:850px){.public-header{grid-template-columns:1fr auto;gap:16px}.public-header nav{grid-column:1/-1;grid-row:2}.public-actions{grid-column:2;grid-row:1}.public-preferences{grid-column:1/-1;justify-content:flex-start}.public-hero{grid-template-columns:1fr;gap:48px}.public-steps{grid-template-columns:1fr}.public-steps li{padding:20px 0;border-right:0;border-bottom:1px solid var(--border);margin:0}.public-steps li:last-child{border-bottom:0}.public-closing{align-items:flex-start;flex-direction:column}}
-@media(max-width:560px){.public-header{padding:16px}.public-header .brand{font-size:1.1rem}.public-header .button{padding:8px 10px}.public-header nav{overflow-x:auto;flex-wrap:nowrap}.public-page{padding:40px 16px 56px}.public-hero h1{font-size:2.65rem}.public-example{padding:20px}.public-guide-list li{grid-template-columns:1fr}.public-guide-list .button{justify-self:start}}
+.public-shell {
+  min-height: 100dvh;
+  background: var(--canvas);
+}
+
+.public-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--page-gutter);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.public-header .brand {
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.public-header .brand span {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.public-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.public-header nav a {
+  display: block;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.public-header nav a:hover,
+.public-header nav a[aria-current="page"] {
+  background: var(--selected);
+  font-weight: 650;
+}
+
+.public-actions,
+.public-preferences {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.public-preferences {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.public-preferences > .preferences {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.public-preferences label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.public-preferences select {
+  width: auto;
+  min-height: 40px;
+  padding: 7px 10px;
+  font-size: 0.8125rem;
+}
+
+.public-shell > main {
+  max-width: none;
+  padding: 0;
+  outline: none;
+}
+
+/* Direct public routes do not use the marketing page wrapper, so give their
+   forms and status region the same single page gutter here. */
+.public-shell > main > .form-page {
+  width: min(100%, calc(440px + var(--page-gutter) + var(--page-gutter)));
+  margin: var(--page-block) auto;
+  padding-inline: var(--page-gutter);
+}
+
+.public-shell > main > .plan-page {
+  width: min(100%, calc(1040px + var(--page-gutter) + var(--page-gutter)));
+  margin: var(--page-block) auto;
+  padding-inline: var(--page-gutter);
+}
+
+.public-shell > main > .diary-reading {
+  width: min(100%, calc(72ch + var(--page-gutter) + var(--page-gutter)));
+  margin: var(--page-block) auto;
+  padding-inline: var(--page-gutter);
+}
+
+.public-shell > main > .pwa-status {
+  width: min(1160px, 100%);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}
+
+.public-page {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  padding: clamp(40px, 7vw, 96px) var(--page-gutter) 80px;
+}
+
+.public-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.8fr);
+  align-items: start;
+  gap: clamp(40px, 8vw, 120px);
+  padding-bottom: clamp(56px, 9vw, 112px);
+}
+
+.public-eyebrow {
+  margin-bottom: var(--space-4);
+  color: var(--action);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-hero h1 {
+  max-width: 12ch;
+  margin-bottom: var(--space-6);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1.08;
+}
+
+.public-hero .lede {
+  max-width: 54ch;
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+}
+
+.public-example {
+  margin: 0;
+  padding: var(--space-7);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgb(32 36 42 / 0.05);
+}
+
+.public-example figcaption {
+  margin-bottom: var(--space-6);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.public-example-label {
+  margin-bottom: var(--space-1);
+  font-weight: 700;
+}
+
+.public-example time {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.public-example small {
+  display: block;
+  margin-top: var(--space-7);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.public-section {
+  padding: clamp(32px, 5vw, 56px) 0;
+  border-top: 1px solid var(--border);
+}
+
+.public-section > h2 {
+  max-width: 22ch;
+  margin-bottom: var(--space-8);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.public-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-steps li {
+  margin-right: var(--space-7);
+  padding: var(--space-5) var(--space-7) var(--space-2) 0;
+  border-right: 1px solid var(--border);
+}
+
+.public-steps li:last-child {
+  margin-right: 0;
+  border-right: 0;
+}
+
+.public-steps h3 {
+  margin-bottom: var(--space-3);
+  font-size: 1.15rem;
+}
+
+.public-steps p {
+  color: var(--muted);
+}
+
+.public-closing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border);
+}
+
+.public-closing p {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.public-reading {
+  max-width: 850px;
+}
+
+.public-reading header {
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--border);
+}
+
+.public-reading h1 {
+  max-width: 18ch;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+.public-reading .public-section h2 {
+  margin-bottom: var(--space-3);
+  font-size: 1.5rem;
+}
+
+.public-guide-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-guide-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-6);
+  padding: var(--space-7) 0;
+  border-top: 1px solid var(--border);
+}
+
+.public-guide-list h2 {
+  margin-bottom: var(--space-2);
+}
+
+.public-guide-list p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 850px) {
+  .public-header {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-4);
+  }
+
+  .public-header nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .public-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .public-preferences {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .public-hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .public-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .public-steps li {
+    margin: 0;
+    padding: var(--space-5) 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .public-steps li:last-child {
+    border-bottom: 0;
+  }
+
+  .public-closing {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .public-header {
+    padding: var(--space-4);
+  }
+
+  .public-header .brand {
+    font-size: 1.1rem;
+  }
+
+  .public-header .button {
+    padding: 8px 10px;
+  }
+
+  .public-header nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .public-page {
+    padding: var(--space-8) var(--page-gutter) 56px;
+  }
+
+  .public-hero h1 {
+    font-size: 2.65rem;
+  }
+
+  .public-example {
+    padding: var(--space-5);
+  }
+
+  .public-guide-list li {
+    grid-template-columns: 1fr;
+  }
+
+  .public-guide-list .button {
+    justify-self: start;
+  }
+}

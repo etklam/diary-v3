@@ -1,2 +1,122 @@
-.buy-fields{border:0;border-top:1px solid var(--border);padding:24px 0 0;min-width:0}.buy-fields>legend{font-weight:650;padding-right:12px}.buy-row{border-bottom:1px solid var(--border);padding:12px 0 24px;margin-bottom:20px}.buy-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.buy-heading h3{font-size:1rem}.buy-heading button{font-size:.875rem}.buy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.buy-row details{margin-top:20px}.buy-row summary{cursor:pointer;min-height:44px;display:list-item;padding:10px 0}.buy-row details label{margin-top:12px}.ledger-reading{border-top:1px solid var(--border);padding-top:24px;margin-top:32px}.ledger-reading dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.ledger-reading dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.ledger-reading dt{color:var(--muted);font-size:.875rem}.ledger-reading section{border-bottom:1px solid var(--border);padding-bottom:20px}.holdings-table{max-width:100%;overflow-x:auto;margin:32px 0}.holdings-table table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.holdings-table th,.holdings-table td{padding:16px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}.holdings-table th:first-child,.holdings-table td:first-child{text-align:left}@media(max-width:560px){.buy-grid{grid-template-columns:1fr}.holdings-table th,.holdings-table td{padding:14px 10px}}
-.holdings-table table,.holdings-table td{min-width:0}.holdings-table th{white-space:normal}
+.buy-fields {
+  min-width: 0;
+  padding: var(--space-6) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.buy-fields > legend {
+  padding-right: var(--space-3);
+  font-weight: 650;
+}
+
+.buy-row {
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) 0 var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.buy-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.buy-heading h3 {
+  font-size: 1rem;
+}
+
+.buy-heading button {
+  font-size: 0.875rem;
+}
+
+.buy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.buy-row details {
+  margin-top: var(--space-5);
+}
+
+.buy-row summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.buy-row details label {
+  margin-top: var(--space-3);
+}
+
+.ledger-reading {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.ledger-reading dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.ledger-reading dd {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-reading dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.ledger-reading section {
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.holdings-table {
+  max-width: 100%;
+  margin: var(--space-8) 0;
+  overflow-x: auto;
+}
+
+.holdings-table table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdings-table th,
+.holdings-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.holdings-table th:first-child,
+.holdings-table td:first-child {
+  text-align: left;
+}
+
+.holdings-table th {
+  white-space: normal;
+}
+
+@media (max-width: 767px) {
+  .buy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .holdings-table th,
+  .holdings-table td {
+    padding: var(--space-3) 10px;
+  }
+}

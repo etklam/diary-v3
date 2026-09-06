@@ -11,6 +11,7 @@ import { stockWatchlistResponseSchema } from '@diary/contracts/watchlist'
 import { api, useUi } from './ui'
 import { apiFailure, FailureNotice, type Failure } from './api-error'
 import { useSessionState } from './session'
+import { formatNeutralValue } from './market-display'
 import './overview.css'
 
 type OverviewLocale = 'en' | 'zh-TW' | 'zh-CN'
@@ -68,8 +69,13 @@ function formatInstant(value: string, locale: string, timezone: string | null, u
   return timezone ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(value)) : unavailable
 }
 
-function formatNumber(value: number | null | undefined, locale: string, unavailable: string) {
-  return value === null || value === undefined ? unavailable : new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)
+function formatNumber(value: number | null | undefined, locale: string, _unavailable: string) {
+  return formatNeutralValue(locale, value, 2)
+}
+
+function formatPercent(value: number | null | undefined, locale: string, unavailable: string) {
+  const formatted = formatNumber(value, locale, unavailable)
+  return formatted === '—' ? formatted : `${formatted}%`
 }
 
 function attentionHref(item: PortfolioAttentionItem) {
@@ -100,7 +106,7 @@ function AttentionSection({ state, retry, timezone, locale, c }: { state: Resour
   return <section className="overview-section" aria-labelledby="overview-attention-title"><header className="overview-section-header"><h2 id="overview-attention-title">{c.attention}</h2><Link to="/stocks">{c.viewAll}</Link></header>
     <p className="overview-section-intro">{c.followUp}</p>
     <FailureSection state={state} retry={retry} copy={c} />
-    {state.data && <>{!state.data.coverage.complete && <p className="overview-partial" role="status">{c.attentionPartial}</p>}{!state.data.items.length ? <p>{c.emptyAttention}</p> : <ul className="overview-action-list">{state.data.items.slice(0, 6).map(item => { const title = item.evidence.title ?? item.symbol ?? item.targetId; return <li key={item.id} data-testid="overview-attention-item"><div><strong>{c[item.reason]}</strong><span>{title}</span>{item.evidence.concentrationPct !== undefined && item.evidence.concentrationPct !== null && <span>{formatNumber(item.evidence.concentrationPct, locale, tx(c, 'unavailable'))}%</span>}{item.evidence.reviewDueAt && <time dateTime={item.evidence.reviewDueAt}>{c.due}: {formatInstant(item.evidence.reviewDueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={attentionHref(item)}>{c.open}</Link></li> })}</ul>}</>}
+    {state.data && <>{!state.data.coverage.complete && <p className="overview-partial" role="status">{c.attentionPartial}</p>}{!state.data.items.length ? <p>{c.emptyAttention}</p> : <ul className="overview-action-list">{state.data.items.slice(0, 6).map(item => { const title = item.evidence.title ?? item.symbol ?? item.targetId; return <li key={item.id} data-testid="overview-attention-item"><div><strong>{c[item.reason]}</strong><span>{title}</span>{item.evidence.concentrationPct !== undefined && item.evidence.concentrationPct !== null && <span>{formatPercent(item.evidence.concentrationPct, locale, tx(c, 'unavailable'))}</span>}{item.evidence.reviewDueAt && <time dateTime={item.evidence.reviewDueAt}>{c.due}: {formatInstant(item.evidence.reviewDueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={attentionHref(item)}>{c.open}</Link></li> })}</ul>}</>}
   </section>
 }
 
@@ -137,7 +143,7 @@ function PlansSection({ state, retry, locale, timezone, c }: { state: ResourceSt
 
 function PortfolioSection({ state, retry, locale, timezone, c }: { state: ResourceState<z.infer<typeof portfolioValuationResponseSchema>>; retry: () => void; locale: string; timezone: string | null; c: OverviewCopy }) {
   return <section className="overview-section overview-side-section" aria-labelledby="overview-portfolio-title"><header className="overview-section-header"><h2 id="overview-portfolio-title">{c.portfolio}</h2><Link to="/stocks">{c.viewAll}</Link></header><FailureSection state={state} retry={retry} copy={c} />
-    {state.data && (state.data.valuation.valuationStatus === 'empty' ? <p>{c.emptyPortfolio} <Link to="/diaries/new">{c.firstDiary}</Link></p> : <><p className="overview-meta">{c.quoteSource}</p><p className="overview-meta">{c.marketState}: {marketStateLabel(state.data.marketState, c)}</p><dl className="overview-metrics"><div><dt>{c.currentValue}</dt><dd data-testid="overview-current-value">{formatNumber(state.data.valuation.currentMarketValue, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.coverage}</dt><dd data-testid="overview-quote-coverage">{formatNumber(state.data.valuation.quoteCoveragePct, locale, tx(c, 'unavailableValue'))}%</dd></div><div><dt>{c.unpriced}</dt><dd data-testid="overview-unpriced-cost">{formatNumber(state.data.valuation.unpricedCostBasis, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.largest}</dt><dd>{state.data.valuation.largestPositionSymbol ? <Link to={`/stocks/${encodeURIComponent(state.data.valuation.largestPositionSymbol)}`}>{state.data.valuation.largestPositionSymbol}</Link> : c.unavailableValue} {state.data.valuation.largestPositionPct !== null && `· ${formatNumber(state.data.valuation.largestPositionPct, locale, tx(c, 'unavailableValue'))}%`}</dd></div><div><dt>{c.topThree}</dt><dd>{formatNumber(state.data.valuation.top3ConcentrationPct, locale, tx(c, 'unavailableValue'))}%</dd></div></dl>{state.data.valuation.concentrationWarning && <p className="overview-partial" role="status">{c.concentration}</p>}<p className="overview-meta">{c.stale}: {state.data.valuation.staleQuoteCount} · {c.asOf}: {state.data.valuation.valuationAsOf ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, tx(c, 'unknown')) : c.unavailableValue}</p></>)}
+    {state.data && (state.data.valuation.valuationStatus === 'empty' ? <p>{c.emptyPortfolio} <Link to="/diaries/new">{c.firstDiary}</Link></p> : <><p className="overview-meta">{c.quoteSource}</p><p className="overview-meta">{c.marketState}: {marketStateLabel(state.data.marketState, c)}</p><dl className="overview-metrics"><div><dt>{c.currentValue}</dt><dd data-testid="overview-current-value">{formatNumber(state.data.valuation.currentMarketValue, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.coverage}</dt><dd data-testid="overview-quote-coverage">{formatPercent(state.data.valuation.quoteCoveragePct, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.unpriced}</dt><dd data-testid="overview-unpriced-cost">{formatNumber(state.data.valuation.unpricedCostBasis, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.largest}</dt><dd>{state.data.valuation.largestPositionSymbol ? <Link to={`/stocks/${encodeURIComponent(state.data.valuation.largestPositionSymbol)}`}>{state.data.valuation.largestPositionSymbol}</Link> : c.unavailableValue} {state.data.valuation.largestPositionPct !== null && `· ${formatPercent(state.data.valuation.largestPositionPct, locale, tx(c, 'unavailableValue'))}`}</dd></div><div><dt>{c.topThree}</dt><dd>{formatPercent(state.data.valuation.top3ConcentrationPct, locale, tx(c, 'unavailableValue'))}</dd></div></dl>{state.data.valuation.concentrationWarning && <p className="overview-partial" role="status">{c.concentration}</p>}<p className="overview-meta">{c.stale}: {state.data.valuation.staleQuoteCount} · {c.asOf}: {state.data.valuation.valuationAsOf ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, tx(c, 'unknown')) : c.unavailableValue}</p></>)}
   </section>
 }
 

@@ -1,1 +1,151 @@
-.company-market{max-width:960px}.market-lookup{display:flex;align-items:end;gap:16px;margin:32px 0}.market-lookup label{width:min(360px,100%)}.market-lookup input{text-transform:uppercase}.market-section{border-top:1px solid var(--border);padding-top:24px;margin-top:40px;margin-bottom:40px}.market-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:24px}.market-heading h2{margin:0}.market-heading label{min-width:180px}.market-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 32px;margin:24px 0}.market-metrics dt{color:var(--muted);font-size:.875rem}.market-metrics dd{margin:8px 0 0;font-size:1.125rem;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.market-timestamp{font-size:.875rem;color:var(--muted);margin-bottom:8px}.market-stale{background:var(--muted-surface);padding:16px}.market-table table{min-width:0;table-layout:fixed}.market-table td{min-width:0;font-variant-numeric:tabular-nums}.market-table th:last-child,.market-table td:last-child{text-align:right}.market-table caption{padding-top:0}.market-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:20px 0}.market-personal{border-top:1px solid var(--border);padding-top:24px}@media(max-width:759px){.market-lookup{align-items:stretch;flex-direction:column}.market-lookup label{width:100%}.market-heading{align-items:stretch;flex-direction:column}.market-heading label{min-width:0}.market-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.market-pagination{flex-wrap:wrap}}
+.company-market {
+  max-width: 960px;
+}
+
+.market-lookup {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin: var(--space-8) 0;
+}
+
+.market-lookup label {
+  width: min(360px, 100%);
+}
+
+.market-lookup input {
+  text-transform: uppercase;
+}
+
+.market-section {
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.market-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.market-heading h2 {
+  margin: 0;
+}
+
+.market-heading label {
+  min-width: 180px;
+}
+
+.market-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-8);
+  margin: var(--space-6) 0;
+}
+
+.market-metrics dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.market-metrics dd {
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-timestamp {
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.market-stale {
+  padding: var(--space-4);
+  background: var(--muted-surface);
+}
+
+.market-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.market-table table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.market-table th,
+.market-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.market-table td {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-table th:last-child,
+.market-table td:last-child {
+  text-align: right;
+}
+
+.market-table caption {
+  padding-top: 0;
+}
+
+.market-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
+}
+
+.market-personal {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 767px) {
+  .market-lookup {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .market-lookup label {
+    width: 100%;
+  }
+
+  .market-lookup button {
+    align-self: flex-start;
+  }
+
+  .market-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .market-heading label {
+    min-width: 0;
+  }
+
+  .market-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  .market-pagination {
+    flex-wrap: wrap;
+  }
+}

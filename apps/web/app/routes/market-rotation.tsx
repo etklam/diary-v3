@@ -6,6 +6,7 @@ import { filterAndSortRotationRows, rotationFilterKeys, type RotationFilterKey, 
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { localizeAllocationMode, localizePolicyExplanation, localizePolicyWarning } from '../market-policy-copy';
+import { formatMarketValue, marketClass, marketDirection } from '../market-display';
 import './market-rotation.css';
 
 const copy = {
@@ -468,9 +469,7 @@ function localizedSummary(data: MarketRotationMonitorResponse, c: RotationCopy, 
 }
 
 function signed(locale: string, value: number | null, digits = 2) {
-  if (value === null) return '—';
-  const formatted = new Intl.NumberFormat(locale, { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(Math.abs(value));
-  return value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : formatted;
+  return formatMarketValue(locale, value, digits);
 }
 
 function integer(locale: string, value: number | null) {
@@ -746,6 +745,24 @@ export default function MarketRotation() {
     const metadata = exportMetadata();
     let objectUrl: string | null = null;
     try {
+      const css = getComputedStyle(document.documentElement);
+      const paletteValue = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+      const palette = {
+        canvas: paletteValue('--canvas', '#f5f6f8'),
+        surface: paletteValue('--surface', '#ffffff'),
+        mutedSurface: paletteValue('--muted-surface', '#eef0f3'),
+        text: paletteValue('--text', '#20242a'),
+        muted: paletteValue('--muted', '#59616c'),
+        border: paletteValue('--border', '#cbd0d7'),
+        series1: paletteValue('--series-1', '#3569c8'),
+        marketUp: paletteValue('--market-up', '#167044'),
+        marketDown: paletteValue('--market-down', '#b62e3c'),
+        marketFlat: paletteValue('--market-flat', '#59616c'),
+      };
+      const directionColor = (value: number | null | undefined) => {
+        const direction = marketDirection(value);
+        return direction === 'up' ? palette.marketUp : direction === 'down' ? palette.marketDown : direction === 'flat' ? palette.marketFlat : palette.text;
+      };
       if (document.fonts?.ready) await document.fonts.ready;
       const columnWidths = [96, 240, 100, 90, 100, 80, 100, 180, 280, 100, 205, 170];
       const width = columnWidths.reduce((sum, value) => sum + value, 0) + 48;
@@ -760,39 +777,41 @@ export default function MarketRotation() {
       };
       const textLine = (x: number, y: number, value: string, size: number, weight: number, color: string) => `<text x="${x}" y="${y}" font-family="${fontFamily}" font-size="${size}px" font-weight="${weight}" fill="${color}">${escapeXml(value)}</text>`;
       let cursorY = 24;
-      const parts: string[] = [`<rect width="${width}" height="100%" fill="#f5f7f6"/>`];
-      parts.push(textLine(24, cursorY + 20, snapshotTitle, 18, 700, '#1f2b28'));
+      const parts: string[] = [`<rect width="${width}" height="100%" fill="${palette.canvas}"/>`];
+      parts.push(textLine(24, cursorY + 20, snapshotTitle, 18, 700, palette.text));
       cursorY += 44;
       for (const [label, value] of metadata) {
         const lines = wrapText(`${label}: ${value}`, width - 60, text => measureText(text, 14, 400));
-        lines.forEach((line, index) => parts.push(textLine(24, cursorY + 18 + index * lineHeight, line, 14, 400, '#52605b')));
+        lines.forEach((line, index) => parts.push(textLine(24, cursorY + 18 + index * lineHeight, line, 14, 400, palette.muted)));
         cursorY += Math.max(22, lines.length * lineHeight + 4);
       }
       cursorY += 12;
       const tableX = 24;
       const headerLines = headers.map((header, index) => wrapText(header, columnWidths[index]! - 12, text => measureText(text, 14, 700)));
       const headerHeight = Math.max(40, Math.max(...headerLines.map(lines => lines.length)) * lineHeight + 14);
-      parts.push(`<rect x="${tableX}" y="${cursorY}" width="${width - 48}" height="${headerHeight}" fill="#e2e9e5" stroke="#b9c8c0"/>`);
+      parts.push(`<rect x="${tableX}" y="${cursorY}" width="${width - 48}" height="${headerHeight}" fill="${palette.mutedSurface}" stroke="${palette.border}"/>`);
       let x = tableX;
       headerLines.forEach((lines, index) => {
-        lines.forEach((line, lineIndex) => parts.push(textLine(x + 6, cursorY + 18 + lineIndex * lineHeight, line, 14, 700, '#1f2b28')));
+        lines.forEach((line, lineIndex) => parts.push(textLine(x + 6, cursorY + 18 + lineIndex * lineHeight, line, 14, 700, palette.text)));
         x += columnWidths[index]!;
       });
       cursorY += headerHeight;
-      body.forEach(row => {
+      body.forEach((row, rowIndex) => {
         const linesByCell = row.map((value, index) => wrapText(String(value), Math.max(20, columnWidths[index]! - 12), text => measureText(text, 14, index === 0 ? 650 : 400)));
         const rowLines = Math.max(...linesByCell.map(lines => lines.length));
         const rowHeight = Math.max(38, rowLines * lineHeight + 12);
-        parts.push(`<rect x="${tableX}" y="${cursorY}" width="${width - 48}" height="${rowHeight}" fill="#ffffff" stroke="#d2ddd7"/>`);
+        parts.push(`<rect x="${tableX}" y="${cursorY}" width="${width - 48}" height="${rowHeight}" fill="${palette.surface}" stroke="${palette.border}"/>`);
         x = tableX;
+        const source = filteredRows[rowIndex];
         row.forEach((value, index) => {
-          linesByCell[index]!.forEach((line, lineIndex) => parts.push(textLine(x + 6, cursorY + 20 + lineIndex * lineHeight, line, 14, index === 0 ? 650 : 400, '#26332e')));
+          const color = source && index === 4 ? directionColor(source.rsiDelta2W) : source && index === 6 ? directionColor(source.rankDelta2W) : source && index === 7 ? directionColor(source.twoWeekPerformancePct) : source && index === 8 ? palette.series1 : palette.text;
+          linesByCell[index]!.forEach((line, lineIndex) => parts.push(textLine(x + 6, cursorY + 20 + lineIndex * lineHeight, line, 14, index === 0 ? 650 : 400, color)));
           x += columnWidths[index]!;
         });
         cursorY += rowHeight;
       });
       if (!body.length) {
-        parts.push(textLine(tableX + 6, cursorY + 24, snapshotNoRows, 14, 400, '#52605b'));
+        parts.push(textLine(tableX + 6, cursorY + 24, snapshotNoRows, 14, 400, palette.muted));
         cursorY += 38;
       }
       const height = cursorY + 24;
@@ -854,8 +873,8 @@ export default function MarketRotation() {
         </dl>
       </section>
       <section className="rotation-leadership" aria-label={`${c.leaders} and ${c.weakening}`}>
-        <article><h2>{c.leaders}</h2>{data.topImproving.length ? <ol>{data.topImproving.map(row => <li key={row.symbol}><strong>{row.sectorName ?? row.name}</strong><span>{row.symbol} · {number(locale, row.rotationScoreDelta2W)} {c.change}</span></li>)}</ol> : <p className="muted">{c.noLeaders}</p>}</article>
-        <article><h2>{c.weakening}</h2>{data.bottomWeakening.length ? <ol>{data.bottomWeakening.map(row => <li key={row.symbol}><strong>{row.sectorName ?? row.name}</strong><span>{row.symbol} · {number(locale, row.rotationScoreDelta2W)} {c.change}</span></li>)}</ol> : <p className="muted">{c.noWeakening}</p>}</article>
+        <article><h2>{c.leaders}</h2>{data.topImproving.length ? <ol>{data.topImproving.map(row => <li key={row.symbol}><strong>{row.sectorName ?? row.name}</strong><span className={marketClass(row.rotationScoreDelta2W)}>{row.symbol} · {signed(locale, row.rotationScoreDelta2W)} {c.change}</span></li>)}</ol> : <p className="muted">{c.noLeaders}</p>}</article>
+        <article><h2>{c.weakening}</h2>{data.bottomWeakening.length ? <ol>{data.bottomWeakening.map(row => <li key={row.symbol}><strong>{row.sectorName ?? row.name}</strong><span className={marketClass(row.rotationScoreDelta2W)}>{row.symbol} · {signed(locale, row.rotationScoreDelta2W)} {c.change}</span></li>)}</ol> : <p className="muted">{c.noWeakening}</p>}</article>
       </section>
       <section className="rotation-history" aria-labelledby="rotation-history-title">
         <div className="rotation-section-heading">
@@ -900,10 +919,10 @@ export default function MarketRotation() {
             <td>{row.sectorName ?? row.name}</td>
             <td>{number(locale, row.lastPrice)}</td>
             <td>{number(locale, row.rsi14, 1)}</td>
-            <td>{signed(locale, row.rsiDelta2W, 1)}</td>
+            <td className={marketClass(row.rsiDelta2W)}>{signed(locale, row.rsiDelta2W, 1)}</td>
             <td>{integer(locale, row.rotationRank)}</td>
-            <td>{signed(locale, row.rankDelta2W, 0)}</td>
-            <td>{signed(locale, row.twoWeekPerformancePct, 2)}</td>
+            <td className={marketClass(row.rankDelta2W)}>{signed(locale, row.rankDelta2W, 0)}</td>
+            <td className={marketClass(row.twoWeekPerformancePct)}>{signed(locale, row.twoWeekPerformancePct, 2)}</td>
             <td><div className="rotation-trend-cell"><span className="sr-only">{trendText(locale, row, c.insufficient)}</span>{lines.length ? <svg viewBox="0 0 96 28" role="img" aria-label={c.trendAria.replace('{symbol}', row.symbol)}><title>{trendText(locale, row, c.insufficient)}</title>{lines.map((points, index) => <polyline key={index} points={points} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />)}</svg> : <span className="muted">{c.insufficient}</span>}</div></td>
             <td>{maStatusLabels[locale][row.maStatus]}</td>
             <td><span className={`rotation-signal rotation-signal-${row.signalStatus}`}>{rowLabel(row, c, locale)}</span></td>
