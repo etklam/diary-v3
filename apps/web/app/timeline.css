@@ -74,12 +74,22 @@
 .timeline-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   margin: 0;
   padding: 0;
   color: var(--muted);
   font-size: 0.875rem;
   list-style: none;
+}
+
+.timeline-symbol {
+  padding: 1px 8px;
+  border-radius: var(--radius-control);
+  background: var(--selected);
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .timeline-excerpt {

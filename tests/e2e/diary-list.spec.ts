@@ -28,6 +28,7 @@ for (const width of [1440, 390]) {
     }
     await page.reload()
     await expect(page.getByRole('status')).toContainText('11 diaries')
+    await page.getByTestId('diary-advanced').locator('summary').click()
     await page.getByRole('combobox', { name: 'Diaries per page', exact: true }).selectOption('10')
     await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
     await expect(page.locator('.diary-records > li')).toHaveCount(10)
@@ -48,6 +49,7 @@ for (const width of [1440, 390]) {
     await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0) })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: `docs/design/evidence/diary-list/${width}.png`, fullPage: true })
+    // The advanced section is already open because limit=10 is an active filter.
     await page.getByLabel('From date', { exact: true }).fill('2026-08-02')
     await page.getByLabel('Through date', { exact: true }).fill('2026-08-02')
     await page.getByRole('button', { name: 'Apply filters', exact: true }).click()

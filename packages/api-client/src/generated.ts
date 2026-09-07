@@ -3488,6 +3488,7 @@ export interface operations {
                 page?: number;
                 limit?: number;
                 search?: string;
+                symbol?: string;
                 sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
                 dateFrom?: string;
                 dateTo?: string;

@@ -23,8 +23,43 @@
 }
 
 .diary-search,
+.diary-advanced,
 .diary-filters .actions {
   grid-column: 1 / -1;
+}
+
+/* Advanced filters stay reachable through a native disclosure; the summary
+   carries an active count so closed never means "hidden filter". */
+.diary-advanced {
+  border: 0;
+}
+
+.diary-advanced summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: fit-content;
+  min-height: 44px;
+  padding: 8px 0;
+  color: var(--action);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.diary-advanced-count {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--tint-info);
+  color: var(--tint-info-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.diary-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-5);
+  padding-top: var(--space-5);
 }
 
 .diary-results {
@@ -41,19 +76,48 @@
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
   gap: var(--space-6);
-  padding: var(--space-6) 0;
+  padding: var(--space-5) 0;
   border-bottom: 1px solid var(--border);
 }
 
 .diary-records h3 {
+  margin-bottom: var(--space-2);
   font-size: 1.125rem;
 }
 
-.diary-records p {
-  margin-bottom: var(--space-3);
+.diary-library-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.diary-library-symbol {
+  padding: 1px 8px;
+  border-radius: var(--radius-control);
+  background: var(--selected);
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.diary-library-review {
+  color: var(--tint-warn-text);
+}
+
+.diary-row-excerpt {
+  display: -webkit-box;
+  margin-bottom: 0;
+  overflow: hidden;
   color: var(--muted);
   overflow-wrap: anywhere;
-  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .diary-records a {
@@ -94,9 +158,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .diary-advanced-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .diary-records > li {
     grid-template-columns: 1fr;
     gap: var(--space-2);
+    padding: var(--space-4) 0;
   }
 
   .diary-pagination {
@@ -114,6 +183,10 @@
 
 @media (max-width: 420px) {
   .diary-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .diary-advanced-grid {
     grid-template-columns: 1fr;
   }
 

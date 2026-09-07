@@ -1,4 +1,4 @@
-import { diaries, transactions, type Database } from '@diary/db'
+import { diaries, diaryStocks, stocks, transactions, type Database } from '@diary/db'
 import type { DiaryListQuery } from '@diary/contracts/diary-list'
 import { and, asc, count, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm'
 import { listDiaryAlerts, serializeDiary } from './diary.js'
@@ -12,7 +12,18 @@ export async function listDiaries(db: Database, userId: bigint, query: DiaryList
     predicates.push(or(
       sql`${diaries.title} ilike ${pattern} escape ${'\\'}`,
       sql`${diaries.content} ilike ${pattern} escape ${'\\'}`,
+      sql`${diaries.thesis} ilike ${pattern} escape ${'\\'}`,
+      sql`${diaries.risk} ilike ${pattern} escape ${'\\'}`,
+      sql`${diaries.execution} ilike ${pattern} escape ${'\\'}`,
+      sql`array_to_string(${diaries.tags}, ' ') ilike ${pattern} escape ${'\\'}`,
+      sql`exists (select 1 from ${diaryStocks} inner join ${stocks} on ${stocks.id} = ${diaryStocks.stockId} where ${diaryStocks.diaryId} = ${diaries.id} and ${stocks.symbol} ilike ${pattern} escape ${'\\'})`,
     )!)
+  }
+  if (query.symbol) {
+    // Symbols persist normalized uppercase; exact match keeps the filter precise.
+    predicates.push(inArray(diaries.id, db.select({ id: diaryStocks.diaryId }).from(diaryStocks)
+      .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
+      .where(eq(stocks.symbol, query.symbol.toUpperCase()))))
   }
   if (query.dateFrom) predicates.push(gte(diaries.date, query.dateFrom))
   if (query.dateTo) predicates.push(lte(diaries.date, query.dateTo))

@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import type { AddressInfo } from 'node:net'
+import { eq } from 'drizzle-orm'
 import { serve } from '@hono/node-server'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { diaries } from '@diary/db'
+import { diaries, diaryStocks, stocks } from '@diary/db'
 import { authUserResponseSchema } from '@diary/contracts'
 import { diaryListResponseSchema } from '../../packages/contracts/src/diary-list'
 import { createApp } from '../../apps/api/src/app'
@@ -107,10 +108,39 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
     const huge = await page(browser, 'page=9007199254740991&limit=100')
     expect(huge.data).toEqual([])
     expect(huge.pagination.page).toBe(Number.MAX_SAFE_INTEGER)
-    for (const query of ['page=0', 'page=1.1', 'limit=101', 'limit=0', 'sortBy=date_desc', 'tag=x', 'tags=x', 'days=3', 'search=%20', 'dateFrom=2026-02-30', 'dateFrom=2026-03-01&dateTo=2026-02-01', 'reviewStatus=unknown']) {
+    for (const query of ['page=0', 'page=1.1', 'limit=101', 'limit=0', 'sortBy=date_desc', 'tag=x', 'tags=x', 'days=3', 'search=%20', 'symbol=%20', 'dateFrom=2026-02-30', 'dateFrom=2026-03-01&dateTo=2026-02-01', 'reviewStatus=unknown']) {
       const response = await browser.request(`/api/diaries?${query}`)
       expect(response.status, query).toBe(400)
       expect((await response.json()).data.code).toBe('SYS_VALIDATION_ERROR')
     }
+  })
+
+  it('filters by exact normalized symbol and searches reasoning fields and tags', async () => {
+    const a = await owner(), b = await owner()
+    const inserted = await database.db.insert(diaries).values([
+      { userId: a.userId, date: '2026-02-01', title: 'Thesis note', content: 'plain', thesis: 'AI demand stays intact' },
+      { userId: a.userId, date: '2026-02-02', title: 'Risk note', content: 'plain', risk: 'Valuation is stretched' },
+      { userId: a.userId, date: '2026-02-03', title: 'Execution note', content: 'plain', execution: 'Add on strength' },
+      { userId: a.userId, date: '2026-02-04', title: 'Tagged note', content: 'plain', tags: ['earnings'] },
+      { userId: a.userId, date: '2026-02-05', title: 'Symbol note', content: 'plain' },
+      { userId: b.userId, date: '2026-02-06', title: 'Other owner', content: 'plain' },
+    ]).returning({ id: diaries.id })
+    const [stock] = await database.db.insert(stocks).values({ symbol: 'ZZTEST' }).onConflictDoNothing().returning({ id: stocks.id })
+    const stockId = stock?.id ?? (await database.db.select({ id: stocks.id }).from(stocks).where(eq(stocks.symbol, 'ZZTEST')))[0]!.id
+    await database.db.insert(diaryStocks).values([
+      { diaryId: inserted[4]!.id, stockId },
+      { diaryId: inserted[5]!.id, stockId },
+    ])
+    for (const [search, title] of [['demand', 'Thesis note'], ['stretched', 'Risk note'], ['strength', 'Execution note'], ['earnings', 'Tagged note'], ['zztest', 'Symbol note']] as const) {
+      const result = await page(a.browser, new URLSearchParams({ search }).toString())
+      expect(result.data.map(row => row.title), search).toEqual([title])
+    }
+    for (const symbol of ['zztest', 'ZZTEST']) {
+      const filtered = await page(a.browser, new URLSearchParams({ symbol }).toString())
+      expect(filtered.data.map(row => row.title), symbol).toEqual(['Symbol note'])
+      expect(filtered.pagination.total).toBe(1)
+    }
+    expect((await page(a.browser, 'symbol=NOPE')).data).toEqual([])
+    expect((await page(a.browser, 'symbol=NOPE')).pagination.total).toBe(0)
   })
 })

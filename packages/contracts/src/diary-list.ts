@@ -5,6 +5,7 @@ export const diaryListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().trim().min(1).max(500).optional(),
+  symbol: z.string().trim().min(1).max(20).optional(),
   sortBy: z.enum(['date-desc', 'date-asc', 'title-asc', 'title-desc']).default('date-desc'),
   dateFrom: calendarDateSchema.optional(),
   dateTo: calendarDateSchema.optional(),

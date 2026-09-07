@@ -216,3 +216,106 @@ for (const width of [360, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 }
+
+test('dirty clears when edits return to the confirmed server baseline', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const email = `ux-baseline-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Baseline diary');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Original reasoning.');
+  await page.getByRole('button', { name: 'Add purchase', exact: true }).click();
+  const row = page.locator('.buy-row').first();
+  await row.getByRole('textbox', { name: 'Symbol', exact: true }).fill('AAPL');
+  await row.getByRole('textbox', { name: 'Quantity', exact: true }).fill('2.5');
+  await row.getByRole('textbox', { name: 'Price per share', exact: true }).fill('180.25');
+  await row.getByLabel('Trade date and time (device time)', { exact: true }).fill('2026-09-06T10:30');
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price');
+  await page.getByLabel('Reminder time', { exact: true }).fill('2026-09-08T09:00');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  // Title: change then revert to the server value.
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Baseline diary, edited');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await title.fill('Baseline diary');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  // Transaction: change then revert.
+  const quantity = page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true });
+  const serverQuantity = await quantity.inputValue();
+  await quantity.fill('9.5');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await quantity.fill(serverQuantity);
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  // Review schedule: change then revert.
+  const review = page.getByLabel('Review due at', { exact: true });
+  const serverReview = await review.inputValue();
+  await review.fill('2026-09-15T10:30');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await review.fill(serverReview);
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  // Reminder: change then revert.
+  const reminder = page.getByLabel('Reminder message', { exact: true });
+  await reminder.fill('Check the fill price again');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await reminder.fill('Check the fill price');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  // Whitespace-only differences read as clean because the server trims them.
+  await title.fill('  Baseline diary  ');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+});
+
+test('recovery restores transaction, review and reminder modifications after re-login', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const email = `ux-full-recovery-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  expect((await page.request.post('/api/diaries', {
+    headers: { 'x-csrf-token': csrf },
+    data: {
+      date: '2026-09-06', title: 'Full state recovery diary', content: 'Every editable part must survive.',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1.25', price: '180.25', tradeDate: '2026-09-06T02:30:00.000Z' }],
+      reviewDueAt: '2026-09-10T01:30:00.000Z',
+      alerts: [{ message: 'Check the fill price', triggerAt: '2026-09-08T01:00:00.000Z' }],
+    },
+  })).status()).toBe(201);
+  await page.goto('/diaries');
+  await page.getByRole('link', { name: 'Full state recovery diary', exact: true }).click();
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+
+  await page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true }).fill('7.75');
+  const review = page.getByLabel('Review due at', { exact: true });
+  await review.fill('2026-09-18T11:45');
+  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price after the split');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  const draftKey = () => page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null);
+  await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
+
+  await page.route('**/api/diaries/*', async route => {
+    if (route.request().method() === 'PUT') await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }) });
+    else await route.continue();
+  });
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect.poll(draftKey).not.toBeNull();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+\/edit$/);
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue('7.75');
+  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
+});
