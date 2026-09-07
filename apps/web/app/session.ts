@@ -32,7 +32,9 @@ export function signInPath(path: string) { return `/login?returnTo=${encodeURICo
 export function clearPrivateSession(broadcast = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
-  if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+  if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);
+   // Explicit sign-out (broadcast) clears editor drafts; a 401 expiry keeps them so the writing survives re-login.
+   if(broadcast&&key.startsWith('diary-editor-draft:'))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });
   if (broadcast && typeof window !== 'undefined') {

@@ -10,7 +10,78 @@
 
 .original-fields legend {
   padding-right: var(--space-3);
+  color: var(--muted);
+  font-size: 0.875rem;
   font-weight: 650;
+}
+
+/* Writing surface: the Markdown area is the primary control and keeps the
+   reading measure. Viewport-relative floors avoid fixed pixel heights; no
+   sticky action bars, so an open keyboard never covers the controls. */
+.editor-content {
+  max-width: 72ch;
+  min-height: clamp(360px, 55dvh, 720px);
+  line-height: 1.75;
+}
+
+.editor-content:focus {
+  box-shadow: 0 0 0 1px var(--action);
+}
+
+.editor .title-input {
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.editor-mode {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.editor-mode button[aria-pressed='true'] {
+  border-color: var(--action);
+  color: var(--action);
+}
+
+.editor-restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 4px;
+  background: var(--muted-surface);
+}
+
+.editor-signin {
+  margin-top: var(--space-4);
+}
+
+.save-status {
+  font-size: 0.875rem;
+}
+
+.save-status:empty {
+  visibility: hidden;
+}
+
+.save-status.is-dirty {
+  color: var(--tint-warn-text);
+}
+
+.save-status.is-saving {
+  color: var(--muted);
+}
+
+.save-status.is-failed {
+  color: var(--negative);
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .editor-content {
+    min-height: min(52dvh, 460px);
+  }
 }
 
 .diary-tags {
