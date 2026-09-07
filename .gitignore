@@ -10,4 +10,4 @@ test-results/
 !.env.example
 .DS_Store
 *.tsbuildinfo
-.scratch/runtime/
+.scratch/
