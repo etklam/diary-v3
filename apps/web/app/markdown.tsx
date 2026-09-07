@@ -1,7 +1,7 @@
 import { useUi } from './ui';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import './diary-editor.css';
+import './markdown.css';
 /** Raw HTML is deliberately not enabled. ReactMarkdown keeps its safe URL transform. */
 export function Markdown({children}:{children:string}) {
  const {locale}=useUi();

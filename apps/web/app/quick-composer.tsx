@@ -4,6 +4,7 @@ import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
 import { Link,useNavigate } from 'react-router';
 import { calendarDateInTimezone,createEmptyQuickNoteTemplateData,deriveQuickTitle,generateTemplateDraft,mergeQuickTemplate,quickSnippets,type QuickNoteTemplateData,type QuickNoteTemplateKind } from '@diary/domain';
 import { api,useUi } from './ui';
+import './diary-editor.css';
 import { signInPath,useSessionState } from './session';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
 import { QuickFields } from './quick-fields';

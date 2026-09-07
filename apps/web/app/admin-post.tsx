@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { postAdminDetailSchema, postWriteRequestSchema, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
 import { csrfToken, sessionFetch, signInPath } from './session'
 import { Markdown } from './markdown'
+import './diary-editor.css'
 import { useUi } from './ui'
 import { apiFailure, FailureNotice, type Failure } from './api-error'
 

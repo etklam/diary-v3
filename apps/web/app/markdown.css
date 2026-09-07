@@ -1,0 +1,239 @@
+/* Typography layer for rendered Markdown (.safe-markdown). Shared by every
+   Markdown surface: diary reading, editor previews, articles, notes, timelines.
+   All selectors stay scoped to .safe-markdown; vertical rhythm uses em so
+   spacing scales with each element's own type size. */
+
+.safe-markdown {
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.safe-markdown > :first-child {
+  margin-top: 0;
+}
+
+.safe-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Headings ---- */
+
+.safe-markdown h1,
+.safe-markdown h2,
+.safe-markdown h3,
+.safe-markdown h4,
+.safe-markdown h5,
+.safe-markdown h6 {
+  margin: 2em 0 0.5em;
+  font-weight: 650;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+/* Markdown headings must not compete with the page title above them. */
+.safe-markdown h1 {
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+.safe-markdown h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.safe-markdown h3 {
+  margin-top: 1.6em;
+  font-size: 1.15rem;
+}
+
+.safe-markdown h4 {
+  margin-top: 1.6em;
+  font-size: 1rem;
+}
+
+.safe-markdown h5,
+.safe-markdown h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.4em;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.safe-markdown h6 {
+  font-size: 0.875rem;
+}
+
+.safe-markdown p {
+  margin-bottom: 1em;
+}
+
+.safe-markdown strong {
+  font-weight: 650;
+}
+
+/* ---- Links ---- */
+
+.safe-markdown a {
+  color: var(--action);
+}
+
+/* ---- Inline code ---- */
+
+.safe-markdown code {
+  padding: 0.15em 0.4em;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--tint-neutral);
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+/* ---- Code block ---- */
+
+.safe-markdown pre {
+  max-width: 100%;
+  margin-bottom: 1.25em;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted-surface);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  /* Same reasoning as .markdown-table: keep long code lines from inflating
+     content-sized ancestors. */
+  contain: inline-size;
+}
+
+.safe-markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* ---- Blockquote ---- */
+
+.safe-markdown blockquote {
+  margin: 1.5em 0;
+  padding: var(--space-2) var(--space-4);
+  border-left: 3px solid color-mix(in srgb, var(--action) 35%, var(--border));
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--muted-surface);
+  color: var(--muted);
+}
+
+.safe-markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Lists ---- */
+
+.safe-markdown ul,
+.safe-markdown ol {
+  margin-bottom: 1em;
+  padding-inline-start: 1.5em;
+}
+
+.safe-markdown li {
+  margin-bottom: 0.3em;
+}
+
+.safe-markdown li::marker {
+  color: var(--muted);
+}
+
+.safe-markdown li > ul,
+.safe-markdown li > ol {
+  margin-top: 0.3em;
+  margin-bottom: 0.2em;
+}
+
+/* Loose GFM lists wrap items in <p>; keep the gap tight. */
+.safe-markdown li > p {
+  margin-bottom: 0.35em;
+}
+
+/* Task list: hang the checkbox in the marker gutter so wrapped lines align
+   with the text, and undo the global form-control input sizing. */
+.safe-markdown li.task-list-item {
+  list-style: none;
+}
+
+.safe-markdown li.task-list-item input[type='checkbox'] {
+  width: 1em;
+  height: 1em;
+  min-height: 0;
+  margin: 0.15em 0.5em 0 -1.5em;
+  padding: 0;
+  border: 0;
+  accent-color: var(--action);
+  vertical-align: middle;
+}
+
+/* ---- Horizontal rule ---- */
+
+.safe-markdown hr {
+  margin: 2em 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- Images ---- */
+
+.safe-markdown img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+/* ---- Tables ---- */
+
+.safe-markdown table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.safe-markdown th,
+.safe-markdown td {
+  min-width: 8ch;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.safe-markdown thead th {
+  background: var(--muted-surface);
+  font-weight: 650;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+
+.safe-markdown tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--muted-surface) 50%, transparent);
+}
+
+.markdown-table {
+  max-width: 100%;
+  overflow-x: auto;
+  /* Inline-size containment stops the table's intrinsic width leaking into
+     ancestors that size from content (e.g. grid items with min-width: auto);
+     the wrapper itself always shrinks to its container and scrolls. */
+  contain: inline-size;
+}
+
+.markdown-table:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.markdown-table table {
+  min-width: 0;
+}

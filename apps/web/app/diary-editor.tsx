@@ -13,6 +13,7 @@ import { useSessionState } from './session';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
 import { diaryCopy } from './diary-copy';
 import { Markdown } from './markdown';
+import './diary-editor.css';
 import { diaryResponseSchema, type DiaryResponse } from '@diary/contracts';
 export type DiaryFields={alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
 

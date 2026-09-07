@@ -4,6 +4,7 @@ import { reviewScheduleCopy } from '../review-scheduling';
 import type { LedgerTransactionResponse } from '@diary/contracts/ledger';
 import { ledgerCopy,ledgerEmotions } from '../ledger-copy';
 import '../ledger.css';
+import '../diary-editor.css';
 import { apiFailure,FailureNotice,invalidField,type Failure } from '../api-error';
 import { useEffect,useRef,useState } from 'react';
 import { Link,useLocation,useNavigate,useParams } from 'react-router';
