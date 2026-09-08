@@ -2,6 +2,69 @@
   margin-top: var(--space-8);
 }
 
+/* Urgent buckets share one 'Needs attention' heading; the buckets sit under it. */
+.queue-attention .queue-group {
+  margin-top: var(--space-4);
+}
+
+/* Per-bucket empty copy: one muted line, not a card. */
+.queue-empty-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+/* Whole-queue empty: one positive line plus the two ways forward. */
+.queue-empty {
+  margin-top: var(--space-4);
+  color: var(--muted);
+}
+
+.queue-empty .actions {
+  margin-top: var(--space-3);
+}
+
+/* Type filter: segmented control bound to the target URL param. */
+.queue-filter {
+  display: inline-flex;
+  margin-top: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.queue-filter a {
+  padding: 0.15rem 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.queue-filter a + a {
+  border-left: 1px solid var(--border);
+}
+
+.queue-filter a[aria-current] {
+  background: var(--muted-surface);
+  font-weight: 650;
+}
+
+@media (max-width: 759px) {
+  .queue-filter a {
+    padding: 0.6rem 1rem;
+  }
+}
+
+/* Screen-reader-only action prefix so queue links announce what they do.
+   In flow at zero width (no absolute clip trick) so hit tests stay on the link. */
+.queue-sr {
+  display: inline-block;
+  width: 0;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .queue-summary {
   max-width: 75ch;
   overflow-wrap: anywhere;

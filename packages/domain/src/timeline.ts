@@ -11,7 +11,7 @@ export function diaryExcerpt(content:string|null,maxLength=240){
   .replace(/!\[[^\]]*\]\([^)]*\)/g,' ')
   .replace(/\[([^\]]*)\]\([^)\s]*\)/g,'$1')
   .replace(/\bhttps?:\/\/\S+/g,' ')
-  .replace(/^[>#\s]*[-*+]\s+/gm,'')
+  .replace(/^[>\t ]*[-*+]\s+/gm,'')
   .replace(/[#*_`~|]/g,' ')
   .replace(/\s+/g,' ').trim();
  if(plain.length<=maxLength)return plain;

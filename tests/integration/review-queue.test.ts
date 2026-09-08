@@ -138,6 +138,47 @@ it('classifies due instants by account-local days in Asia/Taipei, not UTC days',
   expect(result.today.map((row: {id:string}) => row.id)).toEqual([utcBoundary.id, lateToday.id])
   expect(result.upcoming.map((row: {id:string}) => row.id)).toEqual([afterMidnight.id])
 })
+it('classifies due instants by America/New_York local days in EDT summer and EST winter, not UTC days', async () => {
+  // [clock (noon local), local-midnight start in UTC, next local midnight in UTC]
+  for (const [instant, start, finish] of [
+    ['2026-07-15T16:00:00Z', '2026-07-15T04:00:00Z', '2026-07-16T04:00:00Z'], // EDT (UTC-4)
+    ['2026-01-15T17:00:00Z', '2026-01-15T05:00:00Z', '2026-01-16T05:00:00Z'], // EST (UTC-5)
+  ]) {
+    clock = new Date(instant!); const browser = await login()
+    expect((await update(browser, '/api/user/settings', { timezone: 'America/New_York' }, 'PUT')).status).toBe(200)
+    const at = (ms: number) => new Date(ms).toISOString(), startMs = new Date(start!).getTime(), finishMs = new Date(finish!).getTime()
+    const lateNight = await diary(browser, '2026-05-01', at(startMs - 60_000)) // 23:59 previous local day -> overdue
+    const justAfter = await diary(browser, '2026-05-02', at(finishMs + 60_000)) // 00:01 next local day -> upcoming
+    const midday = await diary(browser, '2026-05-03', instant!) // noon local on the clock day -> today
+    const result = await queue(browser)
+    expect(result.counts).toEqual({ overdue: 1, today: 1, upcoming: 1, unscheduled: 0, completed: 0 })
+    expect(result.overdue.map((row: {id:string}) => row.id)).toEqual([lateNight.id])
+    expect(result.today.map((row: {id:string}) => row.id)).toEqual([midday.id])
+    expect(result.upcoming.map((row: {id:string}) => row.id)).toEqual([justAfter.id])
+  }
+  // UTC calendar day and local calendar day differ: 2026-07-01T02:00:00Z is
+  // 22:00 on 2026-06-30 in New York, so a UTC-day bucketing would call it
+  // "today" while the account-local bucket is overdue.
+  clock = new Date('2026-07-01T12:00:00Z'); const browser = await login()
+  expect((await update(browser, '/api/user/settings', { timezone: 'America/New_York' }, 'PUT')).status).toBe(200)
+  const utcSameDay = await diary(browser, '2026-06-01', '2026-07-01T02:00:00Z')
+  const result = await queue(browser)
+  expect(result.counts).toEqual({ overdue: 1, today: 0, upcoming: 0, unscheduled: 0, completed: 0 })
+  expect(result.overdue.map((row: {id:string}) => row.id)).toEqual([utcSameDay.id])
+})
+it('never leaks another user\'s diary into the queue response', async () => {
+  const browser = await login(), stranger = await login()
+  for (const session of [browser, stranger]) {
+    expect((await update(session, '/api/user/settings', { timezone: 'America/New_York' }, 'PUT')).status).toBe(200)
+  }
+  // Same due instant, same bucket for both accounts; titles are the date strings.
+  await diary(stranger, '2026-09-01', '2026-09-05T10:00:00Z')
+  const mine = await diary(browser, '2026-09-02', '2026-09-05T10:00:00Z')
+  const result = await queue(browser)
+  expect(result.counts).toEqual({ overdue: 0, today: 1, upcoming: 0, unscheduled: 0, completed: 0 })
+  expect(result.today.map((row: {id:string}) => row.id)).toEqual([mine.id])
+  expect(JSON.stringify(result)).not.toContain('2026-09-01')
+})
 it('retains the latest 50 completed diaries and the first 100 active thesis candidates', async () => {
   const browser = await login()
   const me = await (await browser.request('/api/auth/me')).json(), owner = me.data.id

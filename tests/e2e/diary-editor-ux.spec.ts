@@ -161,6 +161,45 @@ test('device-local recovery restores unsaved writing after a reload and clears a
   await expect.poll(draftKey).toBeNull();
 });
 
+test('discarding a recovery re-arms backup for new content', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const email = `ux-discard-rearm-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  expect((await page.request.post('/api/diaries', {
+    headers: { 'x-csrf-token': csrf },
+    data: { date: '2026-09-06', title: 'Discard re-arm diary', content: 'Saved baseline reasoning.' },
+  })).status()).toBe(201);
+  const draftContent = () => page.evaluate(() => {
+    const raw = localStorage.getItem(Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? '');
+    const saved = raw ? JSON.parse(raw) as { value?: { form?: { content?: string } } } : null;
+    return saved?.value?.form?.content ?? null;
+  });
+
+  // Draft A is written debounced while dirty.
+  await page.goto('/diaries');
+  await page.getByRole('link', { name: 'Discard re-arm diary', exact: true }).click();
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Unsaved draft reasoning A.');
+  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Unsaved draft reasoning A.');
+
+  // Discard only drops snapshot A: the form is back on the confirmed baseline,
+  // so nothing is rewritten, and typing B re-arms the debounced backup with B.
+  await page.reload();
+  await page.getByRole('button', { name: 'Discard draft', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.');
+  await expect.poll(draftContent).toBeNull();
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Brand new reasoning B.');
+  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Brand new reasoning B.');
+
+  // The re-armed draft survives a reload and restores B.
+  await page.reload();
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Brand new reasoning B.');
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+});
+
 test('an expired session keeps local writing through re-login and returns to the editor', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const email = `ux-expiry-${randomUUID()}@example.test`;

@@ -110,3 +110,56 @@ for(const width of [1440,390]){
   try{const otherEmail=`outsider-${randomUUID()}@example.test`;await outsider.request.post('/api/auth/register',{data:{email:otherEmail,password}});await outsider.request.post('/api/auth/login',{data:{email:otherEmail,password}});const other=await outsider.newPage();await other.goto(`/diaries/${id}/review`);await selectLocale(other, 'en');await expect(other.getByTestId('error-code')).toHaveText('DIARY_NOT_FOUND');await expect(other.locator('body')).not.toContainText('Private reflection:');await expect(other.locator('body')).not.toContainText('Demand needs independent confirmation');const otherHeaders={'x-csrf-token':(await outsider.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};expect((await outsider.request.patch(`/api/diaries/${id}/review`,{headers:otherHeaders,data:{reviewOutcome:'INTACT',reviewSummary:'Unauthorized change'}})).status()).toBe(404);}finally{await outsider.close();}
  });
 }
+
+async function signInForDraft(page:import('playwright').Page,email:string,password:string){
+ expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
+ await page.goto('/login');await selectLocale(page, 'en');
+ await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
+ return {'x-csrf-token':(await page.context().cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
+}
+const reviewDraftCount=(page:import('playwright').Page)=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('review-draft:')).length);
+
+test('discarding a review recovery re-arms the draft for new reflections',async({page})=>{
+ const email=`review-discard-${randomUUID()}@example.test`,password='synthetic-review-password';
+ const headers=await signInForDraft(page,email,password);
+ expect((await page.request.post('/api/diaries',{headers,data:{date:'2026-09-07',title:'Discard re-arm review',content:'Baseline diary writing.'}})).status()).toBe(201);
+ await page.goto('/diaries');await page.getByRole('link',{name:'Discard re-arm review',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const id=page.url().split('/').at(-1)!;
+ expect((await page.request.patch(`/api/diaries/${id}/review`,{headers,data:{reviewOutcome:'INTACT',reviewSummary:'Baseline reflection kept on the server.'}})).status()).toBe(200);
+ const draftLearning=()=>page.evaluate(()=>{const raw=localStorage.getItem(Object.keys(localStorage).find(key=>key.startsWith('review-draft:'))??'');const saved=raw?JSON.parse(raw) as {value?:{reviewLearning?:string}}:null;return saved?.value?.reviewLearning??null;});
+
+ // Reflection X is written debounced while dirty.
+ await page.goto(`/diaries/${id}/review`);
+ await page.getByRole('button',{name:'Edit reflection',exact:true}).click();
+ await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('First private learning X.');
+ await expect.poll(draftLearning,{timeout:5000}).toBe('First private learning X.');
+
+ // Discard only drops X: the form is back on the confirmed baseline, so nothing
+ // is rewritten, and typing Y re-arms the debounced draft with Y, never X.
+ await page.reload();
+ await page.getByRole('button',{name:'Discard',exact:true}).click();
+ await expect.poll(draftLearning).toBeNull();
+ await page.getByRole('button',{name:'Edit reflection',exact:true}).click();
+ await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('Second private learning Y.');
+ await expect.poll(draftLearning,{timeout:5000}).toBe('Second private learning Y.');
+
+ // The re-armed draft survives a reload and restores Y.
+ await page.reload();
+ await page.getByRole('button',{name:'Restore',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'What I learned',exact:true})).toHaveValue('Second private learning Y.');
+});
+
+test('an explicit sign-out in another tab clears the private reflection draft',async({page})=>{
+ const email=`review-signout-${randomUUID()}@example.test`,password='synthetic-review-password';
+ const headers=await signInForDraft(page,email,password);
+ expect((await page.request.post('/api/diaries',{headers,data:{date:'2026-09-07',title:'Signout draft review',content:'Private writing.'}})).status()).toBe(201);
+ await page.goto('/diaries');await page.getByRole('link',{name:'Signout draft review',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const id=page.url().split('/').at(-1)!;
+ await page.goto(`/diaries/${id}/review`);
+ await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('Private learning that must not survive a shared-device sign-out.');
+ await expect.poll(()=>reviewDraftCount(page),{timeout:5000}).toBeGreaterThan(0);
+ // A sign-out in another tab arrives as the logout broadcast; replaying the exact
+ // storage write keeps this page in place while the app's own listener clears
+ // every private draft. A 401 expiry keeps the draft instead — locked in by the
+ // recovery flow above.
+ await page.evaluate(()=>{const value=JSON.stringify({type:'logout',nonce:`${Date.now()}-test`});localStorage.setItem('diary-logout-event',value);window.dispatchEvent(new StorageEvent('storage',{key:'diary-logout-event',newValue:value}));});
+ await expect.poll(()=>reviewDraftCount(page)).toBe(0);
+});

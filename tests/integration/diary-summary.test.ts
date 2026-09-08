@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
+import { performance } from 'node:perf_hooks'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { alerts, diaries, diaryStocks, stocks, transactions } from '@diary/db'
 import { authUserResponseSchema } from '@diary/contracts'
+import { diaryExcerpt } from '@diary/domain'
 import { diaryListResponseSchema } from '../../packages/contracts/src/diary-list'
 import { diarySummaryListResponseSchema } from '../../packages/contracts/src/diary-summary'
 import { createApp } from '../../apps/api/src/app'
@@ -186,5 +188,85 @@ describe('Diary summary discovery feed', () => {
     expect(diary.alerts).toHaveLength(3)
     expect(diary.stockSymbols).toEqual(['ZZSUM'])
     expect(diary.userId).toBe(a.userId.toString())
+  })
+
+  // Spec §18 benchmark. listDiarySummaries materializes the full `content`
+  // column (up to 500,000 chars per row) and builds the 240-char excerpt with
+  // diaryExcerpt inside the API process. Measured on the local PG
+  // (127.0.0.1:55433), 20 rows x 500k chars, median of 5 GETs:
+  //   plain prose            ~63ms   -> full materialization is not the cost
+  //   mixed shapes (5 rows whitespace-heavy) ~14.6s
+  // The pathological total is excerpt CPU, not SQL: the
+  // /^[>#\s]*[-*+]\s+/gm list-marker strip in diaryExcerpt
+  // (packages/domain/src/timeline.ts) backtracks quadratically across
+  // whitespace runs, ~2.85s per 500k-char body. Fix it there first if
+  // real-world p95 shows a problem. A SQL-side left(content, N) bound is NOT
+  // a faithful substitute: three fixture shapes (giant code fence, giant
+  // link, whitespace run) strip away entirely inside the first N chars, so
+  // diaryExcerpt(left(content, N)) diverges from diaryExcerpt(content) for
+  // every N in {1000, 2000, 4000, 8000} (asserted below) while only plain
+  // prose is prefix-stable. Decision: keep full materialization, no bound.
+  it('benchmarks excerpt materialization for a 20-row page of max-size content', { timeout: 120_000 }, async () => {
+    const a = await owner()
+    const benchStart = performance.now()
+    const total = 500_000
+    const filler = 'Position review complete and the next checkpoint is scheduled. '
+    const body = (head: string) => (head + filler.repeat(Math.ceil(total / filler.length))).slice(0, total)
+    const fixtures: Array<{ kind: string; content: string }> = [
+      { kind: 'plain', content: body('') },
+      { kind: 'fence', content: body('```sql\n' + 'x'.repeat(100_000) + '\n```\n\n') },
+      { kind: 'link', content: body(`Report [the full note](https://example.test/${'a'.repeat(100_000)}) and prose follows. `) },
+      { kind: 'whitespace', content: body('\n\t '.repeat(33_334)) },
+    ]
+    const rows = Array.from({ length: 20 }, (_, index) => ({
+      userId: a.userId, date: `2026-08-${String(1 + index).padStart(2, '0')}`,
+      title: `Bench ${index}`, content: fixtures[index % fixtures.length]!.content,
+    }))
+    for (let start = 0; start < rows.length; start += 5) {
+      await database.db.insert(diaries).values(rows.slice(start, start + 5))
+    }
+    console.log(`[summary excerpt benchmark] seed insert of 20 x 500k chars: ${(performance.now() - benchStart).toFixed(0)}ms (excluded from measurement)`)
+
+    // Prefix-bound comparison: a `left(content, N)` excerpt is faithful only if
+    // diaryExcerpt(slice) === diaryExcerpt(full) for every fixture shape.
+    const divergences: Record<number, string[]> = {}
+    for (const bound of [1000, 2000, 4000, 8000]) {
+      divergences[bound] = fixtures.filter(({ content }) => diaryExcerpt(content.slice(0, bound)) !== diaryExcerpt(content)).map(row => row.kind)
+    }
+    console.log('[summary excerpt benchmark] diaryExcerpt(left(content, N)) diverges from diaryExcerpt(content):',
+      JSON.stringify(divergences))
+    // The pathological shapes diverge at every bound; only plain prose is stable.
+    expect(divergences[1000]).toEqual(['fence', 'link', 'whitespace'])
+    expect(divergences[8000]).toEqual(['fence', 'link', 'whitespace'])
+    expect(diaryExcerpt(fixtures[0]!.content.slice(0, 1000))).toBe(diaryExcerpt(fixtures[0]!.content))
+
+    const browser = a.browser
+    await summaryPage(browser) // warm-up connection and caches, not measured
+    const runs: number[] = []
+    for (let run = 0; run < 5; run++) {
+      const started = performance.now()
+      const page = await summaryPage(browser, 'limit=50')
+      runs.push(performance.now() - started)
+      expect(page.data).toHaveLength(20)
+      expect(page.data.every(item => item.excerpt.length > 0 && item.excerpt.length <= 241)).toBe(true)
+    }
+    const [median] = runs.slice().sort((x, y) => x - y).slice(2, 3)
+    console.log(`[summary excerpt benchmark] GET /api/diaries/summary 20 rows x 500k chars, mixed shapes: median ${median!.toFixed(1)}ms (runs ${runs.map(value => value.toFixed(1)).join(', ')}ms)`)
+    // Same page size and body size, plain prose only, isolates the
+    // materialization + serialization cost from pathological excerpt CPU.
+    await database.db.insert(diaries).values(Array.from({ length: 20 }, (_, index) => ({
+      userId: a.userId, date: `2026-09-${String(1 + index).padStart(2, '0')}`,
+      title: `Bench plain ${index}`, content: fixtures[0]!.content,
+    })))
+    const plainRuns: number[] = []
+    await summaryPage(browser, 'dateFrom=2026-09-01&dateTo=2026-09-30') // warm-up
+    for (let run = 0; run < 5; run++) {
+      const started = performance.now()
+      const page = await summaryPage(browser, 'dateFrom=2026-09-01&dateTo=2026-09-30')
+      plainRuns.push(performance.now() - started)
+      expect(page.data).toHaveLength(20)
+    }
+    const [plainMedian] = plainRuns.slice().sort((x, y) => x - y).slice(2, 3)
+    console.log(`[summary excerpt benchmark] GET /api/diaries/summary 20 rows x 500k chars, plain prose: median ${plainMedian!.toFixed(1)}ms (runs ${plainRuns.map(value => value.toFixed(1)).join(', ')}ms)`)
   })
 })

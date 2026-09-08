@@ -34,14 +34,16 @@ export function safeReturnPath(candidate: string | null): string {
 }
 export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
 
-export function clearPrivateSession(broadcast = false) {
+// `broadcast` marks an explicit sign-out from this tab: private drafts are
+// cleared and the logout event reaches the other tabs. The cross-tab receivers
+// pass `clearDrafts` instead — the same draft clearing without re-broadcasting
+// (two tabs would echo the logout forever). A 401 expiry passes neither and
+// keeps the drafts so the writing survives re-login.
+export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);
-   // Explicit sign-out (broadcast) clears editor and review drafts so private
-   // reflections never stay on a shared device; a 401 expiry keeps them so the
-   // writing survives re-login.
-   if(broadcast&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });
@@ -57,9 +59,9 @@ function startListening() {
   listening = true;
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel('diary-web-session');
-    channel.onmessage = event => { if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(); } };
+    channel.onmessage = event => { if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(false, true); } };
   }
-  window.addEventListener('storage', event => { if (event.key === eventKey && event.newValue) { explicitSignOut = true; clearPrivateSession(); } });
+  window.addEventListener('storage', event => { if (event.key === eventKey && event.newValue) { explicitSignOut = true; clearPrivateSession(false, true); } });
 }
 function subscribe(listener: () => void) { startListening(); listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function useSessionState() { return useSyncExternalStore(subscribe, () => state, () => initial); }
