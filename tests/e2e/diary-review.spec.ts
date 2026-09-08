@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { expect,test, selectLocale, selectTheme } from '../support/e2e';
 
 test.use({timezoneId:'America/New_York'});
+// Wall time (device timezone) the editor turns back into the exact instant.
+const localWall=(instant:Date)=>new Intl.DateTimeFormat('sv-SE',{dateStyle:'short',timeStyle:'short',timeZone:'America/New_York'}).format(new Date(Math.floor(instant.getTime()/60000)*60000)).replace(' ','T');
 for(const width of [1440,390]){
  test(`schedule, complete and revise a private diary review at ${width}px`,async({page,context,browser})=>{
   await page.setViewportSize({width,height:900});
@@ -13,10 +15,11 @@ for(const width of [1440,390]){
   expect((await page.request.put('/api/user/settings',{headers,data:{timezone:'Asia/Taipei'}})).status()).toBe(200);
   await page.getByLabel('Diary date',{exact:true}).fill('2026-09-07');await page.getByRole('textbox',{name:'Title',exact:true}).fill('Demand needs independent confirmation');await page.getByRole('textbox',{name:'Content',exact:true}).fill('## Evidence\n\n**Demand** still needs confirmation.');
   await page.getByRole('textbox',{name:'Original thesis',exact:true}).fill('A recovery is possible.\nWait for independent evidence.');await page.getByRole('textbox',{name:'Original risk assessment',exact:true}).fill('The sample may be too small.');await page.getByRole('textbox',{name:'Original execution plan',exact:true}).fill('Reassess after the report.');await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const id=page.url().split('/').at(-1)!;
-  await page.getByRole('link',{name:'Review diary',exact:true}).click();await expect(page.getByTestId('review-status')).toHaveText('Not scheduled');
-  await page.getByRole('link',{name:'Change review schedule',exact:true}).click();await page.getByLabel('Review due at',{exact:true}).fill('2026-09-08T10:30');await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));await page.getByRole('link',{name:'Review diary',exact:true}).click();
-  await expect(page.getByTestId('review-status')).toHaveText('Review pending');await expect(page.getByTestId('review-timezone')).toContainText('Asia/Taipei');await expect(page.getByTestId('review-due')).toHaveAttribute('datetime','2026-09-08T14:30:00.000Z');
-  await expect(page.getByTestId('review-due')).toHaveText(new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date('2026-09-08T14:30:00Z')));
+  await page.getByRole('link',{name:'Schedule review',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/edit$`));
+  const dueInstant=new Date((Math.floor(Date.now()/60000)+60*24)*60000);
+  await page.getByLabel('Review due at',{exact:true}).fill(localWall(dueInstant));await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));await page.getByRole('link',{name:'Review diary',exact:true}).click();
+  await expect(page.getByTestId('review-status')).toHaveText('Review pending');await expect(page.getByTestId('review-timezone')).toContainText('Asia/Taipei');await expect(page.getByTestId('review-due')).toHaveAttribute('datetime',dueInstant.toISOString());
+  await expect(page.getByTestId('review-due')).toHaveText(new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(dueInstant));
   // Dirty indicator: derived from the confirmed baseline, so typing marks it
   // dirty and reverting to the original (empty) value reads as clean again.
   await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('Temporary learning note.');
@@ -25,15 +28,13 @@ for(const width of [1440,390]){
   await expect(page.getByTestId('save-status')).toHaveText('');
   await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('Temporary learning note.');
   // The route blocker confirms before an internal navigation leaves a dirty reflection.
-  const blockerDialog=page.waitForEvent('dialog');
+  let dialogMessage='';const readDialog=(dialog:import('playwright').Dialog)=>{dialogMessage=dialog.message();void dialog.dismiss();};
+  page.once('dialog',readDialog);
   await page.getByRole('link',{name:'Back to diary',exact:true}).click();
-  const confirmDialog=await blockerDialog;
-  expect(confirmDialog.message()).toMatch(/unsaved/i);
-  await confirmDialog.dismiss();
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
-  const leaveDialog=page.waitForEvent('dialog');
+  await expect.poll(()=>dialogMessage).toMatch(/unsaved/i);
+  page.once('dialog',dialog=>void dialog.accept());
   await page.getByRole('link',{name:'Back to diary',exact:true}).click();
-  await (await leaveDialog).accept();
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   // Leaving while dirty flushed a device draft; returning offers it and an
   // explicit discard clears the offer.
@@ -45,7 +46,7 @@ for(const width of [1440,390]){
   await page.route(`**/api/diaries/${id}/review`,async route=>{if(route.request().method()==='PATCH')await route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'review-save'}})});else await route.continue();});
   await page.getByRole('button',{name:'Complete review',exact:true}).click();await expect(page.getByTestId('request-id')).toHaveText('review-save');await expect(page.getByTestId('save-status')).toHaveText('Save failed');await expect(page.getByRole('textbox',{name:'What happened',exact:true})).toHaveValue(/Private reflection/);
   if(width===390)await selectTheme(page, 'dark');await page.evaluate(()=>{if(document.activeElement instanceof HTMLElement)document.activeElement.blur();window.scrollTo({top:0,behavior:'instant'});});await page.screenshot({path:`docs/design/evidence/review/form-${width}.png`,fullPage:true});
-  await page.unroute(`**/api/diaries/${id}/review`);const before=Date.now();await page.getByRole('button',{name:'Complete review',exact:true}).click();await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeFocused();await expect(page.getByTestId('review-status')).toHaveText('Reviewed');await expect(page.getByTestId('save-status')).toHaveText('');
+  await page.unroute(`**/api/diaries/${id}/review`);const before=Date.now();await page.getByRole('button',{name:'Complete review',exact:true}).click();await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeFocused();await expect(page.getByTestId('review-status')).toHaveText('Reviewed');await expect(page.getByTestId('save-status')).toHaveCount(0);
   const completed=await (await page.request.get(`/api/diaries/${id}/review`)).json();expect(Date.parse(completed.reviewedAt)).toBeGreaterThanOrEqual(before);expect(Date.parse(completed.reviewedAt)).toBeLessThanOrEqual(Date.now());expect(completed.reviewOutcome).toBe('PARTIAL');expect(completed.thesis).toBe('A recovery is possible.\nWait for independent evidence.');
   await page.evaluate(()=>{if(document.activeElement instanceof HTMLElement)document.activeElement.blur();window.scrollTo({top:0,behavior:'instant'});});await page.screenshot({path:`docs/design/evidence/review/completed-${width}.png`,fullPage:true});
   await page.getByRole('button',{name:'Edit reflection',exact:true}).click();await page.getByRole('textbox',{name:'What happened',exact:true}).fill('Private reflection: revised after checking the second report.');await page.getByRole('button',{name:'Save review changes',exact:true}).click();await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();await page.reload();await expect(page.locator('.review-reflection')).toContainText('revised after checking the second report.');
@@ -56,31 +57,31 @@ for(const width of [1440,390]){
   await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Edit reflection',exact:true}).click();
   await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('A cancelled learning note.');
-  const cancelDialog=page.waitForEvent('dialog');
+  page.once('dialog',dialog=>void dialog.dismiss());
   await page.getByRole('button',{name:'Cancel',exact:true}).click();
-  await (await cancelDialog).dismiss();
   await expect(page.getByRole('textbox',{name:'What I learned',exact:true})).toBeVisible();
-  const revertDialog=page.waitForEvent('dialog');
+  page.once('dialog',dialog=>void dialog.accept());
   await page.getByRole('button',{name:'Cancel',exact:true}).click();
-  await (await revertDialog).accept();
   await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();
-  // A failed save keeps the text and writes a device draft that survives a
-  // reload; restoring it reopens the editor with the exact text.
+  // A 401 save fails closed: the shared session layer treats it as expiry and the
+  // layout redirects to the sign-in return flow, while the account-scoped device
+  // draft keeps every reflection. Re-authenticating returns here with a restore.
   await page.getByRole('button',{name:'Edit reflection',exact:true}).click();
   await page.getByRole('textbox',{name:'What happened',exact:true}).fill('Recovery reflection kept across an expired session.');
   await page.route(`**/api/diaries/${id}/review`,async route=>{if(route.request().method()==='PATCH')await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({data:{code:'AUTH_TOKEN_INVALID'}})});else await route.continue();});
   await page.getByRole('button',{name:'Save review changes',exact:true}).click();
-  await expect(page.getByTestId('error-code')).toHaveText('AUTH_TOKEN_INVALID');
-  await expect(page.getByRole('textbox',{name:'What happened',exact:true})).toHaveValue(/Recovery reflection/);
-  await expect(page.getByTestId('save-status')).toHaveText('Save failed');
   await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('review-draft:')).length)).toBeGreaterThan(0);
   await page.unroute(`**/api/diaries/${id}/review`);
-  await page.reload();
+  // Whether the inline failure notice or the expiry redirect won the race, the
+  // sign-in return flow lands back on this review page.
+  await page.goto(`/login?returnTo=${encodeURIComponent(`/diaries/${id}/review`)}`);
+  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
   await page.getByRole('button',{name:'Restore',exact:true}).click();
   await expect(page.getByRole('textbox',{name:'What happened',exact:true})).toHaveValue(/Recovery reflection/);
   await page.getByRole('button',{name:'Save review changes',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  await expect(page.getByTestId('save-status')).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('button',{name:'Restore',exact:true})).toHaveCount(0);
   for(const [locale,title] of [['zh-TW','日記複盤'],['zh-CN','日记复盘'],['en','Diary review']] as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();}

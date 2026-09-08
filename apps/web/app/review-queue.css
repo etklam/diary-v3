@@ -11,3 +11,103 @@
 .queue-group h3 {
   overflow-wrap: anywhere;
 }
+
+/* Priority strip: one compact row answering what to review now. */
+.queue-priorities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.queue-priority {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  padding: 0.1rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.queue-priority strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-priority-overdue {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.queue-priority-today {
+  border-color: var(--action);
+  color: var(--action);
+}
+
+.queue-priority-upcoming {
+  color: var(--muted);
+}
+
+/* Item meta row: diary date, due instant, due context and current state. */
+.queue-badge {
+  color: var(--muted);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.queue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.queue-due-overdue {
+  color: var(--danger);
+}
+
+.queue-due-today {
+  color: var(--action);
+}
+
+.queue-symbols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+  font-size: 0.8em;
+}
+
+.queue-symbols li {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  color: var(--muted);
+}
+
+/* Summary stays one line; the full reasoning lives on its own page. */
+.queue-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+/* Unscheduled and completed work is reachable but visually secondary. */
+.queue-secondary {
+  margin-top: var(--space-8);
+  color: var(--muted);
+}
+
+.queue-secondary summary {
+  cursor: pointer;
+}
+
+.queue-secondary .queue-group {
+  margin-top: var(--space-4);
+}

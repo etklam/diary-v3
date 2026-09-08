@@ -1,6 +1,7 @@
 import { type ErrorCode } from '@diary/contracts'
-import { reviewGroupsResponseSchema, reviewQueueQuerySchema, type ReviewGroups } from '@diary/contracts/review-queue'
+import { reviewBucketCountsSchema, reviewGroupsResponseSchema, reviewQueueQuerySchema, type ReviewGroups } from '@diary/contracts/review-queue'
 import type { Database } from '@diary/db'
+import { listDiaryStocks } from './diary-stocks.js'
 import { sql } from 'drizzle-orm'
 import type { Hono } from 'hono'
 import type { z } from 'zod'
@@ -16,9 +17,12 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
     c.header('Cache-Control', 'no-store')
     const user = c.get('user'); if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const parsed = reviewQueueQuerySchema.safeParse(c.req.query()); if (!parsed.success) return validationError(parsed.error)
-    const { page, limit } = parsed.data, userId = BigInt(user.id), timestamp = now().toISOString()
+    const { page, limit, target } = parsed.data, userId = BigInt(user.id), timestamp = now().toISOString()
     // One SQL snapshot. Local midnight boundaries are calculated before converting
     // to UTC, so DST days naturally span 23/25 hours rather than a fixed duration.
+    // The optional target filter narrows entries before ranking, so positions,
+    // page slices and counts all describe the same selection.
+    const targetPredicate = target === undefined ? sql`true` : sql`target_order = ${target === 'diary' ? 0 : 1}`
     const result = await db.execute(sql`
       with context as (
         select date_trunc('day', ${timestamp}::timestamptz at time zone timezone) at time zone timezone as start,
@@ -66,20 +70,46 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
         ) r on true
       ), ranked as (
         select bucket,item,row_number() over(partition by bucket order by sort_time asc,target_order asc,numeric_id asc) as position
-        from entries where bucket is not null
-      ) select bucket,item from ranked where position > ${(page - 1) * limit} and position <= ${page * limit} order by bucket,position
+        from entries where bucket is not null and ${targetPredicate}
+      ), bucket_counts as (
+        select bucket,count(*)::int as total from entries where bucket is not null and ${targetPredicate} group by bucket
+      ) select coalesce((select jsonb_object_agg(bucket,total) from bucket_counts),'{}'::jsonb) as counts,
+        page_items.bucket as bucket, page_items.item as item
+      from bucket_counts left join lateral (
+        select ranked.bucket,ranked.position,ranked.item from ranked
+        where ranked.bucket = bucket_counts.bucket and ranked.position > ${(page - 1) * limit} and ranked.position <= ${page * limit}
+        order by ranked.position
+      ) page_items on true order by page_items.position nulls last
     `)
-    const groups: ReviewGroups = { unscheduled: [], overdue: [], today: [], upcoming: [], completed: [] }
+    const counts = { overdue: 0, today: 0, upcoming: 0, unscheduled: 0, completed: 0 }
     for (const row of result.rows) {
-      const bucket = String(row.bucket)
-      if (!Object.hasOwn(groups, bucket)) throw new Error('Invalid review bucket')
+      if (row.counts) for (const [bucket, total] of Object.entries(row.counts as Record<string, unknown>)) {
+        if (!Object.hasOwn(counts, bucket)) throw new Error('Invalid review bucket')
+        counts[bucket as keyof typeof counts] = Number(total)
+      }
+    }
+    const groups: ReviewGroups = { counts: reviewBucketCountsSchema.parse(counts), unscheduled: [], overdue: [], today: [], upcoming: [], completed: [] }
+    // Stock chips are resolved only for the page slice: one batched query for
+    // the visible diary rows, never per candidate row.
+    const rows = result.rows.filter(row => row.bucket && row.item)
+    const diaryIds = rows.filter(row => (row.item as { targetType?: string }).targetType === 'diary')
+      .map(row => BigInt((row.item as { id: string }).id))
+    const symbolsByDiary = new Map<bigint, string[]>()
+    for (const stock of await listDiaryStocks(db, userId, diaryIds)) {
+      const symbols = symbolsByDiary.get(stock.diaryId) ?? []
+      if (symbols.length < 3) symbols.push(stock.symbol)
+      symbolsByDiary.set(stock.diaryId, symbols)
+    }
+    for (const row of rows) {
+      const group = groups[String(row.bucket) as Exclude<keyof ReviewGroups, 'counts'>]
+      if (!group) throw new Error('Invalid review bucket')
       const item = row.item as Record<string, unknown>
       for (const field of ['reviewDueAt', 'reviewedAt', ...(item.targetType === 'thesis' ? ['date'] : [])]) {
         if (typeof item[field] === 'string') item[field] = new Date(item[field]).toISOString()
       }
+      if (item.targetType === 'diary') item.stockSymbols = symbolsByDiary.get(BigInt(String(item.id))) ?? []
       // Runtime response validation is the authority for both target types.
-      const parsedItem = reviewGroupsResponseSchema.shape.overdue.element.parse(item)
-      groups[bucket as keyof ReviewGroups].push(parsedItem)
+      group.push(reviewGroupsResponseSchema.shape.overdue.element.parse(item))
     }
     return c.json(reviewGroupsResponseSchema.parse(groups))
   })

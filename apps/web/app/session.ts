@@ -6,6 +6,11 @@ type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
 let state = initial;
 let locallySignedOut = false;
+// Set by an explicit sign-out here or in another tab. Device-local drafts must
+// not be rewritten after it; a 401 expiry never sets it, so the debounced
+// unmount flush still preserves the writing for re-login.
+let explicitSignOut = false;
+export function wasExplicitSignOut() { return explicitSignOut; }
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | undefined;
 let listening = false;
@@ -33,8 +38,11 @@ export function clearPrivateSession(broadcast = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);
-   // Explicit sign-out (broadcast) clears editor drafts; a 401 expiry keeps them so the writing survives re-login.
-   if(broadcast&&key.startsWith('diary-editor-draft:'))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+   // Explicit sign-out (broadcast) clears editor and review drafts so private
+   // reflections never stay on a shared device; a 401 expiry keeps them so the
+   // writing survives re-login.
+   if(broadcast&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+  if (broadcast) explicitSignOut = true;
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });
   if (broadcast && typeof window !== 'undefined') {
@@ -49,13 +57,13 @@ function startListening() {
   listening = true;
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel('diary-web-session');
-    channel.onmessage = event => { if (event.data?.type === 'logout') clearPrivateSession(); };
+    channel.onmessage = event => { if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(); } };
   }
-  window.addEventListener('storage', event => { if (event.key === eventKey && event.newValue) clearPrivateSession(); });
+  window.addEventListener('storage', event => { if (event.key === eventKey && event.newValue) { explicitSignOut = true; clearPrivateSession(); } });
 }
 function subscribe(listener: () => void) { startListening(); listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function useSessionState() { return useSyncExternalStore(subscribe, () => state, () => initial); }
-export function markSignedIn() { locallySignedOut=false; publish({ ...state, authenticated: true }); }
+export function markSignedIn() { locallySignedOut=false; explicitSignOut=false; publish({ ...state, authenticated: true }); }
 
 // The shared client owns refresh, retry and single-flight; this module owns browser UI invalidation only.
 export const webSession = createWebSession({ baseUrl: typeof window === 'undefined' ? 'http://localhost' : window.location.origin });

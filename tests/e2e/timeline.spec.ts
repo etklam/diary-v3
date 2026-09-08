@@ -20,3 +20,22 @@ for(const width of [1440,390])test(`Timeline month reading, retry and stale filt
  expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:'2026-08-02',title:'Do not replace original title',content:'Timeline capture refresh evidence.',appendToToday:true}})).status()).toBe(201);const refreshed=page.waitForResponse(response=>response.url().includes('/api/diaries/summary?')&&response.request().method()==='GET');await page.evaluate(()=>window.dispatchEvent(new Event('diary-quick-saved')));await refreshed;await expect(page.getByTestId('timeline-entry')).toHaveCount(3);await page.getByTestId('timeline-entry').first().getByRole('link',{name:'Read full diary',exact:true}).click();await expect(page.locator('.safe-markdown')).toContainText('Timeline capture refresh evidence.');await page.goBack();
  const link=page.getByRole('link',{name:'August 2: keep the original reasoning',exact:true});const destination=await link.getAttribute('href');await link.click();await expect(page).toHaveURL(new RegExp(`${destination}$`));await expect(page.getByRole('heading',{name:'August 2: keep the original reasoning',exact:true})).toBeVisible();await clickNav(page,'Timeline');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);await signOut(page);await expect(page.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();await expect(page.getByTestId('timeline-entry')).toHaveCount(0);
 });
+test('Timeline restores loaded pages and scroll on browser back',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});const email=`timeline-restore-${randomUUID()}@example.test`,password='synthetic-timeline-password';await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
+ const csrf=(await page.context().cookies()).find(cookie=>cookie.name==='csrf-token')!.value;
+ for(let day=1;day<=10;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-09-${String(day).padStart(2,'0')}`,title:`September ${day}: recent observation`,content:'Recent reasoning stays available.'}})).status()).toBe(201);
+ for(let day=1;day<=17;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-08-${String(day).padStart(2,'0')}`,title:`August ${day}: older observation`,content:'Older reasoning stays available.'}})).status()).toBe(201);
+ await page.goto('/timeline');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);
+ await page.getByRole('button',{name:'Load more diaries',exact:true}).click();await expect(page.getByTestId('timeline-entry')).toHaveCount(27);
+ await page.getByTestId('timeline-entry').nth(20).scrollIntoViewIfNeeded();expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
+ // Restored pages must come from fresh fetches: count completed summary requests
+ // (responses, so React StrictMode's aborted remount attempt cannot flake) from
+ // the Back press until the count assertion below.
+ const restoredPages:string[]=[];page.on('response',response=>{if(new URL(response.url()).pathname==='/api/diaries/summary')restoredPages.push(new URL(response.url()).searchParams.get('page')??'');});
+ await page.getByRole('link',{name:'August 7: older observation',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/[^/]+$/);await expect(page.getByRole('heading',{name:'August 7: older observation',exact:true})).toBeVisible();
+ await page.goBack();
+ await expect(page.getByTestId('timeline-entry')).toHaveCount(27);await expect(page.getByTestId('timeline-entry').first()).toContainText('September 10: recent observation');
+ await expect(page.getByRole('heading',{name:'August 2026',exact:true})).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(100);
+ expect(restoredPages).toEqual(['1','2']);
+});

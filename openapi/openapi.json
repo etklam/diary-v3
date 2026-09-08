@@ -12346,16 +12346,61 @@
             "required": false,
             "name": "limit",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "diary",
+                "thesis"
+              ]
+            },
+            "required": false,
+            "name": "target",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "Five review groups with page/limit applied independently per group",
+            "description": "Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "overdue": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "today": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "upcoming": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "unscheduled": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "completed": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "overdue",
+                        "today",
+                        "upcoming",
+                        "unscheduled",
+                        "completed"
+                      ],
+                      "additionalProperties": false
+                    },
                     "unscheduled": {
                       "type": "array",
                       "items": {
@@ -12427,6 +12472,13 @@
                                   "UNCLEAR",
                                   null
                                 ]
+                              },
+                              "stockSymbols": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "maxItems": 3
                               }
                             },
                             "required": [
@@ -12439,7 +12491,8 @@
                               "reviewDueAt",
                               "reviewStatus",
                               "reviewedAt",
-                              "reviewOutcome"
+                              "reviewOutcome",
+                              "stockSymbols"
                             ],
                             "additionalProperties": false
                           },
@@ -12623,6 +12676,13 @@
                                   "UNCLEAR",
                                   null
                                 ]
+                              },
+                              "stockSymbols": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "maxItems": 3
                               }
                             },
                             "required": [
@@ -12635,7 +12695,8 @@
                               "reviewDueAt",
                               "reviewStatus",
                               "reviewedAt",
-                              "reviewOutcome"
+                              "reviewOutcome",
+                              "stockSymbols"
                             ],
                             "additionalProperties": false
                           },
@@ -12819,6 +12880,13 @@
                                   "UNCLEAR",
                                   null
                                 ]
+                              },
+                              "stockSymbols": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "maxItems": 3
                               }
                             },
                             "required": [
@@ -12831,7 +12899,8 @@
                               "reviewDueAt",
                               "reviewStatus",
                               "reviewedAt",
-                              "reviewOutcome"
+                              "reviewOutcome",
+                              "stockSymbols"
                             ],
                             "additionalProperties": false
                           },
@@ -13015,6 +13084,13 @@
                                   "UNCLEAR",
                                   null
                                 ]
+                              },
+                              "stockSymbols": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "maxItems": 3
                               }
                             },
                             "required": [
@@ -13027,7 +13103,8 @@
                               "reviewDueAt",
                               "reviewStatus",
                               "reviewedAt",
-                              "reviewOutcome"
+                              "reviewOutcome",
+                              "stockSymbols"
                             ],
                             "additionalProperties": false
                           },
@@ -13211,6 +13288,13 @@
                                   "UNCLEAR",
                                   null
                                 ]
+                              },
+                              "stockSymbols": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "maxItems": 3
                               }
                             },
                             "required": [
@@ -13223,7 +13307,8 @@
                               "reviewDueAt",
                               "reviewStatus",
                               "reviewedAt",
-                              "reviewOutcome"
+                              "reviewOutcome",
+                              "stockSymbols"
                             ],
                             "additionalProperties": false
                           },
@@ -13338,6 +13423,7 @@
                     }
                   },
                   "required": [
+                    "counts",
                     "unscheduled",
                     "overdue",
                     "today",

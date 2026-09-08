@@ -9,7 +9,7 @@ import { ledgerCopy } from './ledger-copy';
 import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
 import { Link,useBlocker,useNavigate } from 'react-router';
 import { api,useUi } from './ui';
-import { signInPath,useSessionState } from './session';
+import { signInPath,useSessionState,wasExplicitSignOut } from './session';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
 import { diaryCopy } from './diary-copy';
 import { Markdown } from './markdown';
@@ -195,28 +195,32 @@ export function DiaryEditor({initial,id,accountId,quick=false}:{initial:DiaryFie
  const dirty=useMemo(()=>!sameEditable(canonicalState(sources),baseline),[sources,baseline]);
  const dirtyRef=useRef(dirty);dirtyRef.current=dirty;
  const [restorable,setRestorable]=useState<EditorDraft|null>(()=>restorableDraft(readEditorDraft(draftKey??''),baselineReference,initial));
- const [draftClosed,setDraftClosed]=useState(false);const restorableRef=useRef(restorable);restorableRef.current=restorable;const draftClosedRef=useRef(draftClosed);draftClosedRef.current=draftClosed;
+ const restorableRef=useRef(restorable);restorableRef.current=restorable;
  const contentRef=useRef<HTMLTextAreaElement>(null);const caretState=useRef<{start:number;end:number;top:number}|null>(null);const previewSectionRef=useRef<HTMLElement|null>(null);const previewVisited=useRef(false);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
  useEffect(()=>{if(blocker.state==='blocked'){if(window.confirm(labels.discard))blocker.proceed();else blocker.reset();}},[blocker,labels.discard]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
- // Debounced device-local backup; paused while a restore decision is pending
- // or the draft was explicitly discarded.
+ // Debounced device-local backup; paused while a restore decision is pending.
+ // Discarding a recovery only drops that old snapshot: after the discard the
+ // form still matches the confirmed baseline, so this effect stays idle until a
+ // genuinely new edit makes it dirty again — then backups resume with the new
+ // content and never rewrite the discarded one.
  useEffect(()=>{
-  if(!draftKey||restorable||draftClosed||!dirty)return;
+  if(!draftKey||restorable||!dirty)return;
   const timer=setTimeout(()=>{try{localStorage.setItem(draftKey,JSON.stringify({at:Date.now(),value:sourcesRef.current}));}catch{/* Recovery is best effort; storage may be unavailable. */}},600);
   return()=>clearTimeout(timer);
- },[draftKey,restorable,draftClosed,dirty,sources]);
+ },[draftKey,restorable,dirty,sources]);
  // The debounced write may not have fired yet when the editor unmounts dirty
  // (accepted navigation, session-expiry redirect); flush the snapshot so an
- // in-flight save failure or leave still leaves recoverable content.
- useEffect(()=>()=>{if(!draftKey||draftClosedRef.current||restorableRef.current||!dirtyRef.current)return;try{localStorage.setItem(draftKey,JSON.stringify({at:Date.now(),value:sourcesRef.current}));}catch{/* Recovery is best effort; storage may be unavailable. */}},[draftKey]);
+ // in-flight save failure or leave still leaves recoverable content. An
+ // explicit sign-out suppresses the flush — the user asked for a clean device.
+ useEffect(()=>()=>{if(!draftKey||restorableRef.current||!dirtyRef.current||wasExplicitSignOut())return;try{localStorage.setItem(draftKey,JSON.stringify({at:Date.now(),value:sourcesRef.current}));}catch{/* Recovery is best effort; storage may be unavailable. */}},[draftKey]);
  // Returning from preview restores the exact caret, scroll offset and focus.
  useEffect(()=>{if(preview){previewSectionRef.current?.focus();return;}if(!previewVisited.current)return;const element=contentRef.current;if(!element)return;const caret=caretState.current;const target=caret??{start:element.value.length,end:element.value.length,top:element.scrollTop};element.focus();element.setSelectionRange(target.start,target.end);element.scrollTop=target.top;},[preview]);
  function clearDraft(){if(draftKey){try{localStorage.removeItem(draftKey);}catch{/* Ignore. */}}}
  function change(field:Exclude<keyof FormState,'tags'>,value:string){setForm(current=>({...current,[field]:value}));}
- function restoreDraft(){const merged=mergeDraft(sourcesRef.current,restorable!);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setRestorable(null);setDraftClosed(false);}
- function discardDraft(){setDraftClosed(true);setRestorable(null);clearDraft();}
+ function restoreDraft(){const merged=mergeDraft(sourcesRef.current,restorable!);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setRestorable(null);}
+ function discardDraft(){setRestorable(null);clearDraft();}
  function togglePreview(){
   if(!preview){const element=contentRef.current;if(element)caretState.current={start:element.selectionStart,end:element.selectionEnd,top:element.scrollTop};previewVisited.current=true;setPreview(true);}
   else setPreview(false);
@@ -232,12 +236,12 @@ export function DiaryEditor({initial,id,accountId,quick=false}:{initial:DiaryFie
  function applyLatest(latest:DiaryResponse){
   const next=editableFromResponse(latest);
   setForm(next.form);setReminders(next.reminders);remindersChanged.current=false;setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);
-  const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);clearDraft();setDraftClosed(false);
+  const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);clearDraft();
  }
  async function loadLatest(){
   setPending(true); const latest=recoveryDiary??await readLatest();
   if(!latest){setPending(false);setRecoveryState('unavailable');return;}
-  if(!id){clearDraft();setDraftClosed(false);dirtyRef.current=false;setPending(false);setError(null);navigate(`/diaries/${latest.id}/edit`);return;}
+  if(!id){clearDraft();dirtyRef.current=false;setPending(false);setError(null);navigate(`/diaries/${latest.id}/edit`);return;}
   applyLatest(latest); setRecoveryDiary(null); setRecoveryState(null); setPending(false);
  }
  async function save(event:FormEvent){

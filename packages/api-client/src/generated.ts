@@ -6124,6 +6124,7 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
+                target?: "diary" | "thesis";
             };
             header?: never;
             path?: never;
@@ -6131,13 +6132,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Five review groups with page/limit applied independently per group */
+            /** @description Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
+                        counts: {
+                            overdue: number;
+                            today: number;
+                            upcoming: number;
+                            unscheduled: number;
+                            completed: number;
+                        };
                         unscheduled: ({
                             /** @enum {string} */
                             targetType: "diary";
@@ -6154,6 +6162,7 @@ export interface operations {
                             reviewedAt: string | null;
                             /** @enum {string|null} */
                             reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            stockSymbols: string[];
                         } | {
                             /** @enum {string} */
                             targetType: "thesis";
@@ -6192,6 +6201,7 @@ export interface operations {
                             reviewedAt: string | null;
                             /** @enum {string|null} */
                             reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            stockSymbols: string[];
                         } | {
                             /** @enum {string} */
                             targetType: "thesis";
@@ -6230,6 +6240,7 @@ export interface operations {
                             reviewedAt: string | null;
                             /** @enum {string|null} */
                             reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            stockSymbols: string[];
                         } | {
                             /** @enum {string} */
                             targetType: "thesis";
@@ -6268,6 +6279,7 @@ export interface operations {
                             reviewedAt: string | null;
                             /** @enum {string|null} */
                             reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            stockSymbols: string[];
                         } | {
                             /** @enum {string} */
                             targetType: "thesis";
@@ -6306,6 +6318,7 @@ export interface operations {
                             reviewedAt: string | null;
                             /** @enum {string|null} */
                             reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            stockSymbols: string[];
                         } | {
                             /** @enum {string} */
                             targetType: "thesis";

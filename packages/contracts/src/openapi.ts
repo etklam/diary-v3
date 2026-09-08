@@ -468,7 +468,7 @@ registry.registerPath({
   request: { params: z.object({ symbol: stockSymbolSchema }), body: { content: { 'application/json': { schema: completeThesisReviewRequestSchema.clone() } } } },
   responses: { 200: json(thesisReviewResponseSchema.clone(), 'Review with atomically captured thesis snapshot'), ...errors([400, 401, 403, 404, 409, 500]) },
 })
-registry.registerPath({ method: 'get', path: '/api/reviews', tags: ['Review'], operationId: 'reviewQueueGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: reviewQueueQuerySchema.clone() }, responses: { 200: json(reviewGroupsResponseSchema.clone(), 'Five review groups with page/limit applied independently per group'), ...errors([400, 401, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/reviews', tags: ['Review'], operationId: 'reviewQueueGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: reviewQueueQuerySchema.clone() }, responses: { 200: json(reviewGroupsResponseSchema.clone(), 'Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope'), ...errors([400, 401, 500]) } })
 export const openApiRegistry = registry
 
 export function createOpenApiDocument() {

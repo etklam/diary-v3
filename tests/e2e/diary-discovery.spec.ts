@@ -184,8 +184,9 @@ test('timeline groups by month, loads more, and returns from a diary', async ({ 
   await expect(page.locator('.timeline-month header h2').last()).toHaveText('August 2026');
   await expect(page.getByRole('status')).toContainText('27 diaries loaded');
 
-  // Opening a diary and returning keeps the timeline usable.
-  await page.getByTestId('timeline-entry').first().getByRole('link').click();
+  // Opening a diary and returning keeps the timeline usable. Entries carry two
+  // links (title and the bounded "read full diary" link) to the same diary.
+  await page.getByTestId('timeline-entry').first().getByRole('link').first().click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/timeline/);
