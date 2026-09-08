@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useBlocker, useParams } from 'react-router';
+import { Link, useBlocker, useLocation, useParams } from 'react-router';
 import { INVESTMENT_THESIS_STATUSES, THESIS_REVIEW_OUTCOMES, THESIS_PORTFOLIO_DECISIONS, investmentThesisResponseSchema, saveInvestmentThesisRequestSchema, completeThesisReviewRequestSchema, type InvestmentThesisResponse, type SaveInvestmentThesisRequest, type CompleteThesisReviewInput } from '@diary/contracts/investment-thesis';
 import { stockSymbolSchema } from '@diary/contracts/watchlist';
 import { api, useUi } from '../ui';
@@ -12,6 +12,9 @@ const reflections = ['whatImproved', 'whatDeteriorated', 'whatChanged'] as const
 const emptyReview = (): CompleteThesisReviewInput => ({ outcome: 'UNCLEAR', portfolioDecision: 'CONTINUE_WATCHING', whatImproved: '', whatDeteriorated: '', whatChanged: '', invalidationTriggered: false });
 export default function ThesisPage() {
   const { symbol = '' } = useParams(), { locale, t } = useUi(), c = thesisCopy[locale], session = useSessionState();
+  // Queue context handed over by the review queue link (page/target only), so a
+  // completed thesis review returns to the same slice of the queue.
+  const backToQueue = (useLocation().state as { queueSearch?: string } | null)?.queueSearch;
   const [data, setData] = useState<InvestmentThesisResponse | null>(null), [draft, setDraft] = useState<SaveInvestmentThesisRequest>({ status: 'DRAFT' }), [review, setReview] = useState(emptyReview);
   const [due, setDue] = useState(''), [timezone, setTimezone] = useState('UTC'), [attempt, reload] = useState(0), [busy, setBusy] = useState(false), [notice, setNotice] = useState<'saved' | 'reviewed' | null>(null);
   const [error, setError] = useState<Failure | null>(null), [writeError, setWriteError] = useState<Failure | null>(null);
@@ -49,7 +52,7 @@ export default function ThesisPage() {
     finally { if (!controller.signal.aborted) { request.current = null; setBusy(false); } }
   }
   const instant = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(value)) + ` · ${timezone}`;
-  return <section className="plan-page"><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{c.company}</Link><h1>{symbol} · {c.title}</h1><p className="lede">{c.hint}</p>{error ? <><FailureNotice failure={error}/><Link to={signInPath(`/stocks/${symbol}/thesis`)}>{t('login')}</Link><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
+  return <section className="plan-page"><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{c.company}</Link>{backToQueue !== undefined && <Link className="inline-link" to={backToQueue ? `/reviews?${backToQueue}` : '/reviews'}>{c.queue}</Link>}<h1>{symbol} · {c.title}</h1><p className="lede">{c.hint}</p>{error ? <><FailureNotice failure={error}/><Link to={signInPath(`/stocks/${symbol}/thesis`)}>{t('login')}</Link><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
     <h2>{c.current}</h2>{data.thesis && <p data-testid="thesis-health">{c[data.thesis.health]}</p>}
     <form className="plan-form" aria-label={c.current} onSubmit={event => { event.preventDefault(); void submit(false); }}><fieldset disabled={busy}><div className="plan-grid"><label>{c.status}<select value={draft.status} onChange={event => { dirty.current = true; thesisDirty.current = true; setDraft({ ...draft, status: event.target.value as SaveInvestmentThesisRequest['status'] }); }}>{INVESTMENT_THESIS_STATUSES.map(status => <option key={status} value={status}>{c[status]}</option>)}</select></label><label>{c.reviewDueAt}<input type="datetime-local" value={due} onChange={event => { dirty.current = true; thesisDirty.current = true; setDue(event.target.value); }}/></label>{fields.map(field => <label className={field === 'expectedHoldingPeriod' ? '' : 'plan-wide'} key={field}>{c[field]}<textarea rows={field === 'expectedHoldingPeriod' ? 2 : 4} maxLength={field === 'summary' ? 10000 : field === 'expectedHoldingPeriod' ? 255 : 20000} required={draft.status === 'ACTIVE' && (field === 'summary' || field === 'whyIOwnIt')} value={draft[field] ?? ''} onChange={event => { dirty.current = true; thesisDirty.current = true; setDraft({ ...draft, [field]: event.target.value }); }}/></label>)}</div></fieldset><button disabled={busy}>{busy ? t('pending') : c.save}</button></form>
     <FailureNotice failure={writeError}/>{notice && <p role="status">{c[notice]}</p>}

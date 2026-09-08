@@ -27,7 +27,10 @@ for (const width of [1440, 390]) test(`Review queue navigation, completion and r
   await expect(page.getByRole('region', { name: 'Completed', exact: true })).toContainText('Recheck demand'); await expect(page.locator('main')).not.toContainText('Private reflection');
   await overdue.getByRole('link', { name: 'Review thesis: AAPL · Investment thesis', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/);
   await page.getByRole('form', { name: 'Complete thesis review', exact: true }).getByRole('textbox', { name: 'What changed', exact: true }).fill('Private company reflection'); await page.getByRole('button', { name: 'Complete thesis review', exact: true }).click(); await expect(page.getByTestId('thesis-review')).toHaveCount(1);
-  await page.goto('/reviews'); await expect(overdue.getByTestId('review-queue-item')).toHaveCount(0); await expect(page.getByTestId('queue-count-overdue')).toContainText('0'); await expect(page.getByRole('region', { name: 'Completed', exact: true }).getByTestId('review-queue-item')).toHaveCount(2); await expect(page.locator('main')).not.toContainText('Private company reflection');
+  // The thesis page keeps the queue hand-off, so the completed review returns
+  // to the queue directly instead of relying on browser history.
+  await page.locator('main').getByRole('link', { name: 'Review queue', exact: true }).click(); await expect(page).toHaveURL(/\/reviews$/);
+  await expect(overdue.getByTestId('review-queue-item')).toHaveCount(0); await expect(page.getByTestId('queue-count-overdue')).toContainText('0'); await expect(page.getByRole('region', { name: 'Completed', exact: true }).getByTestId('review-queue-item')).toHaveCount(2); await expect(page.locator('main')).not.toContainText('Private company reflection');
   const shots = [`docs/design/evidence/review-queue/${width}.png`];
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
   await page.locator('main').screenshot({ path: shots[0] });

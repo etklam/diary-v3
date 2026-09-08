@@ -57,7 +57,7 @@ export default function Reviews() {
   const renderItem = (item: ReviewItem) => {
     const due = item.reviewDueAt && item.reviewStatus !== 'reviewed' ? accountDayDiff(item.reviewDueAt, new Date(), timezone) : null;
     return <li key={item.id} data-testid="review-queue-item" className="queue-item">
-      <header className="plan-header"><h3><Link to={item.targetType === 'diary' ? `/diaries/${item.id}/review` : `/stocks/${encodeURIComponent(item.symbol ?? '')}/thesis`} state={item.targetType === 'diary' ? { queueSearch: query } : undefined}><span className="queue-sr">{item.targetType === 'diary' ? `${c.reviewDiary}: ` : `${c.reviewThesis}: `}</span>{item.targetType === 'thesis' ? `${item.symbol} · ${c.thesis}` : item.title}</Link></h3><span className="queue-badge">{c[item.targetType]}</span></header>
+      <header className="plan-header"><h3><Link to={item.targetType === 'diary' ? `/diaries/${item.id}/review` : `/stocks/${encodeURIComponent(item.symbol ?? '')}/thesis`} state={{ queueSearch: query }}><span className="queue-sr">{item.targetType === 'diary' ? `${c.reviewDiary}: ` : `${c.reviewThesis}: `}</span>{item.targetType === 'thesis' ? `${item.symbol} · ${c.thesis}` : item.title}</Link></h3><span className="queue-badge">{c[item.targetType]}</span></header>
       <p className="queue-meta">
         {item.targetType === 'diary' && <time dateTime={item.date}>{item.date}</time>}
         {item.reviewDueAt && <span>{c.date}: <time dateTime={item.reviewDueAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(item.reviewDueAt))} · {timezone}</time></span>}
