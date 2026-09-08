@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { z } from 'zod'
-import { authUserResponseSchema, type DiaryResponse } from '@diary/contracts'
-import { diaryListResponseSchema } from '@diary/contracts/diary-list'
+import { authUserResponseSchema } from '@diary/contracts'
+import { diarySummaryListResponseSchema, type DiarySummary } from '@diary/contracts/diary-summary'
 import { portfolioAttentionResponseSchema, type PortfolioAttentionItem } from '@diary/contracts/portfolio-attention'
 import { portfolioValuationResponseSchema } from '@diary/contracts/portfolio'
 import { reviewGroupsResponseSchema, type ReviewGroups, type ReviewItem } from '@diary/contracts/review-queue'
@@ -39,7 +39,7 @@ async function requestResource(name: ResourceName, signal: AbortSignal): Promise
   switch (name) {
     case 'attention': return api.GET('/api/portfolio/attention', { signal }) as unknown as ResourceResult
     case 'reviews': return api.GET('/api/reviews', { params: { query: { page: 1, limit: 20 } }, signal }) as unknown as ResourceResult
-    case 'recent': return api.GET('/api/diaries', { params: { query: { page: 1, limit: 5, sortBy: 'date-desc' } }, signal }) as unknown as ResourceResult
+    case 'recent': return api.GET('/api/diaries/summary', { params: { query: { page: 1, limit: 5, sortBy: 'date-desc' } }, signal }) as unknown as ResourceResult
     case 'valuation': return api.GET('/api/stocks/portfolio', { signal }) as unknown as ResourceResult
     case 'plans': return api.GET('/api/trade-plans', { params: { query: { page: 1, limit: 5, sortBy: 'updatedAt-desc' } }, signal }) as unknown as ResourceResult
     case 'watchlist': return api.GET('/api/stocks/watchlist', { signal }) as unknown as ResourceResult
@@ -84,7 +84,7 @@ function attentionHref(item: PortfolioAttentionItem) {
   return item.reason === 'position_concentration' ? `/stocks/${encodeURIComponent(item.targetId)}` : `/stocks/${encodeURIComponent(item.targetId)}/thesis`
 }
 
-function sourceLabel(value: DiaryResponse['createdVia'], c: OverviewCopy) {
+function sourceLabel(value: DiarySummary['createdVia'], c: OverviewCopy) {
   return value === 'API_KEY' ? tx(c, 'sourceApiKey') : value === 'TELEGRAM_BOT' ? tx(c, 'sourceTelegram') : tx(c, 'sourceWeb')
 }
 
@@ -120,18 +120,17 @@ function ReviewSection({ state, retry, timezone, locale, c }: { state: ResourceS
   </section>
 }
 
-function RecentSection({ state, retry, c }: { state: ResourceState<z.infer<typeof diaryListResponseSchema>>; retry: () => void; c: OverviewCopy }) {
+function RecentSection({ state, retry, c }: { state: ResourceState<z.infer<typeof diarySummaryListResponseSchema>>; retry: () => void; c: OverviewCopy }) {
   return <section className="overview-section" aria-labelledby="overview-recent-title"><header className="overview-section-header"><h2 id="overview-recent-title"><Icon name="book" />{c.recent}</h2><Link to="/timeline">{c.viewAll}</Link></header><p className="overview-section-intro">{c.recentHint}</p>
     <FailureSection state={state} retry={retry} copy={c} />
     {state.data && (!state.data.data.length ? <p>{c.emptyRecent} <Link to="/diaries/new">{c.firstDiary}</Link></p> : <ol className="overview-recent-list">{state.data.data.map(diary => <RecentDiary key={diary.id} diary={diary} c={c} />)}</ol>)}
   </section>
 }
 
-function RecentDiary({ diary, c }: { diary: DiaryResponse; c: OverviewCopy }) {
+function RecentDiary({ diary, c }: { diary: DiarySummary; c: OverviewCopy }) {
   const status = diary.reviewStatus === 'reviewed' ? c.reviewed : diary.reviewStatus === 'pending' ? c.pendingReview : c.original
-  const summary = (diary.content ?? '').replace(/\s+/g, ' ').trim()
   const outcome = diary.reviewOutcome === 'INTACT' ? c.reviewIntact : diary.reviewOutcome === 'PARTIAL' ? c.reviewPartial : diary.reviewOutcome === 'INVALIDATED' ? c.reviewInvalidated : diary.reviewOutcome === 'UNCLEAR' ? c.reviewUnclear : null
-  return <li data-testid="overview-recent-item"><time dateTime={diary.date}>{diary.date}</time><div><h3><Link to={`/diaries/${diary.id}`}>{diary.title}</Link></h3><p>{summary ? summary.slice(0, 180) : c.emptyRecent}</p><span className="overview-meta">{sourceLabel(diary.createdVia, c)} · {status}{outcome ? ` · ${outcome}` : ''}</span></div></li>
+  return <li data-testid="overview-recent-item"><time dateTime={diary.date}>{diary.date}</time><div><h3><Link to={`/diaries/${diary.id}`}>{diary.title}</Link></h3><p>{diary.excerpt || c.emptyRecent}</p><span className="overview-meta">{sourceLabel(diary.createdVia, c)} · {status}{outcome ? ` · ${outcome}` : ''}</span></div></li>
 }
 
 function PlansSection({ state, retry, locale, timezone, c }: { state: ResourceState<z.infer<typeof tradePlanListResponseSchema>>; retry: () => void; locale: string; timezone: string | null; c: OverviewCopy }) {
@@ -163,7 +162,7 @@ export default function Overview() {
   const [timezoneAttempt, setTimezoneAttempt] = useState(0)
   const [attention, retryAttention] = useResource('attention', portfolioAttentionResponseSchema, session.revision, tx(c, 'failed'))
   const [reviews, retryReviews] = useResource('reviews', reviewGroupsResponseSchema, session.revision, tx(c, 'failed'))
-  const [recent, retryRecent] = useResource('recent', diaryListResponseSchema, session.revision, tx(c, 'failed'))
+  const [recent, retryRecent] = useResource('recent', diarySummaryListResponseSchema, session.revision, tx(c, 'failed'))
   const [valuation, retryValuation] = useResource('valuation', portfolioValuationResponseSchema, session.revision, tx(c, 'failed'))
   const [plans, retryPlans] = useResource('plans', tradePlanListResponseSchema, session.revision, tx(c, 'failed'))
   const [watchlist, retryWatchlist] = useResource('watchlist', stockWatchlistResponseSchema, session.revision, tx(c, 'failed'))

@@ -142,7 +142,7 @@ test('a slow earlier search response never replaces the newer result', async ({ 
   ]);
   await page.goto('/diaries');
   let slowArmed = false;
-  await page.route('**/api/diaries?*', async route => {
+  await page.route('**/api/diaries/summary*', async route => {
     const url = new URL(route.request().url());
     if (!slowArmed && url.searchParams.get('search') === 'unique-slow-needle') {
       slowArmed = true;
@@ -217,7 +217,7 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
     })).status()).toBe(201);
   }
   const listRequests: string[] = [];
-  page.on('request', request => { if (request.url().includes('/api/diaries') && !request.url().includes('/api/diaries/')) listRequests.push(request.url()); });
+  page.on('request', request => { if (request.url().includes('/api/diaries/summary')) listRequests.push(request.url()); });
 
   const started = Date.now();
   await page.goto('/diaries');
@@ -230,7 +230,7 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
   // settle before the fetch lands.
   async function expectSingleRequest(action: () => Promise<void>, settle: () => Promise<void>) {
     const before = listRequests.length;
-    const responsePromise = page.waitForResponse(response => response.url().includes('/api/diaries') && !response.url().includes('/api/diaries/'));
+    const responsePromise = page.waitForResponse(response => response.url().includes('/api/diaries/summary'));
     await action();
     await responsePromise;
     await settle();

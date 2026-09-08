@@ -7,7 +7,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-6);
-  margin: var(--space-6) 0;
+  margin: var(--space-6) 0 var(--space-4);
 }
 
 .review-heading h1 {
@@ -34,12 +34,14 @@
   white-space: nowrap;
 }
 
+/* Header strip: title/date/status/due read as one calm band ending at the
+   schedule row's bottom rule. */
 .review-schedule {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-6);
-  margin: var(--space-6) 0 var(--space-8);
+  margin: 0 0 var(--space-8);
   padding: var(--space-4) 0;
   border-block: 1px solid var(--border);
 }
@@ -110,6 +112,7 @@
   gap: 10px;
   margin: 0;
   padding: var(--space-3);
+  min-height: 44px;
   border: 1px solid var(--control);
   border-radius: var(--radius-control);
   cursor: pointer;
@@ -118,6 +121,11 @@
 .review-outcomes label:has(input:checked) {
   border-color: var(--action);
   background: var(--selected);
+}
+
+.review-outcomes label:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .review-outcomes input {
@@ -143,6 +151,57 @@
 .review-outcome {
   font-size: 1.125rem;
   font-weight: 650;
+}
+
+/* "What happened" is the primary reflection field; learning and adjustment
+   stay secondary. */
+.review-primary {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+.review-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.review-footer .actions {
+  margin-left: auto;
+}
+
+/* Save status mirrors the editor's save-status pattern. */
+.save-status {
+  font-size: 0.875rem;
+}
+
+.save-status:empty {
+  visibility: hidden;
+}
+
+.save-status.is-dirty {
+  color: var(--tint-warn-text);
+}
+
+.save-status.is-saving {
+  color: var(--muted);
+}
+
+.save-status.is-failed {
+  color: var(--negative);
+  font-weight: 600;
+}
+
+.review-restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 4px;
+  background: var(--muted-surface);
 }
 
 .review-related {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { diaryListQuerySchema, diaryListResponseSchema } from '@diary/contracts/diary-list'
-import { diaryExcerpt } from '@diary/domain'
+import { diaryListQuerySchema } from '@diary/contracts/diary-list'
+import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
 import type { z } from 'zod'
 import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
@@ -9,7 +9,7 @@ import { signInPath } from '../session'
 import { diaryListCopy } from '../diary-list-copy'
 import '../diary-list.css'
 
-type Result = z.infer<typeof diaryListResponseSchema>
+type Result = z.infer<typeof diarySummaryListResponseSchema>
 
 export default function DiaryListPage() {
   const { locale, t } = useUi()
@@ -33,9 +33,9 @@ export default function DiaryListPage() {
       setLoading(false)
       return () => { active = false; controller.abort() }
     }
-    api.GET('/api/diaries', { params: { query: parsed.data }, signal: controller.signal }).then(response => {
+    api.GET('/api/diaries/summary', { params: { query: parsed.data }, signal: controller.signal }).then(response => {
       if (!active) return
-      if (response.data && response.response.ok) setResult(diaryListResponseSchema.parse(response.data))
+      if (response.data && response.response.ok) setResult(diarySummaryListResponseSchema.parse(response.data))
       else setError(apiFailure(response.error, t('failed')))
     }).catch(() => { if (active) setError(apiFailure(null, t('connection'))) })
       .finally(() => { if (active) setLoading(false) })
@@ -103,11 +103,11 @@ export default function DiaryListPage() {
             <ul className="diary-library-meta" aria-label={c.context}>
               {diary.stockSymbols.map(symbol => <li key={symbol} className="diary-library-symbol">{symbol}</li>)}
               {diary.tags.slice(0, 3).map(tag => <li key={tag}>{tag}</li>)}
-              {(diary.transactions?.length ?? 0) > 0 && <li>{diary.transactions!.length} {c.trades}</li>}
+              {diary.transactionCount > 0 && <li>{diary.transactionCount} {c.trades}</li>}
               {diary.reviewStatus === 'pending' && <li className="diary-library-review">{c.pending}{diary.reviewDueAt ? ` · ${diary.reviewDueAt.slice(0, 10)}` : ''}</li>}
               {diary.reviewStatus === 'reviewed' && <li className="diary-library-review">{c.reviewed}</li>}
             </ul>
-            {diary.content && <p className="diary-row-excerpt">{diaryExcerpt(diary.content, 240)}</p>}
+            {diary.excerpt && <p className="diary-row-excerpt">{diary.excerpt}</p>}
           </div>
         </li>)}</ol> : <div className="diary-library-empty"><p>{filtered || result.pagination.total > 0 ? c.empty : c.first}</p>{!filtered && result.pagination.total === 0 && <Link className="button secondary" to="/diaries/new">{c.start}</Link>}</div>}
         {result.pagination.totalPages > 0 && <nav className="diary-pagination" aria-label={c.results}>

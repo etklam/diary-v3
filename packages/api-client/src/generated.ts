@@ -228,6 +228,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diaries/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Bounded discovery feed: server-generated excerpt, display-bounded tags and symbols, plus transaction/alert counts. Full content, graphs and private Review text never appear. */
+        get: operations["diariesSummaryList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diaries/activity": {
         parameters: {
             query?: never;
@@ -2092,6 +2109,32 @@ export interface components {
                 totalPages: number;
             };
         };
+        DiarySummaryListResponse: {
+            data: {
+                id: string;
+                date: string;
+                title: string;
+                excerpt: string;
+                tags: string[];
+                stockSymbols: string[];
+                /** @enum {string} */
+                createdVia: "WEB" | "API_KEY" | "TELEGRAM_BOT";
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "reviewed";
+                /** Format: date-time */
+                reviewDueAt: string | null;
+                /** @enum {string|null} */
+                reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                transactionCount: number;
+                alertCount: number;
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
         SpxSessionSummary: {
             /** @enum {string} */
             symbol: "SPX";
@@ -3843,6 +3886,62 @@ export interface operations {
             };
             /** @description HTTP 404 error */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diariesSummaryList: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string;
+                symbol?: string;
+                sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
+                dateFrom?: string;
+                dateTo?: string;
+                reviewStatus?: "none" | "pending" | "reviewed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-scoped bounded diary summary page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiarySummaryListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

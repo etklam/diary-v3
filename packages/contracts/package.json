@@ -9,6 +9,7 @@
     "./settings": "./src/settings.ts",
     "./market": "./src/market.ts",
     "./diary-list": "./src/diary-list.ts",
+    "./diary-summary": "./src/diary-summary.ts",
     "./diary-activity": "./src/diary-activity.ts",
     "./ledger": "./src/ledger.ts",
     "./calendar": "./src/calendar.ts",

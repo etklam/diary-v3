@@ -32,6 +32,7 @@ import { updateUserSettingsSchema, userSettingsResponseSchema } from './settings
 import { marketSymbolSchema, marketQuoteSchema, marketHistoricalSchema, marketRangeSchema, spxSessionSummarySchema } from './market.js'
 import { holdingsResponseSchema, recentClosedTradesResponseSchema } from './ledger.js'
 import { diaryListQuerySchema, diaryListResponseSchema } from './diary-list.js'
+import { diarySummaryListResponseSchema } from './diary-summary.js'
 import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-activity.js'
 import { holidayResponseSchema } from './calendar.js'
 import { diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
@@ -117,6 +118,7 @@ const UserSettingsResponse = registry.register('UserSettingsResponse', userSetti
 const MarketQuote = registry.register('MarketQuote', marketQuoteSchema.clone())
 const MarketHistorical = registry.register('MarketHistorical', marketHistoricalSchema.clone())
 const DiaryListResponse = registry.register('DiaryListResponse', diaryListResponseSchema.clone())
+const DiarySummaryListResponse = registry.register('DiarySummaryListResponse', diarySummaryListResponseSchema.clone())
 const SpxSessionSummary = registry.register('SpxSessionSummary', spxSessionSummarySchema.clone())
 const HoldingsResponse = registry.register('HoldingsResponse', holdingsResponseSchema.clone())
 const RecentClosedTradesResponse = registry.register('RecentClosedTradesResponse', recentClosedTradesResponseSchema.clone())
@@ -251,6 +253,14 @@ registry.registerPath({
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
   request: { query: diaryListQuerySchema.clone() },
   responses: { 200: json(DiaryListResponse, 'Owner-scoped filtered diary page'), ...errors([400, 401, 500]) },
+})
+
+registry.registerPath({
+  method: 'get', path: '/api/diaries/summary', tags: ['Diaries'], operationId: 'diariesSummaryList',
+  description: 'Bounded discovery feed: server-generated excerpt, display-bounded tags and symbols, plus transaction/alert counts. Full content, graphs and private Review text never appear.',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { query: diaryListQuerySchema.clone() },
+  responses: { 200: json(DiarySummaryListResponse, 'Owner-scoped bounded diary summary page'), ...errors([400, 401, 500]) },
 })
 
 registry.registerPath({

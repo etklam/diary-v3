@@ -67,7 +67,8 @@ import {
 import { getUserSettings, updateUserSettings } from './user-settings.js'
 import { createMarketData, createYahooUpstream } from './market-data/index.js'
 import { registerMarketRoutes } from './market-routes.js'
-import { listDiaries } from './diary-list.js'
+import { listDiaries, listDiarySummaries } from './diary-list.js'
+import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
 import { diaryActivity } from './diary-activity.js'
 import { diaryActivityQuerySchema } from '@diary/contracts/diary-activity'
 import { registerDiaryReviewRoutes } from './diary-review.js'
@@ -817,6 +818,16 @@ export function createApp({
     const transactionRows = await findDiaryTransactions(db, diary.id, BigInt(session.id))
     const stockSymbols = (await listDiaryStocks(db, BigInt(session.id), [diary.id])).map(row => row.symbol)
     return c.json(serializeDiary(diary, false, transactionRows, [], stockSymbols, await listDiaryAlerts(db, BigInt(session.id), [diary.id])), 200)
+  })
+
+  // Summary discovery feed; registered before '/api/diaries/:id' so the
+  // parameterized route never swallows the literal 'summary' segment.
+  app.get('/api/diaries/summary', async (c) => {
+    const session = c.get('user')
+    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    const query = diaryListQuerySchema.safeParse(c.req.query())
+    if (!query.success) validationError(query.error)
+    return c.json(diarySummaryListResponseSchema.parse(await listDiarySummaries(db, BigInt(session.id), query.data, now())))
   })
 
   app.get('/api/diaries/:id', async (c) => {

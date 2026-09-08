@@ -4,7 +4,7 @@ import { serializedIdSchema, utcInstantSchema } from './common.js'
 const DECIMAL_15_4 = /^\d{1,11}(?:\.\d{1,4})?$/
 const DECIMAL_STRING = /^\d+(?:\.\d+)?$/
 
-function canonicalDecimal(value: string): string {
+export function canonicalDecimal(value: string): string {
   const [integer, fraction = ''] = value.split('.')
   const normalizedInteger = integer!.replace(/^0+(?=\d)/, '')
   const normalizedFraction = fraction.replace(/0+$/, '')
