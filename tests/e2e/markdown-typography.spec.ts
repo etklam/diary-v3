@@ -62,7 +62,7 @@ test('markdown fixture renders with the shared typography across surfaces, theme
   const email = `markdown-${randomUUID()}@example.test`,password = 'synthetic-markdown-password';
   expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/login');await selectLocale(page, 'en');await selectTheme(page, 'light');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await selectTheme(page, 'light');
   await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
   await page.getByLabel('Diary date',{exact:true}).fill('2026-09-07');

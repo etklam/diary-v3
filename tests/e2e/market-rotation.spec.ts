@@ -74,7 +74,7 @@ function monitorControlsFixture() {
 
 test('admin rotation batch writes controlled indexes and guest monitor renders desktop/mobile evidence', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill('rotation-admin@example.test');
   await page.getByLabel('Password', { exact: true }).fill('synthetic-rotation-admin-password');

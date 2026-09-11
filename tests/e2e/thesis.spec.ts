@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Thesis activation review and snapshot at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); const email = `thesis-${randomUUID()}@example.test`, password = 'synthetic-thesis-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.goto('/stocks/AAPL/thesis'); const current = page.getByRole('form', { name: 'Current thesis', exact: true });
   await current.getByRole('textbox', { name: 'Summary', exact: true }).fill('Original investment view'); await current.getByRole('button', { name: 'Save thesis', exact: true }).click(); await expect(page.getByTestId('thesis-health')).toHaveText('Draft');
@@ -21,7 +21,7 @@ for (const width of [1440, 390]) test(`Thesis activation review and snapshot at 
 
 test('Thesis failed save preserves both edits and unsaved reflection', async ({ page, context }) => {
   const email = `thesis-retry-${randomUUID()}@example.test`, password = 'synthetic-thesis-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   expect((await page.request.put('/api/stocks/AAPL/thesis', { headers, data: { status: 'ACTIVE', summary: 'Original', whyIOwnIt: 'Reason', reviewDueAt: '2026-09-05T10:30:45.123Z' } })).status()).toBe(200);

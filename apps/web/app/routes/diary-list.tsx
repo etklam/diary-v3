@@ -7,6 +7,7 @@ import { api, useUi } from '../ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
 import { signInPath } from '../session'
 import { diaryListCopy } from '../diary-list-copy'
+import { DiaryNavigation } from '../diary-navigation'
 import '../diary-list.css'
 
 type Result = z.infer<typeof diarySummaryListResponseSchema>
@@ -70,6 +71,7 @@ export default function DiaryListPage() {
     + ((params.get('sortBy') ?? '') !== '' && params.get('sortBy') !== 'date-desc' ? 1 : 0)
     + ((params.get('limit') ?? '') !== '' && params.get('limit') !== '20' ? 1 : 0)
   return <section className="diary-library">
+    <DiaryNavigation />
     <header className="page-heading"><div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div><Link className="button" to="/diaries/new">{t('write')}</Link></header>
     <form key={queryString} className="diary-filters" onSubmit={apply} aria-label={c.apply}>
       <label className="diary-search">{c.search}<input name="search" type="search" maxLength={500} defaultValue={params.get('search') ?? ''} aria-invalid={invalidField(error, 'search')} /></label>

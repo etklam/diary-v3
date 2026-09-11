@@ -2,7 +2,7 @@ import { expect, test, selectLocale } from '../support/e2e'
 
 test('relative value and seasonality preserve scoped history and real capture destinations', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/login')
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
   await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill('rotation-admin@example.test')
   await page.getByLabel('Password', { exact: true }).fill('synthetic-rotation-admin-password')

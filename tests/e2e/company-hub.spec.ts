@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 for (const width of [1440, 390]) test(`Company Hub connects position, original decision and review at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 }); const email = `hub-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   const response = await page.request.post('/api/diaries', { headers, data: { title: 'Original company decision', content: 'Original private content', date: '2026-09-01', stockSymbols: ['AAPL'], transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-01T00:00:00Z' }] } }); expect(response.status()).toBe(201); const diary = await response.json();
@@ -25,7 +25,7 @@ for (const width of [1440, 390]) test(`Company Hub connects position, original d
 
 test('Company Hub readers fail and retry independently while other sections remain available', async ({ page, context }) => {
   await page.setViewportSize({ width: 1440, height: 900 }); const email = `hub-readers-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login'); await selectLocale(page, 'en');
+  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   const diaryResponse = await page.request.post('/api/diaries', { headers, data: { title: 'Reader source decision', content: 'Reader source body', date: '2026-09-02', stockSymbols: ['AAPL'], transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-02T00:00:00Z' }] } }); expect(diaryResponse.status()).toBe(201);

@@ -4,7 +4,7 @@ import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 
 const password = 'synthetic-security-password';
 async function login(page: Page, email: string, value = password) {
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(value);

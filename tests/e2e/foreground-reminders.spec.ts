@@ -4,7 +4,7 @@ for (const width of [1440, 390]) test(`foreground reminders recover and remain u
   await page.setViewportSize({ width, height: 900 });
   const email = `foreground-${randomUUID()}@example.test`, password = 'synthetic-foreground-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   const connected = page.waitForEvent('websocket', socket => socket.url().includes('/socket.io/'));
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en'); await connected;
@@ -27,7 +27,7 @@ for (const width of [1440, 390]) test(`foreground reminders recover and remain u
 test('server-side account revocation clears the foreground notice and returns to login', async ({ page, context }) => {
   const email = `foreground-revoke-${randomUUID()}@example.test`, password = 'synthetic-foreground-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   const socket = page.waitForEvent('websocket', connection => connection.url().includes('/socket.io/'));
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en'); await socket;
@@ -45,7 +45,7 @@ for (const width of [1440, 390]) test(`price trigger hints restore authoritative
   await page.setViewportSize({ width, height: 900 });
   const email = `price-foreground-${randomUUID()}@example.test`, password = 'synthetic-foreground-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   const connected = page.waitForEvent('websocket', socket => socket.url().includes('/socket.io/'));
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await connected; await selectLocale(page, 'en');
@@ -72,7 +72,7 @@ test('transport reconnect restores an alert triggered while the browser is offli
   });
   const email = `offline-price-${randomUUID()}@example.test`, password = 'synthetic-foreground-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
   await selectLocale(page, 'en'); await expect.poll(() => connections).toBeGreaterThan(0);
@@ -101,7 +101,7 @@ test('visibility restoration reconnects and restores a reminder missed while hid
   });
   const email = `visibility-${randomUUID()}@example.test`, password = 'synthetic-foreground-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
   await selectLocale(page, 'en'); await expect.poll(() => connections).toBeGreaterThan(0);

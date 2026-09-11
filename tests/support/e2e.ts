@@ -67,21 +67,66 @@ export async function focusQuickTrigger(page: Page) {
 }
 
 export async function openQuick(page: Page) {
-  if ((page.viewportSize()?.width ?? 1280) < 768) {
-    await focusQuickTrigger(page);
-    await page.keyboard.press('Control+j');
-    return;
-  }
-  await page.getByTestId('quick-entry').click();
+  await focusQuickTrigger(page);
+  await page.keyboard.press('Control+j');
 }
 
 // Compact shell (<768px) keeps the navigation links inside the mobile menu
 // dialog, so open it first; desktop clicks the sidebar link directly.
 export async function clickNav(page: Page, name: string) {
-  if ((page.viewportSize()?.width ?? 1280) < 768) {
-    await page.getByTestId('mobile-menu').click();
-    await page.getByTestId('mobile-menu-dialog').getByRole('link', { name, exact: true }).click();
+  const view = (page.viewportSize()?.width ?? 1280) < 768;
+  const normalized = name === 'Start' ? 'Overview' : name === 'Diary library' ? 'Diary' : name;
+  const diaryView = ['Timeline', 'Calendar', 'Diary library'].includes(name);
+  const subnavName = name === 'Diary library' ? 'Diary library' : name;
+  const secondary = ['Partners', 'Trading principles', 'Diary reminders', 'Price reminders'].includes(name);
+  const tool = ['Position sizing', 'Financial freedom', 'Relative value', 'Seasonality', 'ETF research', 'Market rotation', 'SEC filings'].includes(name);
+  const toolHref: Record<string, string> = { 'Position sizing': '/tools/position-sizing', 'Financial freedom': '/tools/financial-freedom', 'Relative value': '/tools/relative-value', Seasonality: '/tools/seasonality', 'ETF research': '/tools/etf', 'Market rotation': '/tools/market-rotation', 'SEC filings': '/tools/sec-filings' };
+  if (name === 'Quick diary') {
+    if (view) {
+      const dialog = page.getByTestId('mobile-menu-dialog');
+      if (!(await dialog.isVisible().catch(() => false))) await page.getByTestId('mobile-menu').click();
+      await dialog.getByTestId('mobile-quick-entry').click();
+    } else {
+      await page.getByTestId('quick-entry').click();
+    }
     return;
   }
-  await page.getByRole('link', { name, exact: true }).click();
+  if (view && diaryView) {
+    const dialog = page.getByTestId('mobile-menu-dialog');
+    const diaryNavigation = page.getByTestId('diary-navigation');
+    if (!(await dialog.isVisible().catch(() => false))) await page.getByTestId('mobile-menu').click();
+    await dialog.getByRole('link', { name: 'Diary', exact: true }).click();
+    await diaryNavigation.waitFor({ state: 'visible' });
+    await diaryNavigation.getByRole('link', { name: subnavName, exact: true }).click();
+    return;
+  }
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    const dialog = page.getByTestId('mobile-menu-dialog');
+    if (!(await dialog.isVisible().catch(() => false))) await page.getByTestId('mobile-menu').click();
+    if (secondary && !(await dialog.getByRole('link', { name, exact: true }).isVisible().catch(() => false))) await dialog.locator('details.nav-more > summary').click();
+    if (tool) {
+      await dialog.getByRole('link', { name: 'Tools', exact: true }).click();
+      await page.locator(`a[href="${toolHref[name]}"]`).click();
+      return;
+    }
+    await dialog.getByRole('link', { name: normalized, exact: true }).click();
+    return;
+  }
+  if (diaryView) {
+    const diaryNavigation = page.getByTestId('diary-navigation');
+    if (!(await diaryNavigation.count())) await page.getByRole('link', { name: 'Diary', exact: true }).click();
+    await diaryNavigation.waitFor({ state: 'visible' });
+    await diaryNavigation.getByRole('link', { name: subnavName, exact: true }).click();
+    return;
+  }
+  if (secondary) {
+    const disclosure = page.locator('.desktop-nav details.nav-more');
+    if (!(await disclosure.getByRole('link', { name, exact: true }).isVisible().catch(() => false))) await disclosure.locator('summary').click();
+  }
+  if (tool) {
+    await page.getByRole('link', { name: 'Tools', exact: true }).click();
+    await page.locator(`a[href="${toolHref[name]}"]`).click();
+    return;
+  }
+  await page.getByRole('link', { name: normalized, exact: true }).click();
 }

@@ -4,7 +4,7 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
   await page.setViewportSize({ width, height: 900 });
   const email = `alerts-${randomUUID()}@example.test`, password = 'synthetic-alerts-password';
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
@@ -40,7 +40,7 @@ for (const width of [1440, 390]) test(`Diary reminder authoring and preservation
   await page.setViewportSize({ width, height: 900 });
   const email = `alert-editor-${randomUUID()}@example.test`, password = 'synthetic-alert-editor-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.getByLabel('Diary date', { exact: true }).fill('2026-03-02');
@@ -88,7 +88,7 @@ test.describe('Reminder device timezone boundaries', () => {
   test('rejects missing DST time, selects the repeated occurrence and retains exact instant on edit', async ({ page, context }) => {
     const email = `alert-dst-${randomUUID()}@example.test`, password = 'synthetic-alert-dst-password';
     await page.request.post('/api/auth/register', { data: { email, password } });
-    await page.goto('/login'); await selectLocale(page, 'en');
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
     await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
     await page.getByLabel('Diary date', { exact: true }).fill('2026-11-01');

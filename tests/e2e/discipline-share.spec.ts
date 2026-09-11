@@ -79,7 +79,7 @@ test('guest import survives sign-in and changing locale preserves edited preview
  await selectLocale(page, 'en'); await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
  const changed = JSON.stringify({ ...source, disciplines: [{ content: 'Edited before import', order: 0 }] });
  await page.getByLabel('Share JSON', { exact: true }).fill(changed);
- page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary library', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
+ page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
  await selectLocale(page, 'zh-TW'); await expect(page.getByLabel('分享 JSON', { exact: true })).toHaveValue(changed);
  await page.getByRole('button', { name: '預覽匯入', exact: true }).click(); await page.getByRole('button', { name: '匯入紀律', exact: true }).click();
  await expect(page.getByTestId('principle')).toHaveText(/Edited before import/); await expect(page).toHaveURL(/\/discipline$/);

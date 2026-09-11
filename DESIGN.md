@@ -197,7 +197,9 @@ Fields have a visible label, a control border, and a surface background, with a 
 
 ### Navigation
 
-There are just two main entries: "Start" and "Write diary". The item matching the route gets `aria-current=page`, a selected background, and 650 font weight. The diary detail page has no invented "current list" page. The skip link appears on focus; a pathname change moves focus to main, and main has a 4px inset keyboard outline. The preview's three toggle buttons use `aria-pressed`; they are not full business navigation.
+The Daily Workspace refinement groups primary destinations as Overview, Diary, Review queue, Trade plans, Holdings, Watchlist, Market research, and Tools. Capture is a separate primary action with an adjacent full-diary disclosure. Partners, Trading principles, Diary reminders, and Price reminders sit in More workspace features; Settings remains directly visible. The mobile Menu uses the same destinations. Ordinary links and native disclosures retain the browser keyboard model, without application-menu roles.
+
+Diary list/search, Timeline, and Calendar share in-page navigation while retaining their separate routes. The sidebar highlights Diary throughout those routes and Diary reading/editing; each browse view marks its own in-page link with `aria-current=page`. The selected background and 650 font weight remain unchanged. The skip link appears on focus; a pathname change moves focus to main, and main has a 4px inset keyboard outline. The preview's three toggle buttons use `aria-pressed`; they are not full business navigation.
 
 ### Containers, cards and status primitives
 
@@ -213,7 +215,9 @@ The native dialog is `min(680px, calc(100% - 32px))` wide on desktop, at most `c
 
 ### First representatives and preferences
 
-Overview leads with pending items and recent theses, then research context; Company separates current views from follow-up evidence; Review separates the original judgment from later reflection, and the narrow layout reads original → retrospective. Overview sections are raised cards in a 2:1 grid with icon-led section headers; portfolio figures render as stat tiles, the account date is a pill beside the title, and the quick-diary CTA carries a zap icon. All sections keep real data and explicit missing-quote text; missing quotes are never shown as 0.
+Overview follows one reading order: at most five current actions, three recent Diaries, compact portfolio/watchlist context, and links to other destinations. Context appears below the primary work rather than competing in a right rail. A successfully empty workspace gets one starting point with Start recording and Explore tools; holdings and thesis creation are optional. Resource failures stay distinct from empty data and keep scoped retry controls. The full direction and acceptance are recorded in `docs/design/daily-workspace-brief.md` and `docs/design/daily-workspace-acceptance.md`.
+
+Company separates current views from follow-up evidence; Review separates the original judgment from later reflection, and the narrow layout reads original → retrospective. All sections keep real data and explicit missing-quote text; missing quotes are never shown as 0.
 
 The language menu supports zh-TW/zh-CN/en and the theme menu supports light/dark/system. When signed in, language is restored and saved through account settings, and the menu is disabled while loading so a stored value is not overwritten; guest language and theme stay local, the theme is read early in head so a stored theme is not applied late, and locale updates html.lang. Main interface copy uses full translation keys and the preview's fixed sample dates stay visible; the route boundary currently falls back to bilingual Chinese/English and the table Symbol header is fixed text — do not misrecord these as full trilingual coverage.
 

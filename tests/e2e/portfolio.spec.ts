@@ -21,7 +21,7 @@ const focusedPortfolioFixture = {
 
 for(const width of [1440,390])test(`Portfolio complete and incomplete valuation at ${width}px`,async({page,context})=>{
  await page.setViewportSize({width,height:900});const email=`portfolio-${randomUUID()}@example.test`,password='synthetic-portfolio-password';
- await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
+ await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
  const headers={'x-csrf-token':(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
  const buy=async(symbol:string,date:string)=>{const response=await page.request.post('/api/diaries',{headers,data:{title:symbol,content:'Synthetic valuation',date,transactions:[{symbol,type:'BUY',quantity:'2',price:'100',tradeDate:date+'T10:00:00Z'}]}});expect(response.status()).toBe(201);return response.json();};
  await page.goto('/stocks');await expect(page.getByTestId('valuation-status')).toHaveText('No open positions');
@@ -39,7 +39,7 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  await page.setViewportSize({ width, height: 900 });
  const email = `portfolio-finish-${randomUUID()}@example.test`, password = 'synthetic-portfolio-finish-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login'); await selectLocale(page, 'en');
+ await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
  await selectLocale(page, 'en');

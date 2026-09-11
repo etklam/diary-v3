@@ -9,7 +9,7 @@ test('diary detail review section answers due state and next action',async({page
  await page.setViewportSize({width:1440,height:900});
  const email=`detail-review-${randomUUID()}@example.test`,password='synthetic-detail-review-password';
  expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
- await page.goto('/login');await selectLocale(page, 'en');
+ await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');
  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
  const headers={'x-csrf-token':(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
  expect((await page.request.put('/api/user/settings',{headers,data:{timezone:'Asia/Taipei'}})).status()).toBe(200);

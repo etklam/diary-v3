@@ -54,7 +54,7 @@ test('failed principle reads and writes recover without losing a dirty draft or 
  await expect(page.getByTestId('api-error')).toBeFocused(); await expect(input).toHaveValue('Preserve this unfinished principle.');
  await expect(page.getByRole('button', { name: 'Add principle', exact: true })).toBeEnabled();
  page.once('dialog', dialog => dialog.dismiss());
- await page.getByRole('link', { name: 'Diary library', exact: true }).click();
+ await page.getByRole('link', { name: 'Diary', exact: true }).click();
  await expect(page).toHaveURL(/\/discipline$/); await expect(input).toHaveValue('Preserve this unfinished principle.');
  failWrite = false; await page.getByRole('button', { name: 'Add principle', exact: true }).click();
  const rows = page.getByTestId('principle'); await expect(rows).toHaveCount(1);
@@ -71,7 +71,7 @@ test('failed principle reads and writes recover without losing a dirty draft or 
  await rows.first().getByRole('button', { name: 'Delete principle', exact: true }).click(); await expect(page.getByTestId('api-error')).toBeVisible(); await expect(rows).toHaveCount(2);
  await rows.first().getByRole('button', { name: 'Delete principle', exact: true }).click(); await expect(rows).toHaveCount(1);
  await input.fill('Discard only when confirmed.'); page.once('dialog', dialog => dialog.accept());
- await page.getByRole('link', { name: 'Diary library', exact: true }).click(); await expect(page).toHaveURL(/\/diaries$/);
+ await page.getByRole('link', { name: 'Diary', exact: true }).click(); await expect(page).toHaveURL(/\/diaries$/);
  await page.goto('/discipline'); await expect(input).toHaveValue(''); await expect(rows).toHaveCount(1);
 });
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, selectLocale } from '../support/e2e'
+import { expect, test, clickNav, selectLocale } from '../support/e2e'
 
 test('installs static shell metadata without caching private API responses', async ({ page, context }) => {
   const manifest = await page.request.get('/manifest.webmanifest')
@@ -46,7 +46,7 @@ test('mobile menu keeps every route reachable and returns focus on close', async
   const password = 'synthetic-pwa-menu-password'
   await page.request.post('/api/auth/register', { data: { email, password } })
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/login')
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
   await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
@@ -62,8 +62,7 @@ test('mobile menu keeps every route reachable and returns focus on close', async
   const dialog = page.getByTestId('mobile-menu-dialog')
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('heading', { name: 'Daily work', exact: true })).toBeVisible()
-  await expect(dialog.getByRole('link', { name: 'SEC filings', exact: true })).toBeVisible()
-  await dialog.getByRole('link', { name: 'SEC filings', exact: true }).click()
+  await clickNav(page, 'SEC filings')
   await expect(page).toHaveURL(/\/tools\/sec-filings$/)
   await expect(dialog).toBeHidden()
 
@@ -84,7 +83,7 @@ test('applies a waiting worker update without losing an unsaved editor', async (
   const email = `pwa-update-${randomUUID()}@example.test`
   const password = 'synthetic-pwa-update-password'
   await page.request.post('/api/auth/register', { data: { email, password } })
-  await page.goto('/login')
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
   await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
@@ -108,5 +107,8 @@ test('applies a waiting worker update without losing an unsaved editor', async (
   await page.getByTestId('pwa-update').click()
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null)).toContain('/sw-update-v2.js')
   await expect(title).toHaveValue('Unsaved title survives update')
+  await expect(page.getByText(/Update ready|更新已準備|更新已准备/)).toBeVisible()
+  await expect(page.getByTestId('pwa-update')).toHaveCount(0)
+  await page.getByRole('button', { name: /Later|稍後|稍后/, exact: true }).click()
   await expect(page.getByText(/Update ready|更新已準備|更新已准备/)).toHaveCount(0)
 })

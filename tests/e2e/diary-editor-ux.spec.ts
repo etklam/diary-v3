@@ -6,7 +6,7 @@ const password = 'synthetic-editor-ux-password';
 
 async function signInAndOpen(page: Page, email: string) {
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
@@ -98,8 +98,8 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   // Clean editor navigates without any dialog.
   await page.goto(editPath);
   await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.getByRole('link', { name: 'Timeline', exact: true }).click();
-  await expect(page).toHaveURL(/\/timeline$/);
+  await page.getByRole('link', { name: 'Diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries$/);
   expect(dialogs).toEqual([]);
 
   // Dirty editor: staying keeps the entries, leaving discards them.
@@ -107,15 +107,15 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, changed');
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
   answer = 'dismiss';
-  await page.getByRole('link', { name: 'Timeline', exact: true }).click();
+  await page.getByRole('link', { name: 'Diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Navigation guard diary, changed');
   // The blocker's confirm is synchronous with the navigation attempt; the
   // dialog event itself lands on the driver asynchronously, so poll for it.
   await expect.poll(() => dialogs.length).toBe(1);
   answer = 'accept';
-  await page.getByRole('link', { name: 'Timeline', exact: true }).click();
-  await expect(page).toHaveURL(/\/timeline$/);
+  await page.getByRole('link', { name: 'Diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries$/);
 
   // A saved editor stops warning on future navigation.
   await page.goto(editPath);

@@ -4,13 +4,26 @@ import { Link, NavLink, useLocation } from 'react-router'
 import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
+import { CaptureChoices } from './quick-entry'
 
 type Role = 'USER' | 'ADMIN' | null
 
 const sectionCopy = {
-  'zh-TW': { daily: '日常工作', portfolio: '投資組合與研究', tools: '工具', account: '帳戶', admin: '管理' },
-  'zh-CN': { daily: '日常工作', portfolio: '投资组合与研究', tools: '工具', account: '账户', admin: '管理' },
-  en: { daily: 'Daily work', portfolio: 'Portfolio and research', tools: 'Tools', account: 'Account', admin: 'Administration' },
+  'zh-TW': { daily: '日常工作', account: '帳戶', admin: '管理' },
+  'zh-CN': { daily: '日常工作', account: '账户', admin: '管理' },
+  en: { daily: 'Daily work', account: 'Account', admin: 'Administration' },
+} as const
+
+const workspaceCopy = {
+  'zh-TW': {
+    overview: '總覽', diary: '日記', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '市場研究', tools: '工具', more: '更多工作區功能', partners: '伙伴', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', settings: '設定', security: '帳戶安全',
+  },
+  'zh-CN': {
+    overview: '总览', diary: '日记', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '市场研究', tools: '工具', more: '更多工作区功能', partners: '伙伴', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', settings: '设置', security: '账户安全',
+  },
+  en: {
+    overview: 'Overview', diary: 'Diary', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', more: 'More workspace features', partners: 'Partners', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', settings: 'Settings', security: 'Account security',
+  },
 } as const
 
 function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': string; 'zh-TW': string }) {
@@ -18,44 +31,37 @@ function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': 
 }
 
 export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: Role; onNavigate?: () => void; idPrefix?: string }) {
-  const { locale, t } = useUi()
+  const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
+  const c = workspaceCopy[locale]
   const link = (to: string, text: string, icon: IconName, end = false) => <NavLink key={to} to={to} end={end} onClick={onNavigate}><Icon name={icon} />{text}</NavLink>
-  const marketResearch = <Link to="/stocks/SPY" onClick={onNavigate} aria-current={(location.pathname.startsWith('/stocks/') && location.pathname !== '/stocks/watchlist' && location.pathname !== '/stocks/alerts') ? 'page' : undefined}><Icon name="chart" />{label(locale, { en: 'Market research', 'zh-CN': '市场研究', 'zh-TW': '市場研究' })}</Link>
+  const diaryActive = location.pathname === '/timeline' || location.pathname === '/calendar' || location.pathname === '/diaries' || location.pathname.startsWith('/diaries/')
+  const secondaryActive = location.pathname === '/partners' || location.pathname.startsWith('/partners/') || location.pathname === '/discipline' || location.pathname.startsWith('/discipline/') || location.pathname === '/alerts' || location.pathname === '/stocks/alerts'
+  const marketResearch = <Link to="/stocks/SPY" onClick={onNavigate} aria-current={(location.pathname.startsWith('/stocks/') && location.pathname !== '/stocks/watchlist' && location.pathname !== '/stocks/alerts') ? 'page' : undefined}><Icon name="chart" />{c.marketResearch}</Link>
   return <>
     <section className="nav-group" aria-labelledby={`${idPrefix}-daily`}><h2 id={`${idPrefix}-daily`}>{sections.daily}</h2><div className="nav-group-links">
-      {link('/', t('home'), 'home', true)}
-      {link('/timeline', label(locale, { en: 'Timeline', 'zh-CN': '时间轴', 'zh-TW': '時間軸' }), 'timeline')}
-      {link('/trade-plans', label(locale, { en: 'Trade plans', 'zh-CN': '交易计划', 'zh-TW': '交易計劃' }), 'clipboard')}
-      {link('/partners', label(locale, { en: 'Partners', 'zh-CN': '伙伴', 'zh-TW': '伙伴' }), 'users')}
-      {link('/discipline', label(locale, { en: 'Trading principles', 'zh-CN': '交易纪律', 'zh-TW': '交易紀律' }), 'shield')}
-      {link('/alerts', label(locale, { en: 'Diary reminders', 'zh-CN': '日记提醒', 'zh-TW': '日記提醒' }), 'bell')}
-      {link('/reviews', label(locale, { en: 'Review queue', 'zh-CN': '复盘队列', 'zh-TW': '複盤隊列' }), 'check')}
-      {link('/calendar', label(locale, { en: 'Calendar', 'zh-CN': '日历', 'zh-TW': '日曆' }), 'calendar')}
-      {link('/diaries', label(locale, { en: 'Diary library', 'zh-CN': '日记库', 'zh-TW': '日記庫' }), 'book', true)}
-      {link('/diaries/new', t('write'), 'pen')}
-      <Link to="/diaries/quick" onClick={onNavigate}><Icon name="zap" />{t('quick')}</Link>
-    </div></section>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-portfolio`}><h2 id={`${idPrefix}-portfolio`}>{sections.portfolio}</h2><div className="nav-group-links">
-      {link('/stocks', label(locale, { en: 'Holdings', 'zh-CN': '持仓', 'zh-TW': '持倉' }), 'briefcase', true)}
-      {link('/stocks/watchlist', label(locale, { en: 'Watchlist', 'zh-CN': '关注清单', 'zh-TW': '關注清單' }), 'star')}
-      {link('/stocks/alerts', label(locale, { en: 'Price reminders', 'zh-CN': '价格提醒', 'zh-TW': '價格提醒' }), 'bell')}
+      {link('/', c.overview, 'home', true)}
+      <Link to="/diaries" onClick={onNavigate} aria-current={diaryActive ? 'page' : undefined}><Icon name="book" />{c.diary}</Link>
+      {link('/reviews', c.reviewQueue, 'check')}
+      {link('/trade-plans', c.tradePlans, 'clipboard')}
+      {link('/stocks', c.holdings, 'briefcase', true)}
+      {link('/stocks/watchlist', c.watchlist, 'star')}
       {marketResearch}
-      {link('/tools/etf', label(locale, { en: 'ETF research', 'zh-CN': 'ETF 研究', 'zh-TW': 'ETF 研究' }), 'layers')}
+      {link('/tools', c.tools, 'wrench')}
     </div></section>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-tools`}><h2 id={`${idPrefix}-tools`}>{sections.tools}</h2><div className="nav-group-links">
-      {link('/tools', label(locale, { en: 'All tools', 'zh-CN': '全部工具', 'zh-TW': '全部工具' }), 'wrench', true)}
-      {link('/tools/market-rotation', label(locale, { en: 'Market rotation', 'zh-CN': '市场轮动', 'zh-TW': '市場輪動' }), 'refresh')}
-      {link('/tools/relative-value', label(locale, { en: 'Relative value', 'zh-CN': '相对价值', 'zh-TW': '相對價值' }), 'scale')}
-      {link('/tools/seasonality', label(locale, { en: 'Seasonality', 'zh-CN': '季节性', 'zh-TW': '季節性' }), 'calendarRange')}
-      {link('/tools/sec-filings', label(locale, { en: 'SEC filings', 'zh-CN': 'SEC 申报', 'zh-TW': 'SEC 申報' }), 'fileText')}
-      {link('/tools/financial-freedom', label(locale, { en: 'FIRE calculator', 'zh-CN': '财务自由计算', 'zh-TW': '財務自由計算' }), 'flame')}
-      {link('/tools/position-sizing', label(locale, { en: 'Position sizing', 'zh-CN': '仓位计算', 'zh-TW': '部位計算' }), 'target')}
-    </div></section>
+    <details className="nav-more" open={secondaryActive || undefined}>
+      <summary><Icon name="chevronDown" />{c.more}</summary>
+      <div className="nav-group-links">
+        {link('/partners', c.partners, 'users')}
+        {link('/discipline', c.principles, 'shield')}
+        {link('/alerts', c.diaryReminders, 'bell')}
+        {link('/stocks/alerts', c.priceReminders, 'bell')}
+      </div>
+    </details>
     <section className="nav-group" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
-      {link('/settings', label(locale, { en: 'Preferences', 'zh-CN': '偏好设置', 'zh-TW': '偏好設定' }), 'settings', true)}
-      {link('/settings/security', label(locale, { en: 'Account security', 'zh-CN': '账户安全', 'zh-TW': '帳戶安全' }), 'lock')}
+      {link('/settings', c.settings, 'settings', true)}
+      {link('/settings/security', c.security, 'lock')}
     </div></section>
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
       {link('/admin/etf', label(locale, { en: 'Manage ETF catalog', 'zh-CN': '管理 ETF 目录', 'zh-TW': '管理 ETF 目錄' }), 'layers')}
@@ -96,6 +102,7 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
     <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
       <div className="mobile-menu-panel">
         <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
+        {authenticated === true && <section className="mobile-menu-capture" aria-labelledby="mobile-capture-title"><h2 id="mobile-capture-title">{label(locale, { en: 'Capture', 'zh-CN': '记录', 'zh-TW': '記錄' })}</h2><div className="quick-entry-controls"><CaptureChoices mobile onNavigate={close}/></div></section>}
         <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close}/></nav>
         <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <button type="button" className="secondary" data-testid="mobile-sign-out" disabled={logoutPending} onClick={() => { close(); onLogout() }}>{t(logoutPending ? 'pending' : 'logout')}</button>}</div>
       </div>

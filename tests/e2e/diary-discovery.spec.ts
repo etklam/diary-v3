@@ -8,7 +8,7 @@ type Seed = { date: string; title: string; content?: string; tags?: string[]; st
 
 async function signIn(page: Page, email: string) {
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);

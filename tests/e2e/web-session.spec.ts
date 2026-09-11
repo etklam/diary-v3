@@ -7,7 +7,7 @@ const password = 'web-e2e-synthetic-password';
 async function account(page: Page) {
   const email = `web-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await selectLocale(page, 'en');
   await login(page, email);
   await expect(page).toHaveURL(/\/diaries\/new$/);

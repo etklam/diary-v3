@@ -5,7 +5,7 @@ for (const width of [1440, 390]) test(`Review queue navigation, completion and r
   await page.setViewportSize({ width, height: 900 });
   const email = `queue-${randomUUID()}@example.test`, password = 'synthetic-queue-password';
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
@@ -45,7 +45,7 @@ for (const width of [1440, 390]) test(`Review queue navigation, completion and r
 test('Review queue keeps all open diaries reachable across pages', async ({ page, context }) => {
   const email = `queue-pages-${randomUUID()}@example.test`, password = 'synthetic-queue-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   for (let day = 1; day <= 25; day++) expect((await page.request.post('/api/diaries', { headers, data: { title: `Queue entry ${day}`, date: `2026-01-${String(day).padStart(2, '0')}`, content: 'Synthetic', reviewDueAt: '2020-01-01T00:00:00Z' } })).status()).toBe(201);
@@ -59,7 +59,7 @@ test('Review queue keeps all open diaries reachable across pages', async ({ page
 test('Review queue filters by type and keeps its context across a completed review', async ({ page, context }) => {
   const email = `queue-filter-${randomUUID()}@example.test`, password = 'synthetic-queue-password';
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
@@ -96,7 +96,7 @@ test('Review queue filters by type and keeps its context across a completed revi
 test('Review queue welcomes a fresh account with an entry point', async ({ page }) => {
   const email = `queue-empty-${randomUUID()}@example.test`, password = 'synthetic-queue-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   await page.goto('/reviews');

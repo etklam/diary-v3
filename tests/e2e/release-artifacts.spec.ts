@@ -15,7 +15,7 @@ test('built artifacts serve public pages and API health', async ({ page, request
 test('built artifacts complete auth and diary create, read, edit', async ({ page, request }) => {
   const email = `release-${randomUUID()}@example.test`;
   expect((await request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(email);
   await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);
   await page.getByRole('button', { name: /Sign in|登入|登录/, exact: true }).click();
@@ -40,7 +40,7 @@ test('built artifacts restore a draft and complete a review', async ({ page, req
   const email = `release-recovery-${randomUUID()}@example.test`;
   expect((await request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
   await page.addInitScript(() => localStorage.setItem('diary-locale', 'en'));
-  await page.goto('/login');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(email);
   await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);
   await page.getByRole('button', { name: /Sign in|登入|登录/, exact: true }).click();

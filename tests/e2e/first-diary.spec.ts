@@ -5,7 +5,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.setViewportSize(viewport);
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto('/register');
+    await page.goto('/register?returnTo=%2Fdiaries%2Fnew');
     await selectLocale(page, 'en');
     const email = `e2e-${viewport.width}-${Date.now()}@example.test`;
     await page.getByLabel('Email', { exact: true }).fill(email);

@@ -4,7 +4,7 @@ for (const width of [1440, 390]) test(`Evidence capture and immutable retry at $
   await page.setViewportSize({ width, height: 900 });
   const email = `evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
   await selectLocale(page, 'en'); await page.goto('/stocks/UNKNOWN');
@@ -44,7 +44,7 @@ for (const width of [1440, 390]) test(`Evidence capture and immutable retry at $
 test('Diary evidence retains captured summary and opens its original source', async ({ page, context }) => {
   const email = `diary-evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
   await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login'); await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
   await selectLocale(page, 'en');

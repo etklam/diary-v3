@@ -6,7 +6,7 @@ for(const width of [1440,390]){
   await page.setViewportSize({width,height:900});
   const email=`editor-${randomUUID()}@example.test`,password='synthetic-editor-password';
   expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
-  await page.goto('/login');await selectLocale(page, 'en');
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');
   await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
   await page.getByLabel('Diary date',{exact:true}).fill('2026-09-06');await page.getByRole('textbox',{name:'Title',exact:true}).fill('Original reasoning before the announcement');
   const markdown='## Observations\n\n**Demand** needs confirmation.\n\n| Signal | Evidence |\n| --- | --- |\n| Demand | Not confirmed |\n\n<script>window.injected=true</script>\n\n[unsafe](javascript:alert(1))\n\n<img src=x onerror="window.injected=true">';
