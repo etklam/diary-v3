@@ -4,14 +4,32 @@ The CI pipeline (.forgejo/workflows/deploy.yml) renders the `placeholder` image
 tags in these files to digest-pinned `git.913555.xyz/etklam/diary-v3-api` /
 `diary-v3-web` images before applying them. Never apply these files unrendered.
 
-Applied path:
+Release path:
 
-1. `00-namespace.yaml` (parent dir) and `01-postgres.yaml` are applied once.
-2. `ops/k3s/deploy-production-secrets.sh` creates the `diary-v3-db` and
+1. Forgejo must pass lint, typecheck, unit, contract, PostgreSQL integration,
+   manifest, production build, and built-artifact browser acceptance gates.
+2. Images are pushed and resolved to immutable digests. CI validates the final
+   rendered manifests before any remote mutation.
+3. `00-namespace.yaml` (parent dir) and `01-postgres.yaml` are reconciled.
+4. `ops/k3s/deploy-production-secrets.sh` creates the `diary-v3-db` and
    `diary-v3-app` Secrets (never committed). Existing Secrets are retained.
-3. CI runs the migrate Job (via the API image init container in 02-api.yaml and
-   the standalone `07-migrate-job.yaml`), the seed Job, then scales the API and
-   Web deployments up with the new digest and waits for rollout.
+5. CI runs the standalone migrate Job, then the idempotent system seed Job.
+   Migrations must remain backward-compatible with the running application;
+   destructive migrations require an explicit release safety review.
+6. CI records the current API, Web, and market CronJob images, applies each new
+   digest, waits for API/Web rollout, then checks `/healthz`, `/readyz`, and the
+   public home page.
+
+Pre-deploy verification, build, push, migration, or seed failures do not roll
+back application workloads. Once an application workload has been changed, a
+later failure restores only changed workloads to their recorded images and
+replica counts, waits for rollout, and repeats the smoke checks. Rollback errors
+remain visible as a failed workflow.
+
+Application rollback never reverses database migrations. If migration safety is
+uncertain, stop the release, inspect the migration ledger and schema, and choose
+a compatible application image manually. Database restoration is a separate,
+explicit operation documented in `docs/operations/restore-60-smoke.md`.
 
 Layout notes:
 

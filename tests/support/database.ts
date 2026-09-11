@@ -37,5 +37,5 @@ export async function provisionTestDatabase(prefix = 'diary_v3_test') {
   }
   try { await migrateDatabase(database.db); }
   catch (error) { await dispose(); throw error; }
-  return { ...database, dispose };
+  return { ...database, url: url.toString(), dispose };
 }

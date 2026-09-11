@@ -16,14 +16,17 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/integration/**' --exclude 'tests/e2e/**'",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
+    "test:e2e:release": "playwright test --config=playwright.release.config.ts",
     "build": "npm run typecheck && npm run build --workspace=@diary/web && node --import tsx scripts/build-api.ts",
     "db:migrate": "node --env-file-if-exists=.env --import tsx packages/db/src/migrate.ts",
     "db:restore-smoke": "bash scripts/restore-smoke.sh",
     "db:generate": "drizzle-kit generate",
     "contracts:generate": "node --import tsx scripts/generate-openapi.ts && openapi-typescript openapi/openapi.json -o packages/api-client/src/generated.ts",
     "contracts:check": "node --import tsx scripts/generate-openapi.ts --check && openapi-typescript openapi/openapi.json -o packages/api-client/src/generated.ts --check",
+    "manifests:check": "node --import tsx scripts/validate-production-manifests.ts",
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
     "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
     "market:state": "node --env-file-if-exists=.env --import tsx apps/api/src/market-state-cli.ts",
@@ -72,6 +75,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "^8.57.0",
     "vite": "8.2.2",
-    "vitest": "5.0.0"
+    "vitest": "5.0.0",
+    "yaml": "^2.9.0"
   }
 }
