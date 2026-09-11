@@ -24,9 +24,16 @@ const writeRecoveryCopy = {
 } as const;
 
 function sameDiaryWrite(diary: DiaryResponse, body: Record<string, unknown>) {
- const fields = ['title','content','date','tags','thesis','risk','execution','reviewDueAt','stockSymbols'] as const;
- for (const field of fields) {
-  if (body[field] !== undefined && JSON.stringify(diary[field] ?? null) !== JSON.stringify(body[field] ?? null)) return false;
+ const scalarFields = ['content','date','thesis','risk','execution','reviewDueAt'] as const;
+ for (const field of scalarFields) if (body[field] !== undefined && (diary[field] ?? null) !== (body[field] ?? null)) return false;
+ if (typeof body.title === 'string' && diary.title !== body.title.trim()) return false;
+ if (Array.isArray(body.tags)) {
+  const expected = [...new Set(body.tags.filter((tag):tag is string=>typeof tag==='string').map(tag=>tag.trim()).filter(Boolean))];
+  if (JSON.stringify(diary.tags) !== JSON.stringify(expected)) return false;
+ }
+ if (Array.isArray(body.stockSymbols)) {
+  const expected = body.stockSymbols.filter((symbol):symbol is string=>typeof symbol==='string').map(symbol=>symbol.trim().toUpperCase());
+  if (JSON.stringify(diary.stockSymbols??[]) !== JSON.stringify(expected)) return false;
  }
  if (body.alerts !== undefined) {
   if (!Array.isArray(body.alerts)) return false;
@@ -35,18 +42,18 @@ function sameDiaryWrite(diary: DiaryResponse, body: Record<string, unknown>) {
    const value = row as Record<string, unknown>;
    return { message: value.message, triggerAt: value.triggerAt, recurringMode: value.recurringMode ?? null };
   });
-  const actual = (diary.alerts ?? []).map(row => ({ message: row.message, triggerAt: row.triggerAt, recurringMode: row.recurringMode ?? null }));
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) return false;
+  const actual = reminderDrafts(diary.alerts??[]).map(row => ({ message: row.message, triggerAt: row.instant, recurringMode: row.mode||null }));
+  if (JSON.stringify(actual.map(row=>JSON.stringify(row)).sort()) !== JSON.stringify(expected.map(row=>JSON.stringify(row)).sort())) return false;
  }
  if (body.transactions !== undefined) {
   if (!Array.isArray(body.transactions)) return false;
   const expected = body.transactions.map(row => {
    if (!row || typeof row !== 'object') return null;
    const value = row as Record<string, unknown>;
-   return { symbol: value.symbol, type: value.type, quantity: value.quantity, price: value.price, tradeDate: value.tradeDate, notes: value.notes ?? null, strategy: value.strategy ?? null, emotion: value.emotion ?? null };
+   return { symbol:typeof value.symbol==='string'?value.symbol.trim().toUpperCase():value.symbol, type:value.type, quantity:typeof value.quantity==='string'?canonicalDecimal(value.quantity):value.quantity, price:typeof value.price==='string'?canonicalDecimal(value.price):value.price, tradeDate:value.tradeDate, notes:value.notes??null, strategy:value.strategy??null, emotion:value.emotion??null };
   });
-  const actual = (diary.transactions ?? []).map(row => ({ symbol: row.symbol, type: row.type, quantity: row.quantity, price: row.price, tradeDate: row.tradeDate, notes: row.notes ?? null, strategy: row.strategy ?? null, emotion: row.emotion ?? null }));
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) return false;
+  const actual = (diary.transactions??[]).map(row => ({ symbol:row.symbol.trim().toUpperCase(),type:row.type,quantity:canonicalDecimal(row.quantity),price:canonicalDecimal(row.price),tradeDate:row.tradeDate,notes:row.notes??null,strategy:row.strategy??null,emotion:row.emotion??null }));
+  if (JSON.stringify(actual.map(row=>JSON.stringify(row)).sort()) !== JSON.stringify(expected.map(row=>JSON.stringify(row)).sort())) return false;
  }
  return true;
 }
@@ -62,6 +69,7 @@ type CanonicalTransaction = { id?:string;type:'BUY'|'SELL';symbol:string;quantit
 type CanonicalAlert = { message:string;triggerAt:string;recurringMode:string|null };
 type EditableState = { date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols:string[];reviewDueAt:string|null;transactions:CanonicalTransaction[];alerts:CanonicalAlert[] };
 export type EditorSources = { form:FormState;stockSymbols:string;transactions:BuyDraft[];reviewTime:string;reviewInstant:string;reminders:ReminderDraft[] };
+type DisableableControl = HTMLButtonElement|HTMLFieldSetElement|HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement;
 const DECIMAL_INPUT=/^\d+(\.\d+)?$/;
 // Persisted ledger semantics: uppercase symbol and canonical decimal, with the
 // UNRESOLVED sentinel for empty/invalid input so it never reads as saved.
@@ -102,13 +110,16 @@ export function canonicalState(source:EditorSources):EditableState{
 function sameTransaction(a:CanonicalTransaction,b:CanonicalTransaction){
  return (a.id??null)===(b.id??null)&&a.type===b.type&&a.symbol===b.symbol&&a.quantity===b.quantity&&a.price===b.price&&a.tradeDate===b.tradeDate&&a.notes===b.notes&&a.strategy===b.strategy&&a.emotion===b.emotion;
 }
+export function sameAlerts(a:CanonicalAlert[],b:CanonicalAlert[]){
+ return a.length===b.length&&a.every((row,index)=>row.message===b[index]!.message&&row.triggerAt===b[index]!.triggerAt&&row.recurringMode===b[index]!.recurringMode);
+}
 export function sameEditable(a:EditableState,b:EditableState){
  return a.date===b.date&&a.title===b.title&&a.content===b.content&&a.thesis===b.thesis&&a.risk===b.risk&&a.execution===b.execution
   &&(a.reviewDueAt??null)===(b.reviewDueAt??null)
   &&a.tags.length===b.tags.length&&a.tags.every((tag,index)=>tag===b.tags[index])
   &&a.stockSymbols.length===b.stockSymbols.length&&a.stockSymbols.every((symbol,index)=>symbol===b.stockSymbols[index])
   &&a.transactions.length===b.transactions.length&&a.transactions.every((row,index)=>sameTransaction(row,b.transactions[index]!))
-  &&a.alerts.length===b.alerts.length&&a.alerts.every((row,index)=>row.message===b.alerts[index]!.message&&row.triggerAt===b.alerts[index]!.triggerAt&&row.recurringMode===b.alerts[index]!.recurringMode);
+  &&sameAlerts(a.alerts,b.alerts);
 }
 
 // --- Device-local recovery ----------------------------------------------------
@@ -193,12 +204,13 @@ export function DiaryEditor({initial,id,accountId,quick=false}:{initial:DiaryFie
  const sources=useMemo(()=>({form,stockSymbols,transactions,reviewTime,reviewInstant,reminders}),[form,stockSymbols,transactions,reviewTime,reviewInstant,reminders]);
  const sourcesRef=useRef(sources);sourcesRef.current=sources;
  const dirty=useMemo(()=>!sameEditable(canonicalState(sources),baseline),[sources,baseline]);
+ const alertsDirty=useMemo(()=>!sameAlerts(canonicalState(sources).alerts,baseline.alerts),[sources,baseline]);
  const dirtyRef=useRef(dirty);dirtyRef.current=dirty;
  const [restorable,setRestorable]=useState<EditorDraft|null>(()=>restorableDraft(readEditorDraft(draftKey??''),baselineReference,initial));
  const restorableRef=useRef(restorable);restorableRef.current=restorable;
  const contentRef=useRef<HTMLTextAreaElement>(null);const caretState=useRef<{start:number;end:number;top:number}|null>(null);const previewSectionRef=useRef<HTMLElement|null>(null);const previewVisited=useRef(false);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
- useEffect(()=>{if(blocker.state==='blocked'){if(window.confirm(labels.discard))blocker.proceed();else blocker.reset();}},[blocker,labels.discard]);
+ useEffect(()=>{if(blocker.state==='blocked'){if(pending){blocker.reset();return;}if(window.confirm(labels.discard))blocker.proceed();else blocker.reset();}},[blocker,labels.discard,pending]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
  // Debounced device-local backup; paused while a restore decision is pending.
  // Discarding a recovery only drops that old snapshot: after the discard the
@@ -235,7 +247,7 @@ export function DiaryEditor({initial,id,accountId,quick=false}:{initial:DiaryFie
  }
  function applyLatest(latest:DiaryResponse){
   const next=editableFromResponse(latest);
-  setForm(next.form);setReminders(next.reminders);remindersChanged.current=false;setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);
+  setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);
   const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);clearDraft();
  }
  async function loadLatest(){
@@ -244,15 +256,17 @@ export function DiaryEditor({initial,id,accountId,quick=false}:{initial:DiaryFie
   if(!id){clearDraft();dirtyRef.current=false;setPending(false);setError(null);navigate(`/diaries/${latest.id}/edit`);return;}
   applyLatest(latest); setRecoveryDiary(null); setRecoveryState(null); setPending(false);
  }
- async function save(event:FormEvent){
+ async function save(event:FormEvent<HTMLFormElement>){
   event.preventDefault();
   // One in-flight write per editor; blocks same-frame double submits that
   // outrun the disabled-button re-render. Server-side date uniqueness is the
   // final duplicate guard.
   if(savingRef.current||recoveryState)return;
   setSaveState('failed'); // Client-side validation failures keep the failed status if they return early.
-  setTransactionError('');const alerts=reminderInputs(reminders);if(remindersChanged.current&&(!alerts.every(row=>alertDraftSchema.safeParse(row).success)||alerts.length>50)){setTransactionError(reminderCopy[locale].invalid);return;}const companies=parseCompanyContext(stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const reviewDueAt=reviewTime?resolveLocalTradeInstant(reviewTime,reviewInstant):null;if(reviewTime&&!reviewDueAt){setTransactionError(reviewScheduleCopy[locale].invalid);return;}const parsedTransactions=[];for(const row of transactions){const instant=resolveLocalTradeInstant(row.tradeDate,row.instant);if(!instant){setTransactionError(ledgerCopy[locale].dateInvalid);return;}const parsed=(id?ledgerTransactionUpdateInputSchema:ledgerTransactionInputSchema).safeParse({...((id&&row.id)?{id:row.id}:{}),symbol:row.symbol,type:row.type,quantity:row.quantity,price:row.price,tradeDate:instant,notes:row.notes||null,strategy:row.strategy||null,emotion:row.emotion||null});if(!parsed.success){setTransactionError(ledgerCopy[locale].invalid);return;}parsedTransactions.push(parsed.data);}
-  setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);const body={...form,...(remindersChanged.current?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,transactions:parsedTransactions};try{const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body}):await api.POST('/api/diaries',{body});if(result.response.ok&&result.data){const confirmed=canonicalState(editableFromResponse(result.data));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${result.data.id}`,{state:{saved:true}});}else{setSaveState('failed');setError(apiFailure(result.error,t('failed')));}}catch{const latest=await readLatest();if(latest&&sameDiaryWrite(latest,body)){const confirmed=canonicalState(editableFromResponse(latest));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${latest.id}`,{state:{saved:true}});}else{setSaveState('failed');setRecoveryDiary(latest);setRecoveryState(latest?'conflict':'unavailable');setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}}finally{setPending(false);savingRef.current=false;}
+  setTransactionError('');const alerts=reminderInputs(reminders);if(alertsDirty&&(!alerts.every(row=>alertDraftSchema.safeParse(row).success)||alerts.length>50)){setTransactionError(reminderCopy[locale].invalid);return;}const companies=parseCompanyContext(stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const reviewDueAt=reviewTime?resolveLocalTradeInstant(reviewTime,reviewInstant):null;if(reviewTime&&!reviewDueAt){setTransactionError(reviewScheduleCopy[locale].invalid);return;}const parsedTransactions=[];for(const row of transactions){const instant=resolveLocalTradeInstant(row.tradeDate,row.instant);if(!instant){setTransactionError(ledgerCopy[locale].dateInvalid);return;}const parsed=(id?ledgerTransactionUpdateInputSchema:ledgerTransactionInputSchema).safeParse({...((id&&row.id)?{id:row.id}:{}),symbol:row.symbol,type:row.type,quantity:row.quantity,price:row.price,tradeDate:instant,notes:row.notes||null,strategy:row.strategy||null,emotion:row.emotion||null});if(!parsed.success){setTransactionError(ledgerCopy[locale].invalid);return;}parsedTransactions.push(parsed.data);}
+  const controls=Array.from(event.currentTarget.elements).filter((element):element is DisableableControl=>'disabled' in element&&!element.disabled&&!(element instanceof HTMLButtonElement&&element.type==='submit'));
+  controls.forEach(control=>{control.disabled=true;});
+  setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);const body={...form,...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,transactions:parsedTransactions};try{const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body}):await api.POST('/api/diaries',{body});if(result.response.ok&&result.data){const confirmed=canonicalState(editableFromResponse(result.data));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${result.data.id}`,{state:{saved:true}});}else{setSaveState('failed');setError(apiFailure(result.error,t('failed')));}}catch{const latest=await readLatest();if(latest&&sameDiaryWrite(latest,body)){const confirmed=canonicalState(editableFromResponse(latest));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${latest.id}`,{state:{saved:true}});}else{setSaveState('failed');setRecoveryDiary(latest);setRecoveryState(latest?'conflict':id?'unavailable':null);setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}}finally{controls.forEach(control=>{control.disabled=false;});setPending(false);savingRef.current=false;}
  }
  function field(name:'title'|'date'|'thesis'|'risk'|'execution',label:string,className?:string){
   const multiline=name==='thesis'||name==='risk'||name==='execution';

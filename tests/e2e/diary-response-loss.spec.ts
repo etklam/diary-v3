@@ -1,6 +1,29 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect, selectLocale } from '../support/e2e'
 
+test('Diary create can retry when the write fails before commit', async ({ page }) => {
+  const email = `diary-precommit-loss-${randomUUID()}@example.test`
+  const password = 'synthetic-diary-precommit-loss-password'
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
+  expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
+  await page.goto('/diaries/new')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-09')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Precommit retry')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The first write never reaches the API.')
+  await page.route('**/api/diaries', async route => {
+    if (route.request().method() === 'POST') await route.abort('failed')
+    else await route.continue()
+  })
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_WRITE_UNCERTAIN')
+  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeEnabled()
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('The first write never reaches the API.')
+  await page.unroute('**/api/diaries')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+})
+
 test('Diary create and explicit reminder replacement reconcile a committed response loss', async ({ page }) => {
   const email = `diary-response-loss-${randomUUID()}@example.test`
   const password = 'synthetic-diary-response-loss-password'
@@ -12,8 +35,11 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.goto('/diaries/new')
   await selectLocale(page, 'en')
   await page.getByLabel('Diary date', { exact: true }).fill(createDate)
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Response loss create')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('  Response loss create  ')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The committed create must be reconciled.')
+  await page.getByLabel('Tag 1', { exact: true }).fill('response-loss')
+  await page.getByRole('button', { name: 'Add tag', exact: true }).click()
+  await page.getByLabel('Tag 2', { exact: true }).fill('response-loss')
 
   let createCalls = 0
   await page.route('**/api/diaries', async route => {

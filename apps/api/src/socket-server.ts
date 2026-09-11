@@ -9,7 +9,9 @@ export function createSocketServer(httpServer: HttpServer, dependencies: {
   webOrigin: string; production: boolean
   authenticate: (token: string) => Promise<SocketSession>
   dismiss: (userId: string, alertId: string) => Promise<void>
+  now?: () => Date
 }) {
+  const now = dependencies.now ?? (() => new Date())
   const allowed = (origin: string | undefined) => allowedSocketOrigin(origin, dependencies.webOrigin, dependencies.production)
   let revocationEpoch = 0
   const io = new Server(httpServer, {
@@ -23,7 +25,7 @@ export function createSocketServer(httpServer: HttpServer, dependencies: {
       const token = websocketAccessToken(socket.handshake)
       if (!token) return next(new Error('Authentication required'))
       const session = await dependencies.authenticate(token)
-      if (epoch !== revocationEpoch || session.expiresAt.getTime() <= Date.now()) return next(new Error('Invalid token'))
+      if (epoch !== revocationEpoch || session.expiresAt <= now()) return next(new Error('Invalid token'))
       socket.data = { session, token, epoch }
       next()
     } catch { next(new Error('Invalid token')) }
@@ -31,10 +33,10 @@ export function createSocketServer(httpServer: HttpServer, dependencies: {
   io.on('connection', socket => {
     const session = socket.data.session as SocketSession
     // A revoke may commit after middleware resolved but before registration.
-    if (socket.data.epoch !== revocationEpoch || session.expiresAt.getTime() <= Date.now()) { socket.disconnect(true); return }
+    if (socket.data.epoch !== revocationEpoch || session.expiresAt <= now()) { socket.disconnect(true); return }
     socket.join(`user:${session.id}`)
     socket.emit('connection:success', { socketId: socket.id, userId: session.id })
-    const timer = setTimeout(() => socket.disconnect(true), Math.min(2_147_483_647, session.expiresAt.getTime() - Date.now()))
+    const timer = setTimeout(() => socket.disconnect(true), Math.min(2_147_483_647, session.expiresAt.getTime() - now().getTime()))
     timer.unref?.()
     socket.on('disconnect', () => clearTimeout(timer))
     socket.on('ping', () => socket.emit('pong'))
@@ -60,7 +62,7 @@ export function createSocketServer(httpServer: HttpServer, dependencies: {
     for (const socket of io.sockets.sockets.values()) {
       const session = socket.data.session as SocketSession
       if (session.id !== userId) continue
-      if (session.expiresAt.getTime() <= Date.now()) { socket.disconnect(true); continue }
+      if (session.expiresAt <= now()) { socket.disconnect(true); continue }
       socket.emit(event, payload); emitted = true
     }
     return emitted

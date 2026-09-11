@@ -128,7 +128,7 @@ export function createAuthSessionService({
         audience: JWT_AUDIENCE,
         // Refresh persistence is the expiry authority. Verifying an old token's
         // signature still lets native replay containment revoke its family.
-        ...(allowExpired ? { currentDate: new Date(0) } : {}),
+        currentDate: allowExpired ? new Date(0) : now(),
       })
       if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)
         || payload.type !== expectedType

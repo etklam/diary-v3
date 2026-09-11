@@ -27,6 +27,26 @@ describe('diary editor transaction dirty comparison',()=>{
   const raw=canonicalState(sources([draft({symbol:'nvda',quantity:'01.5000',price:'180.2500'})]));
   expect(sameEditable(raw,saved)).toBe(true);
   expect(sameEditable(canonicalState(sources([draft({quantity:'2'})])),saved)).toBe(false);
-  expect(sameEditable(canonicalState(sources([draft({price:'180.26'})])),saved)).toBe(false);
+ expect(sameEditable(canonicalState(sources([draft({price:'180.26'})])),saved)).toBe(false);
+ });
+});
+
+describe('diary editor reminder dirty comparison',()=>{
+ it('tracks reminder changes against the confirmed baseline',()=>{
+  const saved=sources([]);
+  saved.reminders=[{key:'1',message:'Review fill',time:'2026-01-03T09:00',instant:'2026-01-03T01:00:00.000Z',mode:''}];
+  const changed=structuredClone(saved);
+  changed.reminders[0]!.message='Review fill again';
+  expect(sameEditable(canonicalState(changed),canonicalState(saved))).toBe(false);
+  changed.reminders[0]!.message='Review fill';
+  expect(sameEditable(canonicalState(changed),canonicalState(saved))).toBe(true);
+ });
+
+ it('treats deleting every reminder as a change',()=>{
+  const saved=sources([]);
+  saved.reminders=[{key:'1',message:'Review fill',time:'2026-01-03T09:00',instant:'2026-01-03T01:00:00.000Z',mode:''}];
+  const cleared=structuredClone(saved);
+  cleared.reminders=[];
+  expect(sameEditable(canonicalState(cleared),canonicalState(saved))).toBe(false);
  });
 });

@@ -18,6 +18,7 @@ export function createApiRuntime(dependencies: Omit<AppDependencies, 'onAccountR
   const server = createServer(getRequestListener(app.fetch))
   const sockets = createSocketServer(server, {
     webOrigin: config.webOrigin, production: config.nodeEnv === 'production', authenticate: auth.authenticateSocketAccess,
+    now: dependencies.now,
     dismiss: async (userId, alertId) => {
       if (!await dismissDiaryAlert(db, BigInt(userId), BigInt(alertId))) throw new Error('Alert not found')
     },

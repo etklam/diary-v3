@@ -42,14 +42,33 @@ test('save status reflects clean, dirty, saving and failed states without fake f
   await expect(page.getByTestId('save-status')).toHaveText('');
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Status machine diary, revised');
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  let releaseFailure!: () => void;
+  let requestStarted!: () => void;
+  const heldFailure = new Promise<void>(resolve => { releaseFailure = resolve; });
+  const started = new Promise<void>(resolve => { requestStarted = resolve; });
   await page.route('**/api/diaries/*', async route => {
-    if (route.request().method() === 'PUT') await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'ux-status-failure' } }) });
+    if (route.request().method() === 'PUT') {
+      requestStarted();
+      await heldFailure;
+      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'ux-status-failure' } }) });
+    }
     else await route.continue();
   });
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  const failedSave = page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await started;
+  await expect(page.getByTestId('save-status')).toHaveText('Saving…');
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeDisabled();
+  await expect(page.getByLabel('Review due at', { exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Preview Markdown', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeDisabled();
+  releaseFailure();
+  await failedSave;
   await expect(page.getByTestId('save-status')).toHaveText('Save failed');
   await expect(page.getByTestId('request-id')).toHaveText('ux-status-failure');
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Status machine diary, revised');
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Review due at', { exact: true })).toBeEnabled();
   await page.unroute('**/api/diaries/*');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${diaryId}$`));
@@ -357,4 +376,50 @@ test('recovery restores transaction, review and reminder modifications after re-
   await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
   await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
+  await page.unroute('**/api/diaries/*');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const diaryId = page.url().split('/').at(-1)!;
+  const persisted = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as {
+    alerts: Array<{ message: string }>;
+    reviewDueAt: string | null;
+    transactions: Array<{ quantity: string }>;
+  };
+  expect(persisted.transactions[0]?.quantity).toBe('7.75');
+  expect(persisted.reviewDueAt).not.toBe('2026-09-10T01:30:00.000Z');
+  expect(persisted.alerts[0]?.message).toBe('Check the fill price after the split');
+  await page.goto(`/diaries/${diaryId}/edit`);
+  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue('7.75');
+  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
+});
+
+test('recovery persists deleting every reminder as an explicit empty replacement', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const email = `ux-empty-reminder-recovery-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const created = await page.request.post('/api/diaries', {
+    headers: { 'x-csrf-token': csrf },
+    data: {
+      date: '2026-09-07', title: 'Reminder deletion recovery', content: 'The empty reminder list must persist.',
+      alerts: [{ message: 'Remove after recovery', triggerAt: '2026-09-09T01:00:00.000Z' }],
+    },
+  });
+  expect(created.status()).toBe(201);
+  const diary = await created.json() as { id: string };
+  await page.goto(`/diaries/${diary.id}/edit`);
+  await page.getByRole('button', { name: 'Remove reminder 1', exact: true }).click();
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:'))), { timeout: 5_000 }).toBe(true);
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
+  const persisted = await (await page.request.get(`/api/diaries/${diary.id}`)).json() as { alerts: unknown[] };
+  expect(persisted.alerts).toEqual([]);
+  await page.goto(`/diaries/${diary.id}/edit`);
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0);
 });
