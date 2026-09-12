@@ -2,6 +2,18 @@
   max-width: 960px;
 }
 
+.market-capture {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.market-capture .muted {
+  margin: 0;
+}
+
 .market-lookup {
   display: flex;
   align-items: flex-end;

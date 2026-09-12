@@ -46,7 +46,8 @@ export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if((broadcast||clearDrafts)&&(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:')))localStorage.removeItem(key);
-   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+  if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });

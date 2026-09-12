@@ -1,4 +1,5 @@
 import { CompanyContext } from '../company-context';
+import { buildCapturePath, captureContextForCompanySymbol } from '../capture-context';
 import { StockNotes } from '../stock-notes';
 import { stockSymbolSchema } from '@diary/contracts/watchlist';
 import { Evidence } from '../evidence';
@@ -28,6 +29,8 @@ export default function CompanyMarket(){
   const [range,setRange]=useState<MarketRange>('1y');const [page,setPage]=useState(0);const quoteVersion=useRef(0);const historyVersion=useRef(0);
   const number=(value:number|null)=>formatNeutralValue(locale,value,6);
   const signed=(value:number|null)=>formatMarketValue(locale,value,6);
+  const capture=useMemo(()=>captureContextForCompanySymbol(symbol),[symbol]);
+  const captureCopy=locale==='en'?{record:'Record a thought',full:'Write a full diary',unsupported:'This market symbol cannot be linked to a diary, so diary writing is not available here.'}:locale==='zh-CN'?{record:'记录想法',full:'写完整日记',unsupported:'此市场代码无法关联日记，因此这里不提供日记书写入口。'}:{record:'記錄想法',full:'寫完整日記',unsupported:'此市場代號無法關聯日記，因此這裡不提供日記書寫入口。'};
   const instant=(value:string|null)=>value===null?text.unknown:new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(value))+' UTC';
   async function loadQuote(bypass=false){
     const version=++quoteVersion.current;setQuote(initial());
@@ -48,6 +51,7 @@ export default function CompanyMarket(){
   const historyFailure=useMemo(()=>history.error?{...history.error,message:text.historyError}:null,[history.error,text.historyError]);
   const rows=history.data?[...history.data].reverse():[];const count=Math.max(1,Math.ceil(rows.length/50));
   return <section className="company-market"><h1>{symbol||text.title}</h1><p className="lede">{text.intro}</p>
+    {symbol&&<div className="market-capture">{capture?<><Link className="button" to={buildCapturePath('quick',capture)}>{captureCopy.record}</Link><Link className="button secondary" to={buildCapturePath('new',capture)}>{captureCopy.full}</Link></>:<p className="muted">{captureCopy.unsupported}</p>}</div>}
     <form className="market-lookup" onSubmit={lookup}><label>{text.symbol}<input value={input} onChange={event=>setInput(event.target.value)} required maxLength={32} autoCapitalize="characters" spellCheck={false} aria-invalid={inputError||!symbol||undefined} aria-describedby={inputError||!symbol?'symbol-error':undefined}/></label><button type="submit">{text.open}</button></form>
     {(inputError||!symbol)&&<p id="symbol-error" className="error" role="alert">{text.invalid}</p>}
     {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<CompanyContext key={`context-${symbol}`} symbol={symbol}/>}
