@@ -6,6 +6,17 @@ const password = 'synthetic-release-artifact-password';
 // Synthetic client identity for the register rate limiter; the release
 // harness trusts x-forwarded-for so each new account registers in its own bucket.
 const freshClient = () => ({ 'x-forwarded-for': `10.${randomUUID().charCodeAt(0)}.${randomUUID().charCodeAt(1)}.${randomUUID().charCodeAt(2)}` });
+// POST logins never set the CSRF cookie; one bounded GET establishes it.
+const csrfFor = async (context: import('@playwright/test').BrowserContext) => {
+  let cookies = await context.cookies();
+  if (!cookies.some(item => item.name === 'csrf-token')) {
+    await context.request.get('/api/auth/me');
+    cookies = await context.cookies();
+  }
+  const cookie = cookies.find(item => item.name === 'csrf-token');
+  expect(cookie?.value).toBeTruthy();
+  return { 'x-csrf-token': cookie!.value };
+};
 
 test('built artifacts serve public pages and API health', async ({ page, request }) => {
   await expect((await request.get('/healthz')).status()).toBe(200);
@@ -172,17 +183,6 @@ test('built artifacts restore a draft and complete a review', async ({ page, req
 test('built artifacts move from Timeline into Partner comparison and revalidate permissions', async ({ page, browser }) => {
   const emailA = `release-parity-a-${randomUUID()}@example.test`;
   const emailB = `release-parity-b-${randomUUID()}@example.test`;
-  const csrfFor = async (context: import('@playwright/test').BrowserContext) => {
-    // POST logins never set the CSRF cookie; one bounded GET establishes it.
-    let cookies = await context.cookies();
-    if (!cookies.some(item => item.name === 'csrf-token')) {
-      await context.request.get('/api/auth/me');
-      cookies = await context.cookies();
-    }
-    const cookie = cookies.find(item => item.name === 'csrf-token');
-    expect(cookie?.value).toBeTruthy();
-    return { 'x-csrf-token': cookie!.value };
-  };
   // Distinct forwarded addresses give each synthetic client its own rate-limit
   // bucket; the release harness trusts x-forwarded-for for this isolation.
   const forwarded = () => `10.${randomUUID().charCodeAt(0)}.${randomUUID().charCodeAt(1)}.${randomUUID().charCodeAt(2)}`;
@@ -356,16 +356,18 @@ test('built artifacts keep a trade plan linked to its diary without creating tra
   // whole suite, so this case authenticates through its own synthetic client.
   expect((await page.context().request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
   expect((await page.context().request.post('/api/auth/login', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
-  await page.goto('/trade-plans/new');
-  await expect(page).toHaveURL(/\/trade-plans\/new$/);
-  await selectLocale(page, 'en');
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  const headers = { 'x-csrf-token': csrf };
+  // The linked-diary options load once when the form mounts, so the diary
+  // must already exist before the page opens. POST logins never set the
+  // CSRF cookie; the bounded helper GET establishes it first.
+  const headers = await csrfFor(page.context());
   const created = await page.context().request.post('/api/diaries', { headers, data: { date: '2026-09-14', title: 'Plan evidence diary', content: 'Original reasoning for the plan.' } });
   expect(created.status()).toBe(201);
   const diary = await created.json() as { id: string };
 
   // Create the plan through the product entry and link the existing diary.
+  await page.goto('/trade-plans/new');
+  await expect(page).toHaveURL(/\/trade-plans\/new$/);
+  await selectLocale(page, 'en');
   await page.getByRole('textbox', { name: 'Symbol', exact: true }).fill('aapl');
   await page.getByRole('textbox', { name: 'Setup', exact: true }).fill('Release plan lifecycle');
   await page.getByRole('textbox', { name: 'Entry price', exact: true }).fill('101.25');
