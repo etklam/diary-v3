@@ -680,7 +680,11 @@ kbd {
 }
 
 .desktop-nav {
-  gap: var(--space-8);
+  gap: var(--space-6);
+}
+
+.nav-overview {
+  display: grid;
 }
 
 .nav-group {
@@ -711,17 +715,20 @@ kbd {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px var(--space-3);
   border-radius: var(--radius-control);
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1.4;
-  text-transform: uppercase;
   cursor: pointer;
   list-style: none;
+}
+
+.nav-more .nav-group-links {
+  padding-left: var(--space-3);
 }
 
 .nav-more > summary::-webkit-details-marker {

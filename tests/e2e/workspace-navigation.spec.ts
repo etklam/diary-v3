@@ -25,6 +25,9 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
+  await expect(primary.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
+  await expect(primary.locator('.nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account'])
+  await expect(primary.getByText('Daily work', { exact: true })).toHaveCount(0)
   await expect(page.getByTestId('quick-entry')).toHaveAttribute('href', '/diaries/quick')
 
   const disclosure = page.locator('.desktop-quick-entry .quick-capture-disclosure')
@@ -53,10 +56,19 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(page.getByTestId('diary-navigation').getByRole('link', { name: 'Calendar', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Diary')
 
-  const more = page.locator('.desktop-nav .nav-more')
-  await more.locator('summary').click()
-  await expect(more.getByRole('link', { name: 'Partners', exact: true })).toBeVisible()
-  await expect(more.getByRole('link', { name: 'Diary reminders', exact: true })).toHaveAttribute('href', '/alerts')
+  const diaryManagement = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })
+  await diaryManagement.locator('summary').click()
+  await expect(diaryManagement.getByRole('link', { name: 'Partner management', exact: true })).toBeVisible()
+  await expect(diaryManagement.getByRole('link', { name: 'Diary reminders', exact: true })).toHaveAttribute('href', '/alerts')
+
+  await page.goto('/partners/compare')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Diary')
+  await page.goto('/stocks/alerts')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Price reminders')
+  await expect(page.locator('.desktop-nav .nav-more').filter({ hasText: 'Trade management' })).toHaveAttribute('open', '')
+  await page.goto('/reviews')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Review queue')
+  await page.screenshot({ path: 'docs/design/evidence/navigation/user-sidebar-1440.png', fullPage: true })
 
   await page.setViewportSize({ width: 768, height: 900 })
   await expect(page.getByTestId('quick-entry')).toBeVisible()
@@ -77,6 +89,7 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveAttribute('href', '/diaries/new')
   await expect(dialog.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute('href', '/')
   await expect(dialog.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
+  await expect(dialog.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
   await dialog.getByTestId('mobile-quick-entry').focus()
   await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
   await dialog.locator('.quick-capture-disclosure summary').click()
@@ -90,8 +103,8 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
 
   await trigger.press('Enter')
   await expect(dialog).toBeVisible()
-  await dialog.locator('.nav-more > summary').click()
-  await dialog.getByRole('link', { name: 'Partners', exact: true }).click()
+  await dialog.locator('.nav-more > summary').filter({ hasText: 'Diary management' }).click()
+  await dialog.getByRole('link', { name: 'Partner management', exact: true }).click()
   await expect(page).toHaveURL(/\/partners$/)
   await expect(dialog).toBeHidden()
 
@@ -110,7 +123,24 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await page.goto('/')
   await trigger.press('Enter')
   await expect(dialog).toBeVisible()
+  await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-drawer-390.png', fullPage: true })
   await dialog.getByRole('link', { name: 'Tools', exact: true }).click()
   await expect(page).toHaveURL(/\/tools$/)
   await expect(dialog).toBeHidden()
+})
+
+test('admin navigation is role-gated and ordered with article management first', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  expect((await page.request.post('/api/auth/login', { data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' } })).status()).toBe(200)
+  await page.goto('/admin/blog/new')
+  await selectLocale(page, 'en')
+  const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
+  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'ETF catalog'])
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
+  await page.screenshot({ path: 'docs/design/evidence/navigation/admin-sidebar-1440.png', fullPage: true })
+
+  for (const width of [360, 768]) {
+    await page.setViewportSize({ width, height: 720 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
 })

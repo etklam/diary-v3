@@ -9,20 +9,20 @@ import { CaptureChoices } from './quick-entry'
 type Role = 'USER' | 'ADMIN' | null
 
 const sectionCopy = {
-  'zh-TW': { daily: '日常工作', account: '帳戶', admin: '管理' },
-  'zh-CN': { daily: '日常工作', account: '账户', admin: '管理' },
-  en: { daily: 'Daily work', account: 'Account', admin: 'Administration' },
+  'zh-TW': { diary: '日記與複盤', investing: '投資與交易', markets: '市場與工具', account: '帳戶', admin: '管理' },
+  'zh-CN': { diary: '日记与复盘', investing: '投资与交易', markets: '市场与工具', account: '账户', admin: '管理' },
+  en: { diary: 'Diary & review', investing: 'Investing & trading', markets: 'Markets & tools', account: 'Account', admin: 'Administration' },
 } as const
 
 const workspaceCopy = {
   'zh-TW': {
-    overview: '總覽', diary: '日記', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '市場研究', tools: '工具', more: '更多工作區功能', partners: '伙伴', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', settings: '設定', security: '帳戶安全',
+    overview: '總覽', diary: '日記', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', publicArticles: '公開文章', settings: '設定',
   },
   'zh-CN': {
-    overview: '总览', diary: '日记', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '市场研究', tools: '工具', more: '更多工作区功能', partners: '伙伴', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', settings: '设置', security: '账户安全',
+    overview: '总览', diary: '日记', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', publicArticles: '公开文章', settings: '设置',
   },
   en: {
-    overview: 'Overview', diary: 'Diary', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', more: 'More workspace features', partners: 'Partners', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', settings: 'Settings', security: 'Account security',
+    overview: 'Overview', diary: 'Diary', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', publicArticles: 'Public articles', settings: 'Settings',
   },
 } as const
 
@@ -30,46 +30,72 @@ function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': 
   return values[locale]
 }
 
+export type NavigationOwner = 'overview' | 'diary' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
+
+export function navigationOwner(pathname: string): NavigationOwner {
+  if (pathname === '/') return 'overview'
+  if (pathname === '/reviews' || /^\/diaries\/[1-9]\d*\/review$/.test(pathname)) return 'reviews'
+  if (pathname === '/partners/compare' || pathname === '/timeline' || pathname === '/calendar' || pathname === '/diaries' || pathname.startsWith('/diaries/')) return 'diary'
+  if (pathname === '/alerts') return 'diaryReminders'
+  if (pathname === '/partners') return 'partners'
+  if (pathname === '/stocks/watchlist') return 'watchlist'
+  if (pathname === '/stocks/alerts') return 'priceReminders'
+  if (pathname === '/stocks' || pathname === '/strategy-performance') return 'holdings'
+  if (pathname.startsWith('/trade-plans')) return 'tradePlans'
+  if (pathname === '/discipline' || pathname.startsWith('/discipline/')) return 'discipline'
+  if (/^\/stocks\/[^/]+(?:\/thesis)?$/.test(pathname)) return 'marketResearch'
+  if (pathname === '/tools' || pathname.startsWith('/tools/') || pathname === '/etf/watchlist') return 'tools'
+  if (pathname === '/articles' || pathname.startsWith('/articles/')) return 'articles'
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings'
+  if (pathname === '/admin/blog' || pathname.startsWith('/admin/blog/')) return 'adminBlog'
+  if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) return 'adminUsers'
+  if (pathname === '/admin/etf' || pathname.startsWith('/admin/etf/')) return 'adminEtf'
+  return null
+}
+
 export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: Role; onNavigate?: () => void; idPrefix?: string }) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
   const c = workspaceCopy[locale]
-  const link = (to: string, text: string, icon: IconName, end = false) => <NavLink key={to} to={to} end={end} onClick={onNavigate}><Icon name={icon} />{text}</NavLink>
-  // Partner comparison is a timeline reading mode, not partner administration,
-  // so exactly one sidebar destination stays current on that page.
-  const diaryActive = location.pathname === '/timeline' || location.pathname === '/calendar' || location.pathname === '/diaries' || location.pathname.startsWith('/diaries/') || location.pathname === '/partners/compare'
-  const secondaryActive = location.pathname === '/partners' || location.pathname === '/discipline' || location.pathname.startsWith('/discipline/') || location.pathname === '/alerts' || location.pathname === '/stocks/alerts'
-  const marketResearch = <Link to="/stocks/SPY" onClick={onNavigate} aria-current={(location.pathname.startsWith('/stocks/') && location.pathname !== '/stocks/watchlist' && location.pathname !== '/stocks/alerts') ? 'page' : undefined}><Icon name="chart" />{c.marketResearch}</Link>
+  const owner = navigationOwner(location.pathname)
+  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner) => <Link key={to} to={to} onClick={onNavigate} aria-current={owner === destination ? 'page' : undefined}><Icon name={icon} />{text}</Link>
   return <>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-daily`}><h2 id={`${idPrefix}-daily`}>{sections.daily}</h2><div className="nav-group-links">
-      {link('/', c.overview, 'home', true)}
-      <Link to="/diaries" onClick={onNavigate} aria-current={diaryActive ? 'page' : undefined}><Icon name="book" />{c.diary}</Link>
-      {link('/reviews', c.reviewQueue, 'check')}
-      {link('/trade-plans', c.tradePlans, 'clipboard')}
-      {link('/stocks', c.holdings, 'briefcase', true)}
-      {link('/stocks/watchlist', c.watchlist, 'star')}
-      {marketResearch}
-      {link('/tools', c.tools, 'wrench')}
-    </div></section>
-    <details className="nav-more" open={secondaryActive || undefined}>
-      <summary><Icon name="chevronDown" />{c.more}</summary>
+    <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
+    <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}><h2 id={`${idPrefix}-diary`}>{sections.diary}</h2><div className="nav-group-links">
+      {link('/diaries', c.diary, 'book', 'diary')}
+      {link('/reviews', c.reviewQueue, 'check', 'reviews')}
+    </div><details className="nav-more" open={owner === 'diaryReminders' || owner === 'partners' || undefined}>
+      <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
       <div className="nav-group-links">
-        {link('/partners', c.partners, 'users', true)}
-        {link('/discipline', c.principles, 'shield')}
-        {link('/alerts', c.diaryReminders, 'bell')}
-        {link('/stocks/alerts', c.priceReminders, 'bell')}
+        {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
+        {link('/partners', c.partners, 'users', 'partners')}
       </div>
-    </details>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
-      {link('/settings', c.settings, 'settings', true)}
-      {link('/settings/security', c.security, 'lock')}
+    </details></section>
+    <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}><h2 id={`${idPrefix}-investing`}>{sections.investing}</h2><div className="nav-group-links">
+      {link('/stocks', c.holdings, 'briefcase', 'holdings')}
+      {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
+      {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
+    </div><details className="nav-more" open={owner === 'priceReminders' || owner === 'discipline' || undefined}>
+      <summary><Icon name="chevronDown" />{c.tradeManagement}</summary>
+      <div className="nav-group-links nav-secondary-links">
+        {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
+        {link('/discipline', c.principles, 'shield', 'discipline')}
+      </div>
+    </details></section>
+    <section className="nav-group" aria-labelledby={`${idPrefix}-markets`}><h2 id={`${idPrefix}-markets`}>{sections.markets}</h2><div className="nav-group-links">
+      {link('/stocks/SPY', c.marketResearch, 'chart', 'marketResearch')}
+      {link('/tools', c.tools, 'wrench', 'tools')}
     </div></section>
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
-      {link('/admin/etf', label(locale, { en: 'Manage ETF catalog', 'zh-CN': '管理 ETF 目录', 'zh-TW': '管理 ETF 目錄' }), 'layers')}
-      {link('/admin/users', label(locale, { en: 'Manage accounts', 'zh-CN': '管理账户', 'zh-TW': '管理帳戶' }), 'users')}
-      {link('/admin/blog', label(locale, { en: 'Manage articles', 'zh-CN': '管理文章', 'zh-TW': '管理文章' }), 'fileText')}
+      {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
+      {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
+      {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
     </div></section>}
+    <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
+      {link('/articles', c.publicArticles, 'fileText', 'articles')}
+      {link('/settings', c.settings, 'settings', 'settings')}
+    </div></section>
   </>
 }
 
