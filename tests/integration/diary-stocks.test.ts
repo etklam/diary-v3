@@ -38,13 +38,13 @@ async function create(browser: BrowserSession, extra = {}) {
 }
 
 it('normalizes and persists explicit company contexts through all diary reads and replacement', async () => {
-  const browser = await login(), diary = await create(browser, { stockSymbols: [' aapl ', 'MSFT', 'AAPL'] })
-  expect(diary.stockSymbols).toEqual(['AAPL', 'MSFT'])
-  for (const path of [`/api/diaries/${diary.id}`, '/api/diaries/by-date?date=2026-09-05']) expect((await (await browser.request(path)).json()).stockSymbols).toEqual(['AAPL', 'MSFT'])
-  expect((await (await browser.request('/api/diaries')).json()).data[0].stockSymbols).toEqual(['AAPL', 'MSFT'])
+  const browser = await login(), diary = await create(browser, { stockSymbols: [' aapl ', 'MSFT', 'AAPL', 'ABC DEF'] })
+  expect(diary.stockSymbols).toEqual(['AAPL', 'ABC DEF', 'MSFT'])
+  for (const path of [`/api/diaries/${diary.id}`, '/api/diaries/by-date?date=2026-09-05']) expect((await (await browser.request(path)).json()).stockSymbols).toEqual(['AAPL', 'ABC DEF', 'MSFT'])
+  expect((await (await browser.request('/api/diaries')).json()).data[0].stockSymbols).toEqual(['AAPL', 'ABC DEF', 'MSFT'])
   const body = { title: diary.title, content: diary.content }
   expect((await update(browser, `/api/diaries/${diary.id}`, body, 'PUT')).status).toBe(200)
-  expect((await (await browser.request(`/api/diaries/${diary.id}`)).json()).stockSymbols).toEqual(['AAPL', 'MSFT'])
+  expect((await (await browser.request(`/api/diaries/${diary.id}`)).json()).stockSymbols).toEqual(['AAPL', 'ABC DEF', 'MSFT'])
   const replaced = await update(browser, `/api/diaries/${diary.id}`, { ...body, stockSymbols: ['NVDA'] }, 'PUT')
   expect((await replaced.json()).stockSymbols).toEqual(['NVDA'])
   expect((await (await update(browser, `/api/diaries/${diary.id}`, { ...body, stockSymbols: [] }, 'PUT')).json()).stockSymbols).toEqual([])
@@ -59,6 +59,70 @@ it('unions concurrent appends without losing content or duplicate company links'
   const result = await (await browser.request(`/api/diaries/${diary.id}`)).json()
   expect([...result.stockSymbols].sort()).toEqual(['AAPL', 'MSFT', 'NVDA'])
   expect(result.content).toContain('Evidence MSFT'); expect(result.content).toContain('Evidence NVDA')
+})
+
+it('preserves the full Diary aggregate when a contextual append adds one symbol', async () => {
+  const browser = await login()
+  const createdResponse = await browser.post('/api/diaries', {
+    title: 'Aggregate baseline', content: 'Aggregate baseline body', date: '2026-09-15', stockSymbols: ['AAPL'],
+    thesis: 'Original thesis', risk: 'Original risk', execution: 'Original execution', reviewDueAt: '2026-09-20T01:00:00.000Z',
+    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-15T02:00:00.000Z', notes: 'Keep transaction' }],
+    alerts: [{ message: 'Keep reminder', triggerAt: '2026-09-30T02:00:00.000Z' }],
+  })
+  expect(createdResponse.status).toBe(201)
+  const created = await createdResponse.json()
+  const reviewPath = `/api/diaries/${created.id}/review`
+  const reviewWrite = await update(browser, reviewPath, {
+    reviewOutcome: 'PARTIAL', reviewSummary: 'Keep summary', reviewLearning: 'Keep learning', reviewAdjustment: 'Keep adjustment',
+  })
+  expect(reviewWrite.status).toBe(200)
+  const before = await (await browser.request(`/api/diaries/${created.id}`)).json()
+  const reviewBefore = await (await browser.request(reviewPath)).json()
+  expect(reviewBefore).toMatchObject({ reviewStatus: 'reviewed', reviewOutcome: 'PARTIAL', reviewSummary: 'Keep summary', reviewLearning: 'Keep learning', reviewAdjustment: 'Keep adjustment' })
+
+  const appendedResponse = await browser.post('/api/diaries', {
+    title: 'Incoming title is ignored', content: 'Append NVDA marker', date: '2026-09-15', appendToToday: true, stockSymbols: ['NVDA'],
+  })
+  expect(appendedResponse.status).toBe(201)
+  const appended = await (await browser.request(`/api/diaries/${created.id}`)).json()
+  expect(appended).toMatchObject({
+    id: created.id, date: before.date, title: before.title,
+    content: `${before.content}\n\n---\n\nAppend NVDA marker`, reviewStatus: 'reviewed', reviewOutcome: 'PARTIAL',
+    reviewSummary: 'Keep summary', reviewLearning: 'Keep learning', reviewAdjustment: 'Keep adjustment', reviewedAt: before.reviewedAt,
+  })
+  expect([...appended.stockSymbols].sort()).toEqual(['AAPL', 'NVDA'])
+  expect(appended.transactions).toEqual(before.transactions)
+  expect(appended.alerts).toEqual(before.alerts)
+  expect(await (await browser.request(reviewPath)).json()).toMatchObject({
+    id: reviewBefore.id, reviewStatus: 'reviewed', reviewedAt: reviewBefore.reviewedAt,
+    reviewOutcome: reviewBefore.reviewOutcome, reviewSummary: reviewBefore.reviewSummary,
+    reviewLearning: reviewBefore.reviewLearning, reviewAdjustment: reviewBefore.reviewAdjustment,
+  })
+})
+
+it('rejects the eleventh contextual symbol without mutating the existing aggregate', async () => {
+  const browser = await login()
+  const symbols = ['SYM01', 'SYM02', 'SYM03', 'SYM04', 'SYM05', 'SYM06', 'SYM07', 'SYM08', 'SYM09', 'SYM10']
+  const createdResponse = await browser.post('/api/diaries', {
+    title: 'Symbol limit baseline', content: 'Do not change this body', date: '2026-09-16', stockSymbols: symbols,
+    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '10', tradeDate: '2026-09-16T02:00:00.000Z', notes: 'Keep transaction' }],
+    alerts: [{ message: 'Keep reminder', triggerAt: '2026-09-30T02:00:00.000Z' }],
+  })
+  expect(createdResponse.status).toBe(201)
+  const created = await createdResponse.json()
+  const before = await (await browser.request(`/api/diaries/${created.id}`)).json()
+  const append = await browser.post('/api/diaries', {
+    title: 'Must not write', content: 'Must not append', date: '2026-09-16', appendToToday: true, stockSymbols: ['NVDA'],
+  })
+  expect(append.status).toBe(400)
+  const failure = await append.json()
+  expect(failure.data.code).toBe('SYS_VALIDATION_ERROR')
+  expect(failure.data.details).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'stockSymbols' })]))
+  const after = await (await browser.request(`/api/diaries/${created.id}`)).json()
+  expect(after).toMatchObject({ id: created.id, title: before.title, content: before.content, reviewStatus: before.reviewStatus })
+  expect(after.stockSymbols).toEqual(before.stockSymbols)
+  expect(after.transactions).toEqual(before.transactions)
+  expect(after.alerts).toEqual(before.alerts)
 })
 
 it('keeps shared company identities private at the diary link and cascades only deleted diary contexts', async () => {

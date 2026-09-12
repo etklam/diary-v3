@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createWebSession } from '../../packages/api-client/src/index';
+import { createWebSession, NO_AUTOMATIC_SESSION_RETRY_HEADER } from '../../packages/api-client/src/index';
 
 const baseUrl = 'https://diary.test';
 function deferred<T>() {
@@ -128,6 +128,18 @@ describe('Web stable cookie session transport', () => {
     const response = await client.fetch(`${baseUrl}/api/user/password`, { method: 'PUT', body: '{}' });
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ data: { code: 'AUTH_LOGIN_INVALID_CREDENTIALS' } });
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows an uncertain append to return its 401 without automatic replay', async () => {
+    const transport = vi.fn(async () => new Response(null, { status: 401 }));
+    const client = createWebSession({ baseUrl, fetch: transport });
+    const response = await client.fetch(`${baseUrl}/api/diaries`, {
+      method: 'POST',
+      headers: { [NO_AUTOMATIC_SESSION_RETRY_HEADER]: '1' },
+      body: JSON.stringify({ appendToToday: true, content: 'Keep one copy' }),
+    });
+    expect(response.status).toBe(401);
     expect(transport).toHaveBeenCalledTimes(1);
   });
 

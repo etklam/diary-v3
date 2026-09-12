@@ -4,6 +4,9 @@ export type WebSessionOptions = {
   fetch?: typeof globalThis.fetch;
 };
 
+/** Request marker for writes whose 401 result must remain user-confirmed. */
+export const NO_AUTOMATIC_SESSION_RETRY_HEADER = 'x-diary-no-automatic-session-retry';
+
 const bootstrapPaths = new Set([
   '/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout',
 ]);
@@ -43,7 +46,8 @@ export function createWebSession(options: WebSessionOptions) {
     const response = await send();
     const bootstrap = bootstrapPaths.has(url.pathname) || url.pathname.startsWith('/api/auth/native/');
     const explicitCredential = request.headers.has('authorization') || request.headers.has('x-api-key');
-    if (generation !== expected || response.status !== 401 || bootstrap || explicitCredential || !url.pathname.startsWith('/api/')) return response;
+    const noAutomaticRetry = request.headers.get(NO_AUTOMATIC_SESSION_RETRY_HEADER) === '1';
+    if (generation !== expected || response.status !== 401 || bootstrap || explicitCredential || noAutomaticRetry || !url.pathname.startsWith('/api/')) return response;
     // A rejected current password is an operation error, not an expired session.
     try {
       const error: unknown = await response.clone().json();

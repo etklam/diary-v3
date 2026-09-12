@@ -78,7 +78,7 @@ import { registerStockNoteRoutes } from './stock-notes.js'
 import { registerEvidenceRoutes } from './evidence.js'
 import { registerWatchlistRoutes } from './watchlist.js'
 import { registerTradePlanRoutes } from './trade-plans.js'
-import { listDiaryStocks } from './diary-stocks.js'
+import { DiaryStockLimitError, listDiaryStocks } from './diary-stocks.js'
 import { valuePortfolio, batchQuotePrices } from './portfolio.js'
 import { exportClosedTrades, tradeExportFilename } from './trade-export.js'
 import { createNagerHolidayProvider, registerHolidayRoutes, type HolidayProvider } from './holidays.js'
@@ -785,6 +785,7 @@ export function createApp({
       return c.json(serializeDiary(result.diary, false, result.transactions, [], result.stockSymbols, result.alerts), 201)
     } catch (error) {
       if (isUniqueViolation(error, 'diaries_user_date_key')) fail(409, 'DIARY_ALREADY_EXISTS', `Diary already exists for ${diaryDate}`)
+      if (error instanceof DiaryStockLimitError) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'stockSymbols', message: error.message }])
       if (error instanceof LedgerValidationError) {
         fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'transactions', message: error.message }])
       }

@@ -237,6 +237,7 @@ const diaryTagsSchema = z.array(z.string().trim().min(1).max(100)).max(50)
   .transform((tags) => [...new Set(tags)])
 const nullableDiaryTextSchema = z.string().max(10_000).nullable().optional()
 export const diaryAlertInputSchema = alertDraftSchema.extend({ id: serializedIdSchema.optional() }).strict()
+export const MAX_DIARY_STOCK_SYMBOLS = 10
 const diaryWriteFields = {
   alerts: z.array(diaryAlertInputSchema).max(50).optional(),
   title: z.string().trim().min(1).max(500),
@@ -249,7 +250,7 @@ const diaryWriteFields = {
   reviewDueAt: utcInstantSchema.nullable().optional(),
   stockSymbols: z.array(z.string().trim().min(1).max(20).transform(value => value.toUpperCase())
     .pipe(z.string().regex(/^[A-Z0-9][A-Z0-9. -]*$/))).max(20)
-    .transform(values => [...new Set(values)]).pipe(z.array(z.string()).max(10)).optional(),
+    .transform(values => [...new Set(values)]).pipe(z.array(z.string()).max(MAX_DIARY_STOCK_SYMBOLS)).optional(),
 }
 
 export const createDiaryRequestSchema = z.object({

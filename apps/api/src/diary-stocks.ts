@@ -1,7 +1,23 @@
 import { diaries, diaryStocks, stocks, type Database } from '@diary/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
+import { MAX_DIARY_STOCK_SYMBOLS } from '@diary/contracts'
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
+
+export class DiaryStockLimitError extends Error {
+  readonly code = 'DIARY_STOCK_LIMIT'
+
+  constructor() {
+    super(`A Diary can be associated with at most ${MAX_DIARY_STOCK_SYMBOLS} company symbols`)
+    this.name = 'DiaryStockLimitError'
+  }
+}
+
+export function mergeDiaryStockSymbols(existing: readonly string[], incoming: readonly string[]) {
+  const merged = [...new Set([...existing, ...incoming])]
+  if (merged.length > MAX_DIARY_STOCK_SYMBOLS) throw new DiaryStockLimitError()
+  return merged
+}
 
 export async function listDiaryStocks(db: Database | Transaction, userId: bigint, diaryIds: bigint[]) {
   if (!diaryIds.length) return []

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { createWebSession } from '@diary/api-client';
 import { clearPrivateServiceWorkerCache } from './pwa-client';
+import { safeCaptureReturnPath } from './capture-context';
 
 type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
@@ -22,6 +23,8 @@ export function csrfToken() {
 }
 
 export function safeReturnPath(candidate: string | null): string {
+  const capturePath = safeCaptureReturnPath(candidate);
+  if (capturePath) return capturePath;
   if (candidate && /^\/partners\/compare\?partnerId=[1-9]\d{0,18}$/.test(candidate)) return candidate;
   if (candidate && /^\/discipline\?import=[A-Za-z0-9%+/=]+$/.test(candidate)) return candidate;
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
@@ -42,7 +45,7 @@ export function signInPath(path: string) { return `/login?returnTo=${encodeURICo
 export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
-  if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:'))localStorage.removeItem(key);
+  if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if((broadcast||clearDrafts)&&(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:')))localStorage.removeItem(key);
    if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;

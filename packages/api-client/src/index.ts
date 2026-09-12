@@ -34,5 +34,5 @@ export type { paths } from './generated';
 export { createNativeSession } from './native-session';
 export type { NativeSessionOptions, NativeSessionStorage } from './native-session';
 
-export { createWebSession } from './web-session';
+export { createWebSession, NO_AUTOMATIC_SESSION_RETRY_HEADER } from './web-session';
 export type { WebSessionOptions } from './web-session';

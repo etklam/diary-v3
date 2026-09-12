@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { selectLocale } from '../support/e2e';
 
 const password = 'synthetic-release-artifact-password';
 
@@ -34,6 +35,54 @@ test('built artifacts complete auth and diary create, read, edit', async ({ page
   await expect(page.getByRole('heading', { name: 'Release artifact diary, edited', exact: true })).toBeVisible();
   const persisted = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { title: string };
   expect(persisted.title).toBe('Release artifact diary, edited');
+});
+
+test('built artifacts complete Company capture, append, server verification and return', async ({ page, request }) => {
+  const email = `release-handoff-${randomUUID()}@example.test`;
+  const date = '2026-09-23';
+  const firstMarker = `Release Company capture ${randomUUID()}`;
+  const appendMarker = `Release Company append ${randomUUID()}`;
+  expect((await request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
+  await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(email);
+  await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);
+  await page.getByRole('button', { name: /Sign in|登入|登录/, exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/new$/);
+  await selectLocale(page, 'en');
+
+  await page.goto('/stocks/NVDA');
+  await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
+  await page.getByLabel('Diary date', { exact: true }).fill(date);
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Release Company handoff');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill(firstMarker);
+  await page.getByRole('button', { name: 'Create diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const id = page.url().split('/').at(-1)!;
+  const createdResponse = await page.request.get(`/api/diaries/${id}`);
+  expect(createdResponse.status()).toBe(200);
+  const created = await createdResponse.json() as { id: string; content: string; stockSymbols: string[] };
+  expect(created).toMatchObject({ id, content: firstMarker, stockSymbols: ['NVDA'] });
+
+  await page.getByRole('link', { name: 'Return to NVDA research', exact: true }).click();
+  await expect(page).toHaveURL(/\/stocks\/NVDA$/);
+  await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
+  await page.getByLabel('Diary date', { exact: true }).fill(date);
+  await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill(appendMarker);
+  await page.getByRole('button', { name: 'Append to date', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+  const appendedResponse = await page.request.get(`/api/diaries/${id}`);
+  expect(appendedResponse.status()).toBe(200);
+  const appended = await appendedResponse.json() as { id: string; content: string; stockSymbols: string[] };
+  expect(appended.id).toBe(id);
+  expect(appended.content).toBe(`${firstMarker}\n\n---\n\n${appendMarker}`);
+  expect(appended.content.split(appendMarker)).toHaveLength(2);
+  expect(appended.stockSymbols).toEqual(['NVDA']);
+  await expect(page.getByRole('link', { name: 'Return to NVDA research', exact: true })).toHaveAttribute('href', '/stocks/NVDA');
+  await page.getByRole('link', { name: 'Return to NVDA research', exact: true }).click();
+  await expect(page).toHaveURL(/\/stocks\/NVDA$/);
 });
 
 test('built artifacts restore a draft and complete a review', async ({ page, request, context }) => {

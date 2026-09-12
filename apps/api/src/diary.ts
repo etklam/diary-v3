@@ -13,7 +13,7 @@ import {
 } from './ledger.js'
 import { serializeLinkedTradePlan } from './trade-plans.js'
 import { tradePlans } from '@diary/db'
-import { listDiaryStocks, writeDiaryStocks } from './diary-stocks.js'
+import { listDiaryStocks, mergeDiaryStockSymbols, writeDiaryStocks } from './diary-stocks.js'
 
 import { toAlertResponse } from '@diary/contracts/alerts'
 import { persistDiaryAlert } from './alerts.js'
@@ -111,6 +111,11 @@ export async function createDiary(
         eq(diaries.userId, userId), eq(diaries.date, date),
       )).limit(1).for('update')
       if (existing) {
+        // Validate the persisted and incoming association union before any append mutation.
+        mergeDiaryStockSymbols(
+          (await listDiaryStocks(tx, userId, [existing.id])).map(row => row.symbol),
+          input.stockSymbols ?? [],
+        )
         const tags = input.tags?.length
           ? [...new Set([...existing.tags, ...input.tags])]
           : existing.tags

@@ -38,7 +38,7 @@ function Shell() {
     }).catch(() => { if (active) setRole(null); });
     return () => { active = false; };
   }, [session.revision]);
-  useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/')) navigate(signInPath(location.pathname),{replace:true});} },[session.revision,location.pathname,navigate]);
+  useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);
     clearPrivateSession(true);
