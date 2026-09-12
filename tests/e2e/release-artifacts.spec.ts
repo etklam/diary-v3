@@ -16,6 +16,44 @@ test('built artifacts serve public pages and API health', async ({ page, request
   await expect(page.locator('main')).toBeVisible();
 });
 
+test('built artifacts publish, update, and archive a public article', async ({ page, browser }) => {
+  test.setTimeout(180_000);
+  const title = `Release public article ${randomUUID()}`;
+  expect((await page.request.post('/api/auth/login', { data: { email: 'release-admin@example.test', password: 'synthetic-release-admin-password' } })).status()).toBe(200);
+  await page.goto('/articles');
+  await page.getByRole('link', { name: /New article|新增文章/, exact: true }).click();
+  await page.getByLabel(/Title|標題|标题/, { exact: true }).fill(title);
+  await page.getByLabel(/Content|內容|内容/, { exact: true }).fill('Release draft body.');
+  await page.getByRole('button', { name: /Save draft|保存草稿/, exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/blog\/\d+\/edit$/);
+  const id = page.url().match(/\/admin\/blog\/(\d+)\/edit$/)?.[1];
+  expect(id).toBeTruthy();
+  expect((await page.request.get(`/api/blog/admin/${id}`)).status()).toBe(200);
+
+  const guestContext = await browser.newContext();
+  try {
+    const guest = await guestContext.newPage();
+    const draft = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string };
+    expect(draft.status).toBe('DRAFT');
+    expect((await guest.request.get(`/api/blog/${encodeURIComponent(draft.slug)}`)).status()).toBe(404);
+    await page.getByRole('button', { name: /Publish publicly|公開發布|公开发布/, exact: true }).click();
+    await expect(page.getByText(/Article published publicly\.|文章已公開發布。|文章已公开发布。/, { exact: true })).toBeVisible();
+    const published = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string };
+    expect(published.status).toBe('PUBLISHED');
+    await guest.goto(`/articles/${encodeURIComponent(published.slug)}`);
+    await expect(guest.getByRole('heading', { name: title, exact: true })).toBeVisible();
+    await page.getByLabel(/Content|內容|内容/, { exact: true }).fill('Updated through built artifacts.');
+    await page.getByRole('button', { name: /Update published article|更新公開文章|更新公开文章/, exact: true }).click();
+    await expect(page.getByText(/Published article updated\.|公開文章已更新。|公开文章已更新。/, { exact: true })).toBeVisible();
+    expect((await (await page.request.get(`/api/blog/admin/${id}`)).json() as { status: string }).status).toBe('PUBLISHED');
+    await guest.reload();
+    await expect(guest.getByText('Updated through built artifacts.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Archive article|封存文章|归档文章/, exact: true }).click();
+    await expect(page.getByText(/Article archived and no longer public\.|文章已封存，不再公開。|文章已归档，不再公开。/, { exact: true })).toBeVisible();
+    expect((await guest.goto(`/articles/${encodeURIComponent(published.slug)}`))?.status()).toBe(404);
+  } finally { await guestContext.close(); }
+});
+
 test('built artifacts complete auth and diary create, read, edit', async ({ page, request }) => {
   const email = `release-${randomUUID()}@example.test`;
   expect((await request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
@@ -219,7 +257,9 @@ test('built artifacts let anonymous visitors finish calculator and market resear
 test('built artifacts complete the diary mainline with server-verified reads', async ({ page, request }) => {
   const email = `release-mainline-${randomUUID()}@example.test`;
   const marker = `ReleaseMainline ${randomUUID()}`;
-  expect((await request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
+  const clientHeaders = freshClient();
+  await page.context().setExtraHTTPHeaders(clientHeaders);
+  expect((await request.post('/api/auth/register', { headers: clientHeaders, data: { email, password } })).status()).toBe(200);
   await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
   await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(email);
   await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);

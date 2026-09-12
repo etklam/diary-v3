@@ -1,8 +1,9 @@
-import { data, Link, useLoaderData, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, Link, useLoaderData, useOutletContext, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { postPublicDetailSchema, type PostPublicDetail } from '@diary/contracts/post'
 import { Markdown } from '../markdown'
 import { useUi } from '../ui'
 import '../trade-plan.css'
+import type { ShellOutletContext } from '../root'
 
 function apiUrl(request: Request, path: string) {
   const origin = typeof window === 'undefined' && typeof process !== 'undefined' && process.env.API_ORIGIN
@@ -35,20 +36,22 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => {
 }
 
 const copy = {
-  en: { back: 'All articles', by: 'By' },
-  'zh-TW': { back: '全部文章', by: '作者' },
-  'zh-CN': { back: '全部文章', by: '作者' },
+  en: { back: 'All articles', by: 'By', edit: 'Edit article', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy' },
+  'zh-TW': { back: '全部文章', by: '作者', edit: '編輯文章', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略' },
+  'zh-CN': { back: '全部文章', by: '作者', edit: '编辑文章', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略' },
 } as const
 
 export default function Article() {
   const { post } = useLoaderData<typeof loader>() as { post: PostPublicDetail }
   const { locale } = useUi()
+  const { viewer } = useOutletContext<ShellOutletContext>()
   const c = copy[locale]
+  const categoryLabel = post.category in c ? c[post.category as 'fundamental' | 'technical' | 'market' | 'strategy'] : post.category
   const formatDate = (value: string) => `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))} UTC`
   return <article className="diary-reading">
-    <Link to="/articles">{c.back}</Link>
+    <div className="article-reading-actions"><Link to="/articles">{c.back}</Link>{viewer?.role === 'ADMIN' && <Link className="button secondary" to={`/admin/blog/${post.id}/edit`}>{c.edit}</Link>}</div>
     <header>
-      <p className="muted">{post.category} · {c.by} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
+      <p className="muted">{categoryLabel} · {c.by} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
       <h1>{post.title}</h1>
       {post.excerpt && <p className="lede">{post.excerpt}</p>}
       {post.coverImage && <img src={post.coverImage} alt={post.title} style={{ width: '100%', height: 'auto', maxHeight: 480, objectFit: 'cover' }} />}

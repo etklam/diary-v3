@@ -177,6 +177,10 @@
   display: none;
 }
 
+.public-admin-link {
+  display: none;
+}
+
 @media (min-width: 640px) {
   .public-actions > .preferences {
     display: flex;
@@ -203,6 +207,23 @@
   .public-actions .public-register {
     display: inline-flex;
   }
+
+  .public-admin-link {
+    display: inline-flex;
+  }
+}
+
+.article-admin-actions,
+.article-reading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.article-reading-actions {
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
 }
 
 /* ---- Public drawer (compact mode) ---- */

@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { createWebSession } from '@diary/api-client';
 import { clearPrivateServiceWorkerCache } from './pwa-client';
 import { safeCaptureReturnPath } from './capture-context';
+import { serializedIdSchema } from '@diary/contracts';
 
 type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
@@ -32,6 +33,8 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate && /^\/partners\/compare\?limit=(?:20|40|60)$/.test(candidate)) return candidate;
   if (candidate && /^\/discipline\?import=[A-Za-z0-9%+/=]+$/.test(candidate)) return candidate;
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
+  const adminPostEdit = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/);
+  if (adminPostEdit && serializedIdSchema.safeParse(adminPostEdit[1]).success) return candidate!;
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
   if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
@@ -50,7 +53,7 @@ export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if((broadcast||clearDrafts)&&(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:')))localStorage.removeItem(key);
-   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('post-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;

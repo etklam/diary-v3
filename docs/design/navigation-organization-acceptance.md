@@ -50,4 +50,4 @@ Ownership uses a specific-path-first matcher. A workspace sidebar landmark expos
 - `docs/design/evidence/navigation/admin-sidebar-1440.png`
 - `docs/design/evidence/navigation/mobile-drawer-390.png`
 
-Focused verification passed: navigation/capture unit tests (32), TypeScript, ESLint, and three Playwright navigation scenarios. Full release gates are recorded with the combined phase acceptance.
+Focused verification passed: navigation/capture unit tests (32), TypeScript, ESLint, and three Playwright navigation scenarios. Combined phase verification passed 72 unit files / 642 tests, the production build, contracts drift check, and all 9 production-artifact RC1 browser scenarios. Full article and combined results are recorded in `docs/design/article-publishing-acceptance.md`.

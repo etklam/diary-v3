@@ -141,9 +141,9 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
 // ---- Public site navigation (single-row header + compact drawer) ----
 
 const publicCopy = {
-  'zh-TW': { tools: '工具', articles: '文章', guide: '使用說明', about: '關於', shortcuts: '工具快捷入口', menu: '選單' },
-  'zh-CN': { tools: '工具', articles: '文章', guide: '使用说明', about: '关于', shortcuts: '工具快捷入口', menu: '菜单' },
-  en: { tools: 'Tools', articles: 'Articles', guide: 'Guide', about: 'About', shortcuts: 'Tool shortcuts', menu: 'Menu' },
+  'zh-TW': { tools: '工具', articles: '文章', guide: '使用說明', about: '關於', shortcuts: '工具快捷入口', menu: '選單', workspace: '返回工作區', manageArticles: '管理文章' },
+  'zh-CN': { tools: '工具', articles: '文章', guide: '使用说明', about: '关于', shortcuts: '工具快捷入口', menu: '菜单', workspace: '返回工作区', manageArticles: '管理文章' },
+  en: { tools: 'Tools', articles: 'Articles', guide: 'Guide', about: 'About', shortcuts: 'Tool shortcuts', menu: 'Menu', workspace: 'Workspace', manageArticles: 'Manage articles' },
 } as const
 
 /** Tools text links to /tools; the chevron next to it discloses tool shortcuts from the shared TOOLS registry. */
@@ -182,7 +182,7 @@ export function PublicNavLinks({ onNavigate, disclosure = true }: { onNavigate?:
 }
 
 /** Compact public drawer: full navigation, the tool list, preferences and registration. */
-export function PublicMenu({ preferences }: { preferences: ReactNode }) {
+export function PublicMenu({ preferences, authenticated, role }: { preferences: ReactNode; authenticated: boolean | null; role: Role }) {
   const { locale, t } = useUi()
   const c = publicCopy[locale]
   const dialog = useRef<HTMLDialogElement>(null)
@@ -214,7 +214,10 @@ export function PublicMenu({ preferences }: { preferences: ReactNode }) {
           <h2 id="public-menu-tools-title" className="public-menu-tools-title">{c.tools}</h2>
           <div className="public-menu-tools">{TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={close}><Icon name={tool.icon} size={16} />{tool.name[locale]}</Link>)}</div>
         </section>
-        <div className="public-menu-preferences">{preferences}<Link className="button" to="/register" onClick={close}>{t('register')}</Link></div>
+        <div className="public-menu-preferences">{preferences}{authenticated === true ? <>
+          {role === 'ADMIN' && <Link to="/admin/blog" onClick={close}>{c.manageArticles}</Link>}
+          <Link className="button secondary" to="/" onClick={close}>{c.workspace}</Link>
+        </> : <Link className="button" to="/register" onClick={close}>{t('register')}</Link>}</div>
       </div>
     </dialog>
   </>

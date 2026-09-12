@@ -2,12 +2,14 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer, request } from 'node:http';
 import { Socket } from 'node:net';
 import { provisionTestDatabase } from '../tests/support/database';
+import bcrypt from 'bcryptjs';
 
 const API_PORT = 3211;
 const WEB_PORT = 3212;
 const GATEWAY_PORT = 3200;
 const children: ChildProcess[] = [];
 const database = await provisionTestDatabase('diary_v3_release_e2e');
+await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['release-admin@example.test', await bcrypt.hash('synthetic-release-admin-password', 4)]);
 let shuttingDown = false;
 
 function start(command: string, args: string[], env: NodeJS.ProcessEnv) {

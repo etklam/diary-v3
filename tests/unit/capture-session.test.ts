@@ -35,22 +35,31 @@ describe('capture session return and Quick draft lifecycle', () => {
     expect(safeReturnPath('/partners/compare?limit=99')).toBe('/diaries/new');
     expect(safeReturnPath('/partners/compare?partnerId=42&tab=all')).toBe('/diaries/new');
     expect(safeReturnPath('/partners/compare?partnerId=0&limit=40')).toBe('/diaries/new');
+    expect(safeReturnPath('/admin/blog/42/edit')).toBe('/admin/blog/42/edit');
+    expect(safeReturnPath('/admin/blog/9223372036854775807/edit')).toBe('/admin/blog/9223372036854775807/edit');
+    expect(safeReturnPath('/admin/blog/9223372036854775808/edit')).toBe('/diaries/new');
+    expect(safeReturnPath('/admin/blog/42/edit?publish=true')).toBe('/diaries/new');
+    expect(safeReturnPath('//outside.example/admin/blog/42/edit')).toBe('/diaries/new');
   });
 
   it('preserves account-local Quick drafts during automatic invalidation', () => {
     localStorage.setItem('diary-quick-draft:account-a', 'draft');
     localStorage.setItem('diary-quick-reminder:account-a', 'reminder');
+    localStorage.setItem('post-editor-draft:account-a:new', 'article');
 
     clearPrivateSession();
 
     expect(localStorage.getItem('diary-quick-draft:account-a')).toBe('draft');
     expect(localStorage.getItem('diary-quick-reminder:account-a')).toBe('reminder');
+    expect(localStorage.getItem('post-editor-draft:account-a:new')).toBe('article');
   });
 
   it('clears Quick drafts for explicit and cross-tab logout', () => {
     localStorage.setItem('diary-quick-draft:account-a', 'draft');
+    localStorage.setItem('post-editor-draft:account-a:42', 'article');
     clearPrivateSession(true);
     expect(localStorage.getItem('diary-quick-draft:account-a')).toBeNull();
+    expect(localStorage.getItem('post-editor-draft:account-a:42')).toBeNull();
 
     localStorage.setItem('diary-quick-draft:account-b', 'draft');
     clearPrivateSession(false, true);

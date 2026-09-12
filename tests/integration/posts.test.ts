@@ -93,6 +93,13 @@ it('enforces Admin authorization and keeps public author email private', async (
 
   const { browser } = await login(true)
   const post = await create(browser, { title: 'Public author projection', status: 'PUBLISHED' })
+  const write = { title: 'Unauthorized edit', content: 'Must remain rejected.', category: 'market', status: 'PUBLISHED' }
+  expect((await mutate(ordinary.browser, `/api/blog/${post.id}`, write)).status).toBe(403)
+  expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/publish`, {})).status).toBe(403)
+  expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/archive`, {})).status).toBe(403)
+  expect((await mutate(anonymous, `/api/blog/${post.id}`, write)).status).toBe(401)
+  expect((await anonymous.post(`/api/blog/admin/${post.id}/publish`, {})).status).toBe(401)
+  expect((await anonymous.post(`/api/blog/admin/${post.id}/archive`, {})).status).toBe(401)
   const list = await (await anonymous.request('/api/blog')).json()
   expect(list.data).toHaveLength(1)
   expect(list.data[0].author).toEqual({ id: expect.any(String), name: null })

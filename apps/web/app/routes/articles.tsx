@@ -1,7 +1,8 @@
-import { data, Form, Link, useLoaderData, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, Form, Link, useLoaderData, useOutletContext, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { postPublicListResponseSchema, type PostPublicListResponse } from '@diary/contracts/post'
 import { useUi } from '../ui'
 import '../trade-plan.css'
+import type { ShellOutletContext } from '../root'
 
 function apiUrl(request: Request, path: string) {
   const origin = typeof window === 'undefined' && typeof process !== 'undefined' && process.env.API_ORIGIN
@@ -24,15 +25,17 @@ export const meta: MetaFunction<typeof loader> = () => [
 ]
 
 const copy = {
-  en: { title: 'Articles', intro: 'Published research and decision notes, kept readable and traceable.', search: 'Search', category: 'Category', all: 'All categories', submit: 'Apply', empty: 'No published articles match these filters.', previous: 'Previous', next: 'Next', page: 'Page', author: 'By', read: 'Read article' },
-  'zh-TW': { title: '文章', intro: '已發布的研究與決策記錄，保留可讀性與脈絡。', search: '搜尋', category: '分類', all: '全部分類', submit: '套用', empty: '沒有符合條件的已發布文章。', previous: '上一頁', next: '下一頁', page: '第', author: '作者', read: '閱讀文章' },
-  'zh-CN': { title: '文章', intro: '已发布的研究与决策记录，保留可读性与脉络。', search: '搜索', category: '分类', all: '全部分类', submit: '应用', empty: '没有符合条件的已发布文章。', previous: '上一页', next: '下一页', page: '第', author: '作者', read: '阅读文章' },
+  en: { title: 'Articles', intro: 'Published research and decision notes, kept readable and traceable.', search: 'Search', category: 'Category', all: 'All categories', submit: 'Apply', empty: 'No published articles match these filters.', previous: 'Previous', next: 'Next', page: 'Page', author: 'By', read: 'Read article', new: 'New article', manage: 'Manage articles', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy' },
+  'zh-TW': { title: '文章', intro: '已發布的研究與決策記錄，保留可讀性與脈絡。', search: '搜尋', category: '分類', all: '全部分類', submit: '套用', empty: '沒有符合條件的已發布文章。', previous: '上一頁', next: '下一頁', page: '第', author: '作者', read: '閱讀文章', new: '新增文章', manage: '管理文章', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略' },
+  'zh-CN': { title: '文章', intro: '已发布的研究与决策记录，保留可读性与脉络。', search: '搜索', category: '分类', all: '全部分类', submit: '应用', empty: '没有符合条件的已发布文章。', previous: '上一页', next: '下一页', page: '第', author: '作者', read: '阅读文章', new: '新增文章', manage: '管理文章', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略' },
 } as const
 
 export default function Articles() {
   const loaded = useLoaderData<typeof loader>() as PostPublicListResponse & { origin: string; search: string }
   const { locale } = useUi()
+  const { viewer } = useOutletContext<ShellOutletContext>()
   const c = copy[locale]
+  const categoryLabel = (category: string) => category in c ? c[category as 'fundamental' | 'technical' | 'market' | 'strategy'] : category
   const params = new URLSearchParams(loaded.search)
   const page = loaded.pagination.page
   const makePage = (nextPage: number) => {
@@ -42,15 +45,15 @@ export default function Articles() {
   }
   const formatDate = (value: string) => `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))} UTC`
   return <section className="plan-page">
-    <header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div></header>
+    <header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div>{viewer?.role === 'ADMIN' && <div className="article-admin-actions"><Link className="button" to="/admin/blog/new">{c.new}</Link><Link to="/admin/blog">{c.manage}</Link></div>}</header>
     <Form method="get" className="plan-filters" role="search">
       <label>{c.search}<input name="search" defaultValue={params.get('search') ?? ''} /></label>
-      <label>{c.category}<select name="category" defaultValue={params.get('category') ?? ''}><option value="">{c.all}</option><option value="fundamental">Fundamental</option><option value="technical">Technical</option><option value="market">Market</option><option value="strategy">Strategy</option></select></label>
+      <label>{c.category}<select name="category" defaultValue={params.get('category') ?? ''}><option value="">{c.all}</option><option value="fundamental">{c.fundamental}</option><option value="technical">{c.technical}</option><option value="market">{c.market}</option><option value="strategy">{c.strategy}</option></select></label>
       <button type="submit">{c.submit}</button>
     </Form>
     {loaded.data.length === 0 ? <p>{c.empty}</p> : <ol className="plan-list">{loaded.data.map(post => <li key={post.id}>
       <h2><Link to={`/articles/${encodeURIComponent(post.slug)}`}>{post.title}</Link></h2>
-      <p className="muted">{post.category} · {c.author} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
+      <p className="muted">{categoryLabel(post.category)} · {c.author} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
       {post.excerpt && <p>{post.excerpt}</p>}
       <Link to={`/articles/${encodeURIComponent(post.slug)}`}>{c.read}</Link>
     </li>)}</ol>}

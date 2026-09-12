@@ -23,6 +23,12 @@ function PreferencesControls({ mobile = false, compact = false }: { mobile?: boo
   </div>;
 }
 
+const publicSessionCopy = {
+  'zh-TW': { workspace: '返回工作區', manage: '管理文章' },
+  'zh-CN': { workspace: '返回工作区', manage: '管理文章' },
+  en: { workspace: 'Workspace', manage: 'Manage articles' },
+} as const;
+
 function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -30,31 +36,35 @@ function Shell() {
   const sessionRevision = useRef(session.revision);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
-  const [role, setRole] = useState<'USER' | 'ADMIN' | null>(null);
+  const [viewer, setViewer] = useState<{ id: string; role: 'USER' | 'ADMIN' } | null>(null);
   useEffect(() => {
+    if (session.authenticated === false) { setViewer(null); return; }
     let active = true;
     void api.GET('/api/auth/me').then(result => {
-      if (active) setRole(result.response.ok && result.data ? result.data.data.role : null);
-    }).catch(() => { if (active) setRole(null); });
+      if (active) setViewer(result.response.ok && result.data ? { id: result.data.data.id, role: result.data.data.role } : null);
+    }).catch(() => { if (active) setViewer(null); });
     return () => { active = false; };
-  }, [session.revision]);
+  }, [session.authenticated, session.revision, location.pathname]);
   useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);
     clearPrivateSession(true);
-    setRole(null);
+    setViewer(null);
     try { const result=await api.POST('/api/auth/logout'); if(!result.response.ok) setLogoutError(true); }
     catch { setLogoutError(true); }
     finally { setLogoutPending(false); }
   }
   const previousPath = useRef(location.pathname);
   useEffect(() => { if(previousPath.current!==location.pathname){document.getElementById('main')?.focus();previousPath.current=location.pathname;} },[location.pathname]);
-  const { t } = useUi();
+  const { t, locale } = useUi();
+  const publicSession = publicSessionCopy[locale];
   const preferences = <PreferencesControls/>;
   const compactPreferences = <PreferencesControls compact/>;
   const mobilePreferences = <PreferencesControls mobile/>;
-  const publicPath = location.pathname === '/' || location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/tools' || location.pathname.startsWith('/tools/') || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
-  if (publicPath && session.authenticated !== true) return <>
+  const role = viewer?.role ?? null;
+  const publicContentPath = location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
+  const guestPublicPath = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/tools' || location.pathname.startsWith('/tools/');
+  if (publicContentPath || (guestPublicPath && session.authenticated !== true)) return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">
       <header className="public-header">
@@ -62,18 +72,20 @@ function Shell() {
         <nav className="public-nav" aria-label={t('navigation')}><PublicNavLinks /></nav>
         <div className="public-actions">
           {compactPreferences}
-          <Link className="button secondary public-login" to="/login">{t('login')}</Link>
-          <Link className="button public-register" to="/register">{t('register')}</Link>
-          <PublicMenu preferences={mobilePreferences} />
+          {session.authenticated === true ? <>
+            {role === 'ADMIN' && <Link className="public-admin-link" to="/admin/blog">{publicSession.manage}</Link>}
+            <Link className="button secondary public-login" to="/">{publicSession.workspace}</Link>
+          </> : <><Link className="button secondary public-login" to="/login">{t('login')}</Link><Link className="button public-register" to="/register">{t('register')}</Link></>}
+          <PublicMenu preferences={mobilePreferences} authenticated={session.authenticated} role={role} />
         </div>
       </header>
-      <main id="main" tabIndex={-1}><PwaStatus/><Outlet key={session.revision} /></main>
+      <main id="main" tabIndex={-1}><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
       <footer className="public-footer">
         <div className="public-footer-inner">
           <div className="public-footer-brand"><BrandMark size={24} /><span className="brand-name"><strong>Trade</strong> basic</span></div>
           <nav aria-label={t('navigation')}>
             <PublicNavLinks disclosure={false} />
-            <Link to="/login">{t('login')}</Link>
+            {session.authenticated === true ? <Link to="/">{publicSession.workspace}</Link> : <Link to="/login">{t('login')}</Link>}
           </nav>
         </div>
       </footer>
@@ -92,10 +104,12 @@ function Shell() {
         </div>
         <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
       </aside>
-      <main id="main" tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet key={session.revision} /></main>
+      <main id="main" tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
     </div>
   </>;
 }
+
+export type ShellOutletContext = { authenticated: boolean | null; viewer: { id: string; role: 'USER' | 'ADMIN' } | null };
 
 export default function App() { return <UiProvider><Shell /></UiProvider>; }
 export function ErrorBoundary() {
