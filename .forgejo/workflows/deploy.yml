@@ -64,12 +64,20 @@ jobs:
       - name: Start disposable PostgreSQL
         run: |
           set -euo pipefail
+          # The job itself runs inside a container, so a host-published port would
+          # bind the host loopback, unreachable from the job's network namespace.
+          # Share the job container's network namespace instead: PostgreSQL then
+          # listens on 127.0.0.1:5432 inside the job itself, keeping the
+          # local-only DATABASE_URL guard in tests meaningful.
+          JOB_CONTAINER=$(cat /etc/hostname)
+          docker inspect "$JOB_CONTAINER" >/dev/null || { echo "cannot resolve job container '$JOB_CONTAINER'" >&2; exit 1; }
+          docker rm -f diary-v3-ci-postgres >/dev/null 2>&1 || true
           docker run -d --name diary-v3-ci-postgres \
+            --network "container:$JOB_CONTAINER" \
             -e POSTGRES_DB=diary_v3 -e POSTGRES_USER=diary -e POSTGRES_PASSWORD=ci_disposable_only \
-            -p 127.0.0.1:55433:5432 \
             postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
           for attempt in $(seq 1 30); do
-            if docker exec diary-v3-ci-postgres pg_isready -U diary -d diary_v3 >/dev/null 2>&1; then exit 0; fi
+            if docker exec diary-v3-ci-postgres pg_isready -h 127.0.0.1 -U diary -d diary_v3 >/dev/null 2>&1; then exit 0; fi
             sleep 2
           done
           docker logs diary-v3-ci-postgres
@@ -77,7 +85,7 @@ jobs:
 
       - name: API integration tests
         env:
-          DATABASE_URL: postgresql://diary:ci_disposable_only@127.0.0.1:55433/diary_v3
+          DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
           JWT_SECRET: ci-only-diary-secret-not-for-use-outside-tests-123456
           NODE_ENV: test
         run: npm run test:integration
@@ -87,7 +95,7 @@ jobs:
 
       - name: Release artifact acceptance
         env:
-          DATABASE_URL: postgresql://diary:ci_disposable_only@127.0.0.1:55433/diary_v3
+          DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
           CI: "true"
         run: |
           npx playwright install --with-deps chromium
