@@ -12,7 +12,21 @@ SOURCE_DB="restore_n"
 TARGET_DB="restore_empty"
 N1_DB="restore_empty_n1"
 FAILED_DB="restore_failed"
-N_TAG="${RESTORE_SMOKE_N_TAG:-0019_price_alert_moving_average_direction}"
+MIGRATION_RANGE="$(node - "$ROOT_DIR/packages/db/migrations/meta/_journal.json" "${RESTORE_SMOKE_N_TAG:-}" <<'NODE'
+const fs = require('node:fs')
+const journal = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const requestedTag = process.argv[3]
+if (journal.entries.length < 2) throw new Error('restore smoke requires at least two migrations')
+const cutoff = requestedTag
+  ? journal.entries.findIndex((entry) => entry.tag === requestedTag)
+  : journal.entries.length - 2
+if (cutoff !== journal.entries.length - 2) {
+  throw new Error(`restore smoke N tag must be the penultimate migration: ${journal.entries.at(-2).tag}`)
+}
+process.stdout.write(`${journal.entries[cutoff].tag} ${cutoff + 1} ${journal.entries.length}`)
+NODE
+)"
+read -r N_TAG N_LEDGER N1_LEDGER <<< "$MIGRATION_RANGE"
 JOB_CONTAINER="${RESTORE_SMOKE_JOB_CONTAINER:-}"
 if [ -n "$JOB_CONTAINER" ]; then
   PORT="${RESTORE_SMOKE_PORT:-5432}"
@@ -77,7 +91,7 @@ run_migrate "$SOURCE_URL" "$N_MIGRATIONS"
 docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$SOURCE_DB" < "$ROOT_DIR/scripts/restore-smoke-fixture.sql" >/dev/null
 
 source_ledger="$(db_value "$SOURCE_DB" 'select count(*) from drizzle.__drizzle_migrations')"
-[ "$source_ledger" = 20 ] || { echo "expected schema N ledger 20, got $source_ledger" >&2; exit 1; }
+[ "$source_ledger" = "$N_LEDGER" ] || { echo "expected schema N ledger $N_LEDGER, got $source_ledger" >&2; exit 1; }
 source_fixture="$(db_value "$SOURCE_DB" "select (select count(*) from users where email like 'restore-%-60@example.test') || '|' || (select count(*) from diaries where title='Restore decision') || '|' || (select count(*) from transactions where notes='Synthetic N backup transaction') || '|' || (select count(*) from stock_notes where title='N research note') || '|' || (select count(*) from stock_timeline_records where idempotency_key='restore-60-timeline-key') || '|' || (select count(*) from alerts where message='Synthetic review reminder') || '|' || (select count(*) from partner_links where accepted_at is not null) || '|' || (select count(*) from refresh_tokens where token='synthetic-refresh-token-60')")"
 [ "$source_fixture" = '2|1|1|1|1|1|1|1' ] || { echo "unexpected source fixture counts: $source_fixture" >&2; exit 1; }
 
@@ -87,7 +101,7 @@ docker cp "$WORK_DIR/schema-n.dump" "$CONTAINER:/tmp/schema-n.dump" >/dev/null
 docker exec "$CONTAINER" pg_restore -U "$DB_USER" --no-owner --exit-on-error --dbname="$TARGET_DB" /tmp/schema-n.dump
 
 target_before="$(db_value "$TARGET_DB" 'select count(*) from drizzle.__drizzle_migrations')"
-[ "$target_before" = 20 ] || { echo "restore target did not preserve N ledger: $target_before" >&2; exit 1; }
+[ "$target_before" = "$N_LEDGER" ] || { echo "restore target did not preserve N ledger: $target_before" >&2; exit 1; }
 target_fixture="$(db_value "$TARGET_DB" "select (select count(*) from users where email like 'restore-%-60@example.test') || '|' || (select count(*) from diaries where title='Restore decision') || '|' || (select count(*) from transactions where notes='Synthetic N backup transaction') || '|' || (select count(*) from stock_notes where title='N research note') || '|' || (select count(*) from stock_timeline_records where idempotency_key='restore-60-timeline-key') || '|' || (select count(*) from alerts where message='Synthetic review reminder') || '|' || (select count(*) from partner_links where accepted_at is not null) || '|' || (select count(*) from refresh_tokens where token='synthetic-refresh-token-60')")"
 [ "$target_fixture" = "$source_fixture" ] || { echo "restored fixture mismatch: $target_fixture" >&2; exit 1; }
 
@@ -115,7 +129,7 @@ SQL
 target_after="$(db_value "$TARGET_DB" 'select count(*) from drizzle.__drizzle_migrations')"
 posts_after="$(db_value "$TARGET_DB" "select count(*) from posts where slug='restore-smoke-post'")"
 seed_after="$(db_value "$TARGET_DB" "select (select count(*) from etfs) || '|' || (select count(*) from market_universe)")"
-[ "$target_after" = 21 ] || { echo "expected N+1 ledger 21, got $target_after" >&2; exit 1; }
+[ "$target_after" = "$N1_LEDGER" ] || { echo "expected N+1 ledger $N1_LEDGER, got $target_after" >&2; exit 1; }
 [ "$posts_after" = 1 ] || { echo "N+1 post verification failed: $posts_after" >&2; exit 1; }
 [ "$seed_after" = '24|213' ] || { echo "system seed verification failed: $seed_after" >&2; exit 1; }
 
@@ -126,7 +140,7 @@ docker cp "$WORK_DIR/schema-n1.dump" "$CONTAINER:/tmp/schema-n1.dump" >/dev/null
 docker exec "$CONTAINER" pg_restore -U "$DB_USER" --no-owner --exit-on-error --dbname="$N1_DB" /tmp/schema-n1.dump
 n1_ledger="$(db_value "$N1_DB" 'select count(*) from drizzle.__drizzle_migrations')"
 n1_posts="$(db_value "$N1_DB" "select count(*) from posts where slug='restore-smoke-post'")"
-[ "$n1_ledger" = 21 ] || { echo "N+1 full restore ledger mismatch: $n1_ledger" >&2; exit 1; }
+[ "$n1_ledger" = "$N1_LEDGER" ] || { echo "N+1 full restore ledger mismatch: $n1_ledger" >&2; exit 1; }
 [ "$n1_posts" = 1 ] || { echo "N+1 full restore post mismatch: $n1_posts" >&2; exit 1; }
 
 # A failed restore must leave its empty target empty.
@@ -139,4 +153,4 @@ set -e
 failed_tables="$(db_value "$FAILED_DB" "select count(*) from pg_tables where schemaname='public'")"
 [ "$failed_tables" = 0 ] || { echo "failed restore left public tables: $failed_tables" >&2; exit 1; }
 
-printf '%s\n' "restore_smoke=pass schema_N=20 schema_N_plus_1=21 fixture=$source_fixture seed=$seed_after n1_restore_ledger=$n1_ledger invalid_restore_exit=$failed_status failed_target_public_tables=$failed_tables"
+printf '%s\n' "restore_smoke=pass migration_N=$N_TAG schema_N=$N_LEDGER schema_N_plus_1=$N1_LEDGER fixture=$source_fixture seed=$seed_after n1_restore_ledger=$n1_ledger invalid_restore_exit=$failed_status failed_target_public_tables=$failed_tables"

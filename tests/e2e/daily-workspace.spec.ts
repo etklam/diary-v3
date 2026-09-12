@@ -13,8 +13,9 @@ async function registerAndSignIn(page: Page, context: BrowserContext, prefix: st
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/timeline$/)
   await selectLocale(page, 'en')
+  await page.goto('/')
   const csrf = (await context.cookies()).find(cookie => cookie.name === 'csrf-token')?.value
   expect(csrf).toBeTruthy()
   return { headers: { 'x-csrf-token': csrf! } satisfies CsrfHeaders }

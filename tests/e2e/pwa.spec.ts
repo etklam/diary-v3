@@ -21,6 +21,7 @@ test('installs static shell metadata without caching private API responses', asy
 
   await page.goto('/')
   await page.evaluate(async () => { await navigator.serviceWorker.ready })
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null)).toContain('/sw.js')
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys()
     const requests = (await Promise.all(keys.map(async key => (await caches.open(key)).keys()))).flat()
@@ -57,10 +58,16 @@ test('mobile menu keeps every route reachable and returns focus on close @webkit
   await page.screenshot({ path: 'docs/design/evidence/pwa/1440.png', fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
 
+  await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
+  const backgroundScroll = await page.evaluate(() => window.scrollY)
   const trigger = page.getByTestId('mobile-menu')
   await trigger.click()
   const dialog = page.getByTestId('mobile-menu-dialog')
   await expect(dialog).toBeVisible()
+  await page.mouse.move(2, 150)
+  await page.mouse.wheel(0, 400)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(backgroundScroll)
   await expect(dialog.getByRole('heading', { name: 'Diary & review', exact: true })).toBeVisible()
   await clickNav(page, 'SEC filings')
   await expect(page).toHaveURL(/\/tools\/sec-filings$/)

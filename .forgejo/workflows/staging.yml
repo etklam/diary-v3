@@ -7,11 +7,11 @@ on:
         required: true
         type: string
       api_image:
-        description: Full immutable API image reference ending in @sha256
+        description: Immutable API image digest resolved from the full source SHA tag
         required: true
         type: string
       web_image:
-        description: Full immutable Web image reference ending in @sha256
+        description: Immutable Web image digest resolved from the full source SHA tag
         required: true
         type: string
       staging_hostname:
@@ -24,6 +24,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  REGISTRY: git.913555.xyz
+  OWNER: etklam
   STAGING_NAMESPACE: diary-v3-staging
 
 jobs:
@@ -33,6 +35,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Docker CLI
+        env:
+          DOCKER_CLI_SHA256: ${{ secrets.DOCKER_CLI_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$DOCKER_CLI_SHA256" || { echo 'DOCKER_CLI_SHA256 secret is required' >&2; exit 1; }
+          archive=/tmp/docker-27.5.1.tgz
+          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz -o "$archive"
+          echo "$DOCKER_CLI_SHA256  $archive" | sha256sum -c -
+          tar xz --strip-components=1 -C /usr/bin docker/docker < "$archive"
+          rm -f "$archive"
+
       - name: Use pinned Node runtime
         uses: actions/setup-node@v4
         with:
@@ -41,6 +55,44 @@ jobs:
 
       - name: Install deps
         run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify image digests match the full source SHA tags
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          API_IMAGE: ${{ inputs.api_image }}
+          WEB_IMAGE: ${{ inputs.web_image }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo 'source_sha must be a full Git commit SHA' >&2; exit 1; }
+          test -n "$REGISTRY_TOKEN" || { echo 'REGISTRY_TOKEN secret is required' >&2; exit 1; }
+          DOCKER_CONFIG=$(mktemp -d)
+          trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+          export DOCKER_CONFIG
+          printf '%s' "$REGISTRY_TOKEN" | docker login "$REGISTRY" --username "$REGISTRY_USER" --password-stdin
+          unset REGISTRY_TOKEN
+
+          verify_image_digest() {
+            local component="$1" image_ref="$2"
+            local repository="$REGISTRY/$OWNER/diary-v3-$component"
+            local digest_prefix="$repository@sha256:"
+            [[ "$image_ref" == "$digest_prefix"* ]] || { echo "$component image must use repository $repository and a sha256 digest" >&2; return 1; }
+            [[ "${image_ref#"$digest_prefix"}" =~ ^[a-f0-9]{64}$ ]] || { echo "$component image must use a full sha256 digest" >&2; return 1; }
+
+            local tag_ref="$repository:$SOURCE_SHA"
+            docker pull "$tag_ref"
+            local repo_digests
+            repo_digests=$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$tag_ref")
+            if ! grep -Fqx -- "$image_ref" <<< "$repo_digests"; then
+              echo "$component image digest does not match the registry digest for source tag $tag_ref" >&2
+              return 1
+            fi
+            echo "Verified $component digest against source tag $tag_ref."
+          }
+
+          verify_image_digest api "$API_IMAGE"
+          verify_image_digest web "$WEB_IMAGE"
 
       - name: Render and validate staging release
         env:

@@ -124,39 +124,61 @@ jobs:
           CI: "true"
         run: npm run test:e2e:webkit:critical
 
+      - name: Build Docker images for release acceptance
+        run: |
+          set -euo pipefail
+          API_IMAGE="$REGISTRY/$OWNER/diary-v3-api:$GITHUB_SHA"
+          WEB_IMAGE="$REGISTRY/$OWNER/diary-v3-web:$GITHUB_SHA"
+          docker build --platform linux/amd64 --target api -t "$API_IMAGE" .
+          docker build --platform linux/amd64 --target web -t "$WEB_IMAGE" .
+          echo "RELEASE_API_IMAGE=$API_IMAGE" >> "$GITHUB_ENV"
+          echo "RELEASE_WEB_IMAGE=$WEB_IMAGE" >> "$GITHUB_ENV"
+          echo "RELEASE_API_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$API_IMAGE")" >> "$GITHUB_ENV"
+          echo "RELEASE_WEB_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$WEB_IMAGE")" >> "$GITHUB_ENV"
+
       - name: Release artifact acceptance
         env:
           DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
           CI: "true"
         run: |
+          set -euo pipefail
+          JOB_CONTAINER=$(cat /etc/hostname)
+          docker inspect "$JOB_CONTAINER" >/dev/null || { echo "cannot resolve job container '$JOB_CONTAINER'" >&2; exit 1; }
+          RELEASE_E2E_DOCKER_NETWORK="container:$JOB_CONTAINER" \
+          RELEASE_E2E_DOCKER_LABEL="run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+          RELEASE_E2E_API_IMAGE="$RELEASE_API_IMAGE" \
+          RELEASE_E2E_WEB_IMAGE="$RELEASE_WEB_IMAGE" \
+          RELEASE_E2E_API_IMAGE_ID="$RELEASE_API_IMAGE_ID" \
+          RELEASE_E2E_WEB_IMAGE_ID="$RELEASE_WEB_IMAGE_ID" \
           npm run test:e2e:release
+
+      - name: Stop release E2E containers
+        if: always()
+        run: docker ps -aq --filter "label=diary-v3.release-e2e=run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | xargs -r docker rm -f
 
       - name: Stop disposable PostgreSQL
         if: always()
         run: docker rm -f diary-v3-ci-postgres || true
 
-      - name: Login to Forgejo Registry
-        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-      - name: Build API and Web images
+      - name: Verify tested Docker images unchanged
         run: |
           set -euo pipefail
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          docker build --platform linux/amd64 --target api -t "$REGISTRY/$OWNER/diary-v3-api:$SHA" .
-          docker build --platform linux/amd64 --target web -t "$REGISTRY/$OWNER/diary-v3-web:$SHA" .
+          test "$(docker image inspect --format '{{.Id}}' "$RELEASE_API_IMAGE")" = "$RELEASE_API_IMAGE_ID"
+          test "$(docker image inspect --format '{{.Id}}' "$RELEASE_WEB_IMAGE")" = "$RELEASE_WEB_IMAGE_ID"
+
+      - name: Login to Forgejo Registry
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Push images
         run: |
           set -euo pipefail
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          docker push "$REGISTRY/$OWNER/diary-v3-api:$SHA"
-          docker push "$REGISTRY/$OWNER/diary-v3-web:$SHA"
+          docker push "$RELEASE_API_IMAGE"
+          docker push "$RELEASE_WEB_IMAGE"
 
       - name: Resolve digests and render manifests
         run: |
           set -euo pipefail
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          API_IMAGE="$REGISTRY/$OWNER/diary-v3-api:$SHA"; WEB_IMAGE="$REGISTRY/$OWNER/diary-v3-web:$SHA"
+          API_IMAGE="$RELEASE_API_IMAGE"; WEB_IMAGE="$RELEASE_WEB_IMAGE"
           API_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "$API_IMAGE" | sed 's/.*@//')
           WEB_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "$WEB_IMAGE" | sed 's/.*@//')
           [[ "$API_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; [[ "$WEB_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]

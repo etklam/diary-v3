@@ -156,6 +156,15 @@ test('device-local recovery restores unsaved writing after a reload and clears a
   const draftKey = () => page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null);
   await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
 
+  // An interrupted in-app navigation keeps the editor and its recovery copy.
+  const navigationPrompt = page.waitForEvent('dialog');
+  await page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true }).click();
+  const prompt = await navigationPrompt;
+  expect(prompt.type()).toBe('confirm');
+  await prompt.dismiss();
+  await expect(page).toHaveURL(/\/diaries\/new$/);
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Recovered reasoning that never reached the server.');
+
   // Reload: the editor offers the device draft, restoring keeps it dirty.
   await page.reload();
   await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
@@ -177,6 +186,18 @@ test('device-local recovery restores unsaved writing after a reload and clears a
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Now durable.');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  await expect.poll(draftKey).toBeNull();
+
+  // The saved server state remains canonical and clean after a reload.
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved');
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved');
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.');
+  await expect(page.getByTestId('save-status')).toHaveText('');
+  await expect(page.getByRole('button', { name: 'Restore unsaved draft', exact: true })).toHaveCount(0);
   await expect.poll(draftKey).toBeNull();
 });
 

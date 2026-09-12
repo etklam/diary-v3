@@ -47,7 +47,7 @@ describe('user settings HTTP and PostgreSQL round trips', () => {
     expect((await update(browser, input, false)).status).toBe(403);
     const saved = await update(browser, input);
     expect(saved.status).toBe(200);
-    const expected = { ...input, name: 'Investor', expectedAvgHolding: '1.01' };
+    const expected = { ...input, name: 'Investor', expectedAvgHolding: '1.01', defaultWorkspacePage: 'timeline' };
     expect(await saved.json()).toEqual({ success: true, settings: expected });
     await browser.post('/api/auth/logout', {});
     await browser.post('/api/auth/login', credentials);

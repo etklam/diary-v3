@@ -19,15 +19,18 @@ and JWT values are throwaway local values; keep them in the shell environment,
 never in a committed file.
 
 The repeatable release gate is `npm run db:restore-smoke`. It owns a disposable
-`postgres:17.6-alpine` container, derives the N migration folder from the
-repository journal (default `0019_price_alert_moving_average_direction`),
-loads [`scripts/restore-smoke-fixture.sql`](../../scripts/restore-smoke-fixture.sql),
-and runs the full N→N+1 plus N+1 full-backup restore and failed-backup checks.
-It removes its container and temporary dumps on exit. Forgejo runs it after
-source-manifest validation and before integration tests. The runner shares the
-job container's network namespace and uses its private port 5432; local runs
-use the dedicated host port 55435. A failed restore prevents image publication
-and deployment.
+`postgres:17.6-alpine` container, derives schema N from the penultimate entry in
+the repository migration journal, and requires N→N+1 to be exactly one
+migration. It loads [`scripts/restore-smoke-fixture.sql`](../../scripts/restore-smoke-fixture.sql),
+then runs the N+1 and full-backup restore plus failed-backup checks. It removes
+its container and temporary dumps on exit. Forgejo runs it after source-manifest
+validation and before integration tests. The runner shares the job container's
+network namespace and uses its private port 5432; local runs use the dedicated
+host port 55435. A failed restore prevents image publication and deployment.
+
+The historical shell sequence below records the initial ticket-60 rehearsal at
+migration 0019. The current release gate selects its N migration from the
+current journal automatically.
 
 ```sh
 RESTORE_SMOKE_CONTAINER=diary-v3-restore-smoke \

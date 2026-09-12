@@ -15,25 +15,32 @@ describe('production delivery safety', () => {
     expect(workflow).not.toContain('if: ${{ false }}');
   });
 
-  it('runs restore and browser acceptance before image publication and production mutation', () => {
+  it('tests the exact Docker images that are published before production mutation', () => {
     const restore = workflow.indexOf('name: PostgreSQL backup and restore smoke');
     const integration = workflow.indexOf('name: API integration tests');
     const build = workflow.indexOf('name: Production build');
     const chromium = workflow.indexOf('name: Full Chromium regression');
     const webkit = workflow.indexOf('name: WebKit critical path');
+    const imageBuild = workflow.indexOf('name: Build Docker images for release acceptance');
     const release = workflow.indexOf('name: Release artifact acceptance');
-    const imageBuild = workflow.indexOf('name: Build API and Web images');
+    const imageVerify = workflow.indexOf('name: Verify tested Docker images unchanged');
     const push = workflow.indexOf('name: Push images');
     const deploy = workflow.indexOf('name: Apply production foundation and run migrations');
-    for (const index of [restore, integration, build, chromium, webkit, release, imageBuild, push, deploy]) expect(index).toBeGreaterThan(-1);
+    for (const index of [restore, integration, build, chromium, webkit, imageBuild, release, imageVerify, push, deploy]) expect(index).toBeGreaterThan(-1);
     expect(restore).toBeLessThan(integration);
     expect(integration).toBeLessThan(build);
     expect(build).toBeLessThan(chromium);
     expect(chromium).toBeLessThan(webkit);
-    expect(webkit).toBeLessThan(release);
-    expect(release).toBeLessThan(imageBuild);
-    expect(imageBuild).toBeLessThan(push);
+    expect(webkit).toBeLessThan(imageBuild);
+    expect(imageBuild).toBeLessThan(release);
+    expect(release).toBeLessThan(imageVerify);
+    expect(imageVerify).toBeLessThan(push);
     expect(push).toBeLessThan(deploy);
+    expect(workflow).toContain('diary-v3-api:$GITHUB_SHA');
+    expect(workflow).toContain('diary-v3-web:$GITHUB_SHA');
+    expect(workflow).toContain('RELEASE_E2E_API_IMAGE_ID="$RELEASE_API_IMAGE_ID"');
+    expect(workflow).toContain('RELEASE_E2E_WEB_IMAGE_ID="$RELEASE_WEB_IMAGE_ID"');
+    expect(workflow).not.toContain('cut -c1-7');
   });
 
   it('does not rollback pre-deploy failures and tracks each mutated workload', () => {

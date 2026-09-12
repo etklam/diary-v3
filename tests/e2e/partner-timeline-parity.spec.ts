@@ -111,6 +111,9 @@ test('timeline switches into a date-paired partner comparison and back @webkit-c
   await page.goBack()
   await expect(page).toHaveURL(/\/partners\/compare$/)
   await expect(days.nth(0)).toBeVisible()
+  await page.goForward()
+  await expect(page).toHaveURL(/\/timeline\?dateFrom=2026-09-01$/)
+  await expect(page.getByTestId('timeline-entry').first()).toBeVisible()
   await otherContext.close()
 })
 

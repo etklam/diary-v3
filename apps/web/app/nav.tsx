@@ -31,6 +31,16 @@ function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': 
   return values[locale]
 }
 
+function usePageScrollLock(locked: boolean) {
+  useEffect(() => {
+    if (!locked) return
+    const root = document.documentElement
+    const previousOverflow = root.style.overflow
+    root.style.overflow = 'hidden'
+    return () => { root.style.overflow = previousOverflow }
+  }, [locked])
+}
+
 export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
@@ -112,6 +122,7 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
+  usePageScrollLock(open)
   const menu = label(locale, { en: 'Menu', 'zh-CN': '菜单', 'zh-TW': '選單' })
 
   function close() {
@@ -197,6 +208,7 @@ export function PublicMenu({ preferences, authenticated, role }: { preferences: 
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
+  usePageScrollLock(open)
   function close() {
     setOpen(false)
     if (dialog.current?.open) dialog.current.close()
