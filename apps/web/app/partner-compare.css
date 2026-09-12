@@ -29,8 +29,28 @@
 }
 
 .pair-side {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pair-meta {
+  margin: var(--space-2) 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pair-actions {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
+}
+
+.pair-expand {
+  min-height: 44px;
+  margin-top: var(--space-3);
 }
 
 .pair-columns h3 {

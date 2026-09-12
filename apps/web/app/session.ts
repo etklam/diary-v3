@@ -25,7 +25,11 @@ export function csrfToken() {
 export function safeReturnPath(candidate: string | null): string {
   const capturePath = safeCaptureReturnPath(candidate);
   if (capturePath) return capturePath;
+  // Partner comparison returns keep the allowlisted selection and limit only.
   if (candidate && /^\/partners\/compare\?partnerId=[1-9]\d{0,18}$/.test(candidate)) return candidate;
+  if (candidate && /^\/partners\/compare\?partnerId=[1-9]\d{0,18}&limit=(?:20|40|60)$/.test(candidate)) return candidate;
+  if (candidate && /^\/partners\/compare\?limit=(?:20|40|60)&partnerId=[1-9]\d{0,18}$/.test(candidate)) return candidate;
+  if (candidate && /^\/partners\/compare\?limit=(?:20|40|60)$/.test(candidate)) return candidate;
   if (candidate && /^\/discipline\?import=[A-Za-z0-9%+/=]+$/.test(candidate)) return candidate;
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;

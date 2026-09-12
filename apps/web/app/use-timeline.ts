@@ -18,6 +18,8 @@ const CONTEXT_KEY='diary-v3:timeline-context',MAX_CONTEXT_KEYS=3;
 const MAX_RESTORE_PAGES=10;
 type Context={pages:number;scrollY:number;savedAt:number};
 type Contexts=Record<string,Context>;
+/** Most recently used timeline query, so the partner mode can link back to the reader's filters. */
+export function lastTimelineSearch():string{try{const raw=sessionStorage.getItem(CONTEXT_KEY);if(!raw)return '';const contexts=JSON.parse(raw) as Contexts;return Object.keys(contexts).sort((a,b)=>(contexts[b]?.savedAt??0)-(contexts[a]?.savedAt??0))[0]??'';}catch{return '';}}
 function readContexts():Contexts{try{const raw=sessionStorage.getItem(CONTEXT_KEY);return raw?JSON.parse(raw) as Contexts:{};}catch{return {};}}
 function writeContexts(contexts:Contexts){try{sessionStorage.setItem(CONTEXT_KEY,JSON.stringify(contexts));}catch{/* Reading stays fully usable when session storage is unavailable. */}}
 function saveContext(queryString:string,patch:Partial<Omit<Context,'savedAt'>>){const contexts=readContexts();contexts[queryString]={...(contexts[queryString]??{pages:1,scrollY:0,savedAt:0}),...patch,savedAt:Date.now()};writeContexts(Object.fromEntries(Object.entries(contexts).sort(([,a],[,b])=>a.savedAt-b.savedAt).slice(-MAX_CONTEXT_KEYS)));}

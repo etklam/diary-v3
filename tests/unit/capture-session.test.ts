@@ -26,6 +26,17 @@ describe('capture session return and Quick draft lifecycle', () => {
     expect(safeReturnPath('/diaries/quick?symbol=NVDA&source=company&next=https://outside.example')).toBe('/diaries/new');
   });
 
+  it('keeps the comparison selection and allowlisted limit through sign-in returns', () => {
+    expect(safeReturnPath('/partners/compare')).toBe('/partners/compare');
+    expect(safeReturnPath('/partners/compare?partnerId=42')).toBe('/partners/compare?partnerId=42');
+    expect(safeReturnPath('/partners/compare?partnerId=42&limit=40')).toBe('/partners/compare?partnerId=42&limit=40');
+    expect(safeReturnPath('/partners/compare?limit=60&partnerId=42')).toBe('/partners/compare?limit=60&partnerId=42');
+    expect(safeReturnPath('/partners/compare?limit=60')).toBe('/partners/compare?limit=60');
+    expect(safeReturnPath('/partners/compare?limit=99')).toBe('/diaries/new');
+    expect(safeReturnPath('/partners/compare?partnerId=42&tab=all')).toBe('/diaries/new');
+    expect(safeReturnPath('/partners/compare?partnerId=0&limit=40')).toBe('/diaries/new');
+  });
+
   it('preserves account-local Quick drafts during automatic invalidation', () => {
     localStorage.setItem('diary-quick-draft:account-a', 'draft');
     localStorage.setItem('diary-quick-reminder:account-a', 'reminder');

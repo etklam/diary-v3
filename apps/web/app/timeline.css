@@ -6,6 +6,36 @@
   margin-bottom: var(--space-6);
 }
 
+.timeline-modes {
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: var(--space-5);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--muted-surface);
+}
+
+.timeline-modes a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 16px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.timeline-modes a[aria-current="page"] {
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+}
+
+.pair-page .timeline-modes {
+  margin-top: 0;
+}
+
 .timeline-filters {
   display: grid;
   grid-template-columns: 1fr 1fr auto;

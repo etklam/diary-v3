@@ -36,8 +36,10 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: 
   const sections = sectionCopy[locale]
   const c = workspaceCopy[locale]
   const link = (to: string, text: string, icon: IconName, end = false) => <NavLink key={to} to={to} end={end} onClick={onNavigate}><Icon name={icon} />{text}</NavLink>
-  const diaryActive = location.pathname === '/timeline' || location.pathname === '/calendar' || location.pathname === '/diaries' || location.pathname.startsWith('/diaries/')
-  const secondaryActive = location.pathname === '/partners' || location.pathname.startsWith('/partners/') || location.pathname === '/discipline' || location.pathname.startsWith('/discipline/') || location.pathname === '/alerts' || location.pathname === '/stocks/alerts'
+  // Partner comparison is a timeline reading mode, not partner administration,
+  // so exactly one sidebar destination stays current on that page.
+  const diaryActive = location.pathname === '/timeline' || location.pathname === '/calendar' || location.pathname === '/diaries' || location.pathname.startsWith('/diaries/') || location.pathname === '/partners/compare'
+  const secondaryActive = location.pathname === '/partners' || location.pathname === '/discipline' || location.pathname.startsWith('/discipline/') || location.pathname === '/alerts' || location.pathname === '/stocks/alerts'
   const marketResearch = <Link to="/stocks/SPY" onClick={onNavigate} aria-current={(location.pathname.startsWith('/stocks/') && location.pathname !== '/stocks/watchlist' && location.pathname !== '/stocks/alerts') ? 'page' : undefined}><Icon name="chart" />{c.marketResearch}</Link>
   return <>
     <section className="nav-group" aria-labelledby={`${idPrefix}-daily`}><h2 id={`${idPrefix}-daily`}>{sections.daily}</h2><div className="nav-group-links">
@@ -53,7 +55,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: 
     <details className="nav-more" open={secondaryActive || undefined}>
       <summary><Icon name="chevronDown" />{c.more}</summary>
       <div className="nav-group-links">
-        {link('/partners', c.partners, 'users')}
+        {link('/partners', c.partners, 'users', true)}
         {link('/discipline', c.principles, 'shield')}
         {link('/alerts', c.diaryReminders, 'bell')}
         {link('/stocks/alerts', c.priceReminders, 'bell')}

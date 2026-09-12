@@ -122,3 +122,61 @@ test('built artifacts restore a draft and complete a review', async ({ page, req
   await page.getByRole('button', { name: /Complete review|完成複盤|完成复盘/, exact: true }).click();
   await expect(page.getByRole('heading', { name: /Review completed|複盤已完成|复盘已完成/, exact: true })).toBeVisible();
 });
+
+test('built artifacts move from Timeline into Partner comparison and revalidate permissions', async ({ page, browser }) => {
+  const emailA = `release-parity-a-${randomUUID()}@example.test`;
+  const emailB = `release-parity-b-${randomUUID()}@example.test`;
+  const csrfFor = async (context: import('@playwright/test').BrowserContext) => {
+    // POST logins never set the CSRF cookie; one bounded GET establishes it.
+    let cookies = await context.cookies();
+    if (!cookies.some(item => item.name === 'csrf-token')) {
+      await context.request.get('/api/auth/me');
+      cookies = await context.cookies();
+    }
+    const cookie = cookies.find(item => item.name === 'csrf-token');
+    expect(cookie?.value).toBeTruthy();
+    return { 'x-csrf-token': cookie!.value };
+  };
+  // Distinct forwarded addresses give each synthetic client its own rate-limit
+  // bucket; the release harness trusts x-forwarded-for for this isolation.
+  const forwarded = () => `10.${randomUUID().charCodeAt(0)}.${randomUUID().charCodeAt(1)}.${randomUUID().charCodeAt(2)}`;
+  const partnerContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID(), 'x-forwarded-for': forwarded() } });
+  const partnerPage = await partnerContext.newPage();
+  expect((await partnerPage.request.post('/api/auth/register', { data: { email: emailB, password } })).status()).toBe(200);
+  expect((await partnerPage.request.post('/api/auth/login', { data: { email: emailB, password } })).status()).toBe(200);
+  // Drive A's writes through an authenticated browser context; the request
+  // fixture cannot hold the browser session cookies.
+  const aContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID(), 'x-forwarded-for': forwarded() } });
+  const aPage = await aContext.newPage();
+  expect((await aPage.request.post('/api/auth/register', { data: { email: emailA, password } })).status()).toBe(200);
+  expect((await aPage.request.post('/api/auth/login', { data: { email: emailA, password } })).status()).toBe(200);
+  const aHeaders = await csrfFor(aContext);
+  const linked = await aPage.request.post('/api/partners', { headers: aHeaders, data: { partnerEmail: emailB } });
+  expect(linked.status()).toBe(200);
+  const { link } = await linked.json() as { link: { id: string; partner: { id: string } } };
+  const bHeaders = await csrfFor(partnerContext);
+  expect((await partnerPage.request.post(`/api/partners/${link.id}/accept`, { headers: bHeaders })).status()).toBe(200);
+  expect((await partnerPage.request.put(`/api/partners/${link.id}/sharing`, { headers: bHeaders, data: { shareDiaries: true } })).status()).toBe(200);
+  expect((await aPage.request.post('/api/diaries', { headers: aHeaders, data: { date: '2026-09-12', title: 'Release owner side', content: 'Owner day entry.' } })).status()).toBe(201);
+  expect((await partnerPage.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-12', title: 'Release partner side', content: 'Shared partner entry.' } })).status()).toBe(201);
+
+  await page.addInitScript(() => localStorage.setItem('diary-locale', 'en'));
+  await page.goto('/login?returnTo=%2Ftimeline');
+  await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(emailA);
+  await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);
+  await page.getByRole('button', { name: /Sign in|登入|登录/, exact: true }).click();
+  await expect(page).toHaveURL(/\/timeline$/);
+  await page.getByTestId('timeline-modes').getByRole('link', { name: /伙伴對照|伙伴对照|Partner comparison/ }).click();
+  await expect(page).toHaveURL(/\/partners\/compare$/);
+  await expect(page.getByTestId('compare-day')).toHaveCount(1);
+  await expect(page.getByTestId('owner-diary')).toContainText('Owner day entry.');
+  await expect(page.getByTestId('partner-diary')).toContainText('Shared partner entry.');
+
+  // The partner withdraws sharing; the rendered comparison must drop it on revalidation.
+  expect((await partnerPage.request.put(`/api/partners/${link.id}/sharing`, { headers: bHeaders, data: { shareDiaries: false } })).status()).toBe(200);
+  await page.getByRole('button', { name: /重新整理對照|刷新对照|Refresh comparison/ }).click();
+  await expect(page.getByTestId('partner-diary')).toContainText(/伙伴尚未分享日記|伙伴尚未分享日记|Your partner has not shared diaries\./);
+  await expect(page.locator('.pair-page')).not.toContainText('Shared partner entry.');
+  await aContext.close();
+  await partnerContext.close();
+});

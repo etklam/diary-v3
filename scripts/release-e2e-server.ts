@@ -39,6 +39,9 @@ start('node', ['dist/api/server.js'], {
   API_HOST: '127.0.0.1', API_PORT: String(API_PORT), DATABASE_URL: database.url,
   JWT_SECRET: 'release-e2e-only-secret-never-use-in-production-123456',
   MARKET_PROVIDER: 'fixture', NODE_ENV: 'test', WEB_ORIGIN: `http://127.0.0.1:${GATEWAY_PORT}`,
+  // Synthetic clients declare distinct forwarded addresses so each scenario
+  // gets its own rate-limit bucket, mirroring distinct real clients.
+  TRUST_X_FORWARDED_FOR: 'true',
 });
 start('npm', ['run', 'start', '--workspace=@diary/web'], {
   HOST: '127.0.0.1', PORT: String(WEB_PORT), API_ORIGIN: `http://127.0.0.1:${API_PORT}`, NODE_ENV: 'production',
