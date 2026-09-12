@@ -3,6 +3,9 @@ import { expect, test } from '@playwright/test';
 import { selectLocale } from '../support/e2e';
 
 const password = 'synthetic-release-artifact-password';
+// Synthetic client identity for the register rate limiter; the release
+// harness trusts x-forwarded-for so each new account registers in its own bucket.
+const freshClient = () => ({ 'x-forwarded-for': `10.${randomUUID().charCodeAt(0)}.${randomUUID().charCodeAt(1)}.${randomUUID().charCodeAt(2)}` });
 
 test('built artifacts serve public pages and API health', async ({ page, request }) => {
   await expect((await request.get('/healthz')).status()).toBe(200);
@@ -179,4 +182,170 @@ test('built artifacts move from Timeline into Partner comparison and revalidate 
   await expect(page.locator('.pair-page')).not.toContainText('Shared partner entry.');
   await aContext.close();
   await partnerContext.close();
+});
+
+test('built artifacts let anonymous visitors finish calculator and market research tasks', async ({ page }) => {
+  // Calculator task with fixed inputs; the invested amount follows the
+  // reserved-cash domain rule (10000 capital, 33 price, 2% reserve).
+  await page.goto('/tools/position-sizing');
+  await page.getByTestId('position-sizing-capital').fill('10000');
+  await page.getByTestId('position-sizing-price').fill('33');
+  await expect(page.getByTestId('position-sizing-invested')).toHaveText(/9[.,]933/);
+  await expect(page.getByTestId('position-sizing-copy')).toBeEnabled();
+  // Private persistence stays behind sign-in for anonymous visitors.
+  await page.getByTestId('position-sizing-save-new').click();
+  await expect(page.getByRole('alert').getByRole('link')).toHaveAttribute('href', /\/login/);
+
+  // Market research task on the deterministic fixture provider: the quote
+  // renders, and a new lookup actually re-binds the research view.
+  await page.goto('/stocks/NVDA');
+  await expect(page.getByTestId('market-price')).toHaveText('100');
+  await expect(page.locator('.market-metrics')).toContainText('USD');
+  await expect(page.getByRole('table')).toContainText('NVDA');
+  await page.getByRole('textbox', { name: /Stock or index symbol|股票或指數代號|股票或指数代码/, exact: true }).fill('AAPL');
+  await page.getByRole('button', { name: /View market data|查看行情/, exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'AAPL', exact: true })).toBeVisible();
+  await expect(page.getByRole('table')).toContainText('AAPL');
+  const history = page.waitForResponse(response => response.url().includes('/api/market/historical') && response.url().includes('range=1mo'));
+  await page.getByRole('combobox', { name: /History range|歷史範圍|历史范围/ }).selectOption('1mo');
+  expect((await history).status()).toBe(200);
+  await expect(page.getByRole('table')).toBeVisible();
+  // A guest still gets the public research task without private fragments or errors.
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: /Company notes|公司筆記|公司笔记/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Record a thought|記錄想法|记录想法/ })).toBeVisible();
+});
+
+test('built artifacts complete the diary mainline with server-verified reads', async ({ page, request }) => {
+  const email = `release-mainline-${randomUUID()}@example.test`;
+  const marker = `ReleaseMainline ${randomUUID()}`;
+  expect((await request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
+  await page.getByLabel(/Email|電郵|邮箱/, { exact: true }).fill(email);
+  await page.getByLabel(/Password|密碼|密码/, { exact: true }).fill(password);
+  await page.getByRole('button', { name: /Sign in|登入|登录/, exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/new$/);
+  await selectLocale(page, 'en');
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const headers = { 'x-csrf-token': csrf };
+
+  // Write through the normal product entry.
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-15');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Release mainline diary');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill(`${marker} Original reasoning stands.`);
+  await page.getByRole('textbox', { name: 'Company context', exact: true }).fill('NVDA');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const id = page.url().split('/').at(-1)!;
+  const created = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { title: string; content: string; date: string; stockSymbols: string[]; tags: string[] };
+  expect(created).toMatchObject({ title: 'Release mainline diary', date: '2026-09-15', stockSymbols: ['NVDA'] });
+  expect(created.content).toContain(marker);
+
+  // The library search finds this exact record, not just the newest one.
+  await page.goto('/diaries');
+  await page.getByRole('searchbox', { name: /Search title or content|搜尋標題或內容|搜索标题或内容/, exact: true }).fill(marker);
+  await page.getByRole('searchbox', { name: /Search title or content|搜尋標題或內容|搜索标题或内容/, exact: true }).press('Enter');
+  const results = page.getByRole('link', { name: 'Release mainline diary', exact: true });
+  await expect(results).toHaveCount(1);
+  await results.click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+  await expect(page.getByRole('heading', { name: 'Release mainline diary', exact: true })).toBeVisible();
+
+  // The timeline and the calendar reach the same persisted record.
+  await page.goto('/timeline');
+  await expect(page.getByTestId('timeline-entry').filter({ hasText: 'Release mainline diary' })).toHaveCount(1);
+  await page.goto('/calendar');
+  await page.getByLabel(/Month|月份/, { exact: true }).fill('2026-09');
+  await page.locator('.calendar-grid [data-date="2026-09-15"]').click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+
+  // Editing again round-trips through the server, not just the textbox.
+  await page.getByRole('link', { name: /Edit diary|編輯日記|编辑日记/, exact: true }).click();
+  await page.getByRole('textbox', { name: /Content|內容|内容/, exact: true }).fill(`${marker} Updated after re-reading.`);
+  await page.getByRole('button', { name: /Save diary|儲存日記|保存日记/, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+  const edited = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { content: string; stockSymbols: string[] };
+  expect(edited.content).toBe(`${marker} Updated after re-reading.`);
+  expect(edited.stockSymbols).toEqual(['NVDA']);
+
+  // Same-day append keeps the original title and body; new content appears once.
+  await page.goto('/diaries/quick');
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-15');
+  await page.getByRole('combobox', { name: /Save mode|儲存方式|保存方式/, exact: true }).selectOption('append');
+  await expect(page.getByText(/A diary exists for this date|已有日記|已有日记/)).toBeVisible();
+  await page.getByRole('textbox', { name: /Content|內容|内容/, exact: true }).fill(`${marker} Appended once.`);
+  await page.getByRole('button', { name: /Append to date|追加至所選日期|追加至所选日期/, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+  const appended = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { title: string; content: string };
+  expect(appended.title).toBe('Release mainline diary');
+  expect(appended.content.split(`${marker} Appended once.`)).toHaveLength(2);
+  expect(appended.content).toContain('Updated after re-reading.');
+
+  // A due review is completed through the queue and the outcome is server-verified.
+  expect((await page.context().request.put(`/api/diaries/${id}`, { headers, data: { title: 'Release mainline diary', content: appended.content, reviewDueAt: '2020-01-01T00:00:00.000Z' } })).status()).toBe(200);
+  await page.goto('/reviews');
+  const overdue = page.getByRole('region', { name: /Overdue|已逾期/, exact: true });
+  await expect(overdue.getByRole('link', { name: new RegExp(`Review diary: Release mainline diary`) })).toBeVisible();
+  await overdue.getByRole('link', { name: new RegExp(`Review diary: Release mainline diary`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
+  await page.getByRole('radio', { name: /Thesis intact|論點仍成立|论点仍成立/, exact: true }).check();
+  await page.getByRole('textbox', { name: /What happened|實際發生甚麼|实际发生什么/, exact: true }).fill('Original reasoning held after re-reading.');
+  await page.getByRole('button', { name: /Complete review|完成複盤|完成复盘/, exact: true }).click();
+  await expect(page.getByTestId('review-status')).toHaveText(/Reviewed|已複盤|已复盘/);
+  const review = await (await page.context().request.get(`/api/diaries/${id}/review`)).json() as { reviewStatus: string; reviewOutcome: string; reviewSummary: string };
+  expect(review).toMatchObject({ reviewStatus: 'reviewed', reviewOutcome: 'INTACT', reviewSummary: 'Original reasoning held after re-reading.' });
+  const afterReview = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { content: string; thesis: string | null; risk: string | null };
+  expect(afterReview.content).toBe(appended.content);
+  // The queue stops listing the completed item as due and files it under Completed.
+  await page.goto('/reviews');
+  await expect(page.getByRole('region', { name: /Overdue|已逾期/, exact: true }).getByTestId('review-queue-item')).toHaveCount(0);
+  await page.getByTestId('queue-secondary').locator('summary').click();
+  await expect(page.getByRole('region', { name: /Completed|已完成/, exact: true })).toContainText('Release mainline diary');
+  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+  await page.locator('main').screenshot({ path: 'docs/design/evidence/core-workflow-rc1/release-queue-consistency.png' });
+});
+
+test('built artifacts keep a trade plan linked to its diary without creating trades', async ({ page }) => {
+  const email = `release-plan-${randomUUID()}@example.test`;
+  // The shared login bucket only allows a few UI logins per minute for the
+  // whole suite, so this case authenticates through its own synthetic client.
+  expect((await page.context().request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
+  expect((await page.context().request.post('/api/auth/login', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
+  await page.goto('/trade-plans/new');
+  await expect(page).toHaveURL(/\/trade-plans\/new$/);
+  await selectLocale(page, 'en');
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const headers = { 'x-csrf-token': csrf };
+  const created = await page.context().request.post('/api/diaries', { headers, data: { date: '2026-09-14', title: 'Plan evidence diary', content: 'Original reasoning for the plan.' } });
+  expect(created.status()).toBe(201);
+  const diary = await created.json() as { id: string };
+
+  // Create the plan through the product entry and link the existing diary.
+  await page.getByRole('textbox', { name: 'Symbol', exact: true }).fill('aapl');
+  await page.getByRole('textbox', { name: 'Setup', exact: true }).fill('Release plan lifecycle');
+  await page.getByRole('textbox', { name: 'Entry price', exact: true }).fill('101.25');
+  await page.getByRole('textbox', { name: 'Stop loss', exact: true }).fill('95');
+  await page.getByRole('combobox', { name: /Linked diary|關聯日記|关联日记/, exact: true }).selectOption(diary.id);
+  await page.getByRole('button', { name: /Save trade plan|儲存交易計劃|保存交易计划/, exact: true }).click();
+  await expect(page).toHaveURL(/\/trade-plans\/\d+$/);
+  const planId = page.url().split('/').at(-1)!;
+  const plan = await (await page.context().request.get(`/api/trade-plans/${planId}`)).json() as { status: string; diaryId: string | null; entryPrice: string | null; symbol: string };
+  expect(plan).toMatchObject({ status: 'draft', diaryId: diary.id, entryPrice: '101.25', symbol: 'AAPL' });
+
+  // The linked diary is readable from the plan in both directions.
+  await page.getByRole('link', { name: /Read linked diary|閱讀關聯日記|阅读关联日记/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
+  await expect(page.getByRole('heading', { name: 'Plan evidence diary', exact: true })).toBeVisible();
+
+  // Status transitions stay plan-side: no transaction or holding appears.
+  await page.goto(`/trade-plans/${planId}`);
+  await page.getByRole('combobox', { name: /Status|狀態|状态/, exact: true }).selectOption('active');
+  await page.getByRole('button', { name: /Save trade plan|儲存交易計劃|保存交易计划/, exact: true }).click();
+  await expect(page.getByText(/Trade plan saved\.|交易計劃已儲存。|交易计划已保存。/, { exact: true })).toBeVisible();
+  const activated = await (await page.context().request.get(`/api/trade-plans/${planId}`)).json() as { status: string; diaryId: string | null };
+  expect(activated).toMatchObject({ status: 'active', diaryId: diary.id });
+  const holdings = await (await page.context().request.get('/api/stocks/holdings')).json() as unknown[];
+  expect(holdings).toEqual([]);
+  await page.goto('/stocks');
+  await expect(page.getByText(/No open holdings|目前沒有持倉|目前没有持仓/)).toBeVisible();
 });

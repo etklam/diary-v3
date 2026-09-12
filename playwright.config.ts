@@ -2,6 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // The built-artifact acceptance suite targets production bundles and the
+  // release harness; Forgejo runs it through `test:e2e:release`.
+  testIgnore: '**/release-artifacts.spec.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
