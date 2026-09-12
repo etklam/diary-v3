@@ -75,6 +75,7 @@ it('persists an admin draft, reopens long Markdown, and keeps it out of public p
 
   const reopened = await browser.request(`/api/blog/admin/${post.id}`)
   expect(reopened.status).toBe(200)
+  expect(reopened.headers.get('cache-control')).toBe('no-store')
   expect((await reopened.json()).content).toBe(content)
 
   const publicList = await browser.request('/api/blog')
@@ -100,6 +101,8 @@ it('enforces Admin authorization and keeps public author email private', async (
   expect((await mutate(anonymous, `/api/blog/${post.id}`, write)).status).toBe(401)
   expect((await anonymous.post(`/api/blog/admin/${post.id}/publish`, {})).status).toBe(401)
   expect((await anonymous.post(`/api/blog/admin/${post.id}/archive`, {})).status).toBe(401)
+  expect((await mutate(ordinary.browser, `/api/blog/${post.id}`, write, 'DELETE')).status).toBe(403)
+  expect((await mutate(anonymous, `/api/blog/${post.id}`, write, 'DELETE')).status).toBe(401)
   const list = await (await anonymous.request('/api/blog')).json()
   expect(list.data).toHaveLength(1)
   expect(list.data[0].author).toEqual({ id: expect.any(String), name: null })
@@ -107,6 +110,9 @@ it('enforces Admin authorization and keeps public author email private', async (
   const detail = await (await anonymous.request(`/api/blog/${post.slug}`)).json()
   expect(detail.author).not.toHaveProperty('email')
   expect(detail.content).toContain('safe Markdown')
+
+  const deletionTarget = await create(browser, { title: 'Admin direct delete' })
+  expect((await mutate(browser, `/api/blog/${deletionTarget.id}`, {}, 'DELETE')).status).toBe(200)
 })
 
 it('uses the Admin role boundary instead of Diary-style author ownership', async () => {
@@ -136,6 +142,10 @@ it('preserves first publishedAt across archive and republish', async () => {
   expect(archived.status).toBe('ARCHIVED')
   expect(archived.publishedAt).toBe('2026-09-01T00:00:00.000Z')
   expect((await browser.request(`/api/blog/${post.slug}`)).status).toBe(404)
+
+  const savedArchived = await mutate(browser, `/api/blog/${post.id}`, { title: 'Lifecycle article', content: 'archived edit', category: 'market', status: 'ARCHIVED' })
+  expect(savedArchived.status).toBe(200)
+  expect(await savedArchived.json()).toMatchObject({ status: 'ARCHIVED', publishedAt: '2026-09-01T00:00:00.000Z', content: 'archived edit' })
 
   clock = new Date('2026-09-04T00:00:00.000Z')
   const republished = await (await browser.post(`/api/blog/admin/${post.id}/publish`, {})).json()
@@ -187,4 +197,22 @@ it('applies bulk publish/delete through the admin surface', async () => {
   expect(deleted.status).toBe(200)
   expect(await deleted.json()).toEqual({ count: 2 })
   expect((await browser.request(`/api/blog/admin/${first.id}`)).status).toBe(404)
+})
+
+it('keeps admin search distinct from public full text and enforces CSRF on writes', async () => {
+  const { browser, email } = await login(true)
+  const post = await create(browser, { title: 'Distinct admin title', status: 'PUBLISHED' })
+  await database.pool.query('update users set name=$1 where email=$2', ['Article Searcher', email])
+  for (const term of ['Distinct admin title', 'Article Searcher', email]) {
+    const result = await browser.request(`/api/blog/admin?search=${encodeURIComponent(term)}`)
+    expect(result.status).toBe(200)
+    expect(result.headers.get('cache-control')).toBe('no-store')
+    expect((await result.json()).data.map((row: { id: string }) => row.id)).toContain(post.id)
+  }
+
+  const accepted = await mutate(browser, `/api/blog/${post.id}`, { title: 'Admin write', content: 'accepted', category: 'market', status: 'PUBLISHED' }, 'PUT')
+  expect(accepted.status).toBe(200)
+  const missingCsrf = await browser.request(`/api/blog/${post.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'No CSRF', content: 'rejected', category: 'market', status: 'PUBLISHED' }) })
+  expect(missingCsrf.status).toBe(403)
+  expect((await missingCsrf.json()).data.code).toBe('CSRF_FAILED')
 })

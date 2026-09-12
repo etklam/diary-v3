@@ -930,6 +930,13 @@ main:focus-visible {
   margin-top: var(--space-3);
 }
 
+.article-cover-preview {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  object-fit: cover;
+}
+
 .editor form {
   padding: 0;
   border: 0;
@@ -1410,6 +1417,7 @@ main:focus-visible {
   }
 
   .mobile-menu-panel nav a {
+    min-height: 44px;
     padding: 8px 10px;
   }
 

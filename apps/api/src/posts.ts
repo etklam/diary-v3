@@ -239,7 +239,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       query.tag ? ilike(posts.tags, `%${query.tag}%`) : undefined,
       query.search ? publicView
         ? fullText(query.search)
-        : ilike(posts.title, `%${query.search}%`)
+        : or(ilike(posts.title, `%${query.search}%`), ilike(users.name, `%${query.search}%`), ilike(users.email, `%${query.search}%`))
         : undefined,
       query.author ? or(ilike(users.name, `%${query.author}%`), ilike(users.email, `%${query.author}%`)) : undefined,
     ]

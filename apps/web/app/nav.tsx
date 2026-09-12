@@ -33,23 +33,24 @@ function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': 
 export type NavigationOwner = 'overview' | 'diary' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
-  if (pathname === '/') return 'overview'
-  if (pathname === '/reviews' || /^\/diaries\/[1-9]\d*\/review$/.test(pathname)) return 'reviews'
-  if (pathname === '/partners/compare' || pathname === '/timeline' || pathname === '/calendar' || pathname === '/diaries' || pathname.startsWith('/diaries/')) return 'diary'
-  if (pathname === '/alerts') return 'diaryReminders'
-  if (pathname === '/partners') return 'partners'
-  if (pathname === '/stocks/watchlist') return 'watchlist'
-  if (pathname === '/stocks/alerts') return 'priceReminders'
-  if (pathname === '/stocks' || pathname === '/strategy-performance') return 'holdings'
-  if (pathname.startsWith('/trade-plans')) return 'tradePlans'
-  if (pathname === '/discipline' || pathname.startsWith('/discipline/')) return 'discipline'
-  if (/^\/stocks\/[^/]+(?:\/thesis)?$/.test(pathname)) return 'marketResearch'
-  if (pathname === '/tools' || pathname.startsWith('/tools/') || pathname === '/etf/watchlist') return 'tools'
-  if (pathname === '/articles' || pathname.startsWith('/articles/')) return 'articles'
-  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings'
-  if (pathname === '/admin/blog' || pathname.startsWith('/admin/blog/')) return 'adminBlog'
-  if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) return 'adminUsers'
-  if (pathname === '/admin/etf' || pathname.startsWith('/admin/etf/')) return 'adminEtf'
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  if (path === '/') return 'overview'
+  if (path === '/reviews' || /^\/diaries\/[1-9]\d*\/review$/.test(path)) return 'reviews'
+  if (path === '/partners/compare' || path === '/timeline' || path === '/calendar' || path === '/diaries' || path.startsWith('/diaries/')) return 'diary'
+  if (path === '/alerts') return 'diaryReminders'
+  if (path === '/partners') return 'partners'
+  if (path === '/stocks/watchlist') return 'watchlist'
+  if (path === '/stocks/alerts') return 'priceReminders'
+  if (path === '/stocks' || path === '/strategy-performance') return 'holdings'
+  if (path === '/trade-plans' || path.startsWith('/trade-plans/')) return 'tradePlans'
+  if (path === '/discipline' || path.startsWith('/discipline/')) return 'discipline'
+  if (/^\/stocks\/[^/]+(?:\/thesis)?$/.test(path)) return 'marketResearch'
+  if (path === '/tools' || path.startsWith('/tools/') || path === '/etf/watchlist') return 'tools'
+  if (path === '/articles' || path.startsWith('/articles/')) return 'articles'
+  if (path === '/settings' || path.startsWith('/settings/')) return 'settings'
+  if (path === '/admin/blog' || path.startsWith('/admin/blog/')) return 'adminBlog'
+  if (path === '/admin/users' || path.startsWith('/admin/users/')) return 'adminUsers'
+  if (path === '/admin/etf' || path.startsWith('/admin/etf/')) return 'adminEtf'
   return null
 }
 
@@ -87,15 +88,15 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: 
       {link('/stocks/SPY', c.marketResearch, 'chart', 'marketResearch')}
       {link('/tools', c.tools, 'wrench', 'tools')}
     </div></section>
+    <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
+      {link('/articles', c.publicArticles, 'fileText', 'articles')}
+      {link('/settings', c.settings, 'settings', 'settings')}
+    </div></section>
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
       {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
     </div></section>}
-    <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
-      {link('/articles', c.publicArticles, 'fileText', 'articles')}
-      {link('/settings', c.settings, 'settings', 'settings')}
-    </div></section>
   </>
 }
 

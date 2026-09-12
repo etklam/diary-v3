@@ -40,14 +40,14 @@ The same configuration renders in the desktop sidebar and mobile drawer. Primary
 | User management | `/admin/users` |
 | ETF catalog | `/admin/etf` |
 
-Ownership uses a specific-path-first matcher. A workspace sidebar landmark exposes at most one `aria-current="page"`; feature-local navigation can independently identify its current view.
+Ownership uses a specific-path-first matcher, normalizes trailing slashes, and rejects lookalike prefixes such as `/trade-plans-extra`. A workspace sidebar landmark exposes at most one `aria-current="page"`; feature-local navigation can independently identify its current view. Account precedes the Admin-only Administration group in both desktop and mobile renderings.
 
 ## Evidence
 
-- `tests/unit/navigation.test.ts`: 27 route ownership cases, including collision-prone routes.
+- `tests/unit/navigation.test.ts`: 33 route ownership cases, including collision-prone routes, trailing slashes, and lookalike prefixes.
 - `tests/e2e/workspace-navigation.spec.ts`: desktop, mobile dialog, role gating, focus return, route navigation, 360/768 overflow checks, and Admin ordering.
 - `docs/design/evidence/navigation/user-sidebar-1440.png`
 - `docs/design/evidence/navigation/admin-sidebar-1440.png`
 - `docs/design/evidence/navigation/mobile-drawer-390.png`
 
-Focused verification passed: navigation/capture unit tests (32), TypeScript, ESLint, and three Playwright navigation scenarios. Combined phase verification passed 72 unit files / 642 tests, the production build, contracts drift check, and all 9 production-artifact RC1 browser scenarios. Full article and combined results are recorded in `docs/design/article-publishing-acceptance.md`.
+Focused verification passed: navigation/capture unit tests (38), TypeScript, ESLint, and three Playwright navigation scenarios. Combined phase verification passed 72 unit files / 648 tests, the production build, contracts drift check, 20 scoped browser scenarios, and all 9 production-artifact RC1 browser scenarios. Full article and combined results are recorded in `docs/design/article-publishing-acceptance.md`.

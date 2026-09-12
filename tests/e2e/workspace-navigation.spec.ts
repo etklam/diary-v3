@@ -68,6 +68,18 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(page.locator('.desktop-nav .nav-more').filter({ hasText: 'Trade management' })).toHaveAttribute('open', '')
   await page.goto('/reviews')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Review queue')
+
+  for (const [path, active] of [
+    ['/diaries/123/edit', 'Diary'], ['/diaries/123/review', 'Review queue'], ['/partners/compare', 'Diary'],
+    ['/partners', 'Partner management'], ['/stocks/watchlist', 'Watchlist'], ['/stocks/alerts', 'Price reminders'],
+    ['/stocks/NVDA', 'Market research'], ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
+  ] as const) {
+    await page.goto(path)
+    await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText(active)
+    await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(1)
+  }
+  await page.goto('/')
+  await page.setViewportSize({ width: 1440, height: 1200 })
   await page.screenshot({ path: 'docs/design/evidence/navigation/user-sidebar-1440.png', fullPage: true })
 
   await page.setViewportSize({ width: 768, height: 900 })
@@ -90,6 +102,7 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await expect(dialog.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute('href', '/')
   await expect(dialog.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
   await expect(dialog.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
+  expect(await dialog.locator('nav a').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
   await dialog.getByTestId('mobile-quick-entry').focus()
   await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
   await dialog.locator('.quick-capture-disclosure summary').click()
@@ -135,8 +148,14 @@ test('admin navigation is role-gated and ordered with article management first',
   await page.goto('/admin/blog/new')
   await selectLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
+  await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
   await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'ETF catalog'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
+  await page.goto('/admin/blog/123/edit')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(1)
+  await page.goto('/admin/blog/new')
+  await page.setViewportSize({ width: 1440, height: 1200 })
   await page.screenshot({ path: 'docs/design/evidence/navigation/admin-sidebar-1440.png', fullPage: true })
 
   for (const width of [360, 768]) {

@@ -40,8 +40,11 @@ test('built artifacts publish, update, and archive a public article', async ({ p
     await expect(page.getByText(/Article published publicly\.|文章已公開發布。|文章已公开发布。/, { exact: true })).toBeVisible();
     const published = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string };
     expect(published.status).toBe('PUBLISHED');
+    await guest.goto('/articles');
+    await expect(guest.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await guest.goto(`/articles/${encodeURIComponent(published.slug)}`);
     await expect(guest.getByRole('heading', { name: title, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /View public article|查看公開文章|查看公开文章/, exact: true })).toHaveAttribute('href', `/articles/${encodeURIComponent(published.slug)}`);
     await page.getByLabel(/Content|內容|内容/, { exact: true }).fill('Updated through built artifacts.');
     await page.getByRole('button', { name: /Update published article|更新公開文章|更新公开文章/, exact: true }).click();
     await expect(page.getByText(/Published article updated\.|公開文章已更新。|公开文章已更新。/, { exact: true })).toBeVisible();
@@ -51,6 +54,8 @@ test('built artifacts publish, update, and archive a public article', async ({ p
     await page.getByRole('button', { name: /Archive article|封存文章|归档文章/, exact: true }).click();
     await expect(page.getByText(/Article archived and no longer public\.|文章已封存，不再公開。|文章已归档，不再公开。/, { exact: true })).toBeVisible();
     expect((await guest.goto(`/articles/${encodeURIComponent(published.slug)}`))?.status()).toBe(404);
+    await guest.goto('/articles');
+    await expect(guest.getByRole('heading', { name: title, exact: true })).toHaveCount(0);
   } finally { await guestContext.close(); }
 });
 
