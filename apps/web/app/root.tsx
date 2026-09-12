@@ -44,7 +44,8 @@ function Shell() {
       if (active) setViewer(result.response.ok && result.data ? { id: result.data.data.id, role: result.data.data.role } : null);
     }).catch(() => { if (active) setViewer(null); });
     return () => { active = false; };
-  }, [session.authenticated, session.revision, location.pathname]);
+    // Role only changes at session boundaries; page navigations must not refetch it.
+  }, [session.authenticated, session.revision]);
   useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);
