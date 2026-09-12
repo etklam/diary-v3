@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme } from '../support/e2e';
+import { e2eBaseURL, test, expect, selectLocale, selectTheme } from '../support/e2e';
 for (const width of [1440, 390]) test(`API key external diary and revocation at ${width}px`, async ({ page, playwright }) => {
  await page.setViewportSize({ width, height: 900 });
  const email = `keys-${randomUUID()}@example.test`, password = 'synthetic-keys-password';
@@ -15,7 +15,7 @@ for (const width of [1440, 390]) test(`API key external diary and revocation at 
  await page.getByRole('button', { name: 'Copy key', exact: true }).click(); await expect(page.getByText('Copy was unavailable. Select the key and copy it manually.')).toBeVisible();
  await expect(secret).toBeVisible();
  await page.getByRole('button', { name: 'I have saved this key', exact: true }).click(); await expect(page.locator('textarea[readonly]')).toHaveCount(0);
- const client = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3200', extraHTTPHeaders: { 'x-api-key': rawKey } });
+ const client = await playwright.request.newContext({ baseURL: e2eBaseURL, extraHTTPHeaders: { 'x-api-key': rawKey } });
  try {
   const result = await client.post('/api/agent/diaries', { data: { date: '2026-09-05', title: 'Published externally', content: 'Research from a standard HTTP client.' } }); expect(result.status()).toBe(201); const diary = await result.json();
   await page.goto(`/diaries/${diary.id}`); await expect(page.getByRole('heading', { name: 'Published externally', exact: true })).toBeVisible(); await expect(page.getByText('Research from a standard HTTP client.', { exact: true })).toBeVisible();

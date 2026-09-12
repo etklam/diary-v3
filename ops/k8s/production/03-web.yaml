@@ -21,6 +21,8 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            - name: API_ORIGIN
+              value: http://diary-v3-api:3101
             - name: HOST
               value: 0.0.0.0
             - name: PORT

@@ -5,7 +5,6 @@ set -euo pipefail
 # accepts a product DATABASE_URL, so it cannot touch dev/K3s/production data.
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONTAINER="${RESTORE_SMOKE_CONTAINER:-diary-v3-restore-smoke}"
-PORT="${RESTORE_SMOKE_PORT:-55435}"
 IMAGE="${RESTORE_SMOKE_IMAGE:-postgres:17.6-alpine}"
 DB_USER="restore_smoke"
 DB_PASSWORD="${RESTORE_SMOKE_PASSWORD:-restore_smoke_password}"
@@ -14,6 +13,16 @@ TARGET_DB="restore_empty"
 N1_DB="restore_empty_n1"
 FAILED_DB="restore_failed"
 N_TAG="${RESTORE_SMOKE_N_TAG:-0019_price_alert_moving_average_direction}"
+JOB_CONTAINER="${RESTORE_SMOKE_JOB_CONTAINER:-}"
+if [ -n "$JOB_CONTAINER" ]; then
+  PORT="${RESTORE_SMOKE_PORT:-5432}"
+  [ "$PORT" = 5432 ] || { echo 'RESTORE_SMOKE_PORT must be 5432 when sharing the job network' >&2; exit 1; }
+  docker inspect "$JOB_CONTAINER" >/dev/null
+  DOCKER_NETWORK_ARGS=(--network "container:$JOB_CONTAINER")
+else
+  PORT="${RESTORE_SMOKE_PORT:-55435}"
+  DOCKER_NETWORK_ARGS=(-p "127.0.0.1:${PORT}:5432")
+fi
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/diary-v3-restore-smoke.XXXXXX")"
 N_MIGRATIONS="$WORK_DIR/migrations-n"
 SOURCE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PORT}/${SOURCE_DB}"
@@ -48,10 +57,11 @@ fs.writeFileSync(path.join(target, 'meta', '_journal.json'), `${JSON.stringify(j
 NODE
 
 docker run -d --name "$CONTAINER" \
+  "${DOCKER_NETWORK_ARGS[@]}" \
   -e "POSTGRES_USER=$DB_USER" \
   -e "POSTGRES_PASSWORD=$DB_PASSWORD" \
   -e "POSTGRES_DB=$SOURCE_DB" \
-  -p "${PORT}:5432" "$IMAGE" >/dev/null
+  "$IMAGE" >/dev/null
 
 for attempt in $(seq 1 45); do
   if docker exec "$CONTAINER" pg_isready -U "$DB_USER" -d "$SOURCE_DB" >/dev/null 2>&1; then break; fi

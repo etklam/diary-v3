@@ -44,6 +44,12 @@ export function safeReturnPath(candidate: string | null): string {
 }
 export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
 
+export function defaultWorkspacePath(page: string | null | undefined) {
+  if (page === 'diaries') return '/diaries';
+  if (page === 'calendar') return '/calendar';
+  return '/timeline';
+}
+
 // `broadcast` marks an explicit sign-out from this tab: private drafts are
 // cleared and the logout event reaches the other tabs. The cross-tab receivers
 // pass `clearDrafts` instead — the same draft clearing without re-broadcasting

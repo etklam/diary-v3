@@ -32,6 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Use pinned Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
       - name: Tracked secret scan
         run: |
           set -euo pipefail
@@ -60,6 +66,16 @@ jobs:
 
       - name: Validate source deployment manifests
         run: npm run manifests:check
+
+      - name: PostgreSQL backup and restore smoke
+        run: |
+          set -euo pipefail
+          JOB_CONTAINER=$(cat /etc/hostname)
+          docker inspect "$JOB_CONTAINER" >/dev/null || { echo "cannot resolve job container '$JOB_CONTAINER'" >&2; exit 1; }
+          RESTORE_SMOKE_CONTAINER=diary-v3-ci-restore-smoke \
+          RESTORE_SMOKE_JOB_CONTAINER="$JOB_CONTAINER" \
+          RESTORE_SMOKE_PORT=5432 \
+          npm run db:restore-smoke
 
       - name: Start disposable PostgreSQL
         run: |
@@ -93,12 +109,26 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Full Chromium regression
+        env:
+          DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
+          CI: "true"
+        run: npm run test:e2e
+
+      - name: WebKit critical path
+        env:
+          DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
+          CI: "true"
+        run: npm run test:e2e:webkit:critical
+
       - name: Release artifact acceptance
         env:
           DATABASE_URL: postgresql://diary:***@127.0.0.1:5432/diary_v3
           CI: "true"
         run: |
-          npx playwright install --with-deps chromium
           npm run test:e2e:release
 
       - name: Stop disposable PostgreSQL
@@ -131,14 +161,19 @@ jobs:
           WEB_DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "$WEB_IMAGE" | sed 's/.*@//')
           [[ "$API_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; [[ "$WEB_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           echo "API_DIGEST=$API_DIGEST" >> "$GITHUB_ENV"; echo "WEB_DIGEST=$WEB_DIGEST" >> "$GITHUB_ENV"
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_DIGEST|" -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_DIGEST|" ops/k8s/production/02-api.yaml > /tmp/diary-v3-api.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-web:[^ ]*|$REGISTRY/$OWNER/diary-v3-web@$WEB_DIGEST|" ops/k8s/production/03-web.yaml > /tmp/diary-v3-web.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_DIGEST|" ops/k8s/production/05-market-cron.yaml > /tmp/diary-v3-market-cron.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_DIGEST|" ops/k8s/production/06-seed-job.yaml > /tmp/diary-v3-seed-job.yaml
-          sed -e "s|git.913555.xyz/etklam/diary-v3-api:[^ ]*|$REGISTRY/$OWNER/diary-v3-api@$API_DIGEST|" ops/k8s/production/07-migrate-job.yaml > /tmp/diary-v3-migrate-job.yaml
-          node --import tsx scripts/validate-production-manifests.ts --require-digests \
-            ops/k8s/00-namespace.yaml ops/k8s/production/01-postgres.yaml /tmp/diary-v3-api.yaml /tmp/diary-v3-web.yaml \
-            ops/k8s/production/04-ingress.yaml /tmp/diary-v3-market-cron.yaml /tmp/diary-v3-seed-job.yaml /tmp/diary-v3-migrate-job.yaml
+          API_IMAGE_REF="$REGISTRY/$OWNER/diary-v3-api@$API_DIGEST"
+          WEB_IMAGE_REF="$REGISTRY/$OWNER/diary-v3-web@$WEB_DIGEST"
+          RELEASE_MANIFEST_DIR=$(mktemp -d /tmp/diary-v3-release.XXXXXX)
+          echo "RELEASE_MANIFEST_DIR=$RELEASE_MANIFEST_DIR" >> "$GITHUB_ENV"
+          node --import tsx scripts/render-release-manifests.ts \
+            --target=production --api-image="$API_IMAGE_REF" --web-image="$WEB_IMAGE_REF" \
+            --output-dir="$RELEASE_MANIFEST_DIR"
+          node --import tsx scripts/validate-production-manifests.ts --namespace=diary-v3 --require-digests \
+            "$RELEASE_MANIFEST_DIR"/*.yaml
+          echo "Release source commit: ${{ github.sha }}"
+          echo "Release API image: $API_IMAGE_REF"
+          echo "Release Web image: $WEB_IMAGE_REF"
+          echo 'Copy these exact digest references into the manual staging workflow inputs.'
 
       - name: Record current production workloads
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -163,11 +198,11 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           ssh $SSH_OPTS "$REMOTE" "mkdir -p /tmp/diary-v3-release"
-          scp $SSH_OPTS ops/k8s/00-namespace.yaml ops/k8s/production/01-postgres.yaml ops/k8s/production/04-ingress.yaml "$REMOTE:/tmp/diary-v3-release/"
-          scp $SSH_OPTS /tmp/diary-v3-migrate-job.yaml /tmp/diary-v3-seed-job.yaml "$REMOTE:/tmp/diary-v3-release/"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/00-namespace.yaml" "$RELEASE_MANIFEST_DIR/01-postgres.yaml" "$RELEASE_MANIFEST_DIR/04-ingress.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/07-migrate-job.yaml" "$RELEASE_MANIFEST_DIR/06-seed-job.yaml" "$REMOTE:/tmp/diary-v3-release/"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/00-namespace.yaml && kubectl apply -f /tmp/diary-v3-release/01-postgres.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-postgres --timeout=300s"
-          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-migrate --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/diary-v3-migrate-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
-          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/diary-v3-seed-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
+          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-migrate --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/07-migrate-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
+          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/06-seed-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
 
       - name: Deploy API
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -176,9 +211,9 @@ jobs:
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS /tmp/diary-v3-api.yaml "$REMOTE:/tmp/diary-v3-release/"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/02-api.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'DEPLOYMENT_MUTATED=true' >> "$GITHUB_ENV"; echo 'API_MUTATED=true' >> "$GITHUB_ENV"
-          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/diary-v3-api.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"
+          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/02-api.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"
 
       - name: Deploy Web
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -187,9 +222,9 @@ jobs:
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS /tmp/diary-v3-web.yaml "$REMOTE:/tmp/diary-v3-release/"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/03-web.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'WEB_MUTATED=true' >> "$GITHUB_ENV"
-          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/diary-v3-web.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"
+          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/03-web.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"
 
       - name: Deploy ingress and market CronJob
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -198,9 +233,9 @@ jobs:
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS /tmp/diary-v3-market-cron.yaml "$REMOTE:/tmp/diary-v3-release/"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/05-market-cron.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'CRON_MUTATED=true' >> "$GITHUB_ENV"
-          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/diary-v3-market-cron.yaml"
+          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/05-market-cron.yaml"
 
       - name: Smoke test production
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -213,6 +248,7 @@ jobs:
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"
           test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/)" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/articles)" = 200
 
       - name: Rollback affected workloads and Rollback smoke test
         if: failure() && env.DEPLOYMENT_MUTATED == 'true'
@@ -228,3 +264,4 @@ jobs:
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run rollback-smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run rollback-smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
           test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/)" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/articles)" = 200

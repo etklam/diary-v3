@@ -1,8 +1,8 @@
-import { test, expect, selectLocale, selectTheme } from '../support/e2e';
+import { e2eBaseURL, test, expect, selectLocale, selectTheme } from '../support/e2e';
 import { createDisciplineShare, disciplineShareUrl } from '@diary/contracts/discipline-share';
 test('public discipline share renders without JavaScript and safely exposes OG metadata', async ({ browser, request }) => {
  const share = createDisciplineShare([{ content: '原則 😀 <script>unsafe()</script> & risk', order: 0 }], { title: '公開原則 & <標題>', author: '作者'.repeat(30), description: 'Shared intentionally' }, '2026-01-01T00:00:00Z');
- const url = disciplineShareUrl(share, 'http://127.0.0.1:3200');
+ const url = disciplineShareUrl(share, e2eBaseURL);
  const context = await browser.newContext({ javaScriptEnabled: false });
  try {
   const page = await context.newPage(); const response = await page.goto(url); expect(response?.status()).toBe(200); expect(response?.headers()['referrer-policy']).toBe('no-referrer');
@@ -13,7 +13,7 @@ test('public discipline share renders without JavaScript and safely exposes OG m
   const image = await request.get(og!); expect(image.status()).toBe(200); expect(image.headers()['content-type']).toContain('image/svg+xml');
   const ogPage = await context.newPage(); await ogPage.goto(og!); await ogPage.screenshot({ path: 'docs/design/evidence/discipline/og.png' }); await ogPage.close();
   const svg = await image.text(); expect(svg).toContain('&amp;'); expect(svg).toContain('&lt;標題&gt;'); expect(svg).not.toContain('<標題>');
-  const invalid = await page.goto('http://127.0.0.1:3200/discipline/share?import=bad'); expect(invalid?.status()).toBe(400);
+  const invalid = await page.goto(`${e2eBaseURL}/discipline/share?import=bad`); expect(invalid?.status()).toBe(400);
   await expect(page.locator('article li')).toHaveCount(0);
  } finally { await context.close(); }
 });
@@ -71,7 +71,7 @@ test('guest import survives sign-in and changing locale preserves edited preview
  const email = `guest-share-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.request.post('/api/auth/register', { data: { email, password } });
  const source = createDisciplineShare([{ content: 'Original shared rule', order: 0 }], {}, '2026-01-01T00:00:00Z');
- await page.goto(disciplineShareUrl(source, 'http://127.0.0.1:3200'));
+ await page.goto(disciplineShareUrl(source, e2eBaseURL));
  await selectLocale(page, 'en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
  await page.getByRole('link', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/login\?returnTo=/);
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
@@ -79,7 +79,7 @@ test('guest import survives sign-in and changing locale preserves edited preview
  await selectLocale(page, 'en'); await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
  const changed = JSON.stringify({ ...source, disciplines: [{ content: 'Edited before import', order: 0 }] });
  await page.getByLabel('Share JSON', { exact: true }).fill(changed);
- page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
+ page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary library', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
  await selectLocale(page, 'zh-TW'); await expect(page.getByLabel('分享 JSON', { exact: true })).toHaveValue(changed);
  await page.getByRole('button', { name: '預覽匯入', exact: true }).click(); await page.getByRole('button', { name: '匯入紀律', exact: true }).click();
  await expect(page.getByTestId('principle')).toHaveText(/Edited before import/); await expect(page).toHaveURL(/\/discipline$/);
@@ -87,7 +87,7 @@ test('guest import survives sign-in and changing locale preserves edited preview
 
 test('new account registration preserves the shared import destination through sign-in', async ({ page }) => {
  const source = createDisciplineShare([{ content: 'A new account can import this rule', order: 0 }], {}, '2026-01-01T00:00:00Z');
- await page.goto(disciplineShareUrl(source, 'http://127.0.0.1:3200'));
+ await page.goto(disciplineShareUrl(source, e2eBaseURL));
  await selectLocale(page, 'en'); await page.getByRole('link', { name: 'Preview import', exact: true }).click();
  await page.getByRole('link', { name: 'Sign in', exact: true }).click();
  await page.locator('#main').getByRole('link', { name: 'Create account', exact: true }).click(); await expect(page).toHaveURL(/\/register\?returnTo=/);

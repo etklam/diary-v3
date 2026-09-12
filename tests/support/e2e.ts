@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test as base, type Page } from '@playwright/test';
+export { e2eBaseURL } from './e2e-origin';
 
 // Each scenario exercises the real limiter without sharing another test's quota.
 // This header is interpreted only by the disposable E2E server.
@@ -71,16 +72,27 @@ export async function openQuick(page: Page) {
   await page.keyboard.press('Control+j');
 }
 
-// Compact shell (<768px) keeps the navigation links inside the mobile menu
-// dialog, so open it first; desktop clicks the sidebar link directly.
+// Diary browsing destinations stay visible in the desktop sidebar and mobile shell.
 export async function clickNav(page: Page, name: string) {
   const view = (page.viewportSize()?.width ?? 1280) < 768;
-  const normalized = name === 'Start' ? 'Overview' : name === 'Diary library' ? 'Diary' : name;
-  const diaryView = ['Timeline', 'Calendar', 'Diary library'].includes(name);
-  const subnavName = name === 'Diary library' ? 'Diary library' : name;
+  const normalized = name === 'Start' ? 'Overview' : name;
+  const diaryView = ['Diary library', 'Timeline', 'Calendar'].includes(name);
   const secondary = ['Partners', 'Trading principles', 'Diary reminders', 'Price reminders'].includes(name);
+  const secondaryHref: Record<string, string> = { Partners: '/partners', 'Trading principles': '/discipline', 'Diary reminders': '/alerts', 'Price reminders': '/stocks/alerts' };
   const tool = ['Position sizing', 'Financial freedom', 'Relative value', 'Seasonality', 'ETF research', 'Market rotation', 'SEC filings'].includes(name);
   const toolHref: Record<string, string> = { 'Position sizing': '/tools/position-sizing', 'Financial freedom': '/tools/financial-freedom', 'Relative value': '/tools/relative-value', Seasonality: '/tools/seasonality', 'ETF research': '/tools/etf', 'Market rotation': '/tools/market-rotation', 'SEC filings': '/tools/sec-filings' };
+  if (diaryView) {
+    const destination = name === 'Diary library' ? '/diaries' : name === 'Timeline' ? '/timeline' : '/calendar';
+    const target = view
+      ? page.getByTestId('mobile-diary-navigation').getByRole('link', { name, exact: true })
+      : page.locator('.desktop-nav').getByRole('link', { name, exact: true });
+    await expect(target).toBeVisible();
+    if (new URL(page.url()).pathname !== destination) {
+      await target.click();
+      await page.waitForURL(url => url.pathname === destination);
+    }
+    return;
+  }
   if (name === 'Quick diary') {
     if (view) {
       const dialog = page.getByTestId('mobile-menu-dialog');
@@ -91,19 +103,18 @@ export async function clickNav(page: Page, name: string) {
     }
     return;
   }
-  if (view && diaryView) {
-    const dialog = page.getByTestId('mobile-menu-dialog');
-    const diaryNavigation = page.getByTestId('diary-navigation');
-    if (!(await dialog.isVisible().catch(() => false))) await page.getByTestId('mobile-menu').click();
-    await dialog.getByRole('link', { name: 'Diary', exact: true }).click();
-    await diaryNavigation.waitFor({ state: 'visible' });
-    await diaryNavigation.getByRole('link', { name: subnavName, exact: true }).click();
-    return;
-  }
-  if ((page.viewportSize()?.width ?? 1280) < 768) {
+  if (view) {
     const dialog = page.getByTestId('mobile-menu-dialog');
     if (!(await dialog.isVisible().catch(() => false))) await page.getByTestId('mobile-menu').click();
-    if (secondary && !(await dialog.getByRole('link', { name, exact: true }).isVisible().catch(() => false))) await dialog.locator('details.nav-more > summary').click();
+    if (secondary) {
+      const href = secondaryHref[name];
+      const section = dialog.locator(`details.nav-more:has(a[href="${href}"])`);
+      await expect(section).toHaveCount(1);
+      const target = section.locator(`a[href="${href}"]`);
+      if (!(await target.isVisible())) await section.locator(':scope > summary').click();
+      await target.click();
+      return;
+    }
     if (tool) {
       await dialog.getByRole('link', { name: 'Tools', exact: true }).click();
       await page.locator(`a[href="${toolHref[name]}"]`).click();
@@ -112,16 +123,14 @@ export async function clickNav(page: Page, name: string) {
     await dialog.getByRole('link', { name: normalized, exact: true }).click();
     return;
   }
-  if (diaryView) {
-    const diaryNavigation = page.getByTestId('diary-navigation');
-    if (!(await diaryNavigation.count())) await page.getByRole('link', { name: 'Diary', exact: true }).click();
-    await diaryNavigation.waitFor({ state: 'visible' });
-    await diaryNavigation.getByRole('link', { name: subnavName, exact: true }).click();
-    return;
-  }
   if (secondary) {
-    const disclosure = page.locator('.desktop-nav details.nav-more');
-    if (!(await disclosure.getByRole('link', { name, exact: true }).isVisible().catch(() => false))) await disclosure.locator('summary').click();
+    const href = secondaryHref[name];
+    const section = page.locator(`.desktop-nav details.nav-more:has(a[href="${href}"])`);
+    await expect(section).toHaveCount(1);
+    const target = section.locator(`a[href="${href}"]`);
+    if (!(await target.isVisible())) await section.locator(':scope > summary').click();
+    await target.click();
+    return;
   }
   if (tool) {
     await page.getByRole('link', { name: 'Tools', exact: true }).click();

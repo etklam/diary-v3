@@ -43,6 +43,7 @@ export const users = pgTable('users', {
   expectedAvgHolding: numeric('expected_avg_holding', { precision: 15, scale: 2 }).default('0').notNull(),
   timezone: varchar('timezone', { length: 50 }).default('Asia/Taipei').notNull(),
   locale: varchar('locale', { length: 5 }).default('zh-TW').notNull(),
+  defaultWorkspacePage: varchar('default_workspace_page', { length: 16 }).default('timeline').notNull(),
   excludeHolidaysInStats: boolean('exclude_holidays_in_stats').default(true).notNull(),
   favoriteTagsString: varchar('favorite_tags', { length: 500 }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
@@ -51,6 +52,7 @@ export const users = pgTable('users', {
   uniqueIndex('users_email_lower_key').on(sql`lower(${table.email})`),
   check('users_expected_monthly_trades_nonnegative', sql`${table.expectedMonthlyTrades} >= 0`),
   check('users_locale_valid', sql`${table.locale} in ('zh-TW', 'zh-CN', 'en')`),
+  check('users_default_workspace_page_valid', sql`${table.defaultWorkspacePage} in ('diaries', 'timeline', 'calendar')`),
 ])
 
 export const refreshTokens = pgTable('refresh_tokens', {

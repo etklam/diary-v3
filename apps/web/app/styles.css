@@ -759,6 +759,11 @@ kbd {
   text-decoration: none;
 }
 
+.desktop-nav a.nav-diary-view {
+  min-height: 44px;
+  font-weight: 600;
+}
+
 .desktop-nav a svg,
 .mobile-menu-dialog nav a svg {
   flex: 0 0 auto;
@@ -810,6 +815,10 @@ kbd {
   max-width: 1440px;
   min-width: 0;
   padding: var(--page-block) var(--page-gutter);
+}
+
+.app-shell > main.wide-diary-main {
+  max-width: none;
 }
 
 main:focus {
@@ -1184,34 +1193,44 @@ main:focus-visible {
   min-width: 88px;
 }
 
-.diary-navigation {
+.mobile-diary-navigation {
+  display: none;
+}
+
+.mobile-diary-navigation a {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border);
-}
-
-.diary-navigation a {
-  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  min-height: 44px;
-  padding: 8px 12px;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
   border-radius: var(--radius-control);
-  color: var(--muted);
-  font-weight: 600;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
-.diary-navigation a:hover {
+.mobile-diary-navigation a:hover {
   background: var(--tint-neutral);
   color: var(--text);
 }
 
-.diary-navigation a[aria-current="page"] {
-  background: var(--selected);
+.mobile-diary-navigation a[aria-current="page"] {
+  border-color: var(--border);
+  background: var(--surface);
   color: var(--text);
+  box-shadow: var(--shadow-1);
+}
+
+.mobile-diary-navigation a[aria-current="page"] svg {
+  color: var(--action);
 }
 
 .mobile-brand-name {
@@ -1388,6 +1407,13 @@ main:focus-visible {
     justify-content: space-between;
     gap: var(--space-4);
     min-height: 48px;
+  }
+
+  .mobile-diary-navigation {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-1);
+    margin-top: var(--space-2);
   }
 
   .mobile-shell-header .brand {

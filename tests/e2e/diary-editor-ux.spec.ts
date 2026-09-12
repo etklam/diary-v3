@@ -98,7 +98,7 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   // Clean editor navigates without any dialog.
   await page.goto(editPath);
   await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.getByRole('link', { name: 'Diary', exact: true }).click();
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries$/);
   expect(dialogs).toEqual([]);
 
@@ -107,14 +107,14 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, changed');
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
   answer = 'dismiss';
-  await page.getByRole('link', { name: 'Diary', exact: true }).click();
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Navigation guard diary, changed');
   // The blocker's confirm is synchronous with the navigation attempt; the
   // dialog event itself lands on the driver asynchronously, so poll for it.
   await expect.poll(() => dialogs.length).toBe(1);
   answer = 'accept';
-  await page.getByRole('link', { name: 'Diary', exact: true }).click();
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries$/);
 
   // A saved editor stops warning on future navigation.
@@ -147,7 +147,7 @@ test('preview round trip preserves content, dirty state, caret and scroll', asyn
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 });
 
-test('device-local recovery restores unsaved writing after a reload and clears after a save', async ({ page }) => {
+test('device-local recovery restores unsaved writing after a reload and clears after a save @webkit-critical', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signInAndOpen(page, `ux-recovery-${randomUUID()}@example.test`);
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');

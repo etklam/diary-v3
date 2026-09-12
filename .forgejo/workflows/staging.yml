@@ -1,0 +1,152 @@
+name: staging
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full source commit SHA recorded by the successful production build workflow
+        required: true
+        type: string
+      api_image:
+        description: Full immutable API image reference ending in @sha256
+        required: true
+        type: string
+      web_image:
+        description: Full immutable Web image reference ending in @sha256
+        required: true
+        type: string
+      staging_hostname:
+        description: DNS hostname configured for the isolated staging ingress
+        required: true
+        type: string
+
+concurrency:
+  group: diary-v3-staging-deploy
+  cancel-in-progress: false
+
+env:
+  STAGING_NAMESPACE: diary-v3-staging
+
+jobs:
+  deploy-staging:
+    runs-on: hk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use pinned Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Render and validate staging release
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          API_IMAGE: ${{ inputs.api_image }}
+          WEB_IMAGE: ${{ inputs.web_image }}
+          STAGING_HOSTNAME: ${{ inputs.staging_hostname }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo 'source_sha must be a full Git commit SHA' >&2; exit 1; }
+          RELEASE_MANIFEST_DIR=$(mktemp -d /tmp/diary-v3-staging-release.XXXXXX)
+          echo "RELEASE_MANIFEST_DIR=$RELEASE_MANIFEST_DIR" >> "$GITHUB_ENV"
+          node --import tsx scripts/render-release-manifests.ts \
+            --target=staging --api-image="$API_IMAGE" --web-image="$WEB_IMAGE" \
+            --hostname="$STAGING_HOSTNAME" --output-dir="$RELEASE_MANIFEST_DIR"
+          node --import tsx scripts/validate-production-manifests.ts --namespace=diary-v3-staging --require-digests \
+            "$RELEASE_MANIFEST_DIR"/*.yaml
+          echo "Staging source commit: $SOURCE_SHA"
+          echo "Staging API image: $API_IMAGE"
+          echo "Staging Web image: $WEB_IMAGE"
+          echo "Staging hostname: $STAGING_HOSTNAME"
+          echo 'The staging renderer uses the production release manifests and pauses the market CronJob.'
+
+      - name: Deploy isolated staging namespace and run smoke
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          API_IMAGE: ${{ inputs.api_image }}
+          WEB_IMAGE: ${{ inputs.web_image }}
+          STAGING_HOSTNAME: ${{ inputs.staging_hostname }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in STAGING_HOST STAGING_USER STAGING_SSH_KEY STAGING_KNOWN_HOSTS; do
+            test -n "${!name}" || { echo "required staging secret is missing: $name" >&2; exit 1; }
+          done
+          SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
+          printf '%s\n' "$STAGING_SSH_KEY" > "$SSH_KEY"
+          printf '%s\n' "$STAGING_KNOWN_HOSTS" > "$KNOWN_HOSTS"
+          chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
+          SSH_OPTS=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -i "$SSH_KEY")
+          REMOTE="$STAGING_USER@$STAGING_HOST"
+          REMOTE_RELEASE_DIR=/tmp/diary-v3-staging-release
+
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl get namespace '$STAGING_NAMESPACE' >/dev/null"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret diary-v3-db -o jsonpath='{.data.POSTGRES_PASSWORD}' | grep -q ."
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret diary-v3-app -o jsonpath='{.data.DATABASE_URL}' | grep -q ."
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret diary-v3-app -o jsonpath='{.data.JWT_SECRET}' | grep -q ."
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret diary-v3-app -o jsonpath='{.data.WEB_ORIGIN}' | grep -q ."
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret diary-v3-app -o jsonpath='{.data.SEC_USER_AGENT}' | grep -q ."
+          IMAGE_PULL_SECRET=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get serviceaccount default -o jsonpath='{.imagePullSecrets[0].name}'")
+          [[ "$IMAGE_PULL_SECRET" =~ ^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$ ]] || { echo 'default service account must name a valid image pull Secret' >&2; exit 1; }
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get secret '$IMAGE_PULL_SECRET' >/dev/null"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "STAGING_HOSTNAME='$STAGING_HOSTNAME' STAGING_NAMESPACE='$STAGING_NAMESPACE' bash -se" <<'REMOTE_CHECK'
+          set -euo pipefail
+          app_secret=diary-v3-app
+          database_url=$(kubectl -n "$STAGING_NAMESPACE" get secret "$app_secret" -o jsonpath='{.data.DATABASE_URL}' | base64 --decode)
+          jwt_secret=$(kubectl -n "$STAGING_NAMESPACE" get secret "$app_secret" -o jsonpath='{.data.JWT_SECRET}' | base64 --decode)
+          web_origin=$(kubectl -n "$STAGING_NAMESPACE" get secret "$app_secret" -o jsonpath='{.data.WEB_ORIGIN}' | base64 --decode)
+          sec_user_agent=$(kubectl -n "$STAGING_NAMESPACE" get secret "$app_secret" -o jsonpath='{.data.SEC_USER_AGENT}' | base64 --decode)
+          postgres_password=$(kubectl -n "$STAGING_NAMESPACE" get secret diary-v3-db -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 --decode)
+          export DATABASE_URL="$database_url" JWT_SECRET="$jwt_secret" WEB_ORIGIN="$web_origin"
+          export SEC_USER_AGENT="$sec_user_agent" POSTGRES_PASSWORD="$postgres_password"
+          node <<'NODE'
+          const db = new URL(process.env.DATABASE_URL)
+          const validHosts = new Set([
+            'diary-v3-postgres',
+            'diary-v3-postgres.diary-v3-staging',
+            'diary-v3-postgres.diary-v3-staging.svc',
+            'diary-v3-postgres.diary-v3-staging.svc.cluster.local',
+          ])
+          if (!['postgres:', 'postgresql:'].includes(db.protocol) || !validHosts.has(db.hostname)) throw new Error('DATABASE_URL must point to the isolated staging PostgreSQL service')
+          if (db.pathname !== '/diary_v3' || db.username !== 'diary' || decodeURIComponent(db.password) !== process.env.POSTGRES_PASSWORD) throw new Error('Staging database credentials do not match the staging PostgreSQL Secret')
+          if (process.env.WEB_ORIGIN !== `https://${process.env.STAGING_HOSTNAME}`) throw new Error('WEB_ORIGIN must match the staging hostname')
+          if (process.env.JWT_SECRET.length < 32 || !process.env.SEC_USER_AGENT) throw new Error('Staging application secrets do not satisfy the runtime contract')
+          NODE
+          echo 'Staging database and application secret contracts validated.'
+          REMOTE_CHECK
+
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p '$REMOTE_RELEASE_DIR'"
+          scp "${SSH_OPTS[@]}" "$RELEASE_MANIFEST_DIR"/*.yaml "$REMOTE:$REMOTE_RELEASE_DIR/"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/00-namespace.yaml' && kubectl apply -f '$REMOTE_RELEASE_DIR/01-postgres.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-postgres --timeout=300s"
+
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' delete job diary-v3-migrate --ignore-not-found && kubectl apply -f '$REMOTE_RELEASE_DIR/07-migrate-job.yaml' && kubectl -n '$STAGING_NAMESPACE' wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f '$REMOTE_RELEASE_DIR/06-seed-job.yaml' && kubectl -n '$STAGING_NAMESPACE' wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/02-api.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-api --timeout=300s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/03-web.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-web --timeout=300s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/04-ingress.yaml' && kubectl apply -f '$REMOTE_RELEASE_DIR/05-market-cron.yaml'"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"
+
+          API_DEPLOYMENT_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.containers[?(@.name==\"api\")].image}'")
+          API_INIT_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.initContainers[?(@.name==\"migrate\")].image}'")
+          WEB_DEPLOYMENT_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get deployment/diary-v3-web -o jsonpath='{.spec.template.spec.containers[?(@.name==\"web\")].image}'")
+          MIGRATION_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get job/diary-v3-migrate -o jsonpath='{.spec.template.spec.containers[0].image}'")
+          SEED_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get job/diary-v3-system-seed -o jsonpath='{.spec.template.spec.containers[0].image}'")
+          MARKET_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get cronjob/diary-v3-market -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}'")
+          test "$API_DEPLOYMENT_IMAGE" = "$API_IMAGE"
+          test "$API_INIT_IMAGE" = "$API_IMAGE"
+          test "$MIGRATION_IMAGE" = "$API_IMAGE"
+          test "$SEED_IMAGE" = "$API_IMAGE"
+          test "$MARKET_IMAGE" = "$API_IMAGE"
+          test "$WEB_DEPLOYMENT_IMAGE" = "$WEB_IMAGE"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get cronjob/diary-v3-market -o jsonpath='{.spec.suspend}' | grep -qx true"
+
+          STAGING_ORIGIN="https://$STAGING_HOSTNAME"
+          bash scripts/staging-smoke.sh "$STAGING_ORIGIN"
+          echo "Staging release verified for source $SOURCE_SHA"

@@ -41,7 +41,7 @@ test('installs static shell metadata without caching private API responses', asy
   expect(offline.apiFailed || offline.apiStatus === null).toBe(true)
 })
 
-test('mobile menu keeps every route reachable and returns focus on close', async ({ page }) => {
+test('mobile menu keeps every route reachable and returns focus on close @webkit-critical', async ({ page }) => {
   const email = `pwa-menu-${randomUUID()}@example.test`
   const password = 'synthetic-pwa-menu-password'
   await page.request.post('/api/auth/register', { data: { email, password } })
@@ -61,7 +61,7 @@ test('mobile menu keeps every route reachable and returns focus on close', async
   await trigger.click()
   const dialog = page.getByTestId('mobile-menu-dialog')
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('heading', { name: 'Daily work', exact: true })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'Diary & review', exact: true })).toBeVisible()
   await clickNav(page, 'SEC filings')
   await expect(page).toHaveURL(/\/tools\/sec-filings$/)
   await expect(dialog).toBeHidden()
@@ -74,7 +74,7 @@ test('mobile menu keeps every route reachable and returns focus on close', async
   await trigger.click()
   await expect(dialog).toBeVisible()
   await dialog.getByTestId('mobile-locale-select').selectOption('zh-CN')
-  await expect(dialog.getByRole('heading', { name: '日常工作', exact: true })).toHaveCount(1)
+  await expect(dialog.getByRole('heading', { name: '日记与复盘', exact: true })).toHaveCount(1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: 'docs/design/evidence/pwa/390.png', fullPage: true })
 })

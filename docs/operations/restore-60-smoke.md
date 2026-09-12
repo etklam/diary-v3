@@ -23,9 +23,11 @@ The repeatable release gate is `npm run db:restore-smoke`. It owns a disposable
 repository journal (default `0019_price_alert_moving_average_direction`),
 loads [`scripts/restore-smoke-fixture.sql`](../../scripts/restore-smoke-fixture.sql),
 and runs the full N→N+1 plus N+1 full-backup restore and failed-backup checks.
-It removes its container and temporary dumps on exit. CI runs this command
-before contract, lint, typecheck and test gates, so a failed restore prevents
-the existing production-image job from running.
+It removes its container and temporary dumps on exit. Forgejo runs it after
+source-manifest validation and before integration tests. The runner shares the
+job container's network namespace and uses its private port 5432; local runs
+use the dedicated host port 55435. A failed restore prevents image publication
+and deployment.
 
 ```sh
 RESTORE_SMOKE_CONTAINER=diary-v3-restore-smoke \

@@ -25,6 +25,9 @@ test('built artifacts serve public pages and API health', async ({ page, request
   await expect(page.locator('main')).toBeVisible();
   await page.goto('/tools');
   await expect(page.locator('main')).toBeVisible();
+  const articlesResponse = await page.goto('/articles');
+  expect(articlesResponse?.status()).toBe(200);
+  await expect(page.locator('main').getByRole('heading', { name: /Articles|文章/, exact: true })).toBeVisible();
 });
 
 test('built artifacts publish, update, and archive a public article', async ({ page, browser }) => {

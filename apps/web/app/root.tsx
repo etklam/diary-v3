@@ -37,6 +37,8 @@ function Shell() {
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
   const [viewer, setViewer] = useState<{ id: string; role: 'USER' | 'ADMIN' } | null>(null);
+  const routePath = location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : location.pathname;
+  const wideDiaryBrowsePath = ['/diaries', '/timeline', '/calendar'].includes(routePath);
   useEffect(() => {
     if (session.authenticated === false) { setViewer(null); return; }
     let active = true;
@@ -105,7 +107,7 @@ function Shell() {
         </div>
         <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
       </aside>
-      <main id="main" tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
+      <main id="main" className={wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
     </div>
   </>;
 }

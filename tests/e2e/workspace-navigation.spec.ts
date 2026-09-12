@@ -20,11 +20,12 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
 
   const primary = page.locator('.desktop-nav')
   for (const [name, href] of [
-    ['Overview', '/'], ['Diary', '/diaries'], ['Review queue', '/reviews'], ['Trade plans', '/trade-plans'],
+    ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['Trade plans', '/trade-plans'],
     ['Holdings', '/stocks'], ['Watchlist', '/stocks/watchlist'], ['Market research', '/stocks/SPY'], ['Tools', '/tools'],
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
+  expect(await primary.locator('.nav-diary-view').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
   await expect(primary.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
   await expect(primary.locator('.nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account'])
   await expect(primary.getByText('Daily work', { exact: true })).toHaveCount(0)
@@ -44,17 +45,37 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(captureDialog).toBeHidden()
   await expect(page.getByTestId('quick-entry')).toBeFocused()
 
-  await page.getByRole('link', { name: 'Diary', exact: true }).click()
+  await primary.getByRole('link', { name: 'Diary library', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries$/)
-  const diaryNav = page.getByTestId('diary-navigation')
-  await expect(diaryNav.getByRole('link', { name: 'Diary library', exact: true })).toHaveAttribute('aria-current', 'page')
-  await diaryNav.getByRole('link', { name: 'Timeline', exact: true }).click()
+  await expect(primary.getByRole('link', { name: 'Diary library', exact: true })).toHaveAttribute('aria-current', 'page')
+  await primary.getByRole('link', { name: 'Timeline', exact: true }).click()
   await expect(page).toHaveURL(/\/timeline$/)
-  await expect(page.getByTestId('diary-navigation').getByRole('link', { name: 'Timeline', exact: true })).toHaveAttribute('aria-current', 'page')
-  await page.getByTestId('diary-navigation').getByRole('link', { name: 'Calendar', exact: true }).click()
+  await expect(primary.getByRole('link', { name: 'Timeline', exact: true })).toHaveAttribute('aria-current', 'page')
+  await primary.getByRole('link', { name: 'Calendar', exact: true }).click()
   await expect(page).toHaveURL(/\/calendar$/)
-  await expect(page.getByTestId('diary-navigation').getByRole('link', { name: 'Calendar', exact: true })).toHaveAttribute('aria-current', 'page')
-  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Diary')
+  await expect(primary.getByRole('link', { name: 'Calendar', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Calendar')
+
+  await page.goto('/stocks')
+  for (const [name, href] of [['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar']] as const) {
+    await primary.getByRole('link', { name, exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`${href.replaceAll('/', '\\/')}$`))
+    await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page')
+    await page.goto('/stocks')
+  }
+
+  for (const [width, path, selector] of [
+    [1440, '/diaries', '.diary-library'], [1440, '/timeline', '.diary-timeline'], [1440, '/calendar', '.diary-calendar'],
+    [1920, '/diaries', '.diary-library'], [1920, '/timeline', '.diary-timeline'], [1920, '/calendar', '.diary-calendar'],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(path)
+    const rightGap = await page.locator(selector).evaluate(element => window.innerWidth - element.getBoundingClientRect().right)
+    expect(rightGap).toBeGreaterThanOrEqual(30)
+    expect(rightGap).toBeLessThanOrEqual(34)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    if (width === 1440) await page.screenshot({ path: `docs/design/evidence/navigation/${selector.slice(1)}-1440.png`, fullPage: true })
+  }
 
   const diaryManagement = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })
   await diaryManagement.locator('summary').click()
@@ -62,7 +83,7 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(diaryManagement.getByRole('link', { name: 'Diary reminders', exact: true })).toHaveAttribute('href', '/alerts')
 
   await page.goto('/partners/compare')
-  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Diary')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Timeline')
   await page.goto('/stocks/alerts')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Price reminders')
   await expect(page.locator('.desktop-nav .nav-more').filter({ hasText: 'Trade management' })).toHaveAttribute('open', '')
@@ -70,7 +91,7 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Review queue')
 
   for (const [path, active] of [
-    ['/diaries/123/edit', 'Diary'], ['/diaries/123/review', 'Review queue'], ['/partners/compare', 'Diary'],
+    ['/diaries/123/edit', 'Diary library'], ['/diaries/123/review', 'Review queue'], ['/timeline', 'Timeline'], ['/calendar', 'Calendar'], ['/partners/compare', 'Timeline'],
     ['/partners', 'Partner management'], ['/stocks/watchlist', 'Watchlist'], ['/stocks/alerts', 'Price reminders'],
     ['/stocks/NVDA', 'Market research'], ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
   ] as const) {
@@ -91,11 +112,17 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await page.setViewportSize({ width: 390, height: 844 })
   await signIn(page, `workspace-mobile-${randomUUID()}@example.test`)
 
+  const diaryNavigation = page.getByTestId('mobile-diary-navigation')
+  await expect(diaryNavigation).toBeVisible()
+  await expect(diaryNavigation.getByRole('link')).toHaveText(['Diary library', 'Timeline', 'Calendar'])
+  expect(await diaryNavigation.getByRole('link').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+
   const trigger = page.getByTestId('mobile-menu')
   await trigger.focus()
   await trigger.press('Enter')
   const dialog = page.getByTestId('mobile-menu-dialog')
   await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('link', { name: 'Timeline', exact: true })).toHaveCount(0)
   await expect(dialog.getByTestId('mobile-quick-entry')).toHaveAttribute('href', '/diaries/quick')
   await dialog.locator('.quick-capture-disclosure summary').click()
   await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveAttribute('href', '/diaries/new')
@@ -121,12 +148,16 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await expect(page).toHaveURL(/\/partners$/)
   await expect(dialog).toBeHidden()
 
-  await page.goto('/')
-  await trigger.press('Enter')
-  await dialog.getByRole('link', { name: 'Diary', exact: true }).click()
-  await expect(page).toHaveURL(/\/diaries$/)
-  await page.getByTestId('diary-navigation').getByRole('link', { name: 'Calendar', exact: true }).click()
-  await expect(page).toHaveURL(/\/calendar$/)
+  await page.goto('/stocks')
+  for (const [name, href] of [['Diary library', /\/diaries$/], ['Timeline', /\/timeline$/], ['Calendar', /\/calendar$/]] as const) {
+    await diaryNavigation.getByRole('link', { name, exact: true }).click()
+    await expect(page).toHaveURL(href)
+    await expect(diaryNavigation.getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page')
+    await page.goto('/stocks')
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/diaries')
+  await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-diary-shortcuts-390.png', fullPage: true })
 
   await page.goto('/')
   await trigger.press('Enter')

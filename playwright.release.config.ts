@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { e2eBaseURL } from './tests/support/e2e-origin';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -8,11 +9,11 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     ...(process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? { channel: 'chrome' } : {}),
-    baseURL: 'http://127.0.0.1:3200', trace: 'retain-on-failure', screenshot: 'only-on-failure',
+    baseURL: e2eBaseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'node --import tsx scripts/release-e2e-server.ts',
-    url: 'http://127.0.0.1:3200/healthz',
+    url: `${e2eBaseURL}/healthz`,
     reuseExistingServer: false,
     timeout: 60_000,
   },

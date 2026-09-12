@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test, selectLocale, selectTheme } from '../support/e2e';
+import { e2eBaseURL, expect, test, selectLocale, selectTheme } from '../support/e2e';
 
 const baseRow = {
   symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', groupType: 'sector', sectorName: 'Technology',
@@ -86,7 +86,7 @@ test('admin rotation batch writes controlled indexes and guest monitor renders d
   expect(batch.status()).toBe(200);
   expect(await batch.json()).toMatchObject({ success: true, result: { rankScope: 'indexes', symbolCount: 8, upsertedCount: 8, status: 'success', errors: [] } });
 
-  const guestContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200', viewport: { width: 1440, height: 900 } });
+  const guestContext = await browser.newContext({ baseURL: e2eBaseURL, viewport: { width: 1440, height: 900 } });
   const guest = await guestContext.newPage();
   try {
     await guest.route('**/api/market/state/snapshot', async route => {
@@ -220,7 +220,7 @@ test('market state snapshot errors stay separate from pending and empty history'
 test('filters, sorts and exports the current rows only', async ({ page, context }) => {
   const payload = monitorControlsFixture();
   let monitorCalls = 0;
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:3200' });
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: e2eBaseURL });
   await page.route('**/api/market/rotation-monitor*', async route => {
     monitorCalls += 1;
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });

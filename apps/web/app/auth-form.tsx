@@ -1,4 +1,4 @@
-import { markSignedIn, safeReturnPath } from './session';
+import { defaultWorkspacePath, markSignedIn, safeReturnPath } from './session';
 import { apiFailure, FailureNotice, invalidField, type Failure } from './api-error';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -6,6 +6,27 @@ import { api, useUi } from './ui';
 export function AuthForm({register=false}:{register?:boolean}) {
  const {t,ready}=useUi();const navigate=useNavigate();const [search]=useSearchParams();const [pending,setPending]=useState(false);const [error,setError]=useState<Failure|null>(null);const [done,setDone]=useState(false);
  const returnQuery = search.has('returnTo') ? `?${new URLSearchParams({ returnTo: safeReturnPath(search.get('returnTo')) })}` : '';
- async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setPending(true);setError(null);const form=new FormData(event.currentTarget);const email=String(form.get('email'));const password=String(form.get('password'));try { const result=register?await api.POST('/api/auth/register',{body:{email,password,name:String(form.get('name'))||undefined}}):await api.POST('/api/auth/login',{body:{email,password}});if(!result.response.ok){setError(apiFailure(result.error,t('failed')));return;}if(register){setDone(true);}else{markSignedIn();await api.GET('/api/auth/me');const destination=search.has('returnTo')?safeReturnPath(search.get('returnTo')):'/';navigate(destination,{replace:true});}}catch{setError(apiFailure(null,t('connection')));}finally{setPending(false);}}
+ async function submit(event:FormEvent<HTMLFormElement>) {
+  event.preventDefault();setPending(true);setError(null);
+  const form=new FormData(event.currentTarget);const email=String(form.get('email'));const password=String(form.get('password'));
+  try {
+   const result=register
+    ?await api.POST('/api/auth/register',{body:{email,password,name:String(form.get('name'))||undefined}})
+    :await api.POST('/api/auth/login',{body:{email,password}});
+   if(!result.response.ok){setError(apiFailure(result.error,t('failed')));return;}
+   if(register){setDone(true);return;}
+   markSignedIn();await api.GET('/api/auth/me');
+   let destination='/timeline';
+   if(search.has('returnTo'))destination=safeReturnPath(search.get('returnTo'));
+   else {
+    try {
+     const settings=await api.GET('/api/user/settings');
+     destination=defaultWorkspacePath(settings.data?.settings.defaultWorkspacePage);
+    } catch { /* Keep Timeline as the default when preferences cannot load. */ }
+   }
+   navigate(destination,{replace:true});
+  } catch {setError(apiFailure(null,t('connection')));}
+  finally {setPending(false);}
+ }
  return <section className="form-page"><h1>{t(register?'registerTitle':'loginTitle')}</h1>{done?<div role="status"><p>{t('registered')}</p><Link className="button" to={`/login${returnQuery}`}>{t('login')}</Link></div>:<><form onSubmit={submit} aria-busy={pending}>{register&&<label>{t('name')}<input disabled={!ready} name="name" aria-invalid={invalidField(error,'name')} aria-describedby={error?'form-error':undefined} autoComplete="name" maxLength={100}/></label>}<label>{t('email')}<input disabled={!ready} name="email" aria-invalid={invalidField(error,'email')} aria-describedby={error?'form-error':undefined} type="email" autoComplete="email" required /></label><label>{t('password')}<input disabled={!ready} name="password" aria-invalid={invalidField(error,'password')} type="password" autoComplete={register?'new-password':'current-password'} minLength={register?8:undefined} required aria-describedby={[register?'password-hint':'',error?'form-error':''].filter(Boolean).join(' ')||undefined}/></label>{register&&<p id="password-hint" className="muted">{t('registerHint')}</p>}<FailureNotice failure={error}/><button disabled={pending||!ready} type="submit">{t(pending?'pending':register?'register':'login')}</button></form><p className="form-alternate"><Link to={`${register?'/login':'/register'}${returnQuery}`}>{t(register?'login':'register')}</Link></p></>}</section>;
 }

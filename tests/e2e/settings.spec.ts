@@ -29,13 +29,14 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   await page.getByLabel('Expected monthly trades',{exact:true}).fill('0');
   await page.getByLabel('Expected profit amount',{exact:true}).fill('1234567890.125');
   await page.getByLabel('Expected average holding amount',{exact:true}).fill('0');
+  await page.getByRole('combobox',{name:'Start page',exact:true}).selectOption('calendar');
   await page.getByLabel('Date timezone',{exact:true}).fill('America/New_York');
   await page.getByLabel('Exclude holidays from statistics',{exact:true}).uncheck();
   await page.getByRole('combobox',{name:'Account language',exact:true}).selectOption('zh-CN');
   await page.getByRole('button',{name:'Save preferences',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('设置已保存。');
   const settings=await(await page.request.get('/api/user/settings')).json();
-  expect(settings.settings).toMatchObject({name:null,expectedMonthlyTrades:0,expectedProfit:'1234567890.13',expectedAvgHolding:'0.00',timezone:'America/New_York',locale:'zh-CN',excludeHolidaysInStats:false});
+  expect(settings.settings).toMatchObject({name:null,expectedMonthlyTrades:0,expectedProfit:'1234567890.13',expectedAvgHolding:'0.00',timezone:'America/New_York',locale:'zh-CN',defaultWorkspacePage:'calendar',excludeHolidaysInStats:false});
   const logout=page.waitForResponse(response=>response.url().endsWith('/api/auth/logout'));
   await signOut(page);
   await logout;
@@ -44,6 +45,7 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   await page.getByLabel('Email',{exact:true}).fill(email);
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page).toHaveURL(/\/calendar$/);
   await expect(page.getByTestId('locale-select')).toHaveValue('zh-CN');
   await expect(page.getByTestId('locale-select')).toBeEnabled();
   await page.goto('/settings');
@@ -55,6 +57,44 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const date=['year','month','day'].map(type=>parts.find(part=>part.type===type)?.value).join('-');
   await expect(page.getByLabel('日记日期',{exact:true})).toHaveValue(date);
+});
+
+test('Timeline is the default start page, account preference wins, and explicit return paths keep priority',async({page})=>{
+  const email=`settings-start-page-${randomUUID()}@example.test`;
+  expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
+  await page.goto('/login');
+  await selectLocale(page, 'en');
+  await page.getByLabel('Email',{exact:true}).fill(email);
+  await page.getByLabel('Password',{exact:true}).fill(password);
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page).toHaveURL(/\/timeline$/);
+  await selectLocale(page, 'en');
+
+  await page.goto('/settings');
+  await expect(page.getByRole('combobox',{name:'Start page',exact:true})).toHaveValue('timeline');
+  await page.getByRole('combobox',{name:'Start page',exact:true}).selectOption('diaries');
+  await page.getByRole('button',{name:'Save preferences',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Preferences saved.');
+
+  const firstLogout=page.waitForResponse(response=>response.url().endsWith('/api/auth/logout'));
+  await signOut(page);
+  await firstLogout;
+  await page.goto('/login');
+  await selectLocale(page, 'en');
+  await page.getByLabel('Email',{exact:true}).fill(email);
+  await page.getByLabel('Password',{exact:true}).fill(password);
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page).toHaveURL(/\/diaries$/);
+
+  const secondLogout=page.waitForResponse(response=>response.url().endsWith('/api/auth/logout'));
+  await signOut(page);
+  await secondLogout;
+  await page.goto('/login?returnTo=%2Fcalendar');
+  await selectLocale(page, 'en');
+  await page.getByLabel('Email',{exact:true}).fill(email);
+  await page.getByLabel('Password',{exact:true}).fill(password);
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await expect(page).toHaveURL(/\/calendar$/);
 });
 
 test('invalid timezone keeps unsaved values and marks the field; saved settings stay unchanged',async({page})=>{

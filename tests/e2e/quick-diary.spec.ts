@@ -1,5 +1,24 @@
 import { randomUUID } from 'node:crypto';
 import { test,expect,clickNav, focusQuickTrigger, openQuick, selectLocale, selectTheme, signOut } from '../support/e2e';
+
+test('Quick Diary saves and reads back on mobile @webkit-critical', async ({ page }) => {
+ await page.setViewportSize({width:390,height:844});
+ const email=`quick-webkit-${randomUUID()}@example.test`,password='synthetic-quick-webkit-password';
+ expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
+ await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page,'en');
+ await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page,'en');
+ await clickNav(page,'Quick diary');
+ await expect(page).toHaveURL(/\/diaries\/quick$/);
+ await page.getByLabel('Diary date',{exact:true}).fill('2026-09-08');
+ await page.getByRole('textbox',{name:'Title',exact:true}).fill('WebKit quick capture');
+ await page.getByRole('textbox',{name:'Content',exact:true}).fill('A persisted observation from the mobile capture path.');
+ await page.getByRole('button',{name:'Create diary',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);
+ const saved=await page.request.get('/api/diaries/by-date?date=2026-09-08');expect(saved.status()).toBe(200);
+ expect(await saved.json()).toMatchObject({title:'WebKit quick capture',content:'A persisted observation from the mobile capture path.'});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
 for(const width of [1440,390])test(`Quick templates, drafts, snippets and append at ${width}px`,async({page})=>{
  await page.addInitScript(()=>{let starts=0;class FakeSpeechRecognition{lang='';continuous=false;interimResults=false;onresult:((event:unknown)=>void)|null=null;onerror:((event:unknown)=>void)|null=null;onend:(()=>void)|null=null;start(){queueMicrotask(()=>{if(starts++===0)this.onresult?.({resultIndex:0,results:[{isFinal:true,0:{transcript:'Spoken evidence.'}}]});else this.onerror?.({error:'not-allowed'});this.onend?.();});}stop(){this.onend?.();}abort(){}}Object.defineProperty(window,'SpeechRecognition',{value:FakeSpeechRecognition,configurable:true});});
  await page.setViewportSize({width,height:900});const email=`quick-${randomUUID()}@example.test`,password='synthetic-quick-password';await page.request.post('/api/auth/register',{data:{email,password}});

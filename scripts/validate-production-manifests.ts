@@ -14,7 +14,7 @@ export const productionManifestFiles = [
   'ops/k8s/production/07-migrate-job.yaml',
 ];
 
-type Manifest = { kind?: string; metadata?: { namespace?: string }; spec?: unknown };
+type Manifest = { kind?: string; metadata?: { name?: string; namespace?: string }; spec?: unknown };
 
 function collectImages(value: unknown, images: string[] = []): string[] {
   if (Array.isArray(value)) for (const item of value) collectImages(item, images);
@@ -25,7 +25,8 @@ function collectImages(value: unknown, images: string[] = []): string[] {
   return images;
 }
 
-export function validateProductionManifests(files = productionManifestFiles, requireDigests = false) {
+export function validateProductionManifests(files = productionManifestFiles, requireDigests = false, expectedNamespace = 'diary-v3') {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(expectedNamespace)) throw new Error('Invalid Kubernetes namespace');
   const errors: string[] = [];
   for (const file of files) {
     if (!existsSync(file)) { errors.push(`${file}: missing`); continue; }
@@ -35,8 +36,8 @@ export function validateProductionManifests(files = productionManifestFiles, req
       const manifest = document.toJS() as Manifest | null;
       if (!manifest) continue;
       if (manifest.kind === 'Namespace') {
-        if ((manifest as { metadata?: { name?: string } }).metadata?.name !== 'diary-v3') errors.push(`${file}: namespace must be diary-v3`);
-      } else if (manifest.metadata?.namespace !== 'diary-v3') errors.push(`${file}: metadata.namespace must be diary-v3`);
+        if (manifest.metadata?.name !== expectedNamespace) errors.push(`${file}: namespace must be ${expectedNamespace}`);
+      } else if (manifest.metadata?.namespace !== expectedNamespace) errors.push(`${file}: metadata.namespace must be ${expectedNamespace}`);
       for (const image of collectImages(manifest.spec)) {
         if (/:latest(?:$|@)/.test(image)) errors.push(`${file}: latest image is forbidden (${image})`);
         if (requireDigests && !/@sha256:[a-f0-9]{64}$/.test(image)) errors.push(`${file}: image must use a sha256 digest (${image})`);
@@ -49,7 +50,9 @@ export function validateProductionManifests(files = productionManifestFiles, req
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2);
   const requireDigests = args.includes('--require-digests');
-  const files = args.filter(arg => arg !== '--require-digests');
-  validateProductionManifests(files.length ? files : productionManifestFiles, requireDigests);
-  console.log(`Validated ${files.length || productionManifestFiles.length} production manifests.`);
+  const namespaceArg = args.find(arg => arg.startsWith('--namespace='));
+  const expectedNamespace = namespaceArg?.slice('--namespace='.length) ?? 'diary-v3';
+  const files = args.filter(arg => arg !== '--require-digests' && !arg.startsWith('--namespace='));
+  validateProductionManifests(files.length ? files : productionManifestFiles, requireDigests, expectedNamespace);
+  console.log(`Validated ${files.length || productionManifestFiles.length} release manifests in ${expectedNamespace}.`);
 }

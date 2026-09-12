@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { e2eBaseURL, test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
 test('two independent accounts accept, share separately and remove a partnership', async ({ page: a, browser, playwright }) => {
  const context = await browser.newContext({ viewport: { width: 390, height: 900 } }); const b = await context.newPage();
  const emailA = `partner-a-${randomUUID()}@example.test`, emailB = `partner-b-${randomUUID()}@example.test`, password = 'synthetic-partner-password';
  async function signIn(page: Page, email: string) {
-  await page.goto('http://127.0.0.1:3200/login?returnTo=%2Fpartners'); await selectLocale(page, 'en');
+  await page.goto(`${e2eBaseURL}/login?returnTo=%2Fpartners`); await selectLocale(page, 'en');
   await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/partners$/); await selectLocale(page, 'en');
  }
  async function login(page: Page, email: string) {
-  await page.request.post('http://127.0.0.1:3200/api/auth/register', { data: { email, password } });
+  await page.request.post(`${e2eBaseURL}/api/auth/register`, { data: { email, password } });
   await signIn(page, email);
  }
  try {
@@ -33,7 +33,7 @@ test('two independent accounts accept, share separately and remove a partnership
   await selectTheme(b, 'dark');
   for (const [page, width] of [[a, 1440], [b, 390]] as const) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.locator('.plan-page').screenshot({ path: `docs/design/evidence/partners/${width}.png` }); }
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  expect((await b.request.post('http://127.0.0.1:3200/api/diaries', { headers, data: { date: '2026-03-08', title: 'Partner comparison entry', content: '**Shared perspective**', thesis: 'Do not expose this private thesis' } })).status()).toBe(201);
+  expect((await b.request.post(`${e2eBaseURL}/api/diaries`, { headers, data: { date: '2026-03-08', title: 'Partner comparison entry', content: '**Shared perspective**', thesis: 'Do not expose this private thesis' } })).status()).toBe(201);
   await a.getByRole('link', { name: 'Compare diaries', exact: true }).click();
   await expect(a.getByText('Your partner has not shared diaries.', { exact: true })).toBeVisible();
   await expect(a.getByTestId('compare-day')).toHaveCount(0);
@@ -57,9 +57,9 @@ test('two independent accounts accept, share separately and remove a partnership
   await expect(b.getByRole('button', { name: 'Share my diaries', exact: true })).toBeVisible();
   await a.getByRole('button', { name: 'Refresh comparison', exact: true }).click();
   await expect(a.getByTestId('compare-day')).toHaveCount(0);
-  const keyResponse = await b.request.post('http://127.0.0.1:3200/api/api-keys', { headers, data: { label: 'Partner research agent', scope: 'AGENT_WRITE' } }); expect(keyResponse.status()).toBe(200);
+  const keyResponse = await b.request.post(`${e2eBaseURL}/api/api-keys`, { headers, data: { label: 'Partner research agent', scope: 'AGENT_WRITE' } }); expect(keyResponse.status()).toBe(200);
   const { rawKey } = await keyResponse.json();
-  const external = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3200', extraHTTPHeaders: { 'x-api-key': rawKey } });
+  const external = await playwright.request.newContext({ baseURL: e2eBaseURL, extraHTTPHeaders: { 'x-api-key': rawKey } });
   try {
    expect((await external.post('/api/agent/stocks/AAPL/notes', { data: { title: 'Shared partner research', content: 'Read this without editing it.' } })).status()).toBe(200);
    expect((await external.post('/api/agent/stocks/records', { data: { records: [{ symbol: 'AAPL', summary: 'Partner private evidence stays private', sourceType: 'MANUAL', occurredAt: '2026-09-05T00:00:00Z', idempotencyKey: 'private-partner-evidence' }] } })).status()).toBe(200);

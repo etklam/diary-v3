@@ -6,7 +6,8 @@ function settings(row: typeof users.$inferSelect) {
   return userSettingsSchema.parse({
     name: row.name, expectedMonthlyTrades: row.expectedMonthlyTrades,
     expectedProfit: row.expectedProfit, expectedAvgHolding: row.expectedAvgHolding,
-    timezone: row.timezone, locale: row.locale, excludeHolidaysInStats: row.excludeHolidaysInStats,
+    timezone: row.timezone, locale: row.locale, defaultWorkspacePage: row.defaultWorkspacePage,
+    excludeHolidaysInStats: row.excludeHolidaysInStats,
   });
 }
 export async function getUserSettings(db: Database, userId: bigint) {

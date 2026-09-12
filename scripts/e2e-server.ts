@@ -11,6 +11,7 @@ import { provisionTestDatabase } from '../tests/support/database';
 import { createMarketData, MarketDataError } from '../apps/api/src/market-data';
 import { buildSecUrls } from '../apps/api/src/sec-edgar/client';
 import { createSecFixtureService } from '../apps/api/src/sec-edgar/service';
+import { e2eBaseURL } from '../tests/support/e2e-origin';
 
 const database = await provisionTestDatabase('diary_v3_e2e');
 const { db } = database;
@@ -69,7 +70,7 @@ try {
       { date: `${year}-09-07`, countryCode, name: 'Synthetic September holiday', localName: 'Synthetic September holiday' },
     ] }, config: {
     jwtSecret: 'e2e-only-diary-secret-never-use-this-in-production',
-    nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1:3200',
+    nodeEnv: 'test', trustProxy: false, webOrigin: e2eBaseURL,
     } });
   };
   const defaultApp = makeApp();
@@ -82,7 +83,7 @@ try {
     return app.fetch(request, env);
   }));
   const auth = createAuthSessionService({ db, jwtSecret: 'e2e-only-diary-secret-never-use-this-in-production', fail: (_status, _code, message) => { throw new Error(message); } });
-  const sockets = createSocketServer(server, { webOrigin: 'http://127.0.0.1:3200', production: false, authenticate: auth.authenticateSocketAccess, dismiss: async (userId, alertId) => { if (!await dismissDiaryAlert(db, BigInt(userId), BigInt(alertId))) throw new Error('Alert not found'); } });
+  const sockets = createSocketServer(server, { webOrigin: e2eBaseURL, production: false, authenticate: auth.authenticateSocketAccess, dismiss: async (userId, alertId) => { if (!await dismissDiaryAlert(db, BigInt(userId), BigInt(alertId))) throw new Error('Alert not found'); } });
   const pusher = createAlertPusher({ findUpcoming: (start, end) => findUpcomingAlerts(db, start, end), emitToUser: sockets.emitToUser, log: () => {} });
   const priceChecker = createPriceAlertChecker({ db, quote: async symbol => symbol === 'FOREGROUND' ? 110 : null, emit: (userId, payload) => sockets.emitToUser(userId, 'price-alert:triggered', payload), log: () => {} });
   // Only the synthetic FOREGROUND symbol is quoted by the price test scheduler.

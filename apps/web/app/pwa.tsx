@@ -36,24 +36,30 @@ export function PwaStatus() {
     const onControllerChange = () => {
       if (active && updateRequested.current) setState(current => ({ ...current, updateReady: false, updated: true }))
     }
-    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
-    void navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(registration => {
-      if (!active) return
-      setState(current => ({ ...current, registration, updateReady: Boolean(registration.waiting) }))
-      registration.addEventListener('updatefound', () => {
-        const worker = registration.installing
-        if (!worker) return
-        worker.addEventListener('statechange', () => {
-          if (worker.state === 'installed' && navigator.serviceWorker.controller && active) {
-            setState(current => ({ ...current, updateReady: true }))
-          }
+    let serviceWorker: ServiceWorkerContainer | null = null
+    try {
+      serviceWorker = navigator.serviceWorker
+      serviceWorker.addEventListener('controllerchange', onControllerChange)
+      void Promise.resolve().then(() => serviceWorker?.register('/sw.js', { updateViaCache: 'none' })).then(registration => {
+        if (!active || !registration) return
+        setState(current => ({ ...current, registration, updateReady: Boolean(registration.waiting) }))
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing
+          if (!worker) return
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && serviceWorker?.controller && active) {
+              setState(current => ({ ...current, updateReady: true }))
+            }
+          })
         })
-      })
-    }).catch(() => undefined)
+      }).catch(() => undefined)
+    } catch {
+      serviceWorker = null
+    }
     return () => {
       active = false
       window.removeEventListener('beforeinstallprompt', onInstallPrompt)
-      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      serviceWorker?.removeEventListener('controllerchange', onControllerChange)
     }
   }, [])
 

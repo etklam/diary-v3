@@ -1,5 +1,6 @@
 .diary-calendar {
-  max-width: 1040px;
+  width: 100%;
+  max-width: none;
 }
 
 .diary-calendar > header {

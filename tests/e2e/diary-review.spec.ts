@@ -38,7 +38,9 @@ for(const width of [1440,390]){
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   // Leaving while dirty flushed a device draft; returning offers it and an
   // explicit discard clears the offer.
-  await page.goBack();
+  await page.getByRole('link',{name:'Review diary',exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
+  await expect(page.getByRole('button',{name:'Restore',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Discard',exact:true}).click();
   await expect(page.getByRole('button',{name:'Discard',exact:true})).toHaveCount(0);
   await page.getByRole('radio',{name:'Still unclear',exact:true}).check();await page.getByRole('textbox',{name:'What happened',exact:true}).fill('   ');await page.getByRole('button',{name:'Complete review',exact:true}).click();await expect(page.getByTestId('error-code')).toHaveText('SYS_VALIDATION_ERROR');await expect(page.getByRole('textbox',{name:'What happened',exact:true})).toHaveAttribute('aria-invalid','true');

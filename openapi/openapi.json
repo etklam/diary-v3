@@ -1897,6 +1897,14 @@
               "en"
             ]
           },
+          "defaultWorkspacePage": {
+            "type": "string",
+            "enum": [
+              "diaries",
+              "timeline",
+              "calendar"
+            ]
+          },
           "excludeHolidaysInStats": {
             "type": "boolean"
           }
@@ -1943,6 +1951,14 @@
                   "en"
                 ]
               },
+              "defaultWorkspacePage": {
+                "type": "string",
+                "enum": [
+                  "diaries",
+                  "timeline",
+                  "calendar"
+                ]
+              },
               "excludeHolidaysInStats": {
                 "type": "boolean"
               }
@@ -1954,6 +1970,7 @@
               "expectedAvgHolding",
               "timezone",
               "locale",
+              "defaultWorkspacePage",
               "excludeHolidaysInStats"
             ],
             "additionalProperties": false

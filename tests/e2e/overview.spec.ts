@@ -11,7 +11,7 @@ async function signInAndSeed(page: Page, context: BrowserContext) {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/timeline$/)
   await selectLocale(page, 'en')
 
   const csrf = (await context.cookies()).find((cookie: { name: string; value: string }) => cookie.name === 'csrf-token')?.value
@@ -113,7 +113,7 @@ test('Overview empty state keeps first-diary and research paths available', asyn
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/timeline$/)
   await selectLocale(page, 'en')
   await page.goto('/')
   await expect(page.getByTestId('overview-first-use')).toBeVisible()

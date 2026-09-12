@@ -5,6 +5,7 @@ import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
+import { DiaryNavigation } from './diary-navigation'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -16,13 +17,13 @@ const sectionCopy = {
 
 const workspaceCopy = {
   'zh-TW': {
-    overview: '總覽', diary: '日記', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', publicArticles: '公開文章', settings: '設定',
+    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', publicArticles: '公開文章', settings: '設定',
   },
   'zh-CN': {
-    overview: '总览', diary: '日记', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', publicArticles: '公开文章', settings: '设置',
+    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', publicArticles: '公开文章', settings: '设置',
   },
   en: {
-    overview: 'Overview', diary: 'Diary', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', publicArticles: 'Public articles', settings: 'Settings',
+    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', publicArticles: 'Public articles', settings: 'Settings',
   },
 } as const
 
@@ -30,13 +31,15 @@ function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': 
   return values[locale]
 }
 
-export type NavigationOwner = 'overview' | 'diary' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
+export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (path === '/') return 'overview'
   if (path === '/reviews' || /^\/diaries\/[1-9]\d*\/review$/.test(path)) return 'reviews'
-  if (path === '/partners/compare' || path === '/timeline' || path === '/calendar' || path === '/diaries' || path.startsWith('/diaries/')) return 'diary'
+  if (path === '/timeline' || path === '/partners/compare') return 'timeline'
+  if (path === '/calendar') return 'calendar'
+  if (path === '/diaries' || path.startsWith('/diaries/')) return 'diary'
   if (path === '/alerts') return 'diaryReminders'
   if (path === '/partners') return 'partners'
   if (path === '/stocks/watchlist') return 'watchlist'
@@ -54,17 +57,21 @@ export function navigationOwner(pathname: string): NavigationOwner {
   return null
 }
 
-export function NavigationLinks({ role, onNavigate, idPrefix = 'nav' }: { role: Role; onNavigate?: () => void; idPrefix?: string }) {
+export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean }) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
   const c = workspaceCopy[locale]
   const owner = navigationOwner(location.pathname)
-  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner) => <Link key={to} to={to} onClick={onNavigate} aria-current={owner === destination ? 'page' : undefined}><Icon name={icon} />{text}</Link>
+  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined}><Icon name={icon} />{text}</Link>
   return <>
     <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
     <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}><h2 id={`${idPrefix}-diary`}>{sections.diary}</h2><div className="nav-group-links">
-      {link('/diaries', c.diary, 'book', 'diary')}
+      {showDiaryViews && <>
+        {link('/diaries', c.diaryLibrary, 'book', 'diary')}
+        {link('/timeline', c.timeline, 'timeline', 'timeline')}
+        {link('/calendar', c.calendar, 'calendar', 'calendar')}
+      </>}
       {link('/reviews', c.reviewQueue, 'check', 'reviews')}
     </div><details className="nav-more" open={owner === 'diaryReminders' || owner === 'partners' || undefined}>
       <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
@@ -128,11 +135,12 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
       <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link>
       <div className="mobile-shell-actions"><button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
     </div>
+    <DiaryNavigation />
     <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
       <div className="mobile-menu-panel">
         <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
         {authenticated === true && <section className="mobile-menu-capture" aria-labelledby="mobile-capture-title"><h2 id="mobile-capture-title">{label(locale, { en: 'Capture', 'zh-CN': '记录', 'zh-TW': '記錄' })}</h2><div className="quick-entry-controls"><CaptureChoices mobile onNavigate={close}/></div></section>}
-        <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close}/></nav>
+        <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close} showDiaryViews={false}/></nav>
         <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <button type="button" className="secondary" data-testid="mobile-sign-out" disabled={logoutPending} onClick={() => { close(); onLogout() }}>{t(logoutPending ? 'pending' : 'logout')}</button>}</div>
       </div>
     </dialog>

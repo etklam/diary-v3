@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { decodeJwt, SignJWT } from 'jose';
 import type { BrowserContext, Page } from '@playwright/test';
-import { expect, test, selectLocale, signOut } from '../support/e2e';
+import { e2eBaseURL, expect, test, selectLocale, signOut } from '../support/e2e';
 
 const password = 'web-e2e-synthetic-password';
 async function account(page: Page) {
@@ -39,7 +39,7 @@ async function saveDiary(page: Page, title: string) {
   return page.url();
 }
 
-test('expired access recovers while saving a draft and on reload without rotating refresh', async ({ page, context }) => {
+test('expired access recovers while saving a draft and on reload without rotating refresh @webkit-critical', async ({ page, context }) => {
   await account(page);
   const refreshBefore = (await context.cookies()).find(cookie => cookie.name === 'refresh-token');
   expect(refreshBefore?.httpOnly).toBe(true);
@@ -63,7 +63,7 @@ test('expired access recovers while saving a draft and on reload without rotatin
   expect((await context.cookies()).find(cookie => cookie.name === 'refresh-token')?.value).toBe(refreshBefore?.value);
 });
 
-test('sign-out clears private views across tabs and a later visit cannot recover the old account', async ({ page, context }) => {
+test('sign-out clears private views across tabs and a later visit cannot recover the old account @webkit-critical', async ({ page, context }) => {
   await account(page);
   const title = 'Private decision for cross-tab logout';
   const diaryUrl = await saveDiary(page, title);
@@ -110,5 +110,5 @@ test('external return destinations are rejected', async ({ page }) => {
   await page.goto('/login?returnTo=https%3A%2F%2Foutside.example%2Fsteal');
   await selectLocale(page, 'en');
   await login(page, email);
-  await expect(page).toHaveURL('http://127.0.0.1:3200/diaries/new');
+  await expect(page).toHaveURL(`${e2eBaseURL}/diaries/new`);
 });

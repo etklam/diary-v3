@@ -15,12 +15,14 @@ describe('user preference validation and date semantics', () => {
     expect(updateUserSettingsSchema.parse({ name: ' Ａ ', expectedMonthlyTrades: 0, role: 'ADMIN' }))
       .toEqual({ name: 'A', expectedMonthlyTrades: 0 });
     expect(updateUserSettingsSchema.parse({ name: ' ' }).name).toBeNull();
+    expect(updateUserSettingsSchema.parse({ defaultWorkspacePage: 'calendar' }).defaultWorkspacePage).toBe('calendar');
   });
   it('rejects unsupported settings instead of producing database errors or coercing booleans', () => {
     for (const input of [
       { expectedProfit: '9999999999999.995' }, { expectedProfit: '' }, { expectedProfit: Infinity },
       { expectedMonthlyTrades: 2147483648 }, { expectedMonthlyTrades: -1 },
       { timezone: 'not-a-timezone' }, { locale: 'fr' }, { excludeHolidaysInStats: 'false' },
+      { defaultWorkspacePage: '/' },
     ]) expect(updateUserSettingsSchema.safeParse(input).success).toBe(false);
   });
   it('uses the explicit timezone at date boundaries and both DST transitions', () => {

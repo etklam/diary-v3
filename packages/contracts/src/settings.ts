@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const localeSchema = z.enum(['zh-TW', 'zh-CN', 'en']);
+export const defaultWorkspacePageSchema = z.enum(['diaries', 'timeline', 'calendar']);
 export const timezoneSchema = z.string().trim().normalize('NFKC').min(1).max(50).refine(value => {
   try { new Intl.DateTimeFormat('en', { timeZone: value }); return true; }
   catch { return false; }
@@ -36,6 +37,7 @@ export const updateUserSettingsSchema = z.object({
   expectedAvgHolding: preferenceMoneySchema.optional(),
   timezone: timezoneSchema.optional(),
   locale: localeSchema.optional(),
+  defaultWorkspacePage: defaultWorkspacePageSchema.optional(),
   excludeHolidaysInStats: z.boolean().optional(),
 });
 export const userSettingsSchema = z.object({
@@ -45,7 +47,9 @@ export const userSettingsSchema = z.object({
   expectedAvgHolding: z.string(),
   timezone: timezoneSchema,
   locale: localeSchema,
+  defaultWorkspacePage: defaultWorkspacePageSchema,
   excludeHolidaysInStats: z.boolean(),
 }).strict();
 export const userSettingsResponseSchema = z.object({ success: z.literal(true), settings: userSettingsSchema }).strict();
 export type UpdateUserSettings = z.output<typeof updateUserSettingsSchema>;
+export type DefaultWorkspacePage = z.output<typeof defaultWorkspacePageSchema>;

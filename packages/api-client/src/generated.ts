@@ -1980,6 +1980,8 @@ export interface components {
             timezone?: string;
             /** @enum {string} */
             locale?: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            defaultWorkspacePage?: "diaries" | "timeline" | "calendar";
             excludeHolidaysInStats?: boolean;
         };
         UserSettingsResponse: {
@@ -1993,6 +1995,8 @@ export interface components {
                 timezone: string;
                 /** @enum {string} */
                 locale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                defaultWorkspacePage: "diaries" | "timeline" | "calendar";
                 excludeHolidaysInStats: boolean;
             };
         };

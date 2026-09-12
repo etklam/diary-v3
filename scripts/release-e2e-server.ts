@@ -3,10 +3,11 @@ import { createServer, request } from 'node:http';
 import { Socket } from 'node:net';
 import { provisionTestDatabase } from '../tests/support/database';
 import bcrypt from 'bcryptjs';
+import { e2eBaseURL, e2eWebPort } from '../tests/support/e2e-origin';
 
 const API_PORT = 3211;
 const WEB_PORT = 3212;
-const GATEWAY_PORT = 3200;
+const GATEWAY_PORT = e2eWebPort;
 const children: ChildProcess[] = [];
 const database = await provisionTestDatabase('diary_v3_release_e2e');
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['release-admin@example.test', await bcrypt.hash('synthetic-release-admin-password', 4)]);
@@ -40,7 +41,7 @@ async function waitForPort(port: number) {
 start('node', ['dist/api/server.js'], {
   API_HOST: '127.0.0.1', API_PORT: String(API_PORT), DATABASE_URL: database.url,
   JWT_SECRET: 'release-e2e-only-secret-never-use-in-production-123456',
-  MARKET_PROVIDER: 'fixture', NODE_ENV: 'test', WEB_ORIGIN: `http://127.0.0.1:${GATEWAY_PORT}`,
+  MARKET_PROVIDER: 'fixture', NODE_ENV: 'production', WEB_ORIGIN: e2eBaseURL,
   // Synthetic clients declare distinct forwarded addresses so each scenario
   // gets its own rate-limit bucket, mirroring distinct real clients.
   TRUST_X_FORWARDED_FOR: 'true',
@@ -62,8 +63,8 @@ const gateway = createServer((incoming, outgoing) => {
   upstream.on('error', error => { outgoing.writeHead(502); outgoing.end(error.message); });
   incoming.pipe(upstream);
 });
-gateway.listen(GATEWAY_PORT, '127.0.0.1');
-console.log(`Release artifact gateway listening on http://127.0.0.1:${GATEWAY_PORT}`);
+gateway.listen(GATEWAY_PORT);
+console.log(`Release artifact gateway listening on ${e2eBaseURL}`);
 
 async function shutdown(code = 0) {
   if (shuttingDown) return;

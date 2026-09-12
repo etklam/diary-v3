@@ -40,3 +40,8 @@ Layout notes:
   the same host via the higher-priority `diary-v3-system` Ingress.
 - TLS uses cert-manager `letsencrypt-cloudflare` (DNS-01) like every other
   stack on this host; ExternalDNS creates the Cloudflare record.
+
+The Web deployment's `API_ORIGIN` points to the in-cluster API Service so SSR
+article and sitemap reads do not depend on external DNS or ingress hairpinning.
+See [the environment contract](../../../docs/operations/environment-contract.md)
+for required, optional, secret, and environment-specific values.

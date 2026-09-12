@@ -10,11 +10,11 @@ Make capture, finding a Diary, and completing a due Review immediately understan
 ## Navigation and capture
 
 - A prominent capture action opens Quick Diary directly. An adjacent, accessible disclosure exposes Write diary; no mode-selection modal. Keep the existing keyboard capture behavior available independently.
-- The primary workspace destinations, in order, are Overview, Diary, Review queue, Trade plans, Holdings, Watchlist, Market research, and Tools. Use the existing route destinations and icon family. Diary is active across its reading and browse routes; Tools is active throughout its catalog and tools.
-- Diary list/search, Timeline, and Calendar share an ordinary in-page navigation strip, using links and aria-current, without replacing any route or merging page components.
+- The primary workspace destinations, in order, are Overview, Diary library, Timeline, Calendar, Review queue, Trade plans, Holdings, Watchlist, Market research, and Tools. Use the existing route destinations and icon family. Diary library, Timeline, and Calendar are direct sidebar links on desktop and a persistent three-column shortcut row below the mobile brand/Menu bar. Keep them out of the mobile drawer to avoid duplicate routes. Diary library is active throughout its reading/editing routes, Timeline is active for Timeline and Partner comparison, Calendar is active for Calendar, and Review queue is active for Diary Review. Tools remains active throughout its catalog and tools.
+- Keep Diary list/search, Timeline, Calendar, and Partner comparison on their separate routes; remove the duplicate three-destination browse strip from route content while preserving Timeline's personal/partner mode links. Let Diary list/search, Timeline, and Calendar use the available workspace main-column width; retain the existing bounded widths for excerpts, Partner comparison, Diary reading, and editing.
 - Partners, Trading principles, Diary reminders, and Price reminders belong in a clearly named More workspace features disclosure. Settings stays directly visible; security remains clearly reachable. Preserve admin entries for administrators. Opening a secondary route reveals its group.
 - The mobile Menu uses the same destinations and capture choice, with full-width touch targets and ordinary keyboard navigation. Retain dialog focus handling and Escape dismissal.
-- Plain sign-in lands on Overview. Explicit safe return destinations continue to work, including tools and editors; do not broaden the return-path allowlist.
+- Plain sign-in uses the account's selected start page; new and unset accounts default to Timeline. An explicit safe return destination takes priority over that setting. Keep Overview available as its own workspace destination.
 
 ## Overview hierarchy
 

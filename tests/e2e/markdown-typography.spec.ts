@@ -102,8 +102,9 @@ test('markdown fixture renders with the shared typography across surfaces, theme
   await expect(page).toHaveURL(/\/admin\/blog\/\d+\/edit$/);
   const id = page.url().match(/admin\/blog\/(\d+)\/edit$/)?.[1];
   expect(id).toBeTruthy();
-  await page.getByRole('button',{name:'Publish',exact:true}).click();
-  await expect(page.getByText('Saved.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Publish publicly',exact:true}).click();
+  await expect(page.getByText('Article published publicly.',{exact:true})).toBeVisible();
+  expect((await (await page.request.get(`/api/blog/admin/${id}`)).json() as { status: string }).status).toBe('PUBLISHED');
   const { slug } = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string };
   await page.goto(`/articles/${encodeURIComponent(slug)}`);
   await expect(page.getByRole('heading',{name:'投資論點',exact:true})).toBeVisible();

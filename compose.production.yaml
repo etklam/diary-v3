@@ -64,6 +64,8 @@ services:
     build:
       context: .
       target: web
+    environment:
+      API_ORIGIN: http://api:3101
     depends_on:
       api:
         condition: service_healthy

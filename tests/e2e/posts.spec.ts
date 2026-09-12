@@ -10,7 +10,7 @@ async function signInAdmin(page: Page) {
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 }
 
-test('admin authors a public article end to end without weakening public or role boundaries', async ({ page, browser }) => {
+test('admin authors a public article end to end without weakening public or role boundaries @webkit-critical', async ({ page, browser }) => {
   test.setTimeout(180_000)
   const title = `中文同名文章 ${randomUUID()}`
   await signInAdmin(page)
@@ -157,14 +157,15 @@ test('admin authors a public article end to end without weakening public or role
     await expect(page.getByRole('link', { name: 'View public article', exact: true })).toHaveCount(0)
 
     await page.locator('.article-editor-fields textarea').first().fill('Retained after failed republish.')
-    await page.route(`**/api/blog/${id}`, route => route.request().method() === 'PUT' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'post-publish-failure' } }) }) : route.continue())
+    const postWriteRoute = (url: URL) => url.pathname === `/api/blog/${id}`
+    await page.route(postWriteRoute, route => route.request().method() === 'PUT' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'post-publish-failure' } }) }) : route.continue())
     await page.getByRole('button', { name: 'Republish publicly', exact: true }).click()
     await expect(page.getByTestId('request-id')).toHaveText('post-publish-failure')
     await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue('Retained after failed republish.')
     await expect(page.getByRole('link', { name: 'View public article', exact: true })).toHaveCount(0)
 
-    await page.unroute(`**/api/blog/${id}`)
-    await page.route(`**/api/blog/${id}`, route => route.request().method() === 'PUT' ? route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'post-session-expired' } }) }) : route.continue())
+    await page.unroute(postWriteRoute)
+    await page.route(postWriteRoute, route => route.request().method() === 'PUT' ? route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'post-session-expired' } }) }) : route.continue())
     await page.getByRole('button', { name: 'Republish publicly', exact: true }).click()
     const signIn = page.getByRole('link', { name: 'Sign in', exact: true })
     await expect(signIn).toHaveAttribute('href', `/login?returnTo=${encodeURIComponent(`/admin/blog/${id}/edit`)}`)
@@ -175,7 +176,7 @@ test('admin authors a public article end to end without weakening public or role
     await expect(page).toHaveURL(new RegExp(`/admin/blog/${id}/edit$`))
     await expect(page.getByText('Unsaved edits were restored for this article.', { exact: true })).toBeVisible()
     await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue('Retained after failed republish.')
-    await page.unroute(`**/api/blog/${id}`)
+    await page.unroute(postWriteRoute)
 
     page.once('dialog', dialog => dialog.accept())
     await page.goto('/articles')

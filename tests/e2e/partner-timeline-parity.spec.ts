@@ -50,7 +50,7 @@ async function createDiary(page: Page, input: { date: string; title: string; con
 
 const longContent = `${'Long observation. '.repeat(160)}\n\n| Column A | Column B | Column C | Column D | Column E |\n| --- | --- | --- | --- | --- |\n| wide | table | stays | inside | container |\n\nFinal marker for expanded reading.`
 
-test('timeline switches into a date-paired partner comparison and back', async ({ page, browser }) => {
+test('timeline switches into a date-paired partner comparison and back @webkit-critical', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await startSession(page)
   const otherContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })
@@ -70,10 +70,10 @@ test('timeline switches into a date-paired partner comparison and back', async (
   await expect(page).toHaveURL(/\/partners\/compare$/)
   // The comparison reads as the timeline context: diary navigation stays present,
   // the switch marks the current mode, and exactly one sidebar destination is current.
-  await expect(page.getByTestId('diary-navigation')).toBeVisible()
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true })).toBeVisible()
   await expect(page.getByTestId('timeline-modes').getByRole('link', { name: 'Partner comparison', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByTestId('timeline-modes').getByRole('link', { name: 'My timeline', exact: true })).not.toHaveAttribute('aria-current')
-  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Diary')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Timeline')
 
   const days = page.getByTestId('compare-day')
   await expect(days).toHaveCount(3)
@@ -114,7 +114,7 @@ test('timeline switches into a date-paired partner comparison and back', async (
   await otherContext.close()
 })
 
-test('mobile comparison stacks both sides inside each date', async ({ page, browser }) => {
+test('mobile comparison stacks both sides inside each date @webkit-critical', async ({ page, browser }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await startSession(page)
   const otherContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })

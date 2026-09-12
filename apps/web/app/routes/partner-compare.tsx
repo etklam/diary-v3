@@ -6,7 +6,6 @@ import { api, useUi } from '../ui';
 import { signInPath } from '../session';
 import { FailureNotice, apiFailure, type Failure } from '../api-error';
 import { Markdown } from '../markdown';
-import { DiaryNavigation } from '../diary-navigation';
 import { TimelineModeSwitch } from '../timeline-mode-switch';
 import '../trade-plan.css';
 import '../timeline.css';
@@ -51,7 +50,7 @@ export default function PartnerCompare() {
  const selected = data?.links.find(row => row.partner.id === data.selectedPartnerId);
  const pendingLink = data?.links.find(row => row.pendingIncoming || row.pendingOutgoing);
  const setQuery = (next: { partnerId?: string; limit?: string }) => setParams({ ...(next.partnerId ? { partnerId: next.partnerId } : {}), ...(next.limit ? { limit: next.limit } : {}) });
- return <section className="plan-page pair-page"><DiaryNavigation/><header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link to="/partners">{c.manage}</Link></header><TimelineModeSwitch mode="partner"/><p>{c.dates}</p>
+ return <section className="plan-page pair-page"><header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link to="/partners">{c.manage}</Link></header><TimelineModeSwitch mode="partner"/><p>{c.dates}</p>
  <button className="secondary" onClick={() => refresh(value => value + 1)}>{c.refresh}</button>
  {error ? error.code === 'PARTNER_LINK_PENDING' ? <p role="status" data-testid="compare-pending">{c.pending}</p> : error.code === 'PARTNER_LINK_NOT_FOUND' ? <div data-testid="compare-removed"><p role="status">{c.removed}</p><button onClick={() => refresh(value => value + 1)}>{c.refresh}</button></div> : <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath(`/partners/compare${query ? `?${query}` : ''}`)}>{t('login')}</Link>}<button onClick={() => refresh(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
  {!data.partner ? pendingLink ? <p role="status" data-testid="compare-pending">{c.pending}</p> : <p>{c.none}</p> : <><div className="plan-filters"><label>{c.partner}<select value={data.selectedPartnerId ?? ''} onChange={event => setQuery({ partnerId: event.target.value, ...(limitParam ? { limit: limitParam } : {}) })}>{data.links.filter(row => row.status === 'connected').map(row => <option key={row.id} value={row.partner.id}>{row.partner.name || `${c.partner} ${row.partner.id}`}</option>)}</select></label><label>{c.limit}<select value={limit} onChange={event => setQuery({ partnerId, ...(Number(event.target.value) === 20 ? {} : { limit: event.target.value }) })}>{[20,40,60].map(value => <option key={value}>{value}</option>)}</select></label></div>
