@@ -50,7 +50,15 @@ export function createNativeSession(options: NativeSessionOptions) {
   let loaded: Promise<NativeSession | null> | undefined;
   let writes = Promise.resolve();
   let inFlight: Promise<NativeSession> | undefined;
-  const read = () => loaded ??= Promise.resolve(options.storage.get());
+  const read = () => {
+    if (loaded) return loaded;
+    const pending = Promise.resolve(options.storage.get());
+    loaded = pending;
+    void pending.catch(() => {
+      if (loaded === pending) loaded = undefined;
+    });
+    return pending;
+  };
   function persist(session: NativeSession | null) {
     const write = writes.then(() => session ? options.storage.set(session) : options.storage.clear());
     loaded = session ? write.then(() => session, () => null) : Promise.resolve(null);

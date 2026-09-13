@@ -68,6 +68,47 @@ describe('native session standard-fetch transport', () => {
     await expect(client.login({ email: 'test@example.com', password: 'password' })).rejects.toBe(failure);
   });
 
+  it('retries a rejected storage read and coalesces concurrent recovery reads', async () => {
+    const recovered = deferred<NativeSession | null>();
+    const failure = new Error('Secure storage unavailable');
+    let reads = 0;
+    const store = {
+      get: vi.fn(() => reads++ === 0 ? Promise.reject(failure) : recovered.promise),
+      set: vi.fn(),
+      clear: vi.fn(),
+    } satisfies NativeSessionStorage;
+    const authorizations: Array<string | null> = [];
+    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
+      authorizations.push(new Request(input).headers.get('authorization'));
+      return new Response(null, { status: 200 });
+    } });
+
+    await expect(client.fetch(`${baseUrl}/api/first`)).rejects.toBe(failure);
+    const requests = [client.fetch(`${baseUrl}/api/second`), client.fetch(`${baseUrl}/api/third`)];
+    expect(store.get).toHaveBeenCalledTimes(2);
+    recovered.resolve(pair('a'));
+    expect((await Promise.all(requests)).map((response) => response.status)).toEqual([200, 200]);
+    expect(authorizations).toEqual(['Bearer access-a', 'Bearer access-a']);
+  });
+
+  it('can retry logout after a rejected storage read', async () => {
+    const failure = new Error('Secure storage unavailable');
+    let reads = 0;
+    const store = {
+      get: vi.fn(() => reads++ === 0 ? Promise.reject(failure) : pair('a')),
+      set: vi.fn(),
+      clear: vi.fn(),
+    } satisfies NativeSessionStorage;
+    const transport = vi.fn(async () => new Response(null, { status: 204 }));
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
+
+    await expect(client.logout()).rejects.toBe(failure);
+    await expect(client.logout()).resolves.toBeUndefined();
+    expect(store.get).toHaveBeenCalledTimes(2);
+    expect(store.clear).toHaveBeenCalledTimes(1);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
   it('coalesces concurrent 401s, preserves POST bodies, and retries each once without cookies', async () => {
     const store = storage();
     const refresh = deferred<Response>();
