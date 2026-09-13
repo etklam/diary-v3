@@ -1,11 +1,12 @@
+import { NO_AUTOMATIC_SESSION_RETRY_HEADER } from './request-headers';
+
+export { NO_AUTOMATIC_SESSION_RETRY_HEADER } from './request-headers';
+
 export type WebSessionOptions = {
   /** Trusted API origin, supplied by the browser boundary rather than read here. */
   baseUrl: string;
   fetch?: typeof globalThis.fetch;
 };
-
-/** Request marker for writes whose 401 result must remain user-confirmed. */
-export const NO_AUTOMATIC_SESSION_RETRY_HEADER = 'x-diary-no-automatic-session-retry';
 
 const bootstrapPaths = new Set([
   '/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/auth/logout',

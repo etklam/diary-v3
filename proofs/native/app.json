@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Diary Native Proof",
+    "slug": "diary-native-proof",
+    "scheme": "diary-v3",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "plugins": ["expo-secure-store"],
+    "ios": {
+      "bundleIdentifier": "test.diaryv3.nativeproof",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "test.diaryv3.nativeproof"
+    }
+  }
+}

@@ -1,4 +1,28 @@
-import { nativeSessionResponseSchema, type LoginRequest, type NativeSession } from '@diary/contracts';
+import {
+  apiErrorResponseSchema,
+  nativeSessionResponseSchema,
+  type ErrorCode,
+  type LoginRequest,
+  type NativeSession,
+} from '@diary/contracts';
+import { NO_AUTOMATIC_SESSION_RETRY_HEADER } from './request-headers';
+
+export type NativeSessionErrorDetail = {
+  field?: string;
+  message?: string;
+};
+
+/** Structured HTTP error; its message is the stable code, never statusMessage. */
+export class NativeSessionError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: ErrorCode | null,
+    readonly details: NativeSessionErrorDetail[] | null,
+  ) {
+    super(code ?? 'NATIVE_SESSION_HTTP_ERROR');
+    this.name = 'NativeSessionError';
+  }
+}
 
 export type NativeSessionStorage = {
   /** Persist the complete pair atomically in the platform's secure storage. */
@@ -44,7 +68,19 @@ export function createNativeSession(options: NativeSessionOptions) {
       method: 'POST', credentials: 'omit',
       headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     }));
-    if (!response.ok) throw new Error(`Native session request failed (${response.status})`);
+    if (!response.ok) {
+      const payload = await response.clone().json().catch(() => null);
+      const parsed = apiErrorResponseSchema.safeParse(payload);
+      const error = parsed.success && parsed.data.statusCode === response.status ? parsed.data.data : null;
+      throw new NativeSessionError(
+        response.status,
+        error?.code ?? null,
+        error?.details?.map(({ field, message }) => ({
+          ...(field === undefined ? {} : { field }),
+          ...(message === undefined ? {} : { message }),
+        })) ?? null,
+      );
+    }
     return response;
   }
   function refresh() {
@@ -93,6 +129,7 @@ export function createNativeSession(options: NativeSessionOptions) {
     const url = new URL(request.url);
     if (url.origin !== base.origin) throw new Error('Native session cannot send credentials to another origin');
     const bootstrapRequest = bootstrapPaths.has(url.pathname);
+    const noAutomaticRetry = request.headers.get(NO_AUTOMATIC_SESSION_RETRY_HEADER) === '1';
     const expected = epoch;
     const session = bootstrapRequest ? null : await read();
     const send = (accessToken?: string) => {
@@ -104,7 +141,7 @@ export function createNativeSession(options: NativeSessionOptions) {
       return transport(new Request(request.clone(), { headers, credentials: 'omit' }));
     };
     const response = await send(session?.accessToken);
-    if (response.status !== 401 || bootstrapRequest || !session || epoch !== expected) return response;
+    if (response.status !== 401 || bootstrapRequest || !session || epoch !== expected || noAutomaticRetry) return response;
     try {
       const error: unknown = await response.clone().json();
       if (typeof error === 'object' && error !== null && 'data' in error

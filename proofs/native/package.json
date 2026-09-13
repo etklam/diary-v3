@@ -1,0 +1,28 @@
+{
+  "name": "diary-native-proof",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo/AppEntry",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
+    "compile": "EXPO_NO_TELEMETRY=1 expo export --platform ios --output-dir /tmp/diary-native-proof-export/ios && EXPO_NO_TELEMETRY=1 expo export --platform android --output-dir /tmp/diary-native-proof-export/android",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@diary/api-client": "file:../../packages/api-client",
+    "@diary/contracts": "file:../../packages/contracts",
+    "@diary/domain": "file:../../packages/domain",
+    "expo": "~57.0.0",
+    "expo-secure-store": "~57.0.4",
+    "openapi-fetch": "0.17.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "typescript": "5.9.3"
+  }
+}

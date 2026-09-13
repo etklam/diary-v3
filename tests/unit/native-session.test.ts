@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createNativeSession, type NativeSessionStorage } from '../../packages/api-client/src/index';
+import { createNativeSession, NativeSessionError, NO_AUTOMATIC_SESSION_RETRY_HEADER, type NativeSessionStorage } from '../../packages/api-client/src/index';
 import type { NativeSession } from '../../packages/contracts/src/index';
 
 const baseUrl = 'https://diary.test';
@@ -25,8 +25,49 @@ function deferred<T>() {
   return { promise, resolve };
 }
 const sessionResponse = (suffix: string) => Response.json({ ok: true, data: pair(suffix) });
+const apiError = (status: number, code: string, details: unknown = null) => Response.json({
+  statusCode: status,
+  statusMessage: 'English response text is not the client error key',
+  data: { code, details, requestId: 'request-test' },
+}, { status });
 
 describe('native session standard-fetch transport', () => {
+  it('exposes invalid login as a structured error without using the response message', async () => {
+    const store = storage(null);
+    const client = createNativeSession({ baseUrl, storage: store, fetch: async () => apiError(401, 'AUTH_LOGIN_INVALID_CREDENTIALS') });
+    await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toMatchObject({
+      name: 'NativeSessionError',
+      message: 'AUTH_LOGIN_INVALID_CREDENTIALS',
+      status: 401,
+      code: 'AUTH_LOGIN_INVALID_CREDENTIALS',
+      details: null,
+    });
+    expect(store.get()).toBeNull();
+  });
+
+  it('preserves the refresh-expired code and only safe error details', async () => {
+    const store = storage();
+    const client = createNativeSession({ baseUrl, storage: store, fetch: async () => apiError(401, 'AUTH_TOKEN_EXPIRED', [
+      { field: 'refreshToken', message: 'Expired', value: 'secret-refresh-token' },
+    ]) });
+    let error: unknown;
+    try {
+      await client.refresh();
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(NativeSessionError);
+    expect(error).toMatchObject({ status: 401, message: 'AUTH_TOKEN_EXPIRED', code: 'AUTH_TOKEN_EXPIRED', details: [{ field: 'refreshToken', message: 'Expired' }] });
+    expect((error as NativeSessionError).details?.[0]).not.toHaveProperty('value');
+    expect(store.get()).toBeNull();
+  });
+
+  it('keeps bootstrap network failures distinct from structured HTTP errors', async () => {
+    const failure = new TypeError('Offline');
+    const client = createNativeSession({ baseUrl, storage: storage(null), fetch: async () => { throw failure; } });
+    await expect(client.login({ email: 'test@example.com', password: 'password' })).rejects.toBe(failure);
+  });
+
   it('coalesces concurrent 401s, preserves POST bodies, and retries each once without cookies', async () => {
     const store = storage();
     const refresh = deferred<Response>();
@@ -109,6 +150,23 @@ describe('native session standard-fetch transport', () => {
     expect(store.get()).toBeNull();
   });
 
+  it('does not refresh or replay an explicitly marked uncertain write', async () => {
+    const store = storage();
+    const transport = vi.fn(async (input: RequestInfo | URL) => {
+      expect(new Request(input).headers.get(NO_AUTOMATIC_SESSION_RETRY_HEADER)).toBe('1');
+      return new Response(null, { status: 401 });
+    });
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
+    const response = await client.fetch(`${baseUrl}/api/diaries`, {
+      method: 'POST',
+      headers: { [NO_AUTOMATIC_SESSION_RETRY_HEADER]: '1' },
+      body: '{"appendToToday":true,"content":"Keep one copy"}',
+    });
+    expect(response.status).toBe(401);
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(store.get()).toEqual(pair('a'));
+  });
+
   it('does not recursively refresh bootstrap 401s or attach stored authorization', async () => {
     const store = storage();
     const transport = vi.fn(async (input: RequestInfo | URL) => {
@@ -118,7 +176,7 @@ describe('native session standard-fetch transport', () => {
     const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
     await client.fetch(`${baseUrl}/api/auth/native/login`, { method: 'POST' });
     expect(transport).toHaveBeenCalledTimes(1);
-    await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toThrow('401');
+    await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toMatchObject({ status: 401, code: null });
     expect(transport).toHaveBeenCalledTimes(2);
     expect(store.get()).toBeNull();
   });
