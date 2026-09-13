@@ -200,6 +200,32 @@ describe('native session standard-fetch transport', () => {
     await client.logout();
   });
 
+  it('invalidates a rejected login when secure storage cannot persist the pair', async () => {
+    let stored: NativeSession | null = null;
+    const store = {
+      get: vi.fn(() => stored),
+      set: vi.fn(async (session: NativeSession) => {
+        stored = session;
+        throw new Error('Secure storage unavailable');
+      }),
+      clear: vi.fn(() => { stored = null; }),
+    } satisfies NativeSessionStorage;
+    const authorizations: Array<string | null> = [];
+    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
+      const request = new Request(input);
+      if (request.url.endsWith('/login')) return sessionResponse('b');
+      authorizations.push(request.headers.get('authorization'));
+      return Response.json({ ok: true });
+    } });
+
+    await expect(client.login({ email: 'test@example.com', password: 'password' }))
+      .rejects.toThrow('Secure storage unavailable');
+    expect(store.clear).toHaveBeenCalledTimes(2);
+    expect(store.get()).toBeNull();
+    expect((await client.fetch(`${baseUrl}/api/auth/me`)).status).toBe(200);
+    expect(authorizations).toEqual([null]);
+  });
+
   it('does not resurrect a logged-out session when an in-flight refresh responds', async () => {
     const store = storage();
     const response = deferred<Response>();

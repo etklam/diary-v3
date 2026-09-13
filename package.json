@@ -22,6 +22,8 @@
     "native:proof:typecheck": "npm --prefix proofs/native run typecheck",
     "native:proof:compile": "npm --prefix proofs/native run compile",
     "native:api:test": "vitest run tests/integration/native-api-acceptance.test.ts",
+    "native:packages:pack": "node scripts/pack-native-packages.mjs",
+    "native:packages:test": "node scripts/verify-native-packages.mjs",
     "test:e2e": "playwright test",
     "test:e2e:webkit:critical": "playwright test --config=playwright.webkit-critical.config.ts",
     "test:e2e:release": "E2E_WEB_HOST=localhost playwright test --config=playwright.release.config.ts",

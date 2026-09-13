@@ -52,8 +52,8 @@ export function createNativeSession(options: NativeSessionOptions) {
   let inFlight: Promise<NativeSession> | undefined;
   const read = () => loaded ??= Promise.resolve(options.storage.get());
   function persist(session: NativeSession | null) {
-    loaded = Promise.resolve(session);
     const write = writes.then(() => session ? options.storage.set(session) : options.storage.clear());
+    loaded = session ? write.then(() => session, () => null) : Promise.resolve(null);
     writes = write.catch(() => {});
     return write;
   }
@@ -114,7 +114,14 @@ export function createNativeSession(options: NativeSessionOptions) {
     const response = await bootstrap('/api/auth/native/login', credentials);
     const session = nativeSessionResponseSchema.parse(await response.json()).data;
     if (epoch !== expected) throw new Error('Native session changed during login');
-    await persist(session);
+    try {
+      await persist(session);
+    } catch (error) {
+      // Secure storage may fail after accepting part of a write. Invalidate the
+      // in-memory pair and make a best-effort clear before exposing the failure.
+      await clear(expected).catch(() => {});
+      throw error;
+    }
     return session;
   }
   async function logout() {
