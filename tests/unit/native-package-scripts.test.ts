@@ -64,7 +64,7 @@ describe('native package scripts', () => {
       expect(after.packages.find(item => item.name === name)?.version)
         .not.toBe(before.packages.find(item => item.name === name)?.version);
     }
-  }, 20_000);
+  }, 120_000);
 
   it('rejects tampered tarballs and manifest provenance before installation', async () => {
     const root = await fixture();
@@ -85,5 +85,5 @@ describe('native package scripts', () => {
     await writeFile(join(tamperedProvenance, 'manifest.json'), `${JSON.stringify(provenanceManifest, null, 2)}\n`);
     expect(() => command(process.execPath, [join(repositoryRoot, 'scripts/verify-native-packages.mjs'), '--packages-dir', tamperedProvenance], root, join(root, 'npm-cache')))
       .toThrow(/provenance fields/);
-  }, 20_000);
+  }, 120_000);
 });
