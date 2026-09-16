@@ -29,6 +29,16 @@ async function backfillDiarySummaryExcerpts(
   db: Database,
   diaryExcerpt: (content: string, maxLength?: number) => string,
 ) {
+  // Newer deployments replay the full migration set over restored N backups
+  // (restore smoke) where the excerpt columns do not exist yet. Skip the
+  // backfill in that case; the later migration adds the columns itself.
+  const columns = await db.execute<{ column_name: string }>(
+    `select column_name from information_schema.columns
+     where table_schema = 'public' and table_name = 'diaries'
+       and column_name in ('summary_excerpt', 'summary_excerpt_content_hash')`,
+  )
+  if (columns.rows.length < 2) return
+
   for (;;) {
     const updated = await db.transaction(async tx => {
       const rows = await tx.select({ id: diaries.id, content: diaries.content }).from(diaries)
