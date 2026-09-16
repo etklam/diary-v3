@@ -1,0 +1,262 @@
+/* Watchlist page: a compact, research-first list on the shared neutral system. */
+
+.watch-header {
+  align-items: center;
+}
+
+.watch-header .button {
+  flex: 0 0 auto;
+}
+
+/* Summary strip: three real counts derived from the watchlist payload. */
+.watch-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+}
+
+/* Quick add: input and CTA share one row on desktop, stack on phones. */
+.watch-add {
+  display: block;
+  margin-bottom: var(--space-6);
+}
+
+.watch-add h2 {
+  margin-bottom: var(--space-4);
+  font-size: 1rem;
+}
+
+.watch-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.watch-add-row label {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.watch-add-row button {
+  flex: 0 0 auto;
+}
+
+.watch-list-head {
+  align-items: end;
+  margin-bottom: var(--space-2);
+}
+
+.watch-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.watch-sort select {
+  width: auto;
+  min-height: 36px;
+  padding: 5px 10px;
+  font-size: 0.875rem;
+}
+
+.watch-limit {
+  margin-bottom: var(--space-4);
+  font-size: 0.8125rem;
+}
+
+/* Card list: one compact row per company. */
+.watch-list {
+  padding: 0;
+}
+
+.watch-list .plan-list {
+  margin: 0;
+}
+
+.watch-page .plan-list li.watch-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border-top: 0;
+}
+
+.watch-page .plan-list li.watch-row + li.watch-row {
+  border-top: 1px solid var(--border);
+}
+
+.watch-identity {
+  min-width: 0;
+}
+
+.watch-identity h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+}
+
+.watch-identity h3 a {
+  text-decoration: none;
+}
+
+.watch-identity h3 a:hover {
+  text-decoration: underline;
+}
+
+.watch-identity p {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.watch-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.watch-count {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.watch-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.watch-order {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.watch-order-input {
+  width: 84px;
+  min-height: 36px;
+  padding: 5px 10px;
+  font-size: 0.9375rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overflow menu: low-frequency actions stay out of the row's face. */
+.watch-menu {
+  position: relative;
+  justify-self: end;
+}
+
+.watch-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  width: 36px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.watch-menu-trigger:hover {
+  border-color: var(--control);
+}
+
+.watch-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 180px;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.watch-menu-list a,
+.watch-menu-list button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.watch-menu-list a:hover,
+.watch-menu-list button:hover {
+  background: var(--tint-neutral);
+  filter: none;
+  text-decoration: none;
+}
+
+/* Below the wide-desktop shell the horizontal row cannot fit a tablet card;
+   the same stacked layout serves phones and tablets. */
+@media (max-width: 1023px) {
+  .watch-stats {
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  /* Stacked row: identity first, research state next, summary, then controls. */
+  .watch-page .plan-list li.watch-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .watch-identity {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .watch-menu {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .watch-meta,
+  .watch-summary,
+  .watch-order {
+    grid-column: 1 / -1;
+  }
+
+  .watch-meta {
+    white-space: normal;
+  }
+
+  .watch-add-row button {
+    flex: 1 1 auto;
+  }
+}

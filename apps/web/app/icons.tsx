@@ -29,6 +29,7 @@ const paths = {
   lock: <><rect x="5.4" y="10.4" width="13.2" height="9.6" rx="1.6" /><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6M12 14v2.6" /></>,
   compass: <><circle cx="12" cy="12" r="8.2" /><path d="m15.4 8.6-1.8 5-5 1.8 1.8-5 5-1.8Z" /></>,
   chevronDown: <path d="m6.5 9.3 5.5 5.4 5.5-5.4" />,
+  more: <><circle cx="5.4" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="18.6" cy="12" r="1.3" fill="currentColor" stroke="none" /></>,
 } as const
 
 export type IconName = keyof typeof paths

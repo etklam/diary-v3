@@ -33,6 +33,7 @@ for (const width of [1440, 390]) test(`Watchlist persistence and recovery at ${w
   await aapl.getByLabel('Sort order').fill('9'); await aapl.getByRole('button', { name: 'Save order' }).click();
   await expect(page.locator('.plan-list > li').first()).toHaveAttribute('data-testid', 'watch-UNKNOWN');
   await page.route('**/api/stocks/watchlist/*', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'watch-retry' } }) }));
+  await aapl.getByRole('button', { name: 'More actions' }).click();
   await aapl.getByRole('button', { name: 'Remove', exact: true }).click(); await expect(page.getByTestId('request-id')).toHaveText('watch-retry'); await expect(aapl).toBeVisible();
   await page.unroute('**/api/stocks/watchlist/*'); await aapl.getByRole('button', { name: 'Remove', exact: true }).click(); await expect(aapl).toHaveCount(0);
   await add('AAPL'); await expect(aapl.getByLabel('Sort order')).toHaveValue('9');
