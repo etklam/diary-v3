@@ -3,6 +3,10 @@
 }
 
 /* Urgent buckets share one 'Needs attention' heading; the buckets sit under it. */
+.queue-attention {
+  margin-top: var(--space-5);
+}
+
 .queue-attention .queue-group {
   margin-top: var(--space-4);
 }
@@ -73,6 +77,9 @@
 
 .queue-group h3 {
   overflow-wrap: anywhere;
+  /* Bucket headings are parallel items: give the h3 ones under 'Needs attention'
+     the same size as their h2 siblings so urgency, not level, sets the tone. */
+  font-size: 1.125rem;
 }
 
 /* Priority strip: one compact row answering what to review now. */

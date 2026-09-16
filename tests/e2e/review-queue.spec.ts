@@ -104,7 +104,8 @@ test('Review queue welcomes a fresh account with an entry point', async ({ page 
   await expect(emptyBlock).toContainText('Nothing waiting for review right now.');
   await expect(emptyBlock.getByRole('link', { name: 'Write a diary', exact: true })).toHaveAttribute('href', '/diaries/new');
   await expect(emptyBlock.getByRole('link', { name: 'Diary library', exact: true })).toHaveAttribute('href', '/diaries');
-  await expect(page.getByRole('region', { name: 'Today', exact: true })).toContainText('Nothing due today.');
+  // A fully empty queue renders the welcome block alone; no bucket sections.
+  await expect(page.getByRole('region', { name: 'Today', exact: true })).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 900 }); await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
   await page.locator('main').screenshot({ path: 'docs/design/evidence/review-queue/1440-empty.png' }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

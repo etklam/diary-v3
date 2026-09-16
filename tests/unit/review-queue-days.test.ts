@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountDayDiff } from '../../apps/web/app/routes/reviews';
+import { accountDayDiff, copy, dueLine } from '../../apps/web/app/routes/reviews';
 
 describe('account-local day difference for queue items', () => {
   const now = new Date('2026-05-01T12:00:00Z'); // 20:00 in Asia/Taipei on 2026-05-01
@@ -13,5 +13,19 @@ describe('account-local day difference for queue items', () => {
     expect(accountDayDiff('2026-04-30T23:59:59Z', now, 'UTC')).toBe(-1);
     // Yesterday in Taipei reads as one day overdue.
     expect(accountDayDiff('2026-04-30T15:59:00Z', now, 'Asia/Taipei')).toBe(-1);
+  });
+});
+
+describe('due line wording', () => {
+  it('counts days while the due date is near', () => {
+    expect(dueLine(0, copy.en, '')).toBe('Due today');
+    expect(dueLine(-3, copy.en, '')).toBe('3 days overdue');
+    expect(dueLine(7, copy.en, '')).toBe('Due in 7 days');
+  });
+
+  it('switches to the date itself once the count is noise', () => {
+    expect(dueLine(-2446, copy.en, 'Jan 1, 2020')).toBe('Overdue since Jan 1, 2020');
+    expect(dueLine(90, copy.en, 'Jun 1, 2026')).toBe('Due Jun 1, 2026');
+    expect(dueLine(-2446, copy['zh-TW'], '2020年1月1日')).toBe('自 2020年1月1日 起逾期');
   });
 });

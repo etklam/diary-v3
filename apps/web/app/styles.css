@@ -1376,6 +1376,12 @@ main:focus-visible {
     display: block;
   }
 
+  /* The sidebar is a sticky top bar here; keep anchor jumps and focus
+     scrolling from leaving targets hidden underneath it. */
+  html {
+    scroll-padding-top: calc(64px + env(safe-area-inset-top));
+  }
+
   .sidebar {
     position: sticky;
     top: 0;
