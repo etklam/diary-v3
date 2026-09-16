@@ -3,7 +3,7 @@ import { once } from 'node:events'
 import { performance } from 'node:perf_hooks'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { alerts, diaries, diaryStocks, stocks, transactions } from '@diary/db'
 import { authUserResponseSchema } from '@diary/contracts'
@@ -48,6 +48,13 @@ async function summaryPage(browser: BrowserSession, query = '') {
 
 const PROSE = 'Evidence accumulates slowly and the thesis needs the next report. '
 
+function postgresDataRowBytes(rows: readonly Record<string, unknown>[]) {
+  return rows.reduce((total, row) => {
+    const values = Object.values(row)
+    return total + 7 + values.length * 4 + values.reduce<number>((sum, value) => sum + (value === null ? 0 : Buffer.byteLength(String(value))), 0)
+  }, 0)
+}
+
 // Heavy markdown body: >20,000 characters with a heading, a code fence and two
 // links so the excerpt generation is exercised against real structure.
 function heavyContent(seed: string, needle?: string) {
@@ -79,7 +86,11 @@ async function seedHeavyFixture(userId: bigint) {
     reviewLearning: index === 0 ? 'Private review learning' : null,
     reviewAdjustment: index === 0 ? 'Private review adjustment' : null,
   }))
-  const inserted = await database.db.insert(diaries).values(rows).returning({ id: diaries.id })
+  const inserted = await database.db.insert(diaries).values(rows.map(row => ({
+    ...row,
+    summaryExcerpt: diaryExcerpt(row.content, 240),
+    summaryExcerptContentHash: sql`md5(${row.content})`,
+  }))).returning({ id: diaries.id })
   await database.db.insert(transactions).values(
     [0, 1].flatMap(index => Array.from({ length: 12 }, () => ({
       diaryId: inserted[index]!.id, userId, symbol: 'AAPL', type: 'BUY' as const,
@@ -190,22 +201,43 @@ describe('Diary summary discovery feed', () => {
     expect(diary.userId).toBe(a.userId.toString())
   })
 
-  // Spec §18 benchmark. listDiarySummaries materializes the full `content`
-  // column (up to 500,000 chars per row) and builds the 240-char excerpt with
-  // diaryExcerpt inside the API process. Measured on the local PG
-  // (127.0.0.1:55433), 20 rows x 500k chars, median of 5 GETs:
-  //   plain prose            ~63ms   -> full materialization is not the cost
-  //   mixed shapes (5 rows whitespace-heavy) ~14.6s
-  // The pathological total is excerpt CPU, not SQL: the
-  // /^[>#\s]*[-*+]\s+/gm list-marker strip in diaryExcerpt
-  // (packages/domain/src/timeline.ts) backtracks quadratically across
-  // whitespace runs, ~2.85s per 500k-char body. Fix it there first if
-  // real-world p95 shows a problem. A SQL-side left(content, N) bound is NOT
-  // a faithful substitute: three fixture shapes (giant code fence, giant
-  // link, whitespace run) strip away entirely inside the first N chars, so
-  // diaryExcerpt(left(content, N)) diverges from diaryExcerpt(content) for
-  // every N in {1000, 2000, 4000, 8000} (asserted below) while only plain
-  // prose is prefix-stable. Decision: keep full materialization, no bound.
+  it('keeps persisted excerpts synchronized for create, append and edit and falls back on legacy writes', async () => {
+    const a = await owner()
+    expect((await a.browser.request('/api/auth/me')).status).toBe(200)
+    const date = '2026-10-11'
+    const createdContent = '# First note\n\nA **bold** first excerpt.'
+    const createdResponse = await a.browser.post('/api/diaries', { title: 'Excerpt lifecycle', content: createdContent, date })
+    expect(createdResponse.status).toBe(201)
+    const created = await createdResponse.json()
+    const appendedText = '- Appended evidence from the same day.'
+    const appendedResponse = await a.browser.post('/api/diaries', { title: 'Ignored append title', content: appendedText, date, appendToToday: true })
+    expect(appendedResponse.status).toBe(201)
+    const appendedContent = `${createdContent}\n\n---\n\n${appendedText}`
+    const appendedRow = await database.pool.query<{ summary_excerpt: string | null; summary_excerpt_content_hash: string | null; content_hash: string }>(
+      'select summary_excerpt,summary_excerpt_content_hash,md5(content) as content_hash from diaries where id=$1', [created.id],
+    )
+    expect(appendedRow.rows[0]!.summary_excerpt).toBe(diaryExcerpt(appendedContent, 240))
+    expect(appendedRow.rows[0]!.summary_excerpt_content_hash).toBe(appendedRow.rows[0]!.content_hash)
+
+    const editedContent = '## Edited thesis\n\nThe next report changed the decision.'
+    const edit = await a.browser.request(`/api/diaries/${created.id}`, {
+      method: 'PUT', headers: new Headers({ 'x-csrf-token': a.browser.cookies.get('csrf-token')!, 'content-type': 'application/json' }),
+      body: JSON.stringify({ title: 'Excerpt lifecycle', content: editedContent }),
+    })
+    expect(edit.status).toBe(200)
+    const editedRow = await database.pool.query<{ summary_excerpt: string | null; summary_excerpt_content_hash: string | null; content_hash: string }>(
+      'select summary_excerpt,summary_excerpt_content_hash,md5(content) as content_hash from diaries where id=$1', [created.id],
+    )
+    expect(editedRow.rows[0]!.summary_excerpt).toBe(diaryExcerpt(editedContent, 240))
+    expect(editedRow.rows[0]!.summary_excerpt_content_hash).toBe(editedRow.rows[0]!.content_hash)
+
+    const legacyContent = '## Legacy writer\n\n- [A visible title](https://example.test/legacy) remains in the summary.'
+    await database.pool.query('update diaries set content=$1 where id=$2', [legacyContent, created.id])
+    const summary = await summaryPage(a.browser, `dateFrom=${date}&dateTo=${date}`)
+    expect(summary.data[0]!.excerpt).toBe(diaryExcerpt(legacyContent, 240))
+  })
+
+  // Measure the exact current summary projection for legal maximum-size bodies.
   it('benchmarks excerpt materialization for a 20-row page of max-size content', { timeout: 120_000 }, async () => {
     const a = await owner()
     const benchStart = performance.now()
@@ -218,10 +250,15 @@ describe('Diary summary discovery feed', () => {
       { kind: 'link', content: body(`Report [the full note](https://example.test/${'a'.repeat(100_000)}) and prose follows. `) },
       { kind: 'whitespace', content: body('\n\t '.repeat(33_334)) },
     ]
-    const rows = Array.from({ length: 20 }, (_, index) => ({
-      userId: a.userId, date: `2026-08-${String(1 + index).padStart(2, '0')}`,
-      title: `Bench ${index}`, content: fixtures[index % fixtures.length]!.content,
-    }))
+    const rows = Array.from({ length: 20 }, (_, index) => {
+      const content = fixtures[index % fixtures.length]!.content
+      return {
+        userId: a.userId, date: `2026-08-${String(1 + index).padStart(2, '0')}`,
+        title: `Bench ${index}`, content,
+        summaryExcerpt: diaryExcerpt(content, 240),
+        summaryExcerptContentHash: sql`md5(${content})`,
+      }
+    })
     for (let start = 0; start < rows.length; start += 5) {
       await database.db.insert(diaries).values(rows.slice(start, start + 5))
     }
@@ -241,22 +278,90 @@ describe('Diary summary discovery feed', () => {
     expect(diaryExcerpt(fixtures[0]!.content.slice(0, 1000))).toBe(diaryExcerpt(fixtures[0]!.content))
 
     const browser = a.browser
-    await summaryPage(browser) // warm-up connection and caches, not measured
+    const query = 'dateFrom=2026-08-01&dateTo=2026-08-31'
+    const coldStarted = performance.now()
+    const coldResponse = await browser.request(`/api/diaries/summary?${query}`)
+    expect(coldResponse.status).toBe(200)
+    const coldBody = await coldResponse.text()
+    const coldPage = diarySummaryListResponseSchema.parse(JSON.parse(coldBody))
+    expect(coldPage.data).toHaveLength(20)
+    const coldApiMs = performance.now() - coldStarted
+    const apiPayloadBytes = Buffer.byteLength(coldBody)
+
+    const heap = () => process.memoryUsage().heapUsed
+    const forceGc = (globalThis as typeof globalThis & { gc?: () => void }).gc
+    forceGc?.()
+    const heapBeforeProjection = heap()
+    const projectionStarted = performance.now()
+    const projected = await database.pool.query<Record<string, unknown> & { title: string; content: string }>(
+      `select id::text as id,date::text as date,title,content,tags::text as tags,created_via::text as created_via,
+        review_status::text as review_status,review_due_at::text as review_due_at,review_outcome::text as review_outcome
+       from diaries where user_id=$1 and date >= $2 and date <= $3 order by date asc limit 20`,
+      [a.userId.toString(), '2026-08-01', '2026-08-31'],
+    )
+    forceGc?.()
+    const projectionMs = performance.now() - projectionStarted
+    const heapAfterProjection = heap()
+    const beforeDataRowBytes = postgresDataRowBytes(projected.rows)
+    const contentBytes = projected.rows.reduce((sum, row) => sum + Buffer.byteLength(row.content), 0)
+    const excerptColdStarted = performance.now()
+    const coldExcerpts = projected.rows.map(row => diaryExcerpt(row.content, 240))
+    const excerptCpuColdMs = performance.now() - excerptColdStarted
+    forceGc?.()
+    const heapAfterExcerpt = heap()
+    const excerptRuns: number[] = []
+    for (let run = 0; run < 5; run++) {
+      const started = performance.now()
+      const excerpts = projected.rows.map(row => diaryExcerpt(row.content, 240))
+      excerptRuns.push(performance.now() - started)
+      expect(excerpts).toEqual(coldExcerpts)
+    }
+    const sortedExcerptRuns = [...excerptRuns].sort((left, right) => left - right)
+
+    projected.rows.length = 0
+    forceGc?.()
+    const heapBeforeOptimizedProjection = heap()
+    const optimizedProjectionStarted = performance.now()
+    const optimizedProjection = await database.pool.query<Record<string, unknown>>(
+      `select id::text as id,date::text as date,title,summary_excerpt as summary_excerpt,
+        case when summary_excerpt is null or summary_excerpt_content_hash is null then content else null end as content_for_excerpt,
+        tags::text as tags,created_via::text as created_via,review_status::text as review_status,
+        review_due_at::text as review_due_at,review_outcome::text as review_outcome
+       from diaries where user_id=$1 and date >= $2 and date <= $3 order by date asc limit 20`,
+      [a.userId.toString(), '2026-08-01', '2026-08-31'],
+    )
+    forceGc?.()
+    const optimizedProjectionMs = performance.now() - optimizedProjectionStarted
+    const heapAfterOptimizedProjection = heap()
+    const afterDataRowBytes = postgresDataRowBytes(optimizedProjection.rows)
+
+    await summaryPage(browser, query) // Warm up the route and connection; the first GET above is the app-cold read.
     const runs: number[] = []
     for (let run = 0; run < 5; run++) {
       const started = performance.now()
-      const page = await summaryPage(browser, 'limit=50')
+      const page = await summaryPage(browser, query)
       runs.push(performance.now() - started)
       expect(page.data).toHaveLength(20)
       expect(page.data.every(item => item.excerpt.length > 0 && item.excerpt.length <= 241)).toBe(true)
     }
-    const [median] = runs.slice().sort((x, y) => x - y).slice(2, 3)
-    console.log(`[summary excerpt benchmark] GET /api/diaries/summary 20 rows x 500k chars, mixed shapes: median ${median!.toFixed(1)}ms (runs ${runs.map(value => value.toFixed(1)).join(', ')}ms)`)
+    const sortedRuns = [...runs].sort((left, right) => left - right)
+    const [median] = sortedRuns.slice(2, 3)
+    const [excerptMedian] = sortedExcerptRuns.slice(2, 3)
+    const postgres = await database.pool.query<{ version: string }>('select version() as version')
+    console.log('[summary excerpt benchmark]', JSON.stringify({
+      fixture: { rows: optimizedProjection.rows.length, charsPerContent: total, contentBytes, beforeProjectionColumns: 9, afterProjectionColumns: 10 },
+      runtime: { node: process.version, postgres: postgres.rows[0]!.version, concurrency: 1, repetitions: 5, forcedGcAvailable: Boolean(forceGc), databaseCache: 'not flushed; first app-cold request after fixture seed' },
+      database: { before: { projectionMs, dataRowBytes: beforeDataRowBytes, heapBeforeBytes: heapBeforeProjection, heapAfterGcBytes: heapAfterProjection, heapDeltaBytes: heapAfterProjection - heapBeforeProjection }, after: { projectionMs: optimizedProjectionMs, dataRowBytes: afterDataRowBytes, heapBeforeBytes: heapBeforeOptimizedProjection, heapAfterGcBytes: heapAfterOptimizedProjection, heapDeltaBytes: heapAfterOptimizedProjection - heapBeforeOptimizedProjection } },
+      excerpt: { coldCpuMs: excerptCpuColdMs, warmP50Ms: excerptMedian, warmP95Ms: sortedExcerptRuns.at(-1), heapDeltaBytes: heapAfterExcerpt - heapAfterProjection, heapAfterGcBytes: heapAfterExcerpt },
+      api: { coldMs: coldApiMs, coldPayloadBytes: apiPayloadBytes, warmP50Ms: median, warmP95Ms: sortedRuns.at(-1), warmRunsMs: runs },
+    }))
     // Same page size and body size, plain prose only, isolates the
     // materialization + serialization cost from pathological excerpt CPU.
     await database.db.insert(diaries).values(Array.from({ length: 20 }, (_, index) => ({
       userId: a.userId, date: `2026-09-${String(1 + index).padStart(2, '0')}`,
       title: `Bench plain ${index}`, content: fixtures[0]!.content,
+      summaryExcerpt: diaryExcerpt(fixtures[0]!.content, 240),
+      summaryExcerptContentHash: sql`md5(${fixtures[0]!.content})`,
     })))
     const plainRuns: number[] = []
     await summaryPage(browser, 'dateFrom=2026-09-01&dateTo=2026-09-30') // warm-up

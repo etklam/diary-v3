@@ -81,6 +81,8 @@ export const diaries = pgTable('diaries', {
   userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 500 }).notNull(),
   content: text('content').notNull(),
+  summaryExcerpt: text('summary_excerpt'),
+  summaryExcerptContentHash: varchar('summary_excerpt_content_hash', { length: 32 }),
   tags: text('tags').array().default(sql`ARRAY[]::text[]`).notNull(),
   createdVia: diaryCreatedVia('created_via').default('WEB').notNull(),
   createdByLabel: varchar('created_by_label', { length: 100 }),

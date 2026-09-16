@@ -352,6 +352,87 @@ test('dirty clears when edits return to the confirmed server baseline', async ({
   await expect(page.getByTestId('save-status')).toHaveText('');
 });
 
+test('text-only diary saves omit transactions while an explicit empty list clears them', async ({ page }) => {
+  const email = `ux-ledger-scope-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const createdResponse = await page.request.post('/api/diaries', {
+    headers: { 'x-csrf-token': csrf },
+    data: {
+      date: '2026-09-16', title: 'Ledger scope baseline', content: 'Original text.',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-16T10:00:00.000Z' }],
+    },
+  });
+  expect(createdResponse.status()).toBe(201);
+  const created = await createdResponse.json() as { id: string; transactions: unknown[] };
+  const payloads: Array<Record<string, unknown>> = [];
+  await page.route(`**/api/diaries/${created.id}`, async route => {
+    if (route.request().method() === 'PUT') payloads.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.continue();
+  });
+
+  await page.goto(`/diaries/${created.id}/edit`);
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Text changed without changing trades.');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
+  expect(payloads).toHaveLength(1);
+  expect(payloads[0]).not.toHaveProperty('transactions');
+  expect((await (await page.request.get(`/api/diaries/${created.id}`)).json() as { transactions: unknown[] }).transactions).toEqual(created.transactions);
+
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove transaction 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
+  expect(payloads).toHaveLength(2);
+  expect(payloads[1]).toHaveProperty('transactions', []);
+  expect((await (await page.request.get(`/api/diaries/${created.id}`)).json() as { transactions: unknown[] }).transactions).toEqual([]);
+});
+
+test('uncertain text save confirms without overwriting a concurrent transaction edit', async ({ page }) => {
+  const email = `ux-ledger-uncertain-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const createdResponse = await page.request.post('/api/diaries', {
+    headers: { 'x-csrf-token': csrf },
+    data: {
+      date: '2026-09-17', title: 'Uncertain ledger baseline', content: 'Original text.',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-17T10:00:00.000Z' }],
+    },
+  });
+  expect(createdResponse.status()).toBe(201);
+  const created = await createdResponse.json() as { id: string; transactions: Array<Record<string, unknown>> };
+  await page.goto(`/diaries/${created.id}/edit`);
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Committed text with an ambiguous response.');
+  let sentBody: Record<string, unknown> | undefined;
+  await page.route(`**/api/diaries/${created.id}`, async route => {
+    if (route.request().method() !== 'PUT') { await route.continue(); return; }
+    sentBody = route.request().postDataJSON() as Record<string, unknown>;
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    const row = created.transactions[0]!;
+    const concurrent = await page.request.put(`/api/diaries/${created.id}`, {
+      headers: { 'x-csrf-token': csrf },
+      data: {
+        title: String(sentBody.title), content: String(sentBody.content),
+        transactions: [{
+          id: String(row.id), symbol: String(row.symbol), type: String(row.type), quantity: '3',
+          price: String(row.price), tradeDate: String(row.tradeDate), notes: row.notes ?? null,
+          strategy: row.strategy ?? null, emotion: row.emotion ?? null,
+        }],
+      },
+    });
+    expect(concurrent.status()).toBe(200);
+    await route.abort('failed');
+  });
+
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
+  expect(sentBody).not.toHaveProperty('transactions');
+  const latest = await (await page.request.get(`/api/diaries/${created.id}`)).json() as { content: string; transactions: Array<{ quantity: string }> };
+  expect(latest.content).toBe('Committed text with an ambiguous response.');
+  expect(latest.transactions[0]?.quantity).toBe('3');
+});
+
 test('recovery restores transaction, review and reminder modifications after re-login', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const email = `ux-full-recovery-${randomUUID()}@example.test`;

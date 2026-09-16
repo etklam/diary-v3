@@ -681,6 +681,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portfolio/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["portfolioOverviewGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stats/performance": {
         parameters: {
             query?: never;
@@ -6823,6 +6839,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    portfolioOverviewGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-scoped Overview valuation and attention sections from one ledger snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        attention: {
+                            /** @enum {string} */
+                            status: "ready";
+                            data: {
+                                items: ({
+                                    id: string;
+                                    /** @enum {string} */
+                                    reason: "invalidated_thesis_while_held" | "overdue_thesis_review" | "overdue_diary_review" | "position_concentration" | "missing_thesis";
+                                    /** @enum {string} */
+                                    targetKind: "stock";
+                                    targetId: string;
+                                    symbol: string;
+                                    priority: number;
+                                    action: string;
+                                    evidence: {
+                                        concentrationPct?: number | null;
+                                        /** Format: date-time */
+                                        reviewDueAt?: string | null;
+                                        latestOutcome?: string | null;
+                                        title?: string;
+                                    };
+                                    /** Format: date-time */
+                                    asOf: string;
+                                } | {
+                                    id: string;
+                                    /** @enum {string} */
+                                    reason: "invalidated_thesis_while_held" | "overdue_thesis_review" | "overdue_diary_review" | "position_concentration" | "missing_thesis";
+                                    /** @enum {string} */
+                                    targetKind: "diary";
+                                    targetId: string;
+                                    symbol: string | null;
+                                    priority: number;
+                                    action: string;
+                                    evidence: {
+                                        concentrationPct?: number | null;
+                                        /** Format: date-time */
+                                        reviewDueAt?: string | null;
+                                        latestOutcome?: string | null;
+                                        title?: string;
+                                    };
+                                    /** Format: date-time */
+                                    asOf: string;
+                                })[];
+                                /** Format: date-time */
+                                asOf: string;
+                                coverage: {
+                                    /** @enum {string} */
+                                    valuationStatus: "empty" | "complete" | "partial" | "unavailable";
+                                    complete: boolean;
+                                    priced: number;
+                                    total: number;
+                                };
+                            };
+                        } | {
+                            /** @enum {string} */
+                            status: "failed";
+                            error: {
+                                /** @enum {string} */
+                                code: "SYS_INTERNAL_ERROR";
+                                requestId: string;
+                            };
+                        };
+                        valuation: {
+                            /** @enum {string} */
+                            status: "ready";
+                            data: {
+                                holdings: {
+                                    symbol: string;
+                                    quantity: number;
+                                    avgCost: number;
+                                    totalCost: number;
+                                    price?: number;
+                                    dayChange?: number;
+                                    dayChangePercent?: number;
+                                    /** Format: date-time */
+                                    quoteAsOf?: string;
+                                }[];
+                                valuation: {
+                                    totalHoldings: number;
+                                    totalCost: number;
+                                    currentMarketValue: number | null;
+                                    unrealizedAmount: number | null;
+                                    unrealizedPct: number | null;
+                                    totalDayChange: number | null;
+                                    totalDayChangePercent: number | null;
+                                    largestPositionPct: number | null;
+                                    top3ConcentrationPct: number | null;
+                                    activePositionCount: number;
+                                    concentrationWarning: boolean;
+                                    largestPositionSymbol: string | null;
+                                    pricedPositionCount: number;
+                                    unpricedPositionCount: number;
+                                    pricedCostBasis: number;
+                                    unpricedCostBasis: number;
+                                    quoteCoveragePct: number;
+                                    /** Format: date-time */
+                                    valuationAsOf: string | null;
+                                    staleQuoteCount: number;
+                                    /** @enum {string} */
+                                    valuationStatus: "empty" | "complete" | "partial" | "unavailable";
+                                    unsupportedMetrics: [
+                                        "ytdReturn",
+                                        "realCashPercentage",
+                                        "sectorConcentration"
+                                    ];
+                                };
+                                quoteErrors: string[];
+                                marketState: string | null;
+                            };
+                        } | {
+                            /** @enum {string} */
+                            status: "failed";
+                            error: {
+                                /** @enum {string} */
+                                code: "SYS_INTERNAL_ERROR";
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
             };
             /** @description HTTP 401 error */

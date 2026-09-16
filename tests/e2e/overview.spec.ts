@@ -82,13 +82,21 @@ for (const width of [1440, 390]) test(`Overview composes bounded decision projec
 test('Overview keeps other sections readable when attention needs retry', async ({ page, context }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await signInAndSeed(page, context)
-  await page.route('**/api/portfolio/attention', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'overview-attention-retry' } }) }))
+  await page.route('**/api/portfolio/overview', async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    await route.fulfill({ response, body: JSON.stringify({
+      ...body,
+      attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'overview-attention-retry' } },
+    }) })
+  })
   await page.goto('/')
   const attention = page.getByRole('region', { name: 'Needs your attention', exact: true })
   await expect(attention.getByTestId('request-id')).toHaveText('overview-attention-retry')
+  await expect(page.getByTestId('overview-quote-coverage')).toHaveText('50%')
   await expect(page.getByTestId('overview-recent-item')).toContainText('Overview synthetic decision')
   await expect(page.locator('.overview-page').getByRole('link', { name: 'Trade plans', exact: true })).toHaveAttribute('href', '/trade-plans')
-  await page.unroute('**/api/portfolio/attention')
+  await page.unroute('**/api/portfolio/overview')
   await attention.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(attention.getByTestId('overview-attention-item').first()).toBeVisible()
 

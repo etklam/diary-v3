@@ -2,14 +2,17 @@ import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
+import { schema } from '@diary/db'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>
 let baseUrl: string
+let observedQueries: Array<{ query: string; params: unknown[] }>
 
 async function login(browser: BrowserSession) {
   const email = `${randomUUID()}@example.test`
@@ -32,8 +35,10 @@ function mutation(browser: BrowserSession, method: 'PUT' | 'DELETE', path: strin
 
 beforeAll(async () => { database = await provisionTestDatabase('diary_editor') })
 beforeEach(async () => {
+  observedQueries = []
+  const db = drizzle(database.pool, { schema, logger: { logQuery(query, params) { observedQueries.push({ query, params }) } } })
   const app = createApp({
-    db: database.db,
+    db,
     config: {
       jwtSecret: 'test-only-diary-editor-secret-over-32-characters',
       nodeEnv: 'test',
@@ -52,6 +57,59 @@ afterEach(async () => {
 afterAll(async () => { await database?.dispose() })
 
 describe('diary editor through real HTTP and PostgreSQL', () => {
+  it('does not lock or replay the owner ledger for text-only updates and preserves explicit clearing', async () => {
+    const browser = new BrowserSession(baseUrl)
+    await login(browser)
+    const traded = await (await browser.post('/api/diaries', {
+      title: 'Text-only trade fixture', content: 'Original text', date: '2026-10-08',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-10-08T10:00:00.000Z' }],
+    })).json()
+    const empty = await (await browser.post('/api/diaries', {
+      title: 'Text-only empty fixture', content: 'Original text', date: '2026-10-09',
+    })).json()
+    const transactionRows = async (diaryId: string) => (await database.pool.query(
+      'SELECT id::text, symbol, type, quantity::text, price::text, trade_date::text FROM transactions WHERE diary_id = $1 ORDER BY id',
+      [diaryId],
+    )).rows
+    const before = await transactionRows(traded.id)
+    const fullLedgerReads = () => observedQueries.filter(({ query }) => {
+      const normalized = query.toLowerCase().replaceAll(/\s+/g, ' ')
+      if (!normalized.includes('from "transactions" where')) return false
+      const predicate = normalized.split('from "transactions" where', 2)[1]?.split(' order by', 1)[0] ?? ''
+      return predicate.includes('"transactions"."user_id"') && !predicate.includes('"transactions"."diary_id"')
+    })
+    const ledgerLocks = () => observedQueries.filter(({ query, params }) =>
+      query.includes('pg_advisory_xact_lock') && params.includes(`ledger:${traded.userId}`),
+    )
+
+    observedQueries.length = 0
+    const textUpdate = await mutation(browser, 'PUT', `/api/diaries/${traded.id}`, {
+      title: 'Text-only trade fixture', content: 'Text changed; transactions omitted',
+    })
+    expect(textUpdate.status).toBe(200)
+    expect(fullLedgerReads()).toHaveLength(0)
+    expect(ledgerLocks()).toHaveLength(0)
+    expect(await transactionRows(traded.id)).toEqual(before)
+
+    observedQueries.length = 0
+    const emptyUpdate = await mutation(browser, 'PUT', `/api/diaries/${empty.id}`, {
+      title: 'Text-only empty fixture', content: 'Empty ledger stays empty',
+    })
+    expect(emptyUpdate.status).toBe(200)
+    expect(fullLedgerReads()).toHaveLength(0)
+    expect(ledgerLocks()).toHaveLength(0)
+    expect(await transactionRows(empty.id)).toEqual([])
+
+    observedQueries.length = 0
+    const clear = await mutation(browser, 'PUT', `/api/diaries/${traded.id}`, {
+      title: 'Text-only trade fixture', content: 'Explicit clear', transactions: [],
+    })
+    expect(clear.status).toBe(200)
+    expect(ledgerLocks()).toHaveLength(1)
+    expect(await transactionRows(traded.id)).toEqual([])
+    expect((await browser.request(`/api/diaries/${traded.id}`).then(response => response.json())).transactions).toEqual([])
+  })
+
   it('round-trips Markdown, structured text and lossless normalized tags', async () => {
     const browser = new BrowserSession(baseUrl)
     await login(browser)

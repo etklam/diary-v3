@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { createDatabase, migrateDatabase } from '@diary/db';
+import { diaryExcerpt } from '@diary/domain';
 
 /** A fresh local database per suite; never reset or truncate an existing database. */
 export async function provisionTestDatabase(prefix = 'diary_v3_test') {
@@ -35,7 +36,7 @@ export async function provisionTestDatabase(prefix = 'diary_v3_test') {
       await admin.query(`DROP DATABASE IF EXISTS "${name}"`);
     } finally { await admin.end(); }
   }
-  try { await migrateDatabase(database.db); }
+  try { await migrateDatabase(database.db, { diaryExcerpt }); }
   catch (error) { await dispose(); throw error; }
   return { ...database, url: url.toString(), dispose };
 }

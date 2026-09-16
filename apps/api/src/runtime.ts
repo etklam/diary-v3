@@ -53,7 +53,12 @@ export function createApiRuntime(dependencies: Omit<AppDependencies, 'onAccountR
   })
   let closing: Promise<void> | undefined
   function close() {
-    closing ??= (async () => { await Promise.all([pusher.stop(), priceChecker.stop()]); await sockets.close() })()
+    closing ??= (async () => {
+      const stopping = Promise.all([pusher.stop(), priceChecker.stop()])
+      await marketData.close()
+      await stopping
+      await sockets.close()
+    })()
     return closing
   }
   return { app, server, sockets, pusher, priceChecker, close }

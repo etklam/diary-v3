@@ -1,6 +1,7 @@
 import { diaryResponseSchema, type CreateDiaryRequest, type UpdateDiaryRequest } from '@diary/contracts'
 import { alerts, diaries, users, type Database } from '@diary/db'
 import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm'
+import { diaryExcerpt } from '@diary/domain'
 import {
   insertLedgerTransactions,
   ledgerUserLock,
@@ -36,6 +37,13 @@ async function writeAlerts(tx: Transaction, userId: bigint, diaryId: bigint, dra
 }
 
 type TradePlanRow = typeof tradePlans.$inferSelect
+
+function summaryExcerptValues(content: string) {
+  return {
+    summaryExcerpt: diaryExcerpt(content, 240),
+    summaryExcerptContentHash: sql`md5(${content})`,
+  }
+}
 
 function instant(value: Date | string): string {
   return (value instanceof Date ? value : new Date(value)).toISOString()
@@ -111,6 +119,7 @@ export async function createDiary(
         eq(diaries.userId, userId), eq(diaries.date, date),
       )).limit(1).for('update')
       if (existing) {
+        const content = `${existing.content}\n\n---\n\n${input.content}`
         // Validate the persisted and incoming association union before any append mutation.
         mergeDiaryStockSymbols(
           (await listDiaryStocks(tx, userId, [existing.id])).map(row => row.symbol),
@@ -120,7 +129,8 @@ export async function createDiary(
           ? [...new Set([...existing.tags, ...input.tags])]
           : existing.tags
         const [updated] = await tx.update(diaries).set({
-          content: `${existing.content}\n\n---\n\n${input.content}`,
+          content,
+          ...summaryExcerptValues(content),
           tags,
           updatedAt: now(),
           // These fields were accepted then discarded by the former append
@@ -148,6 +158,7 @@ export async function createDiary(
       userId,
       title: input.title,
       content: input.content,
+      ...summaryExcerptValues(input.content),
       tags: input.tags ?? [],
       date,
       createdVia: source.createdVia,
@@ -192,11 +203,13 @@ export async function updateDiary(
   updatedAt: Date,
 ) {
   type DiaryInsert = typeof diaries.$inferInsert
-  const values: Omit<Partial<DiaryInsert>, 'reviewStatus'> & {
+  const values: Omit<Partial<DiaryInsert>, 'reviewStatus' | 'summaryExcerptContentHash'> & {
     reviewStatus?: DiaryInsert['reviewStatus'] | SQL
+    summaryExcerptContentHash?: DiaryInsert['summaryExcerptContentHash'] | SQL
   } = {
     title: input.title,
     content: input.content,
+    ...summaryExcerptValues(input.content),
     updatedAt,
   }
   if (input.tags !== undefined) values.tags = input.tags

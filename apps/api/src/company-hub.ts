@@ -23,7 +23,7 @@ export function registerCompanyHubRoute(app: Hono<AppEnv>, dependencies: {
     const parsed = stockSymbolSchema.safeParse(c.req.param('symbol')); if (!parsed.success) return validationError(parsed.error)
     const symbol = parsed.data, userId = BigInt(user.id)
     // Provider errors affect valuation only; owner data uses one coherent snapshot.
-    const quotePromise = market.quote(symbol).then(({ data }) => data.regularMarketPrice >= 0 ? data : null).catch(() => null)
+    const quotePromise = market.quote(symbol, false, c.req.raw.signal).then(({ data }) => data.regularMarketPrice >= 0 ? data : null).catch(() => null)
     const snapshot = await db.transaction(async tx => {
       const [stock] = await tx.select().from(stocks).where(eq(stocks.symbol, symbol))
       const holdings = (await getHoldings(tx, userId)).map(row => ({ symbol: row.symbol, quantity: Number(row.quantity), avgCost: Number(row.avgCost), totalCost: Number(row.totalCost) }))

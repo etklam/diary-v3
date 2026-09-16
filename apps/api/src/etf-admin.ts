@@ -28,7 +28,7 @@ export function registerEtfAdminRoutes(app: Hono<AppEnv>, dependencies: {
   if ((await db.select({ id: etfs.id }).from(etfs).where(eq(etfs.symbol, input.symbol))).length) return fail(409, 'ETF_ALREADY_IN_WATCHLIST', 'ETF already exists')
   if (!input.skipValidation) {
    let quote
-   try { quote = await market.quote(input.symbol, true) } catch (error) { if (error instanceof MarketDataError && error.kind === 'not-found') return fail(400, 'SYS_VALIDATION_ERROR', 'Invalid ETF symbol'); return external(error) }
+   try { quote = await market.quote(input.symbol, true, c.req.raw.signal) } catch (error) { if (error instanceof MarketDataError && error.kind === 'not-found') return fail(400, 'SYS_VALIDATION_ERROR', 'Invalid ETF symbol'); return external(error) }
    if (quote.source === 'stale') return external(null)
   }
   const [created] = await db.insert(etfs).values({ symbol: input.symbol, name: input.name, createdAt: now(), updatedAt: now() }).onConflictDoNothing({ target: etfs.symbol }).returning()
@@ -52,7 +52,7 @@ export function registerEtfAdminRoutes(app: Hono<AppEnv>, dependencies: {
  app.post('/api/admin/etf/:id/initialize', async c => {
   admin(c); const etfId = id(c), [etf] = await db.select().from(etfs).where(eq(etfs.id, etfId)); if (!etf) return fail(404, 'ETF_NOT_FOUND', 'ETF not found')
   let history
-  try { history = await market.monthly(etf.symbol) } catch (error) { return external(error) }
+  try { history = await market.monthly(etf.symbol, c.req.raw.signal) } catch (error) { return external(error) }
   if (history.source === 'stale') return external(null)
   const prices = history.data.map(row => ({ etfId, date: new Date(row.timestamp * 1000).toISOString().slice(0,10), open: row.open.toFixed(4), high: row.high.toFixed(4), low: row.low.toFixed(4), close: row.close.toFixed(4), adjClose: row.adjClose.toFixed(4), volume: row.volume === null ? null : BigInt(row.volume), createdAt: now() }))
   const added = await db.transaction(async tx => {

@@ -4,23 +4,32 @@ import type { Database } from '@diary/db'
 import { getHoldings } from './ledger.js'
 import type { createMarketData } from './market-data/index.js'
 
-export async function batchQuotePrices(market: ReturnType<typeof createMarketData>, inputs: string[]) {
+export async function batchQuotePrices(market: ReturnType<typeof createMarketData>, inputs: string[], signal?: AbortSignal) {
   const unique = new Map<string, string>()
   for (const input of inputs) {
     const symbol = input.trim()
     if (symbol && !unique.has(symbol.toUpperCase())) unique.set(symbol.toUpperCase(), symbol)
   }
   const results = await Promise.all([...unique.values()].map(async symbol => {
-    try { return [symbol, (await market.quote(symbol)).data] as const }
+    try { return [symbol, (await market.quote(symbol, false, signal)).data] as const }
     catch { return null }
   }))
   return Object.fromEntries(results.filter(result => result !== null))
 }
 
-export async function valuePortfolio(db: Database, userId: bigint, market: ReturnType<typeof createMarketData>, now: Date) {
+export async function valuePortfolio(db: Database, userId: bigint, market: ReturnType<typeof createMarketData>, now: Date, signal?: AbortSignal) {
+  return valuePortfolioFromHoldings(await getHoldings(db, userId), market, now, signal)
+}
+
+export async function valuePortfolioFromHoldings(
+  ledgerHoldings: Awaited<ReturnType<typeof getHoldings>>,
+  market: ReturnType<typeof createMarketData>,
+  now: Date,
+  signal?: AbortSignal,
+) {
   // The public portfolio contract intentionally uses numeric display projections;
   // the authoritative ledger and transaction APIs retain exact decimal strings.
-  const holdings: PortfolioHolding[] = (await getHoldings(db, userId)).map(row => ({
+  const holdings: PortfolioHolding[] = ledgerHoldings.map(row => ({
     symbol: row.symbol, quantity: Number(row.quantity), avgCost: Number(row.avgCost), totalCost: Number(row.totalCost),
   }))
   const quoteErrors: string[] = []
@@ -30,7 +39,7 @@ export async function valuePortfolio(db: Database, userId: bigint, market: Retur
     while (index < holdings.length) {
       const holding = holdings[index++]!
       try {
-        const { data: quote } = await market.quote(holding.symbol)
+        const { data: quote } = await market.quote(holding.symbol, false, signal)
         if (quote.regularMarketPrice < 0) { quoteErrors.push(holding.symbol); continue }
         holding.price = quote.regularMarketPrice
         if (quote.change !== null) holding.dayChange = quote.change

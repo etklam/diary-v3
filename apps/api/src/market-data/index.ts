@@ -47,34 +47,40 @@ export function rangeStart(range:MarketRange,now:Date) {
   return date;
 }
 
-export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;timeoutMs?:number}) {
-  const now=options.now??(()=>new Date());const queue=createYahooQueue(options.timeoutMs);
+export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;timeoutMs?:number;attemptTimeoutMs?:number;queueWaitTimeoutMs?:number;overallTimeoutMs?:number}) {
+  const now=options.now??(()=>new Date());const queue=createYahooQueue({
+    attemptTimeoutMs:options.attemptTimeoutMs??options.timeoutMs,
+    queueWaitTimeoutMs:options.queueWaitTimeoutMs,
+    overallTimeoutMs:options.overallTimeoutMs,
+  });
   const cache=new Map<string,{data:unknown;fetchedAt:string;expiresAt:number}>();
-  async function read<T>(key:string,kind:'quote'|'historical',fetcher:(signal:AbortSignal)=>Promise<T>,bypass=false,ttlSeconds?:number):Promise<MarketRead<T>> {
+  async function read<T>(key:string,kind:'quote'|'historical',fetcher:(signal:AbortSignal)=>Promise<T>,bypass=false,ttlSeconds?:number,consumerSignal?:AbortSignal):Promise<MarketRead<T>> {
+    if(consumerSignal?.aborted)throw new MarketDataError('Market request cancelled','cancelled');
     const cached=cache.get(key);
     if(!bypass&&cached&&now().getTime()<cached.expiresAt)return {data:cached.data as T,source:'cache',fetchedAt:cached.fetchedAt};
     try {
-      const data=await queue.run(key,fetcher);const at=now();
+      const data=await queue.run(key,fetcher,consumerSignal);const at=now();
       // Keep stale entries until capacity eviction; unrelated writes must not erase fallback data.
       if(!cache.has(key)&&cache.size>=500){const oldest=cache.keys().next().value;if(oldest)cache.delete(oldest);}
       cache.set(key,{data,fetchedAt:at.toISOString(),expiresAt:at.getTime()+(ttlSeconds??getMarketDataCacheTtlSeconds(kind,at))*1000});
       return {data,source:'upstream',fetchedAt:at.toISOString()};
     } catch(error) {
+      if(error instanceof MarketDataError&&error.kind==='cancelled')throw error;
       if(cached)return {data:cached.data as T,source:'stale',fetchedAt:cached.fetchedAt};
       throw error;
     }
   }
-  function quote(input:string,bypass=false) {
+  function quote(input:string,bypass=false,signal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input);
-    return read(`quote:${symbol}`,'quote',async signal=>quoteData(await options.upstream.quote(symbol,signal),symbol),bypass);
+    return read(`quote:${symbol}`,'quote',async signal=>quoteData(await options.upstream.quote(symbol,signal),symbol),bypass,undefined,signal);
   }
-  function historical(input:string,rangeInput:MarketRange='1y',bypass=false) {
+  function historical(input:string,rangeInput:MarketRange='1y',bypass=false,signal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input);const range=marketRangeSchema.parse(rangeInput);
     return read(`historical:${symbol}:${range}`,'historical',async signal=>{
       const at=now();return historicalData(await options.upstream.chart(symbol,{period1:rangeStart(range,at),period2:at,interval:'1d',return:'array'},signal));
-    },bypass);
+    },bypass,undefined,signal);
   }
-  function intraday(input:string):Promise<MarketRead<IntradayQuote[]>> {
+  function intraday(input:string,consumerSignal?:AbortSignal):Promise<MarketRead<IntradayQuote[]>> {
     const symbol=marketSymbolSchema.parse(input);
     return read(`intraday:${symbol}:3:5m`,'historical',async signal=>{
       const at=now();
@@ -84,9 +90,9 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
         const bar=object(value);const date=instant(bar.date);const close=finite(bar.close);
         return !date||close===null?[]:[{timestamp:Math.floor(Date.parse(date)/1000),open:finite(bar.open),high:finite(bar.high),low:finite(bar.low),close,volume:finite(bar.volume)}];
       });
-    },false,300);
+    },false,300,consumerSignal);
   }
-  function dailyPrices(input:string,rangeInput:MarketRange='1y') {
+  function dailyPrices(input:string,rangeInput:MarketRange='1y',consumerSignal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input),range=marketRangeSchema.parse(rangeInput);
     return read(`daily-prices:${symbol}:${range}`,'historical',async signal=>{
       const at=now(),raw=object(await options.upstream.chart(symbol,{period1:rangeStart(range,at),period2:at,interval:'1d',return:'array'},signal));
@@ -94,9 +100,9 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
       const rows=parseDailyMarketPrices(symbol,raw.quotes);
       if(!rows.length)throw new MarketDataError('Yahoo daily prices unavailable','not-found');
       return rows;
-    },true);
+    },true,undefined,consumerSignal);
   }
-  function dailyResearch(input:string):Promise<MarketRead<import('@diary/domain/etf-risk').EtfDailyBar[]>> {
+  function dailyResearch(input:string,consumerSignal?:AbortSignal):Promise<MarketRead<import('@diary/domain/etf-risk').EtfDailyBar[]>> {
     const symbol=marketSymbolSchema.parse(input);
     return read(`research-daily:${symbol}:5y`,'historical',async signal=>{
       const at=now(),raw=object(await options.upstream.chart(symbol,{period1:rangeStart('5y',at),period2:at,interval:'1d',return:'array'},signal));
@@ -105,9 +111,9 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
         const bar=object(value),date=instant(bar.date),close=finite(bar.close),volume=finite(bar.volume);
         return !date||close===null||close<=0?[]:[{date:date.slice(0,10),close,high:finite(bar.high),low:finite(bar.low),volume:volume!==null&&volume>=0&&Number.isSafeInteger(volume)?volume:null}];
       });
-    },false,900);
+    },false,900,consumerSignal);
   }
-  function fundValuation(input:string) {
+  function fundValuation(input:string,consumerSignal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input);
     return read(`fund-valuation:${symbol}`,'quote',async signal=>{
       if(!options.upstream.summary)throw new MarketDataError('Fund summary provider unavailable','not-found');
@@ -115,9 +121,9 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
       const pick=(...values:unknown[])=>{for(const value of values){const n=finite(value);if(n!==null&&n>=0)return n;}return null;};
       const expense=pick(fees.annualReportExpenseRatio,stats.annualReportExpenseRatio),yieldRatio=pick(detail.yield,detail.dividendYield,stats.yield);
       return {aum:pick(detail.totalAssets,stats.totalAssets),expenseRatioPct:expense===null?null:expense*100,pe:pick(detail.trailingPE),pb:pick(stats.priceToBook),dividendYieldPct:yieldRatio===null?null:yieldRatio*100,currency:typeof detail.currency==='string'?detail.currency:null};
-    },false,900);
+    },false,900,consumerSignal);
   }
-  function monthly(input:string):Promise<MarketRead<MonthlyQuote[]>> {
+  function monthly(input:string,consumerSignal?:AbortSignal):Promise<MarketRead<MonthlyQuote[]>> {
     const symbol=marketSymbolSchema.parse(input);
     return read(`monthly:${symbol}:5y`,'historical',async signal=>{
       const at=now();const raw=object(await options.upstream.chart(symbol,{period1:rangeStart('5y',at),period2:at,interval:'1mo',return:'array'},signal));
@@ -136,21 +142,24 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
       const rows=[...byDate.values()].sort((a,b)=>a.timestamp-b.timestamp);
       if(!rows.length)throw new MarketDataError('Yahoo monthly data unavailable');
       return rows;
-    },true);
+    },true,undefined,consumerSignal);
   }
-  async function quotes(inputs:string[]) {
+  async function quotes(inputs:string[],consumerSignal?:AbortSignal) {
     const symbols=[...new Set(inputs.map(input=>marketSymbolSchema.parse(input)))];
     if(symbols.length>25)throw new RangeError('Quote batch supports at most 25 unique symbols');
     const result=new Map<string,MarketRead<MarketQuote>>();const errors:string[]=[];
     const remaining=[...symbols];
     await Promise.all(Array.from({length:Math.min(3,remaining.length)},async()=>{
       for(let symbol=remaining.shift();symbol;symbol=remaining.shift()){
-        try {result.set(symbol,await quote(symbol));}catch{errors.push(symbol);}
+        try {result.set(symbol,await quote(symbol,false,consumerSignal));}catch(error){
+          if(error instanceof MarketDataError&&error.kind==='cancelled')throw error;
+          errors.push(symbol);
+        }
       }
     }));
     return {quotes:result,errors};
   }
-  return {quote,historical,intraday,monthly,dailyPrices,dailyResearch,fundValuation,quotes};
+  return {quote,historical,intraday,monthly,dailyPrices,dailyResearch,fundValuation,quotes,close:()=>queue.close()};
 }
 
 export { createYahooUpstream } from './yahoo';

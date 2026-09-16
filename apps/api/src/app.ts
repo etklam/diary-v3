@@ -466,7 +466,7 @@ export function createApp({
   registerPriceAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerPerformanceRoute(app, { db, fail, validationError })
-  registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError })
+  registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
   registerPostRoutes(app, { db, now, fail, validationError, parseJson })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
@@ -906,7 +906,7 @@ export function createApp({
     const session = c.get('user')
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     c.header('Cache-Control', 'no-store')
-    return c.json(await valuePortfolio(db, BigInt(session.id), market, now()))
+    return c.json(await valuePortfolio(db, BigInt(session.id), market, now(), c.req.raw.signal))
   })
 
   app.post('/api/stocks/prices', async c => {
@@ -914,7 +914,7 @@ export function createApp({
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const input = await parseJson(c, z.object({ symbols: z.array(z.string().max(32)).min(1).max(25) }).strict())
     rateLimiter.consume(`market:ip:${clientIp(c, config.trustProxy)}`, 60, now().getTime())
-    const quotes = await batchQuotePrices(market, input.symbols)
+    const quotes = await batchQuotePrices(market, input.symbols, c.req.raw.signal)
     if (Object.keys(quotes).length === 0) fail(502, 'SYS_EXTERNAL_SERVICE_ERROR', 'Prices unavailable. Please try again later.')
     c.header('Cache-Control', 'no-store')
     return c.json(quotes)

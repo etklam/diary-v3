@@ -5,6 +5,7 @@ import { authUserResponseSchema } from '@diary/contracts'
 import { diarySummaryListResponseSchema, type DiarySummary } from '@diary/contracts/diary-summary'
 import { portfolioAttentionResponseSchema } from '@diary/contracts/portfolio-attention'
 import { portfolioValuationResponseSchema } from '@diary/contracts/portfolio'
+import { portfolioOverviewResponseSchema, type PortfolioOverviewResponse, type PortfolioOverviewSection } from '@diary/contracts/portfolio-overview'
 import { reviewGroupsResponseSchema, type ReviewGroups } from '@diary/contracts/review-queue'
 import { tradePlanListResponseSchema } from '@diary/contracts/trade-plan'
 import { stockWatchlistResponseSchema } from '@diary/contracts/watchlist'
@@ -32,16 +33,15 @@ const copy: Record<OverviewLocale, OverviewCopy> = {
   }
 }
 
-type ResourceName = 'attention' | 'reviews' | 'recent' | 'valuation' | 'plans' | 'watchlist'
+type ResourceName = 'portfolioOverview' | 'reviews' | 'recent' | 'plans' | 'watchlist'
 type ResourceResult = { response: Response; data?: unknown; error?: unknown }
 type ResourceState<T> = { data: T | null; error: Failure | null; loading: boolean }
 
 async function requestResource(name: ResourceName, signal: AbortSignal): Promise<ResourceResult> {
   switch (name) {
-    case 'attention': return api.GET('/api/portfolio/attention', { signal }) as unknown as ResourceResult
+    case 'portfolioOverview': return api.GET('/api/portfolio/overview', { signal }) as unknown as ResourceResult
     case 'reviews': return api.GET('/api/reviews', { params: { query: { page: 1, limit: 20 } }, signal }) as unknown as ResourceResult
     case 'recent': return api.GET('/api/diaries/summary', { params: { query: { page: 1, limit: 3, sortBy: 'date-desc' } }, signal }) as unknown as ResourceResult
-    case 'valuation': return api.GET('/api/stocks/portfolio', { signal }) as unknown as ResourceResult
     case 'plans': return api.GET('/api/trade-plans', { params: { query: { page: 1, limit: 5, sortBy: 'updatedAt-desc' } }, signal }) as unknown as ResourceResult
     case 'watchlist': return api.GET('/api/stocks/watchlist', { signal }) as unknown as ResourceResult
   }
@@ -106,6 +106,20 @@ function loaded<T>(state: ResourceState<T>): state is ResourceState<T> & { data:
   return !state.loading && !state.error && state.data !== null
 }
 
+function portfolioSectionState<T>(
+  parent: ResourceState<PortfolioOverviewResponse>,
+  section: PortfolioOverviewSection<T> | undefined,
+  failureCopy: string,
+): ResourceState<T> {
+  if (parent.loading) return { data: null, error: null, loading: true }
+  if (parent.error) return { data: null, error: parent.error, loading: false }
+  if (section?.status === 'ready') return { data: section.data, error: null, loading: false }
+  if (section?.status === 'failed') {
+    return { data: null, error: apiFailure({ data: { ...section.error, details: null } }, failureCopy), loading: false }
+  }
+  return { data: null, error: apiFailure(null, failureCopy), loading: false }
+}
+
 function rowLabel(row: OverviewAttentionRow, c: OverviewCopy) {
   if (row.reason === 'review') return `${row.reviewBucket === 'overdue' ? c.overdue : c.today} · ${row.targetType === 'thesis' ? c.thesis : c.diary}`
   return c[row.reason]
@@ -162,10 +176,13 @@ export default function Overview() {
   const [timezone, setTimezone] = useState<string | null>(null)
   const [timezoneError, setTimezoneError] = useState(false)
   const [timezoneAttempt, setTimezoneAttempt] = useState(0)
-  const [attention, retryAttention] = useResource('attention', portfolioAttentionResponseSchema, session.revision, tx(c, 'failed'))
+  const [portfolioOverview, retryPortfolioOverview] = useResource('portfolioOverview', portfolioOverviewResponseSchema, session.revision, tx(c, 'failed'))
+  const attention = portfolioSectionState(portfolioOverview, portfolioOverview.data?.attention, tx(c, 'failed'))
+  const valuation = portfolioSectionState(portfolioOverview, portfolioOverview.data?.valuation, tx(c, 'failed'))
+  const retryAttention = retryPortfolioOverview
+  const retryValuation = retryPortfolioOverview
   const [reviews, retryReviews] = useResource('reviews', reviewGroupsResponseSchema, session.revision, tx(c, 'failed'))
   const [recent, retryRecent] = useResource('recent', diarySummaryListResponseSchema, session.revision, tx(c, 'failed'))
-  const [valuation, retryValuation] = useResource('valuation', portfolioValuationResponseSchema, session.revision, tx(c, 'failed'))
   const [plans, retryPlans] = useResource('plans', tradePlanListResponseSchema, session.revision, tx(c, 'failed'))
   const [watchlist, retryWatchlist] = useResource('watchlist', stockWatchlistResponseSchema, session.revision, tx(c, 'failed'))
 

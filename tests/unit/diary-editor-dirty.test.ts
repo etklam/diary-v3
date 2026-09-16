@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest';
-import { canonicalState,sameEditable,type EditorSources } from '../../apps/web/app/diary-editor';
+import { canonicalState,sameEditable,sameTransactionCollection,type EditorSources } from '../../apps/web/app/diary-editor';
 import type { BuyDraft } from '../../apps/web/app/buy-transaction-fields';
 
 const draft=(overrides:Partial<BuyDraft>={}):BuyDraft=>({key:'k1',type:'BUY',symbol:'NVDA',quantity:'1.5',price:'180.25',tradeDate:'2026-01-02T10:30',instant:'',notes:'',strategy:'',emotion:'',...overrides});
@@ -7,6 +7,15 @@ const sources=(transactions:BuyDraft[]):EditorSources=>({form:{date:'2026-01-02'
 const same=(raw:Partial<BuyDraft>,saved:Partial<BuyDraft>)=>sameEditable(canonicalState(sources([draft(raw)])),canonicalState(sources([draft(saved)])));
 
 describe('diary editor transaction dirty comparison',()=>{
+ it('detects transaction collection changes against its canonical baseline',()=>{
+  const baseline=canonicalState(sources([draft({id:'42',quantity:'2',price:'180.25'})])).transactions;
+  expect(sameTransactionCollection(canonicalState(sources([draft({id:'42',quantity:'02.000',price:'180.2500'})])).transactions,baseline)).toBe(true);
+  expect(sameTransactionCollection(canonicalState(sources([draft({id:'42',quantity:'3',price:'180.25'})])).transactions,baseline)).toBe(false);
+  expect(sameTransactionCollection(canonicalState(sources([draft({id:'42',quantity:'2',price:'180.25'}),draft({key:'k2',symbol:'MSFT',id:'43'})])).transactions,baseline)).toBe(false);
+  expect(sameTransactionCollection([],baseline)).toBe(false);
+  expect(sameTransactionCollection(baseline,[])).toBe(false);
+ });
+
  it('treats equivalent decimal notations as clean',()=>{
   expect(same({quantity:'01.5000'},{quantity:'1.5'})).toBe(true);
   expect(same({quantity:'2'},{quantity:'2.0000'})).toBe(true);

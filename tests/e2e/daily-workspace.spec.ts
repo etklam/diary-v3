@@ -91,11 +91,14 @@ test('many reminders stay bounded and do not duplicate review obligations', asyn
 test('failed workspace resources remain scoped until each retry succeeds', async ({ page, context }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await registerAndSignIn(page, context, 'daily-workspace-retry')
-  await page.route('**/api/portfolio/attention', route => route.fulfill({
-    status: 500,
-    contentType: 'application/json',
-    body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'daily-attention-retry' } }),
-  }))
+  await page.route('**/api/portfolio/overview', async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    await route.fulfill({ response, body: JSON.stringify({
+      ...body,
+      attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'daily-attention-retry' } },
+    }) })
+  })
   let releasePlans!: () => void
   let markPlansSeen!: () => void
   const plansHeld = new Promise<void>(resolve => { releasePlans = resolve })
@@ -118,7 +121,7 @@ test('failed workspace resources remain scoped until each retry succeeds', async
   await expect(page.locator('#overview-attention-error')).toContainText('daily-attention-retry')
   await expect(page.locator('#overview-plans-error')).toContainText('daily-plans-retry')
 
-  await page.unroute('**/api/portfolio/attention')
+  await page.unroute('**/api/portfolio/overview')
   await page.locator('#overview-attention-error').getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(page.getByTestId('overview-no-current-actions')).toBeVisible()
   await expect(page.getByTestId('overview-first-use')).toHaveCount(0)

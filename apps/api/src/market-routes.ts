@@ -36,7 +36,7 @@ export function registerMarketRoutes(app:Hono<AppEnv>,dependencies:MarketRouteDe
     const query=parse(marketQuoteQuerySchema,context.req.query());
     limit(context);
     try {
-      const result=await market.quote(symbol,query.nocache==='1'||query.nocache==='true');
+      const result=await market.quote(symbol,query.nocache==='1'||query.nocache==='true',context.req.raw.signal);
       metadata(context,result);
       return context.json(result.data);
     } catch {
@@ -47,7 +47,7 @@ export function registerMarketRoutes(app:Hono<AppEnv>,dependencies:MarketRouteDe
     const query=parse(marketHistoricalQuerySchema,context.req.query());
     limit(context);
     try {
-      const result=await market.historical(query.symbol,query.range,query.nocache==='1'||query.nocache==='true');
+      const result=await market.historical(query.symbol,query.range,query.nocache==='1'||query.nocache==='true',context.req.raw.signal);
       metadata(context,result);
       return context.json(result.data);
     } catch {
@@ -58,7 +58,7 @@ export function registerMarketRoutes(app:Hono<AppEnv>,dependencies:MarketRouteDe
     if(!context.get('user'))return fail(401,'AUTH_UNAUTHORIZED','Authentication required');
     limit(context);
     try {
-      const [quote,intraday]=await Promise.all([market.quote('SPX'),market.intraday('SPX')]);
+      const [quote,intraday]=await Promise.all([market.quote('SPX',false,context.req.raw.signal),market.intraday('SPX',context.req.raw.signal)]);
       const summary=spxSessionSummarySchema.parse(buildSpxSessionSummary(quote.data,intraday.data));
       const source=quote.source==='stale'||intraday.source==='stale'?'stale':quote.source==='upstream'||intraday.source==='upstream'?'upstream':'cache';
       metadata(context,{data:summary,source,fetchedAt:quote.fetchedAt<intraday.fetchedAt?quote.fetchedAt:intraday.fetchedAt});

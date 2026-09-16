@@ -14,6 +14,7 @@ import { createPriceAlertRequestSchema, updatePriceAlertRequestSchema, priceAler
 import { alertCreateRequestWireOpenApiSchema, alertListResponseSchema, alertResponseSchema } from './alerts.js'
 import { performanceQuerySchema, performanceResponseSchema } from './performance.js'
 import { portfolioAttentionQuerySchema, portfolioAttentionResponseSchema } from './portfolio-attention.js'
+import { portfolioOverviewResponseSchema } from './portfolio-overview.js'
 import { portfolioExposureResponseSchema } from './portfolio-exposure.js'
 import { companyHubResponseSchema } from './company-hub.js'
 import { reviewGroupsResponseSchema, reviewQueueQuerySchema } from './review-queue.js'
@@ -484,6 +485,8 @@ registry.registerPath({ method: 'get', path: '/api/stocks/{symbol}/hub', tags: [
 registry.registerPath({ method: 'get', path: '/api/stocks/exposure', tags: ['Stocks'], operationId: 'portfolioExposureGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(portfolioExposureResponseSchema.clone(), 'Cost-basis exposure and optional rotation allocation comparison'), ...errors([401, 500]) } })
 
 for (const [path, operationId] of [['/api/portfolio/attention', 'portfolioAttentionGet'], ['/api/stocks/attention', 'stocksAttentionGet']]) registry.registerPath({ method: 'get', path: path!, tags: ['Stocks'], operationId: operationId!, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: portfolioAttentionQuerySchema.clone() }, responses: { 200: json(portfolioAttentionResponseSchema.clone(), 'Prioritized owner attention items, maximum 50'), ...errors([400, 401, 500]) } })
+
+registry.registerPath({ method: 'get', path: '/api/portfolio/overview', tags: ['Stocks'], operationId: 'portfolioOverviewGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(portfolioOverviewResponseSchema.clone(), 'Owner-scoped Overview valuation and attention sections from one ledger snapshot'), ...errors([401, 500]) } })
 
 registry.registerPath({ method: 'get', path: '/api/stats/performance', tags: ['Stocks'], operationId: 'performanceGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: performanceQuerySchema.clone() }, responses: { 200: json(performanceResponseSchema.clone(), 'Owner strategy and realized-trade performance'), ...errors([400, 401, 500]) } })
 

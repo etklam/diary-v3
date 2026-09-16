@@ -109,7 +109,13 @@ export async function listDiarySummaries(db: Database, userId: bigint, query: Di
       id: diaries.id,
       date: diaries.date,
       title: diaries.title,
-      content: diaries.content,
+      summaryExcerpt: diaries.summaryExcerpt,
+      contentForExcerpt: sql<string | null>`case
+        when ${diaries.summaryExcerpt} is null
+          or ${diaries.summaryExcerptContentHash} is null
+        then ${diaries.content}
+        else null
+      end`,
       tags: diaries.tags,
       createdVia: diaries.createdVia,
       reviewStatus: diaries.reviewStatus,
@@ -143,7 +149,9 @@ export async function listDiarySummaries(db: Database, userId: bigint, query: Di
         date: row.date,
         title: row.title,
         // Content stays in this process: only the bounded excerpt is serialized.
-        excerpt: diaryExcerpt(row.content, 240),
+        excerpt: row.contentForExcerpt === null
+          ? row.summaryExcerpt ?? ''
+          : diaryExcerpt(row.contentForExcerpt, 240),
         tags: row.tags.slice(0, 3),
         stockSymbols: (stocksByDiary.get(row.id) ?? []).slice(0, 10),
         createdVia: row.createdVia,

@@ -11,7 +11,7 @@ export function registerEtfProfileRoutes(app:Hono<AppEnv>,dependencies:{market:R
   const symbol=marketSymbolSchema.safeParse(c.req.param('symbol')),query=etfProfileQuerySchema.safeParse(c.req.query())
   if(!symbol.success)return validationError(symbol.error);if(!query.success)return validationError(query.error)
   const {benchmark,period}=query.data
-  const [quoted,daily,fund,bench]=await Promise.allSettled([market.quote(symbol.data),market.dailyResearch(symbol.data),market.fundValuation(symbol.data),market.dailyResearch(benchmark)])
+  const [quoted,daily,fund,bench]=await Promise.allSettled([market.quote(symbol.data,false,c.req.raw.signal),market.dailyResearch(symbol.data,c.req.raw.signal),market.fundValuation(symbol.data,c.req.raw.signal),market.dailyResearch(benchmark,c.req.raw.signal)])
   const get=<T>(result:PromiseSettledResult<MarketRead<T>>)=>result.status==='fulfilled'?result.value:null
   const quote=get(quoted),bars=get(daily),valuation=get(fund),benchmarkBars=get(bench)
   const today=now().toISOString().slice(0,10),targetBars=(bars?.data??[]).filter(row=>row.date<=today),comparisonBars=(benchmarkBars?.data??[]).filter(row=>row.date<=today)

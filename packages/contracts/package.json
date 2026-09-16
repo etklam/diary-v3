@@ -27,6 +27,7 @@
     "./company-hub": "./src/company-hub.ts",
     "./portfolio-exposure": "./src/portfolio-exposure.ts",
     "./portfolio-attention": "./src/portfolio-attention.ts",
+    "./portfolio-overview": "./src/portfolio-overview.ts",
     "./performance": "./src/performance.ts",
     "./alerts": "./src/alerts.ts",
     "./price-alerts": "./src/price-alerts.ts",

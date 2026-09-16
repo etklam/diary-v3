@@ -44,6 +44,16 @@ describe('shared Yahoo provider boundary',()=>{
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('honors consumer cancellation on fresh-cache and batched quote paths',async()=>{
+    const fetch=vi.fn<YahooUpstream['quote']>(async symbol=>quote(symbol));
+    const market=createMarketData({upstream:upstream({quote:fetch}),now:()=>now});
+    await market.quote('AAPL');
+    const controller=new AbortController();controller.abort();
+    await expect(market.quote('AAPL',false,controller.signal)).rejects.toMatchObject({kind:'cancelled'});
+    await expect(market.quotes(['AAPL'],controller.signal)).rejects.toMatchObject({kind:'cancelled'});
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('filters absent and nonfinite historical points while preserving timestamp seconds and valid zero',async()=>{
     const fetch=vi.fn<YahooUpstream['chart']>(async()=>({quotes:[{date:now,close:0},{date:new Date('invalid'),close:5},{date:now,close:NaN},{date:now,close:null},{date:new Date('2026-09-03T15:00:00Z'),close:12.25}]}));
     const market=createMarketData({upstream:upstream({chart:fetch}),now:()=>now});
@@ -87,6 +97,13 @@ describe('Yahoo queue limits and recovery',()=>{
     gate.resolve(1);expect(await Promise.all(pending)).toHaveLength(258);
   });
 
+  it('bounds per-key consumers as well as unique queued jobs',async()=>{
+    const queue=createYahooQueue();const gate=deferred<number>();
+    const consumers=Array.from({length:256},()=>queue.run('shared',()=>gate.promise));
+    await expect(queue.run('shared',async()=>2)).rejects.toMatchObject({kind:'overloaded'});
+    gate.resolve(1);await expect(Promise.all(consumers)).resolves.toHaveLength(256);
+  });
+
   it('retries 429 twice with the existing 500/1500ms backoff then permits a new request',async()=>{
     vi.useFakeTimers();const queue=createYahooQueue();const fetch=vi.fn().mockRejectedValue(new MarketDataError('429','rate-limited'));
     const pending=queue.run('quote:AAPL',fetch);const rejected=expect(pending).rejects.toThrow('429');
@@ -108,6 +125,117 @@ describe('Yahoo queue limits and recovery',()=>{
     await vi.advanceTimersByTimeAsync(2300);await rejected;
     expect(signals).toHaveLength(3);expect(signals.every(signal=>signal.aborted)).toBe(true);
     await expect(queue.run('healthy',async()=>1)).resolves.toBe(1);
+  });
+
+  it('expires queued work without dispatch and clears its waiter before a later slot opens',async()=>{
+    vi.useFakeTimers();
+    const queue=createYahooQueue({attemptTimeoutMs:1000,queueWaitTimeoutMs:50,overallTimeoutMs:5000});
+    const first=deferred<number>(),second=deferred<number>();
+    const firstCall=queue.run('first',()=>first.promise),secondCall=queue.run('second',()=>second.promise);
+    const abandoned=vi.fn(async()=>3);
+    const thirdCall=queue.run('third',abandoned);
+    const expired=expect(thirdCall).rejects.toMatchObject({kind:'timeout'});
+    expect(abandoned).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(50);
+    await expired;
+    first.resolve(1);second.resolve(2);
+    await expect(Promise.all([firstCall,secondCall])).resolves.toEqual([1,2]);
+    expect(abandoned).not.toHaveBeenCalled();
+    await expect(queue.run('third',async()=>4)).resolves.toBe(4);
+  });
+
+  it('dispatches a waiter before its queue deadline and clears that timer on dequeue',async()=>{
+    vi.useFakeTimers();
+    const queue=createYahooQueue({attemptTimeoutMs:1000,queueWaitTimeoutMs:50,overallTimeoutMs:5000});
+    const first=deferred<number>(),second=deferred<number>();
+    const firstCall=queue.run('first',()=>first.promise),secondCall=queue.run('second',()=>second.promise);
+    const third=vi.fn(async()=>3);
+    const thirdCall=queue.run('third',third);
+    first.resolve(1);
+    await expect(firstCall).resolves.toBe(1);
+    await expect(thirdCall).resolves.toBe(3);
+    await vi.advanceTimersByTimeAsync(51);
+    second.resolve(2);
+    await expect(secondCall).resolves.toBe(2);
+    expect(third).toHaveBeenCalledTimes(1);
+  });
+
+  it('isolates same-key consumer cancellation and removes an abandoned queued job',async()=>{
+    vi.useFakeTimers();
+    const queue=createYahooQueue({attemptTimeoutMs:1000,queueWaitTimeoutMs:500,overallTimeoutMs:5000});
+    const first=deferred<number>(),second=deferred<number>();
+    const firstCall=queue.run('active-1',()=>first.promise),secondCall=queue.run('active-2',()=>second.promise);
+    const one=new AbortController(),two=new AbortController();
+    const upstream=vi.fn(async()=>7);
+    const callerOne=queue.run('shared',upstream,one.signal),callerTwo=queue.run('shared',async()=>99,two.signal);
+    one.abort();
+    await expect(callerOne).rejects.toMatchObject({kind:'cancelled'});
+    expect(upstream).not.toHaveBeenCalled();
+
+    const abandonedController=new AbortController();
+    const abandoned=vi.fn(async()=>8);
+    const abandonedCall=queue.run('abandoned',abandoned,abandonedController.signal);
+    abandonedController.abort();
+    await expect(abandonedCall).rejects.toMatchObject({kind:'cancelled'});
+    first.resolve(1);
+    await expect(firstCall).resolves.toBe(1);
+    await expect(callerTwo).resolves.toBe(7);
+    expect(abandoned).not.toHaveBeenCalled();
+    second.resolve(2);
+    await expect(secondCall).resolves.toBe(2);
+    await expect(queue.run('abandoned',async()=>8)).resolves.toBe(8);
+  });
+
+  it('applies the overall deadline across queueing and retry backoff',async()=>{
+    vi.useFakeTimers();
+    const queue=createYahooQueue({attemptTimeoutMs:1000,queueWaitTimeoutMs:500,overallTimeoutMs:250});
+    const signals:AbortSignal[]=[];
+    const fetch=vi.fn((signal:AbortSignal)=>{signals.push(signal);return new Promise<number>((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));});
+    const pending=queue.run('overall',fetch),rejected=expect(pending).rejects.toMatchObject({kind:'timeout'});
+    await vi.advanceTimersByTimeAsync(250);
+    await rejected;
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(signals[0]?.aborted).toBe(true);
+  });
+
+  it('closes active and queued jobs, clears timers and rejects later work',async()=>{
+    vi.useFakeTimers();
+    const queue=createYahooQueue({attemptTimeoutMs:1000,queueWaitTimeoutMs:5000,overallTimeoutMs:10000});
+    const fetch=vi.fn((signal:AbortSignal)=>new Promise<number>((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true})));
+    const active=[queue.run('first',fetch),queue.run('second',fetch)];
+    const queued=vi.fn(async()=>3);
+    const waiting=queue.run('third',queued);
+    const outcomes=[...active,waiting].map(promise=>expect(promise).rejects.toMatchObject({kind:'cancelled'}));
+    await queue.close();
+    await Promise.all(outcomes);
+    expect(queued).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    await expect(queue.run('after-close',async()=>4)).rejects.toMatchObject({kind:'cancelled'});
+  });
+
+  it('keeps timeout stale fallback and rejects shutdown cancellation instead of serving stale data',async()=>{
+    vi.useFakeTimers();let clock=now;let blocked=false;let calls=0;
+    const market=createMarketData({upstream:upstream({quote:async(symbol,signal)=>{
+      calls++;
+      if(blocked)return new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));
+      return quote(symbol);
+    }}),now:()=>clock,attemptTimeoutMs:100,queueWaitTimeoutMs:50,overallTimeoutMs:500});
+    await market.quote('AAPL');
+    clock=new Date(now.getTime()+301000);blocked=true;
+    const timed=market.quote('AAPL'),timedResult=expect(timed).resolves.toMatchObject({source:'stale'});
+    await vi.advanceTimersByTimeAsync(500);
+    await timedResult;
+    expect(calls).toBe(1+1);
+
+    const shutdown=createMarketData({upstream:upstream({quote:async(symbol,signal)=>{
+      if(blocked)return new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));
+      return quote(symbol);
+    }}),now:()=>clock,attemptTimeoutMs:1000,queueWaitTimeoutMs:50,overallTimeoutMs:5000});
+    blocked=false;await shutdown.quote('MSFT');clock=new Date(clock.getTime()+301000);blocked=true;
+    const cancelled=shutdown.quote('MSFT'),cancelledResult=expect(cancelled).rejects.toMatchObject({kind:'cancelled'});
+    await shutdown.close();
+    await cancelledResult;
+    await expect(shutdown.quote('MSFT')).rejects.toMatchObject({kind:'cancelled'});
   });
 });
 

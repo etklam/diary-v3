@@ -1,7 +1,11 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { asc, inArray, isNull, or, sql } from 'drizzle-orm'
 import { Pool } from 'pg'
 import * as schema from './schema.js'
+import { diaries } from './schema.js'
+
+const DIARY_SUMMARY_BACKFILL_BATCH_SIZE = 50
 
 export { schema }
 export * from './schema.js'
@@ -15,7 +19,34 @@ export function createDatabase(url: string) {
 
 export async function migrateDatabase(
   db: Database,
-  options: { migrationsFolder?: string } = {},
+  options: { migrationsFolder?: string; diaryExcerpt: (content: string, maxLength?: number) => string },
 ) {
   await migrate(db, { migrationsFolder: options.migrationsFolder ?? 'packages/db/migrations' })
+  await backfillDiarySummaryExcerpts(db, options.diaryExcerpt)
+}
+
+async function backfillDiarySummaryExcerpts(
+  db: Database,
+  diaryExcerpt: (content: string, maxLength?: number) => string,
+) {
+  for (;;) {
+    const updated = await db.transaction(async tx => {
+      const rows = await tx.select({ id: diaries.id, content: diaries.content }).from(diaries)
+        .where(or(
+          isNull(diaries.summaryExcerpt),
+          isNull(diaries.summaryExcerptContentHash),
+          sql`${diaries.summaryExcerptContentHash} is distinct from md5(${diaries.content})`,
+        ))
+        .orderBy(asc(diaries.id)).limit(DIARY_SUMMARY_BACKFILL_BATCH_SIZE).for('update')
+      if (rows.length === 0) return 0
+
+      const excerptCases = sql.join(rows.map(row => sql`when ${row.id} then ${diaryExcerpt(row.content, 240)}`), sql` `)
+      await tx.update(diaries).set({
+        summaryExcerpt: sql`case ${diaries.id} ${excerptCases} else ${diaries.summaryExcerpt} end`,
+        summaryExcerptContentHash: sql`md5(${diaries.content})`,
+      }).where(inArray(diaries.id, rows.map(row => row.id)))
+      return rows.length
+    })
+    if (updated === 0) return
+  }
 }

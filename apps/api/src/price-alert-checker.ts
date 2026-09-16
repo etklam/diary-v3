@@ -100,6 +100,15 @@ function thresholdUnit(type: string): PriceAlertThresholdUnit {
   return type === 'CHANGE_PERCENT' ? 'percent' : type === 'MOVING_AVG' ? 'period' : 'price'
 }
 
+export function groupPriceAlertHistoryNeeds(rows: readonly { symbol: string; type: string }[]) {
+  const needsHistory = new Map<string, boolean>()
+  for (const row of rows) {
+    if (row.type === 'MOVING_AVG') needsHistory.set(row.symbol, true)
+    else if (!needsHistory.has(row.symbol)) needsHistory.set(row.symbol, false)
+  }
+  return needsHistory
+}
+
 /** Market I/O stays outside transactions; each decision uses the locked current row. */
 export function createPriceAlertChecker(dependencies: {
   db: Database
@@ -113,12 +122,11 @@ export function createPriceAlertChecker(dependencies: {
     const jobId = randomUUID()
     try {
       const pending = await dependencies.db.select({ id: priceAlerts.id, symbol: priceAlerts.symbol, type: priceAlerts.type }).from(priceAlerts).where(eq(priceAlerts.isTriggered, false)).orderBy(asc(priceAlerts.id))
+      const needsHistory = groupPriceAlertHistoryNeeds(pending)
       const market = new Map<string, PriceAlertMarketData | null>()
-      for (const { symbol } of pending) {
+      for (const [symbol, requiresHistory] of needsHistory) {
         if (stopped) return
-        if (market.has(symbol)) continue
-        const needsHistory = pending.some(row => row.symbol === symbol && row.type === 'MOVING_AVG')
-        try { market.set(symbol, normalizeMarketRead(await dependencies.quote(symbol, needsHistory))) }
+        try { market.set(symbol, normalizeMarketRead(await dependencies.quote(symbol, requiresHistory))) }
         catch (error) { market.set(symbol, null); dependencies.log({ operation: 'price_alert_quote', jobId, symbol }, error) }
       }
       for (const candidate of pending) {

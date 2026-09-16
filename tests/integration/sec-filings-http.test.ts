@@ -31,7 +31,7 @@ beforeAll(async () => {
     db: database.db,
     config: { jwtSecret: 'synthetic-sec-filings-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
     secFilings: service,
-    marketData: { quote: async () => { throw new Error('not used') }, historical: async () => { throw new Error('not used') }, intraday: async () => { throw new Error('not used') }, monthly: async () => { throw new Error('not used') }, dailyPrices: async () => { throw new Error('not used') }, dailyResearch: async () => { throw new Error('not used') }, fundValuation: async () => { throw new Error('not used') }, quotes: async () => ({ quotes: new Map(), errors: [] }) },
+    marketData: { quote: async () => { throw new Error('not used') }, historical: async () => { throw new Error('not used') }, intraday: async () => { throw new Error('not used') }, monthly: async () => { throw new Error('not used') }, dailyPrices: async () => { throw new Error('not used') }, dailyResearch: async () => { throw new Error('not used') }, fundValuation: async () => { throw new Error('not used') }, quotes: async () => ({ quotes: new Map(), errors: [] }), close: async () => {} },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
