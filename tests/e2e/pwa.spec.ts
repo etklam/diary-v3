@@ -62,7 +62,9 @@ test('mobile menu keeps every route reachable and returns focus on close @webkit
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
   const backgroundScroll = await page.evaluate(() => window.scrollY)
   const trigger = page.getByTestId('mobile-menu')
-  await trigger.click()
+  const triggerBox = await trigger.boundingBox()
+  if (!triggerBox) throw new Error('mobile menu trigger is not laid out')
+  await page.mouse.click(triggerBox.x + triggerBox.width / 2, triggerBox.y + triggerBox.height / 2)
   const dialog = page.getByTestId('mobile-menu-dialog')
   await expect(dialog).toBeVisible()
   await page.mouse.move(2, 150)
@@ -84,6 +86,20 @@ test('mobile menu keeps every route reachable and returns focus on close @webkit
   await expect(dialog.getByRole('heading', { name: '日记与复盘', exact: true })).toHaveCount(1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: 'docs/design/evidence/pwa/390.png', fullPage: true })
+})
+
+test('public mobile menu closes when the desktop breakpoint is restored @webkit-critical', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/about')
+  const menu = page.getByTestId('mobile-menu-dialog')
+  await page.getByTestId('mobile-menu').click()
+  await expect(menu).toBeVisible()
+
+  await page.setViewportSize({ width: 1024, height: 844 })
+  await expect.poll(() => page.evaluate(() => document.querySelector<HTMLDialogElement>('[data-testid="mobile-menu-dialog"]')?.open ?? null)).toBe(false)
+  await expect(menu).toBeHidden()
+  await expect(page.locator('.public-nav')).toBeVisible()
+  await expect(page.locator('.public-nav a').first()).toBeFocused()
 })
 
 test('applies a waiting worker update without losing an unsaved editor', async ({ page }) => {

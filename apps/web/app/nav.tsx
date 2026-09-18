@@ -202,6 +202,8 @@ export function PublicNavLinks({ onNavigate, disclosure = true }: { onNavigate?:
 }
 
 /** Compact public drawer: full navigation, the tool list, preferences and registration. */
+const PUBLIC_MENU_DESKTOP_MEDIA = '(min-width: 1024px)'
+
 export function PublicMenu({ preferences, authenticated, role }: { preferences: ReactNode; authenticated: boolean | null; role: Role }) {
   const { locale, t } = useUi()
   const c = publicCopy[locale]
@@ -218,6 +220,21 @@ export function PublicMenu({ preferences, authenticated, role }: { preferences: 
     setOpen(true)
     requestAnimationFrame(() => dialog.current?.showModal())
   }
+  useEffect(() => {
+    if (!open) return
+    const desktopMedia = window.matchMedia(PUBLIC_MENU_DESKTOP_MEDIA)
+    const closeOnDesktop = () => {
+      if (!desktopMedia.matches) return
+      setOpen(false)
+      if (dialog.current?.open) dialog.current.close()
+      requestAnimationFrame(() => {
+        if (desktopMedia.matches) document.querySelector<HTMLElement>('.public-nav a')?.focus()
+      })
+    }
+    if (desktopMedia.matches) closeOnDesktop()
+    desktopMedia.addEventListener('change', closeOnDesktop)
+    return () => desktopMedia.removeEventListener('change', closeOnDesktop)
+  }, [open])
   useEffect(() => {
     const current = dialog.current
     if (!current) return

@@ -247,6 +247,12 @@
   display: block;
 }
 
+@media (min-width: 1024px) {
+  .public-menu-dialog[open] {
+    display: none;
+  }
+}
+
 .public-menu-panel {
   display: grid;
   gap: var(--space-5);
