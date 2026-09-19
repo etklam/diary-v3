@@ -815,6 +815,7 @@ kbd {
   width: 100%;
   max-width: 1440px;
   min-width: 0;
+  margin-inline: auto;
   padding: var(--page-block) var(--page-gutter);
 }
 
