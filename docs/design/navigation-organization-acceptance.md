@@ -51,3 +51,13 @@ Ownership uses a specific-path-first matcher, normalizes trailing slashes, and r
 - `docs/design/evidence/navigation/mobile-drawer-390.png`
 
 Focused verification passed: navigation/capture unit tests (38), TypeScript, ESLint, and three Playwright navigation scenarios. Combined phase verification passed 72 unit files / 648 tests, the production build, contracts drift check, 20 scoped browser scenarios, and all 9 production-artifact RC1 browser scenarios. Full article and combined results are recorded in `docs/design/article-publishing-acceptance.md`.
+
+## Mobile bottom navigation — 2026-09-20
+
+The user's follow-up moves the three mobile diary shortcuts to the viewport bottom and adds Write diary. Below 768px the bar contains Library, Timeline, Calendar and Write diary; the top header contains only the brand and Menu. Write diary opens the full editor. New and quick capture routes select Write diary; reading/editing stays with Library. The mobile drawer retains Quick Diary and other workspace destinations, while the desktop capture disclosure remains unchanged.
+
+The bar, page clearance and full-page Quick Diary sticky submit share a safe-area-aware height. Native dialogs retain their own footer and focus handling. Existing semantic colors, icons and system typography are reused.
+
+Acceptance uses synthetic accounts and a disposable local PostgreSQL database. The navigation scenario verifies fixed positioning before and after scrolling, all four destinations, full/quick save clearance, reachable end-of-page content, three locales at 320px, 390px light/dark themes, drawer focus return and desktop/admin behavior. The full workspace-navigation and quick-diary suites pass seven Chromium scenarios. Typecheck, scoped ESLint, the production build, 38 existing navigation unit cases and independent code review pass. Desktop and mobile screenshots were reviewed together; only relevant mobile evidence is retained.
+
+The same mobile navigation scenario also passes WebKit with `npx playwright test tests/e2e/workspace-navigation.spec.ts --config=playwright.webkit-critical.config.ts --grep 'mobile bottom navigation' --reporter=list`. This is browser automation evidence, not a physical-device test.

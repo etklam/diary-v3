@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, selectLocale } from '../support/e2e'
+import { expect, test, selectLocale, selectTheme } from '../support/e2e'
 
 const password = 'synthetic-workspace-navigation-password'
 
@@ -108,14 +108,19 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('mobile menu exposes the same capture and workspace destinations with keyboard focus return', async ({ page }) => {
+test('mobile bottom navigation keeps diary views and writing reachable without covering content @webkit-critical', async ({ page }) => {
+  test.setTimeout(60_000)
   await page.setViewportSize({ width: 390, height: 844 })
   await signIn(page, `workspace-mobile-${randomUUID()}@example.test`)
 
   const diaryNavigation = page.getByTestId('mobile-diary-navigation')
   await expect(diaryNavigation).toBeVisible()
-  await expect(diaryNavigation.getByRole('link')).toHaveText(['Diary library', 'Timeline', 'Calendar'])
+  await expect(diaryNavigation.getByRole('link')).toHaveText(['Diary library', 'Timeline', 'Calendar', 'Write diary'])
   expect(await diaryNavigation.getByRole('link').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+
+  await expect(diaryNavigation.getByRole('link', { name: 'Write diary', exact: true })).toHaveAttribute('href', '/diaries/new')
+  expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
+  await expect(page.locator('.sidebar .mobile-diary-navigation')).toHaveCount(0)
 
   const trigger = page.getByTestId('mobile-menu')
   await trigger.focus()
@@ -124,19 +129,11 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('link', { name: 'Timeline', exact: true })).toHaveCount(0)
   await expect(dialog.getByTestId('mobile-quick-entry')).toHaveAttribute('href', '/diaries/quick')
-  await dialog.locator('.quick-capture-disclosure summary').click()
-  await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveAttribute('href', '/diaries/new')
+  await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
   await expect(dialog.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute('href', '/')
   await expect(dialog.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
   await expect(dialog.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
   expect(await dialog.locator('nav a').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
-  await dialog.getByTestId('mobile-quick-entry').focus()
-  await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
-  await dialog.locator('.quick-capture-disclosure summary').click()
-
-  await page.keyboard.press('Escape')
-  await expect(dialog.locator('.quick-capture-disclosure > summary')).toBeFocused()
-  await expect(dialog.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(trigger).toBeFocused()
@@ -149,15 +146,46 @@ test('mobile menu exposes the same capture and workspace destinations with keybo
   await expect(dialog).toBeHidden()
 
   await page.goto('/stocks')
-  for (const [name, href] of [['Diary library', /\/diaries$/], ['Timeline', /\/timeline$/], ['Calendar', /\/calendar$/]] as const) {
+  for (const [name, href] of [['Diary library', /\/diaries$/], ['Timeline', /\/timeline$/], ['Calendar', /\/calendar$/], ['Write diary', /\/diaries\/new$/]] as const) {
     await diaryNavigation.getByRole('link', { name, exact: true }).click()
     await expect(page).toHaveURL(href)
     await expect(diaryNavigation.getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page')
     await page.goto('/stocks')
   }
+  await diaryNavigation.getByRole('link', { name: 'Write diary', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible()
+  await expect(diaryNavigation.locator('[aria-current="page"]')).toHaveText('Write diary')
+  const save = page.getByRole('button', { name: 'Save diary', exact: true })
+  await save.scrollIntoViewIfNeeded()
+  expect((await save.boundingBox())!.y + (await save.boundingBox())!.height).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
+  expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
+  await page.goto('/diaries/quick')
+  await expect(diaryNavigation.locator('[aria-current="page"]')).toHaveText('Write diary')
+  const quickSave = page.getByRole('button', { name: 'Create diary', exact: true })
+  await expect(quickSave).toBeVisible()
+  await quickSave.scrollIntoViewIfNeeded()
+  expect((await quickSave.boundingBox())!.y + (await quickSave.boundingBox())!.height).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
+  await page.goto('/calendar')
+  await expect(page.locator('[data-heatdate]')).toHaveCount(371)
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
+  expect(await page.locator('.calendar-legend').evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
+  for (const [locale, labels] of [
+    ['zh-TW', ['日記庫', '時間軸', '日曆', '寫日記']],
+    ['zh-CN', ['日记库', '时间轴', '日历', '写日记']],
+    ['en', ['Diary library', 'Timeline', 'Calendar', 'Write diary']],
+  ] as const) {
+    await page.setViewportSize({ width: 320, height: 640 })
+    await selectLocale(page, locale)
+    await expect(diaryNavigation.getByRole('link')).toHaveText([...labels])
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/diaries')
-  await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-diary-shortcuts-390.png', fullPage: true })
+  await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-diary-shortcuts-390.png', fullPage: false })
+  await selectTheme(page, 'dark')
+  await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-bottom-nav-dark-390.png', fullPage: false })
+  await selectTheme(page, 'light')
 
   await page.goto('/')
   await trigger.press('Enter')

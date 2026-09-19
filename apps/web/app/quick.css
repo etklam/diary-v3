@@ -267,7 +267,7 @@
      extends below the viewport. */
   .editor .quick-composer button[type="submit"] {
     position: sticky;
-    bottom: 0;
+    bottom: var(--mobile-diary-navigation-space, 76px);
     z-index: 2;
     width: 100%;
     margin-bottom: 0;

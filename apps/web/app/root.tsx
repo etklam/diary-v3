@@ -8,6 +8,7 @@ import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
 import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks } from './nav';
+import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -108,6 +109,7 @@ function Shell() {
         <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
       </aside>
       <main id="main" className={wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
+      <DiaryNavigation />
     </div>
   </>;
 }

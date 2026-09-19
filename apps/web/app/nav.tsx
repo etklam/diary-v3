@@ -5,7 +5,6 @@ import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
-import { DiaryNavigation } from './diary-navigation'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -146,7 +145,6 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
       <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link>
       <div className="mobile-shell-actions"><button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
     </div>
-    <DiaryNavigation />
     <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
       <div className="mobile-menu-panel">
         <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
