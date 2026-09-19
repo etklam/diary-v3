@@ -4,9 +4,10 @@ import type { ErrorCode } from '@diary/contracts'
 import { stockSymbolSchema, STOCK_WATCHLIST_MAX_ITEMS, agentWatchlistResponseSchema } from '@diary/contracts/watchlist'
 import { stockNoteCreateRequestSchema, toStockNoteContractResponse } from '@diary/contracts/stock-note'
 import { agentTimelineBatchRequestSchema, agentTimelineBatchResponseSchema } from '@diary/contracts/evidence'
-import { diaries, stockTimelineRecords, stocks, stockWatchlists, stockNotes, type Database } from '@diary/db'
+import { diaries, stocks, stockWatchlists, stockNotes, type Database } from '@diary/db'
 import { and, asc, eq } from 'drizzle-orm'
 import type { AppEnv } from './app.js'
+import { insertStockTimelineRecord } from './stock-timeline-capture.js'
 import { ensureWatchingStock, watchlistLock } from './watchlist.js'
 export function registerAgentStockRoutes(app: Hono<AppEnv>, dependencies: {
  db: Database; now: () => Date; fail: (status: number, code: ErrorCode, message: string) => never
@@ -33,13 +34,25 @@ export function registerAgentStockRoutes(app: Hono<AppEnv>, dependencies: {
      const [owned] = await tx.select({ id: diaries.id }).from(diaries).where(and(eq(diaries.id, BigInt(record.sourceDiaryId)), eq(diaries.userId, userId))).for('key share')
      if (!owned) { skipped.push({ symbol: record.symbol, reason: 'SOURCE_DIARY_NOT_OWNED' }); continue }
     }
-    const [row] = await tx.insert(stockTimelineRecords).values({
-     userId, stockId, summary: record.summary, sourceType: record.sourceType, sourceTitle: record.sourceTitle ?? null, sourceUrl: record.sourceUrl ?? null,
-     sourceDiaryId: record.sourceDiaryId ? BigInt(record.sourceDiaryId) : null, sourceExternalId: record.sourceExternalId ?? null, sourceExcerpt: record.sourceExcerpt ?? null,
-     confidence: record.confidence ?? null, idempotencyKey: record.idempotencyKey, occurredAt: new Date(record.occurredAt), metadataJson: record.metadataJson ?? null,
-     createdVia: 'API_KEY', createdByLabel: key.label, createdAt: now(), updatedAt: now(),
-    }).onConflictDoNothing({ target: [stockTimelineRecords.userId, stockTimelineRecords.stockId, stockTimelineRecords.idempotencyKey] }).returning({ id: stockTimelineRecords.id })
-    if (row) created.push(String(row.id)); else skipped.push({ symbol: record.symbol, reason: 'ALREADY_EXISTS' })
+    const { record: inserted, created: wasCreated } = await insertStockTimelineRecord(tx, {
+     userId,
+     stockId,
+     summary: record.summary,
+     sourceType: record.sourceType,
+     sourceTitle: record.sourceTitle,
+     sourceUrl: record.sourceUrl,
+     sourceDiaryId: record.sourceDiaryId ? BigInt(record.sourceDiaryId) : null,
+     sourceExternalId: record.sourceExternalId,
+     sourceExcerpt: record.sourceExcerpt,
+     confidence: record.confidence,
+     idempotencyKey: record.idempotencyKey,
+     occurredAt: new Date(record.occurredAt),
+     metadataJson: record.metadataJson,
+     createdVia: 'API_KEY',
+     createdByLabel: key.label,
+     now: now(),
+    })
+    if (wasCreated) created.push(String(inserted.id)); else skipped.push({ symbol: record.symbol, reason: 'ALREADY_EXISTS' })
    }
    return { created, updated: [], skipped }
   })

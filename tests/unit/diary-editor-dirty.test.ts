@@ -1,4 +1,4 @@
-import { describe,expect,it } from 'vitest';
+import { describe,expect,it,vi } from 'vitest';
 import { canonicalState,sameEditable,sameTransactionCollection,type EditorSources } from '../../apps/web/app/diary-editor';
 import type { BuyDraft } from '../../apps/web/app/buy-transaction-fields';
 
@@ -38,6 +38,15 @@ describe('diary editor transaction dirty comparison',()=>{
   expect(sameEditable(canonicalState(sources([draft({quantity:'2'})])),saved)).toBe(false);
  expect(sameEditable(canonicalState(sources([draft({price:'180.26'})])),saved)).toBe(false);
  });
+
+ it('keeps an unchanged exact transaction instant clean',()=>{
+  vi.stubEnv('TZ','America/New_York');
+  const exact='2026-11-01T06:30:42.123Z';
+  const saved=canonicalState(sources([draft({id:'42',tradeDate:'2026-11-01T01:30',instant:exact})]));
+  const unchanged=canonicalState(sources([draft({id:'42',tradeDate:'2026-11-01T01:30',instant:exact})]));
+  expect(sameEditable(unchanged,saved)).toBe(true);
+  vi.unstubAllEnvs();
+ });
 });
 
 describe('diary editor reminder dirty comparison',()=>{
@@ -57,5 +66,23 @@ describe('diary editor reminder dirty comparison',()=>{
   const cleared=structuredClone(saved);
   cleared.reminders=[];
   expect(sameEditable(canonicalState(cleared),canonicalState(saved))).toBe(false);
+ });
+});
+
+describe('diary editor review schedule dirty comparison',()=>{
+ it('keeps exact review precision while an unrelated field changes',()=>{
+  vi.stubEnv('TZ','America/New_York');
+  const exact='2026-11-01T06:30:42.123Z';
+  const saved=sources([]);
+  saved.reviewTime='2026-11-01T01:30';
+  saved.reviewInstant=exact;
+  const changed=structuredClone(saved);
+  changed.form.title='Updated title';
+  const savedState=canonicalState(saved);
+  const changedState=canonicalState(changed);
+  expect(savedState.reviewDueAt).toBe(exact);
+  expect(changedState.reviewDueAt).toBe(exact);
+  expect(sameEditable(changedState,savedState)).toBe(false);
+  vi.unstubAllEnvs();
  });
 });

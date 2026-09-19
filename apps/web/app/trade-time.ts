@@ -4,6 +4,9 @@ export function localTradeInstants(value:string):string[]{
  return [...offsets].map(offset=>new Date(naive+offset*60000)).filter(date=>localTradeValue(date)===value).map(date=>date.toISOString()).sort();
 }
 export function localTradeValue(date:Date){const pad=(n:number)=>String(n).padStart(2,'0');return `${String(date.getFullYear()).padStart(4,'0')}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;}
+export type InstantEdit={value:string;instant:string};
+export function instantEditFromInstant(instant:string):InstantEdit{const date=new Date(instant);return {value:Number.isFinite(date.getTime())?localTradeValue(date):'',instant};}
+export function changeInstantLocalValue(current:InstantEdit,value:string):InstantEdit{return {value,instant:value===current.value?current.instant:''};}
 /** Keep an existing instant's seconds and chosen DST occurrence when its displayed local minute is unchanged. */
 export function resolveLocalTradeInstant(value:string,selected:string):string|undefined{if(selected){const date=new Date(selected);if(Number.isFinite(date.getTime())&&localTradeValue(date)===value)return date.toISOString();}const options=localTradeInstants(value);return options.length===1?options[0]:undefined;}
 export function localTradeChoices(value:string,selected:string):string[]{const choices=localTradeInstants(value);if(!selected)return choices;const date=new Date(selected);if(!Number.isFinite(date.getTime())||localTradeValue(date)!==value)return choices;const minute=Math.floor(date.getTime()/60000)*60000;return choices.map(choice=>Date.parse(choice)===minute?date.toISOString():choice);}

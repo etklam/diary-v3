@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { type ErrorCode } from '@diary/contracts'
 import { stockSymbolSchema } from '@diary/contracts/watchlist'
 import { stockTimelineQuerySchema, webEvidenceRequestSchema, stockTimelineListResponseSchema, stockSymbolTimelineResponseSchema, toStockTimelineRecordResponse } from '@diary/contracts/evidence'
@@ -7,6 +6,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app.js'
+import { insertStockTimelineRecord } from './stock-timeline-capture.js'
 import { ensureWatchingStock } from './watchlist.js'
 
 export function registerEvidenceRoutes(app: Hono<AppEnv>, dependencies: {
@@ -44,19 +44,23 @@ export function registerEvidenceRoutes(app: Hono<AppEnv>, dependencies: {
   app.post('/api/stocks/:symbol/evidence', async c => {
     const userId = owner(c), symbol = symbolParam(c), input = await parseJson(c, webEvidenceRequestSchema)
     const record = await db.transaction(async tx => {
-      const { stock } = await ensureWatchingStock(tx, userId, symbol, now())
-      const idempotencyKey = input.idempotencyKey ?? randomUUID()
-      const [created] = await tx.insert(stockTimelineRecords).values({
-        userId, stockId: stock.id, summary: input.summary, sourceType: input.sourceType,
-        sourceTitle: input.sourceTitle ?? null, sourceUrl: input.sourceUrl ?? null,
-        occurredAt: new Date(input.occurredAt), idempotencyKey, createdVia: 'WEB', metadataJson: input.metadataJson ?? null,
-        createdAt: now(), updatedAt: now(),
-      }).onConflictDoNothing({ target: [stockTimelineRecords.userId, stockTimelineRecords.stockId, stockTimelineRecords.idempotencyKey] }).returning()
-      const existing = created ?? (await tx.select().from(stockTimelineRecords).where(and(
-        eq(stockTimelineRecords.userId, userId), eq(stockTimelineRecords.stockId, stock.id), eq(stockTimelineRecords.idempotencyKey, idempotencyKey),
-      )))[0]
-      if (!existing) throw new Error('Evidence unavailable after insert')
-      return toStockTimelineRecordResponse({ ...existing, stock })
+      const timestamp = now()
+      const { stock } = await ensureWatchingStock(tx, userId, symbol, timestamp)
+      const { record } = await insertStockTimelineRecord(tx, {
+        userId,
+        stockId: stock.id,
+        summary: input.summary,
+        sourceType: input.sourceType,
+        sourceTitle: input.sourceTitle,
+        sourceUrl: input.sourceUrl,
+        idempotencyKey: input.idempotencyKey,
+        occurredAt: new Date(input.occurredAt),
+        metadataJson: input.metadataJson,
+        createdVia: 'WEB',
+        createdByLabel: null,
+        now: timestamp,
+      })
+      return toStockTimelineRecordResponse({ ...record, stock })
     })
     return c.json(record, 200)
   })

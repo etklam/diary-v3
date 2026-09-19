@@ -36,6 +36,45 @@
   gap: var(--space-5);
 }
 
+.quick-destination,
+.quick-writing {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.quick-writing .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quick-destination h2,
+.quick-writing h2,
+.quick-saved h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.quick-writing textarea {
+  min-height: clamp(220px, 32dvh, 420px);
+  line-height: 1.75;
+}
+
+.quick-writing .actions {
+  margin: 0;
+}
+
+.quick-options {
+  margin-top: 0;
+  padding-top: var(--space-5);
+}
+
 .quick-composer fieldset {
   min-width: 0;
   margin: 0;
@@ -94,6 +133,22 @@
   margin-bottom: var(--space-6);
 }
 
+.quick-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted-surface);
+}
+
+.quick-recovery p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .quick-composer .actions {
   margin-bottom: var(--space-5);
 }
@@ -146,6 +201,42 @@
   margin: var(--space-4) 0;
 }
 
+.recent-tags {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.recent-tags legend {
+  padding-right: var(--space-3);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.recent-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.recent-tag-list button[aria-pressed='true'] {
+  border-color: var(--action);
+  background: var(--selected);
+  color: var(--action);
+}
+
+.quick-saved {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 72ch;
+}
+
+.quick-saved p {
+  margin: 0;
+}
+
 @media (max-width: 767px) {
   .capture-dialog {
     width: 100%;
@@ -163,6 +254,10 @@
     gap: var(--space-3);
   }
 
+  .quick-writing textarea {
+    min-height: min(42dvh, 360px);
+  }
+
   .quick-restore {
     flex-wrap: wrap;
   }
@@ -177,7 +272,6 @@
     width: 100%;
     margin-bottom: 0;
     padding-block: 12px;
-    background: var(--surface);
     box-shadow: 0 -10px 14px var(--canvas);
   }
 

@@ -72,13 +72,14 @@ import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
 import { diaryActivity } from './diary-activity.js'
 import { diaryActivityQuerySchema } from '@diary/contracts/diary-activity'
 import { registerDiaryReviewRoutes } from './diary-review.js'
+import { readDiaryByDate, readDiaryDetail } from './diary-read.js'
 import { registerReviewQueueRoute } from './review-queue.js'
 import { registerInvestmentThesisRoutes } from './investment-thesis.js'
 import { registerStockNoteRoutes } from './stock-notes.js'
 import { registerEvidenceRoutes } from './evidence.js'
 import { registerWatchlistRoutes } from './watchlist.js'
-import { registerTradePlanRoutes } from './trade-plans.js'
-import { DiaryStockLimitError, listDiaryStocks } from './diary-stocks.js'
+import { listLinkedTradePlans, registerTradePlanRoutes } from './trade-plans.js'
+import { DiaryStockLimitError } from './diary-stocks.js'
 import { valuePortfolio, batchQuotePrices } from './portfolio.js'
 import { exportClosedTrades, tradeExportFilename } from './trade-export.js'
 import { createNagerHolidayProvider, registerHolidayRoutes, type HolidayProvider } from './holidays.js'
@@ -86,15 +87,10 @@ import { diaryListQuerySchema } from '@diary/contracts/diary-list'
 import {
   createDiary,
   deleteDiary,
-  findDiary,
-  findDiaryByDate,
-  findDiaryTransactions,
-  listDiaryAlerts,
   serializeDiary,
   updateDiary,
 } from './diary.js'
 import { getHoldings, getRecentClosedTrades, LedgerValidationError } from './ledger.js'
-import { listLinkedTradePlans } from './trade-plans.js'
 import { registerSecFilingRoutes } from './sec-filings.js'
 import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
 import { registerAdminUserRoutes } from './admin-users.js'
@@ -814,11 +810,7 @@ export function createApp({
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const query = diaryByDateQuerySchema.safeParse(c.req.query())
     if (!query.success) validationError(query.error)
-    const diary = await findDiaryByDate(db, query.data.date, BigInt(session.id))
-    if (!diary) return c.json(null, 200)
-    const transactionRows = await findDiaryTransactions(db, diary.id, BigInt(session.id))
-    const stockSymbols = (await listDiaryStocks(db, BigInt(session.id), [diary.id])).map(row => row.symbol)
-    return c.json(serializeDiary(diary, false, transactionRows, [], stockSymbols, await listDiaryAlerts(db, BigInt(session.id), [diary.id])), 200)
+    return c.json(await readDiaryByDate(db, query.data.date, BigInt(session.id)), 200)
   })
 
   // Summary discovery feed; registered before '/api/diaries/:id' so the
@@ -838,12 +830,9 @@ export function createApp({
     if (!serializedIdSchema.safeParse(id).success) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'id', message: 'Invalid id', value: id }])
     const parsedId = databaseId(id)
     if (parsedId === undefined) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    const diary = await findDiary(db, parsedId, BigInt(session.id))
+    const diary = await readDiaryDetail(db, parsedId, BigInt(session.id))
     if (!diary) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    const transactionRows = await findDiaryTransactions(db, diary.id, BigInt(session.id))
-    const planRows = await listLinkedTradePlans(db, BigInt(session.id), [diary.id])
-    const stockSymbols = (await listDiaryStocks(db, BigInt(session.id), [diary.id])).map(row => row.symbol)
-    return c.json(serializeDiary(diary, true, transactionRows, planRows, stockSymbols, await listDiaryAlerts(db, BigInt(session.id), [diary.id])), 200)
+    return c.json(diary, 200)
   })
 
   app.put('/api/diaries/:id', async (c) => {

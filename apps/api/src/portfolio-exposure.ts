@@ -3,7 +3,7 @@ import { compareExposureToTarget, computePortfolioExposure, type SuggestedAlloca
 import type { BetaAllocationResult } from '@diary/domain/beta-allocation'
 import type { Database } from '@diary/db'
 import { getHoldings } from './ledger.js'
-import { readRotationMonitor } from './rotation-monitor.js'
+import { readPortfolioMarketContext } from './market-context.js'
 
 const FALLBACK_ALLOCATION = { highBetaTargetPct: 0, coreIndexTargetPct: 50, cashTargetPct: 50 } as const
 const NO_MARKET_DATA_EXPLANATION = 'Market regime unclear. No market regime data available. Showing current exposure only.'
@@ -27,7 +27,7 @@ export async function readPortfolioExposure(db: Database, userId: bigint, asOfDa
   // Rotation data is contextual. A missing or failed reader must not remove
   // the owner ledger projection or turn unknown targets into a recommendation.
   try {
-    const context = await readRotationMonitor(db, 'sectors', asOfDate)
+    const context = await readPortfolioMarketContext(db, asOfDate)
     if (context?.betaAllocation && context.lastUpdated) {
       const decided = context.betaAllocation
       marketState = context.marketState
@@ -38,8 +38,8 @@ export async function readPortfolioExposure(db: Database, userId: bigint, asOfDa
       }
       betaAllocation = decided
       lastUpdated = context.lastUpdated.toISOString()
-      marketStateAsOfDate = context.payload.marketStateAsOfDate
-      summaryAsOfDate = context.payload.summaryAsOfDate
+      marketStateAsOfDate = context.marketStateAsOfDate
+      summaryAsOfDate = context.summaryAsOfDate
     }
   } catch {
     // Best effort by design: keep the exact holdings exposure when the

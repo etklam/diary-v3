@@ -18,13 +18,13 @@ test('diary detail review section answers due state and next action',async({page
  // Not scheduled: neutral text plus a CTA into the editor.
  await expect(page.getByRole('heading',{name:'Review diary',exact:true})).toBeVisible();
  await expect(page.getByText('No review scheduled',{exact:true})).toBeVisible();
- await page.getByRole('link',{name:'Schedule review',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/edit$`));
+ await page.getByRole('link',{name:'Schedule review',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/edit\\?returnTo=%2Fdiaries%2F${id}#review-schedule$`));await expect(page.getByLabel('Review due at',{exact:true})).toBeFocused();
  // The review page keeps exposing the unscheduled state.
  await page.goto(`/diaries/${id}/review`);await expect(page.getByTestId('review-status')).toHaveText('Not scheduled');
  await page.getByRole('link',{name:'Change review schedule',exact:true}).click();
  const due=new Date((Math.floor(Date.now()/60000)+60*24)*60000);
  await page.getByLabel('Review due at',{exact:true}).fill(localWall(due));
- await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+ await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));await page.goto(`/diaries/${id}`);
  // Scheduled ahead: medium date in the account timezone plus the review link.
  await expect(page.getByText(`Review ${new Intl.DateTimeFormat('en',{dateStyle:'medium',timeZone:'Asia/Taipei'}).format(due)}`,{exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:'Review diary',exact:true})).toBeVisible();
@@ -34,7 +34,7 @@ test('diary detail review section answers due state and next action',async({page
  await page.getByRole('link',{name:'Change review schedule',exact:true}).click();
  const overdue=new Date((Math.floor(Date.now()/60000)-60*24)*60000);
  await page.getByLabel('Review due at',{exact:true}).fill(localWall(overdue));
- await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
+ await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));await page.goto(`/diaries/${id}`);
  await expect(page.getByText('Review due',{exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Review now',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
  // Reviewed: outcome summary plus a read-only entry point.

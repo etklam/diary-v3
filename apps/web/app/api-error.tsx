@@ -17,7 +17,7 @@ export function apiFailure(error: unknown, fallback: string): Failure {
   if (failure.code==='USER_EMAIL_EXISTS') failure.fields.push('email');
   return failure;
 }
-export function FailureNotice({ failure, id = 'form-error' }: { failure: Failure | null; id?: string }) {
+export function FailureNotice({ failure, id = 'form-error', messageOverride }: { failure: Failure | null; id?: string; messageOverride?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const {locale} = useUi();
   const index=locale==='zh-TW'?0:locale==='zh-CN'?1:2;
@@ -38,7 +38,7 @@ export function FailureNotice({ failure, id = 'form-error' }: { failure: Failure
     SYS_INTERNAL_ERROR:['服務暫時無法完成操作。內容仍然保留，請重試。','服务暂时无法完成操作。内容仍然保留，请重试。','The service could not complete this action. Your entries are preserved. Try again.'],
   };
   useEffect(() => { if (failure) ref.current?.focus(); }, [failure]);
-  return failure ? <div ref={ref} id={id} className="error" role="alert" tabIndex={-1} data-testid="api-error"><p>{(failure.code&&messages[failure.code]?.[index])||failure.message}</p>{failure.code && <p><code data-testid="error-code">{failure.code}</code></p>}{failure.requestId && <p>Request ID: <code data-testid="request-id">{failure.requestId}</code></p>}</div> : null;
+  return failure ? <div ref={ref} id={id} className="error" role="alert" tabIndex={-1} data-testid="api-error"><p>{messageOverride ?? ((failure.code&&messages[failure.code]?.[index])||failure.message)}</p>{failure.code && <p><code data-testid="error-code">{failure.code}</code></p>}{failure.requestId && <p>Request ID: <code data-testid="request-id">{failure.requestId}</code></p>}</div> : null;
 }
 export function invalidField(failure: Failure | null, field: string) {
   return failure?.fields.some(name => name === field || name.endsWith(`.${field}`)) || undefined;

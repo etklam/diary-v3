@@ -1,11 +1,12 @@
 import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import { stockSymbolSchema } from '@diary/contracts/watchlist'
 import { stockNoteCreateRequestSchema, stockNoteUpdateRequestSchema, stockNoteListParamsSchema, stockNoteListResponseSchema, toStockNoteContractResponse } from '@diary/contracts/stock-note'
-import { stockNotes, stocks, partnerLinks, type Database } from '@diary/db'
-import { and, count, desc, eq, or, isNotNull } from 'drizzle-orm'
+import { stockNotes, stocks, type Database } from '@diary/db'
+import { and, eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app.js'
+import { readStockNotesForAuthor } from './stock-note-read.js'
 import { ensureWatchingStock } from './watchlist.js'
 
 export function registerStockNoteRoutes(app: Hono<AppEnv>, dependencies: {
@@ -35,23 +36,12 @@ export function registerStockNoteRoutes(app: Hono<AppEnv>, dependencies: {
     const userId = owner(c), symbol = symbolParam(c), parsed = stockNoteListParamsSchema.safeParse(c.req.query())
     if (!parsed.success) return validationError(parsed.error)
     const { page, limit, createdVia, partnerId } = parsed.data
+    const target = partnerId ? { kind: 'partner' as const, authorId: BigInt(partnerId) } : { kind: 'owner' as const }
     const result = await db.transaction(async tx => {
-      let targetUserId = userId
-      if (partnerId) {
-        targetUserId = BigInt(partnerId)
-        const [permission] = await tx.select({ id: partnerLinks.id }).from(partnerLinks).where(and(isNotNull(partnerLinks.acceptedAt), or(
-          and(eq(partnerLinks.userAId, userId), eq(partnerLinks.userBId, targetUserId), eq(partnerLinks.userBSharesStockNotes, true)),
-          and(eq(partnerLinks.userBId, userId), eq(partnerLinks.userAId, targetUserId), eq(partnerLinks.userASharesStockNotes, true)),
-        )))
-        if (!permission) return fail(403, 'PARTNER_LINK_ACCESS_DENIED', 'Partner sharing access denied')
-      }
-      const where = and(eq(stockNotes.userId, targetUserId), eq(stocks.symbol, symbol), createdVia ? eq(stockNotes.createdVia, createdVia) : undefined)
-      const [totalRow] = await tx.select({ total: count() }).from(stockNotes).innerJoin(stocks, eq(stocks.id, stockNotes.stockId)).where(where)
-      const total = totalRow!.total, totalPages = Math.ceil(total / limit)
-      const rows = page > totalPages ? [] : await tx.select({ note: stockNotes, stock: stocks }).from(stockNotes)
-        .innerJoin(stocks, eq(stocks.id, stockNotes.stockId)).where(where)
-        .orderBy(desc(stockNotes.date), desc(stockNotes.id)).limit(limit).offset((page - 1) * limit)
-      return stockNoteListResponseSchema.parse({ data: rows.map(row => ({ ...toStockNoteContractResponse({ ...row.note, stock: row.stock }), isOwnedByViewer: !partnerId })), pagination: { page, limit, total, totalPages } })
+      const read = await readStockNotesForAuthor(tx, { viewerId: userId, symbol, target, createdVia, page, limit })
+      if (!read.authorized) return fail(403, 'PARTNER_LINK_ACCESS_DENIED', 'Partner sharing access denied')
+      const totalPages = Math.ceil(read.total / limit)
+      return stockNoteListResponseSchema.parse({ data: read.rows.map(({ note }) => ({ ...toStockNoteContractResponse({ ...note, stock: read.stock! }), isOwnedByViewer: target.kind === 'owner' })), pagination: { page, limit, total: read.total, totalPages } })
     }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
     return c.json(result)
   })

@@ -177,24 +177,6 @@ export async function createDiary(
   })
 }
 
-export async function findDiary(db: Database, id: bigint, userId: bigint) {
-  const [diary] = await db.select().from(diaries).where(and(
-    eq(diaries.id, id), eq(diaries.userId, userId),
-  )).limit(1)
-  return diary
-}
-
-export async function findDiaryByDate(db: Database, date: string, userId: bigint) {
-  const [diary] = await db.select().from(diaries).where(and(
-    eq(diaries.date, date), eq(diaries.userId, userId),
-  )).limit(1)
-  return diary
-}
-
-export async function findDiaryTransactions(db: Database, diaryId: bigint, userId: bigint) {
-  return listDiaryTransactions(db, diaryId, userId)
-}
-
 export async function updateDiary(
   db: Database,
   id: bigint,

@@ -4,6 +4,38 @@
   border-top: 1px solid var(--border);
 }
 
+.evidence-section-collapsible {
+  padding-top: var(--space-5);
+}
+
+.evidence-open {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.evidence-capture {
+  min-width: 0;
+}
+
+.evidence-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.evidence-heading h2 {
+  margin-bottom: var(--space-3);
+}
+
+.evidence-close {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 5px 12px;
+  font-size: 0.875rem;
+}
+
 .evidence-section > h3 {
   margin-top: var(--space-8);
 }

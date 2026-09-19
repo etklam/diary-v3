@@ -1,0 +1,30 @@
+.diary-reading-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.diary-reading-title-row > div {
+  min-width: 0;
+}
+
+.diary-reading-title-row .button {
+  flex: 0 0 auto;
+  margin-top: var(--space-2);
+}
+
+.diary-review-summary {
+  margin-top: var(--space-8);
+}
+
+@media (max-width: 520px) {
+  .diary-reading-title-row {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .diary-reading-title-row .button {
+    margin-top: 0;
+  }
+}

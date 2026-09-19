@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { selectLocale } from '../support/e2e';
+import { openQuickOptions, selectLocale } from '../support/e2e';
 
 const password = 'synthetic-release-artifact-password';
 // Synthetic client identity for the register rate limiter; the release
@@ -113,12 +113,20 @@ test('built artifacts complete Company capture, append, server verification and 
   await page.goto('/stocks/NVDA');
   await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
+  await openQuickOptions(page);
   await page.getByLabel('Diary date', { exact: true }).fill(date);
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Release Company handoff');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(firstMarker);
   await page.getByRole('button', { name: 'Create diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const id = page.url().split('/').at(-1)!;
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible();
+  const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href');
+  expect(savedHref).toMatch(/^\/diaries\/\d+$/);
+  const id = savedHref!.split('/').at(-1)!;
+  const saved = await page.request.get(`/api${savedHref!}`);
+  expect(saved.status()).toBe(200);
+  expect(await saved.json()).toMatchObject({ id, content: firstMarker, stockSymbols: ['NVDA'] });
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   const createdResponse = await page.request.get(`/api/diaries/${id}`);
   expect(createdResponse.status()).toBe(200);
   const created = await createdResponse.json() as { id: string; content: string; stockSymbols: string[] };
@@ -128,10 +136,13 @@ test('built artifacts complete Company capture, append, server verification and 
   await expect(page).toHaveURL(/\/stocks\/NVDA$/);
   await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
+  await openQuickOptions(page);
   await page.getByLabel('Diary date', { exact: true }).fill(date);
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(appendMarker);
   await page.getByRole('button', { name: 'Append to date', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   const appendedResponse = await page.request.get(`/api/diaries/${id}`);
   expect(appendedResponse.status()).toBe(200);
@@ -318,11 +329,14 @@ test('built artifacts complete the diary mainline with server-verified reads', a
 
   // Same-day append keeps the original title and body; new content appears once.
   await page.goto('/diaries/quick');
+  await openQuickOptions(page);
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-15');
   await page.getByRole('combobox', { name: /Save mode|儲存方式|保存方式/, exact: true }).selectOption('append');
   await expect(page.getByText(/A diary exists for this date|已有日記|已有日记/)).toBeVisible();
   await page.getByRole('textbox', { name: /Content|內容|内容/, exact: true }).fill(`${marker} Appended once.`);
   await page.getByRole('button', { name: /Append to date|追加至所選日期|追加至所选日期/, exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   const appended = await (await page.context().request.get(`/api/diaries/${id}`)).json() as { title: string; content: string };
   expect(appended.title).toBe('Release mainline diary');

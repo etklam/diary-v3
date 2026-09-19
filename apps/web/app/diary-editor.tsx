@@ -2,7 +2,7 @@ import { AlertFields, reminderCopy, reminderDrafts, reminderInputs, type Reminde
 import { alertDraftSchema, type AlertResponse } from '@diary/contracts/alerts';
 import { CompanyContextInput,companyContextCopy,parseCompanyContext } from './company-context-input';
 import { ReviewScheduling,reviewScheduleCopy } from './review-scheduling';
-import { resolveLocalTradeInstant,localTradeValue } from './trade-time';
+import { instantEditFromInstant,resolveLocalTradeInstant } from './trade-time';
 import { canonicalDecimal,ledgerTransactionInputSchema,ledgerTransactionUpdateInputSchema,type LedgerTransactionResponse } from '@diary/contracts/ledger';
 import { BuyTransactionFields,type BuyDraft } from './buy-transaction-fields';
 import { ledgerCopy } from './ledger-copy';
@@ -10,20 +10,36 @@ import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
 import { Link,useBlocker,useNavigate } from 'react-router';
 import { api,useUi } from './ui';
 import { signInPath,useSessionState,wasExplicitSignOut } from './session';
+import { NO_AUTOMATIC_SESSION_RETRY_HEADER } from '@diary/api-client';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
 import { diaryCopy } from './diary-copy';
 import { Markdown } from './markdown';
 import './diary-editor.css';
-import { diaryResponseSchema, type DiaryResponse } from '@diary/contracts';
+import { diaryResponseSchema, type CreateDiaryRequest, type DiaryResponse } from '@diary/contracts';
 import { buildCapturePath, normalizeCaptureContext, type CaptureContext } from './capture-context';
 import { CaptureNotice } from './capture-notice';
+import { readDraftEnvelope, useDraftLifecycle, writeDraftEnvelope } from './draft-lifecycle';
+import { useRecentTags } from './recent-tags';
 export type DiaryFields={alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
 
 const writeRecoveryCopy = {
- 'zh-TW': { uncertain:'儲存結果未能確認。伺服器可能已有不同版本；本地內容仍保留。請先載入最新版本，再決定是否繼續編輯。', loadLatest:'載入最新版本' },
- 'zh-CN': { uncertain:'保存结果无法确认。服务器可能已有不同版本；本地内容仍保留。请先加载最新版本，再决定是否继续编辑。', loadLatest:'加载最新版本' },
- en: { uncertain:'The save result could not be confirmed. The server may have a different version; your entries remain here. Load the latest version before editing further.', loadLatest:'Load latest version' },
+ 'zh-TW': { uncertain:'儲存結果未能確認。伺服器可能已有不同版本；本地內容仍保留。請先載入最新版本，再決定是否繼續編輯。', storageUnavailable:'無法在裝置上保留這次追加的安全標記。請保持此頁開啟並稍後再試。', loadLatest:'載入最新版本' },
+ 'zh-CN': { uncertain:'保存结果无法确认。服务器可能已有不同版本；本地内容仍保留。请先加载最新版本，再决定是否继续编辑。', storageUnavailable:'无法在设备上保留这次追加的安全标记。请保持此页打开并稍后重试。', loadLatest:'加载最新版本' },
+ en: { uncertain:'The save result could not be confirmed. The server may have a different version; your entries remain here. Load the latest version before editing further.', storageUnavailable:'This append could not be protected on the device. Keep this page open and try again later.', loadLatest:'Load latest version' },
 } as const;
+
+// Only errors whose API contract rejects the write before persistence may
+// clear the durable append marker. Unknown status codes and internal failures
+// remain recoverable because the server may have committed the request.
+const appendDefiniteNoWriteCodes = [
+ 'AUTH_LOGIN_INVALID_CREDENTIALS','AUTH_NO_REFRESH_TOKEN','AUTH_TOKEN_EXPIRED','AUTH_TOKEN_INVALID',
+ 'AUTH_TOKEN_NOT_FOUND','AUTH_TOKEN_REVOKED','AUTH_UNAUTHORIZED','AUTH_FORBIDDEN',
+ 'AUTH_API_KEY_SCOPE_DENIED','AUTH_RATE_LIMITED','CSRF_FAILED','DIARY_ALREADY_EXISTS',
+ 'SYS_VALIDATION_ERROR','SYS_NOT_FOUND',
+] as const;
+function isDefiniteAppendNoWrite(failure:Failure){
+ return typeof failure.code==='string' && (appendDefiniteNoWriteCodes as readonly string[]).includes(failure.code);
+}
 
 function sameDiaryWrite(diary: DiaryResponse, body: Record<string, unknown>) {
  const scalarFields = ['content','date','thesis','risk','execution','reviewDueAt'] as const;
@@ -80,15 +96,17 @@ function canonicalLedgerDecimal(value:string){const trimmed=value.trim();return 
 const UNRESOLVED = '\0';
 
 function draftTransactionFromResponse(row:LedgerTransactionResponse):BuyDraft{
- return {key:row.id,id:row.id,type:row.type,symbol:row.symbol,quantity:row.quantity,price:row.price,tradeDate:localTradeValue(new Date(row.tradeDate)),instant:row.tradeDate,notes:row.notes??'',strategy:row.strategy??'',emotion:row.emotion??''};
+ const edit=instantEditFromInstant(row.tradeDate);
+ return {key:row.id,id:row.id,type:row.type,symbol:row.symbol,quantity:row.quantity,price:row.price,tradeDate:edit.value,instant:edit.instant,notes:row.notes??'',strategy:row.strategy??'',emotion:row.emotion??''};
 }
 function editableFromDiary(diary:DiaryFields):EditorSources{
+ const reviewEdit=diary.reviewDueAt?instantEditFromInstant(diary.reviewDueAt):{value:'',instant:''};
  return {
   form:{date:diary.date,title:diary.title,content:diary.content,tags:diary.tags.length?[...diary.tags]:[''],thesis:diary.thesis,risk:diary.risk,execution:diary.execution},
   stockSymbols:(diary.stockSymbols??[]).join(', '),
   transactions:diary.transactions?.map(draftTransactionFromResponse)??[],
-  reviewTime:diary.reviewDueAt?localTradeValue(new Date(diary.reviewDueAt)):'',
-  reviewInstant:diary.reviewDueAt??'',
+  reviewTime:reviewEdit.value,
+  reviewInstant:reviewEdit.instant,
   reminders:reminderDrafts(diary.alerts??[]),
  };
 }
@@ -135,13 +153,12 @@ export function sameEditable(a:EditableState,b:EditableState){
 
 type StoredTransaction = {key?:string;id?:string;type?:string;symbol?:string;quantity?:string;price?:string;tradeDate?:string;instant?:string;notes?:string;strategy?:string;emotion?:string};
 type StoredReminder = {key?:string;message?:string;time?:string;instant?:string;mode?:string};
-type EditorDraft = {form?:{date?:string;title?:string;content?:string;tags?:string[];thesis?:string|null;risk?:string|null;execution?:string|null};stockSymbols?:string;transactions?:StoredTransaction[];reviewTime?:string;reviewInstant?:string;reminders?:StoredReminder[];captureContext?:CaptureContext};
+type EditorDraft = {form?:{date?:string;title?:string;content?:string;tags?:string[];thesis?:string|null;risk?:string|null;execution?:string|null};stockSymbols?:string;transactions?:StoredTransaction[];reviewTime?:string;reviewInstant?:string;reminders?:StoredReminder[];captureContext?:CaptureContext;uncertainAppend?:boolean};
 
 function readEditorDraft(key:string):EditorDraft|null{
  try{
-  const saved=JSON.parse(localStorage.getItem(key)??'null');
-  if(!saved||typeof saved.at!=='number'||saved.at>Date.now()||Date.now()-saved.at>86_400_000||!saved.value||typeof saved.value!=='object')return null;
-  const value=saved.value as EditorDraft;
+  const value=readDraftEnvelope<EditorDraft>(key);
+  if(!value||typeof value!=='object')return null;
   const draft:EditorDraft={};
   if(value.form&&typeof value.form==='object'){
    const form:EditorDraft['form']={};
@@ -157,6 +174,7 @@ function readEditorDraft(key:string):EditorDraft|null{
   if(Array.isArray(value.reminders))draft.reminders=value.reminders.filter(row=>row&&typeof row==='object').slice(0,50);
   const captureContext=normalizeCaptureContext(value.captureContext);
   if(captureContext)draft.captureContext=captureContext;
+  if(value.uncertainAppend===true)draft.uncertainAppend=true;
   const hasWriting=draft.form&&(draft.form.content||draft.form.title);
   return hasWriting||draft.transactions?.length||draft.reminders?.length||draft.reviewTime?draft:null;
  }catch{return null;}
@@ -194,17 +212,26 @@ function mergeDraft(base:EditorSources,draft:EditorDraft,missingStockSymbols=bas
 // A draft identical to the confirmed baseline offers nothing to restore.
 function restorableDraft(draft:EditorDraft|null,baseline:EditableState,initial:DiaryFields,missingStockSymbols?:string):EditorDraft|null{
  if(!draft)return null;
+ // An uncertain append is a write-recovery record even when its editable
+ // fields happen to equal the confirmed baseline. Keep it visible so the user
+ // can inspect or discard the attempt instead of replaying it after reload.
+ if(draft.uncertainAppend)return draft;
  const merged=canonicalState(mergeDraft(editableFromDiary(initial),draft,missingStockSymbols));
  return sameEditable(merged,baseline)?null:draft;
 }
+function editorContinuationPath(id:string,returnTo:string|null|undefined,focusSchedule:boolean){
+ return `/diaries/${id}/edit${returnTo?`?returnTo=${encodeURIComponent(returnTo)}`:''}${focusSchedule?'#review-schedule':''}`;
+}
 
-export function DiaryEditor({initial,id,accountId,quick=false,captureContext,captureIssue}:{initial:DiaryFields;id?:string;accountId?:string;quick?:boolean;captureContext?:CaptureContext|null;captureIssue?:import('./capture-context').CaptureContextIssue|null}){
- const {t,locale}=useUi();const labels=diaryCopy[locale];const session=useSessionState();const navigate=useNavigate();
+export function DiaryEditor({initial,id,accountId,quick=false,captureContext,captureIssue,returnTo,focusSchedule=false}:{initial:DiaryFields;id?:string;accountId?:string;quick?:boolean;captureContext?:CaptureContext|null;captureIssue?:import('./capture-context').CaptureContextIssue|null;returnTo?:string|null;focusSchedule?:boolean}){
+ const {t,locale}=useUi();const labels=diaryCopy[locale];const session=useSessionState();const sessionRef=useRef(session);sessionRef.current=session;const navigate=useNavigate();
  const captureRef=useRef(normalizeCaptureContext(captureContext));
- const [reminders,setReminders]=useState(()=>editableFromDiary(initial).reminders);const remindersChanged=useRef(false);
+ const [reminders,setReminders]=useState(()=>editableFromDiary(initial).reminders);
  const [form,setForm]=useState(()=>editableFromDiary(initial).form);const [preview,setPreview]=useState(false);const [pending,setPending]=useState(false);const [error,setError]=useState<Failure|null>(null);
  const [saveState,setSaveState]=useState<'idle'|'saving'|'failed'>('idle');const savingRef=useRef(false);
- const [transactions,setTransactions]=useState(()=>editableFromDiary(initial).transactions);const [transactionError,setTransactionError]=useState('');const [stockSymbols,setStockSymbols]=useState(()=>editableFromDiary(initial).stockSymbols);const [reviewTime,setReviewTime]=useState(()=>editableFromDiary(initial).reviewTime);const [reviewInstant,setReviewInstant]=useState(()=>editableFromDiary(initial).reviewInstant);const [recoveryState,setRecoveryState]=useState<'conflict'|'unavailable'|null>(null);const [recoveryDiary,setRecoveryDiary]=useState<DiaryResponse|null>(null);
+ const [transactions,setTransactions]=useState(()=>editableFromDiary(initial).transactions);const [transactionError,setTransactionError]=useState('');const [stockSymbols,setStockSymbols]=useState(()=>editableFromDiary(initial).stockSymbols);const [reviewTime,setReviewTime]=useState(()=>editableFromDiary(initial).reviewTime);const [reviewInstant,setReviewInstant]=useState(()=>editableFromDiary(initial).reviewInstant);const [recoveryState,setRecoveryState]=useState<'conflict'|'unavailable'|null>(null);const [recoveryDiary,setRecoveryDiary]=useState<DiaryResponse|null>(null);const [dateConflict,setDateConflict]=useState<DiaryResponse|null>(null);
+ const active=useRef(true);
+ useEffect(()=>{active.current=true;return()=>{active.current=false;}},[]);
  const draftKey=accountId&&!quick?`diary-editor-draft:${accountId}:${id??'new'}`:null;
  const baselineReference=useMemo(()=>canonicalState(editableFromDiary(initial)),[initial]);
  const [baseline,setBaseline]=useState<EditableState>(baselineReference);
@@ -215,33 +242,26 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  const alertsDirty=useMemo(()=>!sameAlerts(canonicalState(sources).alerts,baseline.alerts),[sources,baseline]);
  const dirtyRef=useRef(dirty);dirtyRef.current=dirty;
  const [restorable,setRestorable]=useState<EditorDraft|null>(()=>restorableDraft(readEditorDraft(draftKey??''),baselineReference,initial,id?undefined:''));
- const restorableRef=useRef(restorable);restorableRef.current=restorable;
+ const [appendUncertain,setAppendUncertain]=useState(false);
  const contentRef=useRef<HTMLTextAreaElement>(null);const caretState=useRef<{start:number;end:number;top:number}|null>(null);const previewSectionRef=useRef<HTMLElement|null>(null);const previewVisited=useRef(false);const incomingKey=useRef(buildCapturePath('new',captureContext,initial.date));
+ const [recentTags,rememberTags]=useRecentTags(accountId??'');
+ const draftValue={...sources,...(captureRef.current?{captureContext:captureRef.current}:{}),...(appendUncertain?{uncertainAppend:true}: {})};
+ const {flushDraft,suppressDraft}=useDraftLifecycle({key:draftKey,value:draftValue,dirty,paused:Boolean(restorable)});
+ const appendLocked=appendUncertain||Boolean(restorable?.uncertainAppend);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
  useEffect(()=>{if(blocker.state==='blocked'){if(pending){blocker.reset();return;}if(window.confirm(labels.discard)){dirtyRef.current=false;blocker.proceed();}else blocker.reset();}},[blocker,labels.discard,pending]);
  useEffect(()=>{const nextKey=buildCapturePath('new',captureContext,initial.date);if(nextKey===incomingKey.current)return;if(dirtyRef.current)return;incomingKey.current=nextKey;const nextContext=normalizeCaptureContext(captureContext);captureRef.current=nextContext;if(restorable)return;const next=editableFromDiary(initial);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;setBaseline(confirmed);setSaveState('idle');setError(null);},[captureContext,initial.date,restorable]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
- // Debounced device-local backup; paused while a restore decision is pending.
- // Discarding a recovery only drops that old snapshot: after the discard the
- // form still matches the confirmed baseline, so this effect stays idle until a
- // genuinely new edit makes it dirty again — then backups resume with the new
- // content and never rewrite the discarded one.
- useEffect(()=>{
-  if(!draftKey||restorable||!dirty)return;
-  const timer=setTimeout(()=>{try{localStorage.setItem(draftKey,JSON.stringify({at:Date.now(),value:{...sourcesRef.current,...(captureRef.current?{captureContext:captureRef.current}:{})}}));}catch{/* Recovery is best effort; storage may be unavailable. */}},600);
-  return()=>clearTimeout(timer);
- },[draftKey,restorable,dirty,sources]);
- // The debounced write may not have fired yet when the editor unmounts dirty
- // (accepted navigation, session-expiry redirect); flush the snapshot so an
- // in-flight save failure or leave still leaves recoverable content. An
- // explicit sign-out suppresses the flush — the user asked for a clean device.
- useEffect(()=>()=>{if(!draftKey||restorableRef.current||!dirtyRef.current||wasExplicitSignOut())return;try{localStorage.setItem(draftKey,JSON.stringify({at:Date.now(),value:{...sourcesRef.current,...(captureRef.current?{captureContext:captureRef.current}:{})}}));}catch{/* Recovery is best effort; storage may be unavailable. */}},[draftKey]);
+ // Draft persistence is shared with Review for TTL, debounce, pause, flush,
+ // and explicit-sign-out ordering. Payload and merge rules remain local here.
  // Returning from preview restores the exact caret, scroll offset and focus.
  useEffect(()=>{if(preview){previewSectionRef.current?.focus();return;}if(!previewVisited.current)return;const element=contentRef.current;if(!element)return;const caret=caretState.current;const target=caret??{start:element.value.length,end:element.value.length,top:element.scrollTop};element.focus();element.setSelectionRange(target.start,target.end);element.scrollTop=target.top;},[preview]);
- function clearDraft(){if(draftKey){try{localStorage.removeItem(draftKey);}catch{/* Ignore. */}}}
- function change(field:Exclude<keyof FormState,'tags'>,value:string){setForm(current=>({...current,[field]:value}));}
- function restoreDraft(){const draft=restorable!;const merged=mergeDraft(sourcesRef.current,draft,id?sourcesRef.current.stockSymbols:'');captureRef.current=normalizeCaptureContext(draft.captureContext);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setRestorable(null);}
- function discardDraft(){const next=editableFromDiary(initial);captureRef.current=normalizeCaptureContext(captureContext);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);setRecoveryState(null);setRecoveryDiary(null);setRestorable(null);clearDraft();}
+ useEffect(()=>{if(!focusSchedule||restorable)return;const frame=window.requestAnimationFrame(()=>{const input=document.getElementById('review-schedule-input');if(input instanceof HTMLElement){input.scrollIntoView({block:'center'});input.focus();}});return()=>window.cancelAnimationFrame(frame);},[focusSchedule,restorable]);
+ useEffect(()=>{if(!appendLocked||dateConflict||!form.date)return;let active=true;void api.GET('/api/diaries/by-date',{params:{query:{date:form.date}}}).then(result=>{if(!active||!result.response.ok)return;const parsed=diaryResponseSchema.safeParse(result.data);if(parsed.success&&parsed.data)setDateConflict(parsed.data);}).catch(()=>{});return()=>{active=false;};},[appendLocked,dateConflict,form.date]);
+ function clearDraft(){if(draftKey)suppressDraft();}
+ function change(field:Exclude<keyof FormState,'tags'>,value:string){if(field==='date')setDateConflict(null);setForm(current=>({...current,[field]:value}));}
+ function restoreDraft(){const draft=restorable!;const merged=mergeDraft(sourcesRef.current,draft,id?sourcesRef.current.stockSymbols:'');const uncertain=Boolean(draft.uncertainAppend);captureRef.current=normalizeCaptureContext(draft.captureContext);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setAppendUncertain(uncertain);setRecoveryState(uncertain?'unavailable':null);setRecoveryDiary(null);setError(uncertain?{message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]}:null);setRestorable(null);}
+ function discardDraft(){const next=editableFromDiary(initial);captureRef.current=normalizeCaptureContext(captureContext);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);setRecoveryState(null);setRecoveryDiary(null);setDateConflict(null);setAppendUncertain(false);setRestorable(null);clearDraft();}
  function togglePreview(){
   if(!preview){const element=contentRef.current;if(element)caretState.current={start:element.selectionStart,end:element.selectionEnd,top:element.scrollTop};previewVisited.current=true;setPreview(true);}
   else setPreview(false);
@@ -254,15 +274,51 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
    return parsed.success?parsed.data:null;
   } catch { return null; }
  }
+ async function readByDate(date:string):Promise<DiaryResponse|null>{
+  try{const result=await api.GET('/api/diaries/by-date',{params:{query:{date}}});if(!result.response.ok)return null;const parsed=diaryResponseSchema.safeParse(result.data);return parsed.success?parsed.data:null;}catch{return null;}
+ }
+ function conflictChanges(){
+  const tags=form.tags.map(tag=>tag.trim()).filter(Boolean);
+  const parsedCompanies=parseCompanyContext(stockSymbols);
+  const alerts=reminderInputs(reminders);
+  const original=[form.thesis,form.risk,form.execution].filter(value=>Boolean(value?.trim())).length;
+  return {tags,companies:parsedCompanies.success?parsedCompanies.data??[]:[],alerts,original,hasSchedule:Boolean(reviewTime),hasTransactions:transactions.length};
+ }
+ function appendCopy(existing:DiaryResponse,parsedTransactions:NonNullable<CreateDiaryRequest['transactions']>,alerts:NonNullable<CreateDiaryRequest['alerts']>,companies:string[],tags:string[],reviewDueAt:string|null):CreateDiaryRequest{
+  return {title:existing.title,content:form.content.trim(),date:existing.date,appendToToday:true,
+   ...(tags.length?{tags}:{}),...(companies.length?{stockSymbols:companies}:{}),
+   ...(form.thesis?.trim()?{thesis:form.thesis.trim()}:{}),...(form.risk?.trim()?{risk:form.risk.trim()}:{}),...(form.execution?.trim()?{execution:form.execution.trim()}:{}),
+   ...(reviewDueAt?{reviewDueAt}:{}),...(parsedTransactions.length?{transactions:parsedTransactions}:{}),...(alerts.length?{alerts}: {})};
+ }
+ function writeAppendMarker(uncertain:boolean){
+  if(!draftKey||wasExplicitSignOut())return false;
+  const value={...sourcesRef.current,...(captureRef.current?{captureContext:captureRef.current}:{}),...(uncertain?{uncertainAppend:true}:{})};
+  return writeDraftEnvelope(draftKey,value);
+ }
+ function liveWrite(revision:number){return active.current&&sessionRef.current.revision===revision&&sessionRef.current.authenticated!==false&&!wasExplicitSignOut();}
+ function markAppendUncertain(latest:DiaryResponse|null){setAppendUncertain(true);setSaveState('failed');setRecoveryDiary(latest);setRecoveryState(latest?'conflict':'unavailable');setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}
+ async function inspectAppendUncertainty(date:string,revision:number){const latest=await readByDate(date);if(!liveWrite(revision))return;if(latest){setRecoveryDiary(latest);setRecoveryState('conflict');}}
+ async function appendConflict(){
+  const existing=dateConflict;if(!existing||savingRef.current||appendLocked||recoveryState)return;
+  setTransactionError('');const companies=parseCompanyContext(stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}
+  const alerts=reminderInputs(reminders);if(!alerts.every(row=>alertDraftSchema.safeParse(row).success)||alerts.length>50){setTransactionError(reminderCopy[locale].invalid);return;}
+  const reviewDueAt=reviewTime?resolveLocalTradeInstant(reviewTime,reviewInstant)??null:null;if(reviewTime&&!reviewDueAt){setTransactionError(reviewScheduleCopy[locale].invalid);return;}
+  const parsedTransactions:NonNullable<CreateDiaryRequest['transactions']>=[];for(const row of transactions){const instant=resolveLocalTradeInstant(row.tradeDate,row.instant);if(!instant){setTransactionError(ledgerCopy[locale].dateInvalid);return;}const parsed=ledgerTransactionInputSchema.safeParse({symbol:row.symbol,type:row.type,quantity:row.quantity,price:row.price,tradeDate:instant,notes:row.notes||null,strategy:row.strategy||null,emotion:row.emotion||null});if(!parsed.success){setTransactionError(ledgerCopy[locale].invalid);return;}parsedTransactions.push(parsed.data);}
+  const tags=form.tags.map(tag=>tag.trim()).filter(Boolean),body=appendCopy(existing,parsedTransactions,alerts,companies.data??[],tags,reviewDueAt),writeRevision=sessionRef.current.revision;
+  if(!liveWrite(writeRevision)){setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}
+  if(!writeAppendMarker(true)){setSaveState('failed');setError({message:writeRecoveryCopy[locale].storageUnavailable,code:'SYS_INTERNAL_ERROR',fields:[]});return;}
+  setAppendUncertain(true);setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);
+  try{const result=await api.POST('/api/diaries',{headers:{[NO_AUTOMATIC_SESSION_RETRY_HEADER]:'1'},body});if(!liveWrite(writeRevision))return;if(result.response.ok&&result.data&&typeof result.data.id==='string'){if(liveWrite(writeRevision))rememberTags(tags);const confirmed=canonicalState(sourcesRef.current);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setAppendUncertain(false);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${result.data.id}`,{state:{saved:true,captureContext:captureRef.current}});return;}const failure=apiFailure(result.error,t('failed'));if(result.response.ok||result.response.status>=500||!isDefiniteAppendNoWrite(failure)){markAppendUncertain(null);void inspectAppendUncertainty(existing.date,writeRevision);return;}if(!writeAppendMarker(false)){markAppendUncertain(null);return;}setAppendUncertain(false);setSaveState('failed');setError(failure);}catch{if(liveWrite(writeRevision)){markAppendUncertain(null);void inspectAppendUncertainty(existing.date,writeRevision);}}finally{if(active.current){setPending(false);savingRef.current=false;}}
+ }
  function applyLatest(latest:DiaryResponse){
   const next=editableFromResponse(latest);
   setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);
-  const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);clearDraft();
+  const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);setAppendUncertain(false);clearDraft();
  }
  async function loadLatest(){
   setPending(true); const latest=recoveryDiary??await readLatest();
   if(!latest){setPending(false);setRecoveryState('unavailable');return;}
-  if(!id){clearDraft();dirtyRef.current=false;setPending(false);setError(null);navigate(`/diaries/${latest.id}/edit`);return;}
+  if(!id){if(!flushDraft()){setPending(false);setError({message:writeRecoveryCopy[locale].uncertain,code:'SYS_INTERNAL_ERROR',fields:[]});return;}dirtyRef.current=false;setPending(false);setError(null);navigate(`/diaries/${latest.id}/edit`);return;}
   applyLatest(latest); setRecoveryDiary(null); setRecoveryState(null); setPending(false);
  }
  async function save(event:FormEvent<HTMLFormElement>){
@@ -277,12 +333,68 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   controls.forEach(control=>{control.disabled=true;});
   const transactionState=canonicalState(sources).transactions;
   const writeTransactions=!id||!sameTransactionCollection(transactionState,baselineRef.current.transactions);
-  setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);const body={...form,...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,...(writeTransactions?{transactions:parsedTransactions}:{})};try{const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body}):await api.POST('/api/diaries',{body});if(result.response.ok&&result.data){const confirmed=canonicalState(editableFromResponse(result.data));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${result.data.id}`,{state:{saved:true,captureContext:captureRef.current}});}else{setSaveState('failed');setError(apiFailure(result.error,t('failed')));}}catch{const latest=await readLatest();if(latest&&sameDiaryWrite(latest,body)){const confirmed=canonicalState(editableFromResponse(latest));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(`/diaries/${latest.id}`,{state:{saved:true,captureContext:captureRef.current}});}else{setSaveState('failed');setRecoveryDiary(latest);setRecoveryState(latest?'conflict':id?'unavailable':null);setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}}finally{controls.forEach(control=>{control.disabled=false;});setPending(false);savingRef.current=false;}
+  setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);setDateConflict(null);
+  const body={...form,...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,...(writeTransactions?{transactions:parsedTransactions}:{})};
+  const writeRevision=sessionRef.current.revision;
+  const finishConfirmed=(diary:DiaryResponse)=>{if(!liveWrite(writeRevision))return;const confirmed=canonicalState(editableFromResponse(diary));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);if(liveWrite(writeRevision))rememberTags(body.tags??[]);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(returnTo??`/diaries/${diary.id}`,{state:{saved:true,captureContext:captureRef.current}});};
+  try{
+   const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body}):await api.POST('/api/diaries',{body});
+   if(!liveWrite(writeRevision))return;
+   if(result.response.ok&&result.data){finishConfirmed(result.data);return;}
+   const failure=apiFailure(result.error,t('failed'));setSaveState('failed');setError(failure);
+   if(failure.code==='DIARY_ALREADY_EXISTS'){
+    const conflictDate=form.date;
+    const conflict=await readByDate(conflictDate);
+    if(liveWrite(writeRevision)&&sourcesRef.current.form.date===conflictDate&&conflict)setDateConflict(conflict);
+   }
+  }catch{
+   const latest=await readLatest();
+   if(!liveWrite(writeRevision))return;
+   if(latest&&sameDiaryWrite(latest,body)){finishConfirmed(latest);}
+   else{setSaveState('failed');setRecoveryDiary(latest);setRecoveryState(latest?'conflict':id?'unavailable':null);setError({message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}
+  }finally{controls.forEach(control=>{control.disabled=false;});setPending(false);savingRef.current=false;}
  }
  function field(name:'title'|'date'|'thesis'|'risk'|'execution',label:string,className?:string){
   const multiline=name==='thesis'||name==='risk'||name==='execution';
   const shared={name,className,value:form[name]??'',onChange:(event:React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>)=>change(name,event.target.value),'aria-invalid':invalidField(error,name),'aria-describedby':error?'form-error':undefined};
   return <label>{label}{multiline?<textarea {...shared} rows={3} maxLength={10000}/>:<input {...shared} type={name==='date'?'date':'text'} required={name==='title'||name==='date'} maxLength={name==='title'?500:undefined}/>}</label>;
  }
- return <form onSubmit={save} aria-busy={pending}><CaptureNotice context={captureContext} issue={captureIssue}/>{restorable&&<div className="editor-restore" role="status"><button type="button" onClick={restoreDraft}>{labels.restoreDraft}</button><button type="button" className="secondary" onClick={discardDraft}>{labels.discardDraft}</button></div>}<div className="editor-meta">{field('date',t('date'))}</div>{field('title',t('diaryTitle'),'title-input')}<CompanyContextInput value={stockSymbols} onChange={setStockSymbols} invalid={invalidField(error,'stockSymbols')}/><div className="editor-mode"><button type="button" className="secondary" aria-pressed={preview} onClick={togglePreview}>{preview?labels.writing:labels.preview}</button></div>{preview?<section ref={previewSectionRef} tabIndex={-1} aria-label={labels.preview}><Markdown>{form.content}</Markdown></section>:<label>{t('content')}<textarea ref={contentRef} name="content" className="editor-content" rows={quick?6:13} required value={form.content} onChange={event=>change('content',event.target.value)} aria-invalid={invalidField(error,'content')} aria-describedby={error?'content-hint form-error':'content-hint'}/></label>}<p id="content-hint" className="muted">{t('contentHint')}</p>{!quick&&<><fieldset className="original-fields"><legend>{labels.tags}</legend>{form.tags.map((tag,index)=><div className="tag-input" key={index}><label>{labels.tag} {index+1}<textarea rows={1} value={tag} maxLength={100} onChange={event=>{setForm(current=>({...current,tags:current.tags.map((value,i)=>i===index?event.target.value:value)}));}} aria-invalid={invalidField(error,'tags')} aria-describedby={error?'form-error':undefined}/></label><button type="button" className="secondary" aria-label={`${labels.removeTag} ${index+1}`} onClick={()=>{setForm(current=>({...current,tags:current.tags.filter((_,i)=>i!==index)}));}}>{labels.removeTag}</button></div>)}<button type="button" className="secondary" disabled={form.tags.length>=50} onClick={()=>{setForm(current=>({...current,tags:[...current.tags,'']}));}}>{labels.addTag}</button></fieldset><fieldset className="original-fields"><legend>{labels.original}</legend>{field('thesis',labels.thesis)}{field('risk',labels.risk)}{field('execution',labels.execution)}</fieldset></>}{!quick&&<BuyTransactionFields value={transactions} pending={pending} onChange={setTransactions}/>}{!quick&&<ReviewScheduling value={reviewTime} instant={reviewInstant} onChange={(value,instant)=>{setReviewTime(value);setReviewInstant(instant);}}/>}{!quick&&<AlertFields value={reminders} pending={pending} editing={Boolean(id)} onChange={rows=>{remindersChanged.current=true;setReminders(rows);}}/>}{transactionError&&<p className="error" role="alert">{transactionError}</p>}{invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}<FailureNotice failure={error}/>{(error?.code==='AUTH_TOKEN_INVALID'||error?.code==='AUTH_UNAUTHORIZED')&&<p className="editor-signin"><Link className="button secondary" to={signInPath(id?`/diaries/${id}/edit`:buildCapturePath('new',captureRef.current,form.date))}>{t('login')}</Link></p>}{recoveryState&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadLatest}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadLatest}</button></div>}<div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div></form>;
+ const changes=conflictChanges();
+ function toggleRecentTag(tag:string){setForm(current=>{const currentTags=current.tags.map(value=>value.trim()).filter(Boolean);const next=currentTags.includes(tag)?currentTags.filter(value=>value!==tag):[...currentTags,tag];return {...current,tags:next.length?next:['']};});}
+ return <form onSubmit={save} aria-busy={pending}>
+  <CaptureNotice context={captureContext} issue={captureIssue}/>
+  {restorable&&<div className="editor-restore" role="status"><button type="button" onClick={restoreDraft}>{labels.restoreDraft}</button><button type="button" className="secondary" onClick={discardDraft}>{labels.discardDraft}</button></div>}
+  <fieldset className="editor-controls" disabled={pending||appendLocked}>
+  <div className="editor-meta">{field('date',t('date'))}</div>
+  {field('title',t('diaryTitle'),'title-input')}
+  <CompanyContextInput value={stockSymbols} onChange={setStockSymbols} invalid={invalidField(error,'stockSymbols')}/>
+  <div className="editor-mode"><button type="button" className="secondary" aria-pressed={preview} onClick={togglePreview}>{preview?labels.writing:labels.preview}</button></div>
+  {preview?<section ref={previewSectionRef} tabIndex={-1} aria-label={labels.preview}><Markdown>{form.content}</Markdown></section>:<label>{t('content')}<textarea ref={contentRef} name="content" className="editor-content" rows={quick?6:13} required value={form.content} onChange={event=>change('content',event.target.value)} aria-invalid={invalidField(error,'content')} aria-describedby={error?'content-hint form-error':'content-hint'}/></label>}
+  <p id="content-hint" className="muted">{t('contentHint')}</p>
+  {!quick&&<>
+   <fieldset className="original-fields"><legend>{labels.tags}</legend>
+    {form.tags.map((tag,index)=><div className="tag-input" key={index}><label>{labels.tag} {index+1}<textarea rows={1} value={tag} maxLength={100} onChange={event=>{setForm(current=>({...current,tags:current.tags.map((value,i)=>i===index?event.target.value:value)}));}} aria-invalid={invalidField(error,'tags')} aria-describedby={error?'form-error':undefined}/></label><button type="button" className="secondary" aria-label={`${labels.removeTag} ${index+1}`} onClick={()=>{setForm(current=>({...current,tags:current.tags.filter((_,i)=>i!==index)}));}}>{labels.removeTag}</button></div>)}
+    <button type="button" className="secondary" disabled={form.tags.length>=50} onClick={()=>{setForm(current=>({...current,tags:[...current.tags,'']}));}}>{labels.addTag}</button>
+   </fieldset>
+   {recentTags.length>0&&<fieldset className="recent-tags"><legend>{labels.recentTags}</legend><div className="recent-tag-list">{recentTags.map(tag=><button type="button" className="secondary" key={tag} aria-pressed={form.tags.some(value=>value.trim()===tag)} onClick={()=>toggleRecentTag(tag)}>{tag}</button>)}</div></fieldset>}
+   <fieldset className="original-fields"><legend>{labels.original}</legend>{field('thesis',labels.thesis)}{field('risk',labels.risk)}{field('execution',labels.execution)}</fieldset>
+  </>}
+  {!quick&&<BuyTransactionFields value={transactions} pending={pending} onChange={setTransactions}/>}
+  {!quick&&<ReviewScheduling value={reviewTime} instant={reviewInstant} autoFocus={focusSchedule&&!restorable} onChange={(value,instant)=>{setReviewTime(value);setReviewInstant(instant);}}/>}
+  {!quick&&<AlertFields value={reminders} pending={pending} editing={Boolean(id)} onChange={setReminders}/>}
+  {transactionError&&<p className="error" role="alert">{transactionError}</p>}
+  {invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}
+  <FailureNotice failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:undefined}/>
+  </fieldset>
+  {dateConflict&&<section className="editor-conflict" role="region" aria-labelledby="diary-conflict-title">
+   <h2 id="diary-conflict-title">{labels.conflictTitle}</h2>
+   <p>{labels.conflictExisting}: <strong>{dateConflict.title}</strong> · <time dateTime={dateConflict.date}>{dateConflict.date}</time></p>
+   <p>{labels.conflictDraft}</p>
+   <ul><li>{labels.conflictKeep}</li><li>{labels.conflictContent}</li>{changes.tags.length>0&&<li>{labels.conflictTags}</li>}{changes.companies.length>0&&<li>{labels.conflictCompanies}</li>}{changes.original>0&&<li>{labels.conflictOriginal}</li>}{changes.hasSchedule&&<li>{labels.conflictSchedule}</li>}{changes.hasTransactions>0&&<li>{labels.conflictTransactions}</li>}{changes.alerts.length>0&&<li>{labels.conflictAlerts}</li>}</ul>
+   <div className="actions" role="group" aria-label={labels.conflictTitle}><button type="button" onClick={()=>void appendConflict()} disabled={pending||appendLocked||Boolean(recoveryState)}>{labels.conflictAppend}</button><Link className="inline-link" to={`/diaries/${dateConflict.id}/edit`} onClick={event=>{if(pending){event.preventDefault();return;}if(!flushDraft()){event.preventDefault();setError({message:writeRecoveryCopy[locale].uncertain,code:'SYS_INTERNAL_ERROR',fields:[]});}else dirtyRef.current=false;}}>{labels.conflictEdit}</Link><button type="button" className="secondary" onClick={()=>{setDateConflict(null);if(!appendLocked)setError(null);}}>{labels.conflictCancel}</button></div>
+  </section>}
+  {(error?.code==='AUTH_TOKEN_INVALID'||error?.code==='AUTH_UNAUTHORIZED')&&<p className="editor-signin"><Link className="button secondary" to={signInPath(id?editorContinuationPath(id,returnTo,focusSchedule):buildCapturePath('new',captureRef.current,form.date))}>{t('login')}</Link></p>}
+  {recoveryState&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadLatest}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadLatest}</button><button type="button" className="secondary" onClick={discardDraft} disabled={pending}>{labels.discardDraft}</button></div>}
+  <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div>
+ </form>;
 }

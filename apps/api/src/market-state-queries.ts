@@ -4,6 +4,8 @@ import { toMarketState, type MarketState } from '@diary/domain/market-rotation/s
 
 export const DEFAULT_MARKET_UNIVERSE_KEY = 'SP500_NDX'
 
+type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
+
 type DecimalLike = number | string | { toNumber?: () => number; valueOf?: () => unknown } | null | undefined
 
 export interface MarketBreadthSnapshot {
@@ -96,7 +98,7 @@ function toHistoryResult(row: typeof marketBreadthDaily.$inferSelect): MarketBre
 }
 
 export async function getLatestBreadthSnapshot(
-  db: Database,
+  db: Database | DbTransaction,
   universeKey = DEFAULT_MARKET_UNIVERSE_KEY,
   asOfDate?: string,
 ): Promise<MarketBreadthSnapshot | null> {

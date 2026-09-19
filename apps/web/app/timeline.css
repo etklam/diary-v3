@@ -37,19 +37,82 @@
   margin-top: 0;
 }
 
+.timeline-filter-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+  padding: var(--space-2) 0;
+  border-block: 1px solid var(--border);
+}
+
 .timeline-filters {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-filters summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  color: var(--text);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.timeline-filters summary::-webkit-details-marker {
+  display: none;
+}
+
+.timeline-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.timeline-filter-label svg {
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.timeline-filters[open] .timeline-filter-label svg {
+  transform: rotate(180deg);
+}
+
+.timeline-filters summary::marker {
+  content: '';
+}
+
+.timeline-filter-range {
+  color: var(--muted);
+  font-weight: 400;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.timeline-filters form {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   align-items: flex-end;
   gap: var(--space-5);
-  margin: var(--space-6) 0;
-  padding: var(--space-6) 0;
-  border-block: 1px solid var(--border);
+  padding: var(--space-4) 0 var(--space-3);
 }
 
 .timeline-filters label,
 .timeline-filters .actions {
   margin: 0;
+}
+
+.timeline-filter-clear {
+  flex: 0 0 auto;
+  min-height: 36px;
+  margin-top: var(--space-2);
+  padding: 5px 12px;
+  font-size: 0.875rem;
 }
 
 .timeline-month {
@@ -149,7 +212,21 @@
 }
 
 @media (max-width: 767px) {
-  .timeline-filters {
+  .timeline-filter-bar {
+    align-items: stretch;
+  }
+
+  .timeline-filters summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .timeline-filter-range {
+    text-align: start;
+  }
+
+  .timeline-filters form {
     grid-template-columns: 1fr;
   }
 
@@ -165,6 +242,10 @@
 
   .timeline-filters .actions {
     flex-wrap: wrap;
+  }
+
+  .timeline-filter-clear {
+    margin-top: var(--space-3);
   }
 
   .timeline-month h3 {

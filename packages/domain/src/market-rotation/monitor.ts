@@ -114,6 +114,18 @@ export interface MarketRotationMonitorPayload {
 /** Payload produced by the shared builder before the endpoint adds its summary text. */
 export type MarketRotationMonitorBasePayload = Omit<MarketRotationMonitorPayload, 'currentMarketSummary' | 'betaAllocation'>
 
+export interface MarketRotationContext {
+  rows: MarketRotationMonitorRow[]
+  summaryRows: MarketRotationMonitorRow[]
+  above20d: RatioMetric
+  above50d: RatioMetric
+  breadthCondition: BreadthCondition
+  breadthConfirmation: BreadthConfirmation
+  averageRsi: number | null
+  topImproving: MarketRotationMonitorRow[]
+  bottomWeakening: MarketRotationMonitorRow[]
+}
+
 function buildRatio(rows: MarketRotationMonitorRow[], field: 'above20d' | 'above50d'): RatioMetric {
   const eligible = rows.filter(row => row[field] != null)
   const count = eligible.filter(row => row[field] === true).length
@@ -148,7 +160,7 @@ function compareRowsByRank(a: MarketRotationMonitorRow, b: MarketRotationMonitor
     || a.symbol.localeCompare(b.symbol)
 }
 
-export function buildMarketRotationMonitorPayload(input: MarketRotationMonitorInput): MarketRotationMonitorBasePayload {
+export function buildMarketRotationContext(input: Pick<MarketRotationMonitorInput, 'marketState' | 'rows' | 'summaryRows'>): MarketRotationContext {
   const rows = [...input.rows].sort(compareRowsByRank)
   const summaryRows = [...(input.summaryRows ?? input.rows)].sort(compareRowsByRank)
   const above20d = buildRatio(summaryRows, 'above20d')
@@ -165,6 +177,12 @@ export function buildMarketRotationMonitorPayload(input: MarketRotationMonitorIn
     .sort(compareLeadershipChange)
     .slice(-3)
     .reverse()
+  return { rows, summaryRows, above20d, above50d, breadthCondition, breadthConfirmation, averageRsi, topImproving: improvingRows, bottomWeakening: weakeningRows }
+}
+
+export function buildMarketRotationMonitorPayload(input: MarketRotationMonitorInput): MarketRotationMonitorBasePayload {
+  const context = buildMarketRotationContext(input)
+  const { rows, above20d, above50d, breadthCondition, breadthConfirmation, averageRsi, topImproving, bottomWeakening } = context
   const expectedSymbolCount = getUniverseForScope(input.rankScope).length
   const actualSymbolCount = rows.length
   const coverageRatio = expectedSymbolCount > 0
@@ -195,12 +213,12 @@ export function buildMarketRotationMonitorPayload(input: MarketRotationMonitorIn
       marketState: input.marketState,
     },
     charts: {
-      topImproving: improvingRows,
-      bottomWeakening: weakeningRows,
+      topImproving,
+      bottomWeakening,
     },
     rows,
-    topImproving: improvingRows,
-    bottomWeakening: weakeningRows,
+    topImproving,
+    bottomWeakening,
     dataQuality: {
       asOfDate: input.asOfDate,
       comparisonDate: input.comparisonDate,

@@ -40,6 +40,16 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
   if (candidate === '/tools' || candidate === '/tools/etf' || candidate === '/tools/financial-freedom' || candidate === '/tools/market-rotation' || candidate === '/tools/relative-value' || candidate === '/tools/seasonality' || candidate === '/tools/sec-filings') return candidate;
   if (candidate && /^\/tools\/sec-filings\/\d{1,10}\/\d{10}-\d{2}-\d{6}$/.test(candidate)) return candidate;
+  const diaryEditorContinuation = candidate?.match(/^\/diaries\/([1-9]\d*)\/edit\?returnTo=([^#]+)(#review-schedule)?$/);
+  if (diaryEditorContinuation) {
+    try {
+      const diaryId = diaryEditorContinuation[1];
+      const target = decodeURIComponent(diaryEditorContinuation[2]!);
+      if (target === `/diaries/${diaryId}` || target === `/diaries/${diaryId}/review`) return candidate!;
+    } catch {
+      // Keep the safe default below for malformed continuation values.
+    }
+  }
   return candidate && /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/.test(candidate) ? candidate : '/diaries/new';
 }
 export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
@@ -59,7 +69,7 @@ export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if((broadcast||clearDrafts)&&(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:')))localStorage.removeItem(key);
-   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('post-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('post-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')||key.startsWith('diary-recent-tags:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
   if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;

@@ -72,6 +72,11 @@ export async function openQuick(page: Page) {
   await page.keyboard.press('Control+j');
 }
 
+export async function openQuickOptions(page: Page) {
+  const options = page.locator('details.quick-options');
+  if (await options.getAttribute('open') === null) await options.locator(':scope > summary').click();
+}
+
 // Diary browsing destinations stay visible in the desktop sidebar and mobile shell.
 export async function clickNav(page: Page, name: string) {
   const view = (page.viewportSize()?.width ?? 1280) < 768;

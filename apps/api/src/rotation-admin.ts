@@ -4,6 +4,7 @@ import type {ErrorCode} from '@diary/contracts';
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from '@diary/contracts/rotation';
 import type {AppEnv} from './app.js';
 import {RotationBatchBusy,type runRotationBatch} from './rotation-batch.js';
+import {executeRotationScopes} from './rotation-execution.js';
 export function registerRotationAdmin(app:Hono<AppEnv>,dependencies:{run?: (scope:'sectors'|'indexes'|'core')=>ReturnType<typeof runRotationBatch>;parseJson:<T>(context:Context<AppEnv>,schema:z.ZodType<T>)=>Promise<T>;fail:(status:number,code:ErrorCode,message:string)=>never}){
  app.post('/api/admin/market/rotation-batch',async c=>{
   c.header('Cache-Control','no-store');const user=c.get('user');
@@ -11,8 +12,10 @@ export function registerRotationAdmin(app:Hono<AppEnv>,dependencies:{run?: (scop
   const {scope}=await dependencies.parseJson(c,rotationBatchRequestSchema);
   if(!dependencies.run)return dependencies.fail(503,'SYS_INTERNAL_ERROR','Rotation runtime unavailable');
   try{
-   if(scope!=='all')return c.json(rotationBatchResponseSchema.parse({success:true,result:await dependencies.run(scope)}));
-   const results=[];for(const selected of ['sectors','indexes','core'] as const)results.push(await dependencies.run(selected));
+   const execution=await executeRotationScopes(scope,dependencies.run);
+   if(!execution.ok)throw execution.error;
+   const results=execution.results;
+   if(scope!=='all')return c.json(rotationBatchResponseSchema.parse({success:true,result:results[0]}));
    return c.json(rotationBatchResponseSchema.parse({success:true,results,totalUpserted:results.reduce((sum,row)=>sum+row.upsertedCount,0),totalErrors:results.reduce((sum,row)=>sum+row.errors.length,0)}));
   }catch(error){if(error instanceof RotationBatchBusy)return dependencies.fail(409,'ROTATION_BATCH_BUSY','This scope is already updating');throw error;}
  });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { BrowserContext, Page } from '@playwright/test'
-import { expect, selectLocale, selectTheme, test } from '../support/e2e'
+import { expect, openQuickOptions, selectLocale, selectTheme, test } from '../support/e2e'
 
 type CsrfHeaders = { 'x-csrf-token': string }
 
@@ -46,9 +46,17 @@ test('new users can capture, save, refind and review a first workspace record', 
 
   await page.getByRole('link', { name: 'Start recording', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Quick diary', exact: true })).toBeVisible()
+  await openQuickOptions(page)
   await page.getByLabel('Title', { exact: true }).fill('A first judgment to revisit')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Synthetic evidence is still incomplete; revisit the decision after the next report.')
   await page.getByRole('button', { name: 'Create diary', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect(savedHref).toMatch(/^\/diaries\/\d+$/)
+  const saved = await page.request.get(`/api${savedHref!}`)
+  expect(saved.status()).toBe(200)
+  expect(await saved.json()).toMatchObject({ title: 'A first judgment to revisit', content: 'Synthetic evidence is still incomplete; revisit the decision after the next report.' })
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
   await expect(page.getByRole('heading', { name: 'A first judgment to revisit', exact: true })).toBeVisible()
 

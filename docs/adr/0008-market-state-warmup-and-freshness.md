@@ -14,3 +14,9 @@ Regression evidence:
 - `tests/integration/market-state-http.test.ts` covers guest 404/no-store, stale/under-covered snapshots, history and transactional rerun upserts.
 - `tests/integration/market-state-batch.test.ts` covers price-first refresh, recalculation of existing rows, database failure propagation and advisory locking.
 - `tests/integration/market-state-monitor.test.ts` covers date-aligned fresh versus stale monitor context.
+
+## Bounded Portfolio market context
+
+Portfolio exposure reads a dedicated persisted market-context projection. It selects the latest qualified sector snapshot at or before the request date and the latest persisted breadth row at or before that date, then computes allocation guidance from those bounded rows. It does not load rotation comparison history or monitor trend series. Missing, stale, or under-covered context resolves to `unknown` and leaves the owner holdings projection available; the full Rotation Monitor retains its independent ranking and comparison-history reads.
+
+Regression command: `DATABASE_URL=postgresql://diary:diary_local@127.0.0.1:55433/diary_v3 npx vitest run tests/integration/market-context.test.ts tests/integration/portfolio-exposure.test.ts tests/integration/market-state-monitor.test.ts tests/integration/rotation-monitor.test.ts` verifies the bounded Portfolio read and shared monitor context.

@@ -49,3 +49,15 @@ Local browser invalidation returns an AUTH_UNAUTHORIZED recovery envelope withou
 ## Explicit Company context
 
 Migration 0006 adds shared Stock identities and cascading Diary–Stock links. Company context is independent of text templates and executed transactions. Full edit omission preserves links, explicit arrays replace, and same-day append unions in the Diary transaction under its existing lock. Symbol upserts take deterministic order to avoid reverse-list deadlocks across accounts. Reads batch owner-scoped links; diary deletion removes only its links. The effective frozen input rules are retained: 20-character symbols, at most 20 raw entries and ten unique normalized companies per submission. Existing append unions are not silently truncated. HTTP/PostgreSQL regression: `tests/integration/diary-stocks.test.ts`, 4/4.
+
+## Diary read snapshots
+
+Owner Diary detail and by-date reads now use one read-only `repeatable read` transaction. The transaction first establishes the owner-scoped Diary row, then loads the projection's associations and serializes the response from that fixed snapshot. Detail includes Transactions, linked Trade Plans, Company links, and Alerts; by-date retains its existing association set without Trade Plans. Full lists use the same batched association projection, while summary lists and private Review retain their bounded, explicit projections. This prevents an association from reflecting a later committed update than the Diary row selected for the response without widening partner or summary projections.
+
+Regression command: `DATABASE_URL=postgresql://diary:diary_local@127.0.0.1:55433/diary_v3 npx vitest run tests/integration/diary-read.test.ts` covers controlled concurrent scalar-plus-association updates for both detail and by-date reads, later-read visibility, and one bounded query per representative association.
+
+## Browser append recovery decision
+
+Append does not have a server idempotency key. A matching content suffix or a later read of the same date cannot prove that a particular browser request committed. Both Quick and full-editor append must therefore persist the exact account-scoped draft with an uncertain/in-flight marker before sending the mutation. A reload during the request restores a locked draft. Confirmed success clears it; a canonical rejection that proves no write occurred may unlock it. Transport loss, malformed success and server errors retain the marker. Diagnostic reads provide an inspection destination and never authorize automatic replay.
+
+If durable local storage is unavailable, append stays unsent and the form retains the writing with a recovery message. Ordinary full creation and replacement keep their existing behavior. The editor freezes the submitted fields until the attempt settles, so newly typed text cannot be mistaken for the confirmed payload. Restored uncertainty must expose inspection, read retry when needed, and an explicit discard action rather than silently disabling the form.

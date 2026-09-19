@@ -28,6 +28,47 @@ function libraryRow(page: Page) {
   return page.locator('.diary-records > li');
 }
 
+test('diary reading separates empty, partial and complete original judgment states', async ({ page, context }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, `reading-states-${randomUUID()}@example.test`);
+  const csrf = (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const create = async (input: Seed) => {
+    const response = await page.request.post('/api/diaries', { headers: { 'x-csrf-token': csrf }, data: { ...input, content: input.content ?? 'Short reading content.' } });
+    expect(response.status()).toBe(201);
+    return await response.json() as { id: string };
+  };
+  const empty = await create({ date: '2026-09-10', title: 'Empty original judgment' });
+  const partial = await create({ date: '2026-09-11', title: 'Partial original judgment', content: 'A long readable record. '.repeat(80), thesis: 'Demand remains the key question.' });
+  const complete = await create({ date: '2026-09-12', title: 'Complete original judgment', thesis: 'Demand should recover.', risk: 'The recovery may be delayed.', execution: 'Wait for independent confirmation.' });
+
+  await page.goto(`/diaries/${empty.id}`);
+  await expect(page.getByRole('link', { name: 'Edit diary', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reasoning at the time', exact: true })).toBeVisible();
+  await expect(page.getByText('No original judgment was recorded.', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'docs/design/evidence/convenience-follow-up/diary-reading-empty-1440.png', fullPage: true });
+
+  await page.goto(`/diaries/${partial.id}`);
+  await expect(page.getByText('Original thesis', { exact: true })).toBeVisible();
+  await expect(page.getByText('Demand remains the key question.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Original risk assessment', { exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).focus();
+  await expect(page.getByRole('link', { name: 'Edit diary', exact: true })).toBeFocused();
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Edited partial judgment');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${partial.id}$`));
+  await expect(page.getByRole('heading', { name: 'Edited partial judgment', exact: true })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/diaries/${complete.id}`);
+  await expect(page.getByText('Original thesis', { exact: true })).toBeVisible();
+  await expect(page.getByText('Original risk assessment', { exact: true })).toBeVisible();
+  await expect(page.getByText('Original execution plan', { exact: true })).toBeVisible();
+  await expect(page.getByText('No original judgment was recorded.', { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: 'docs/design/evidence/convenience-follow-up/diary-reading-filled-390.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test('library search, symbol filter, review status and sorting narrow results', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await signIn(page, `discovery-${randomUUID()}@example.test`);
@@ -191,6 +232,7 @@ test('timeline groups by month, loads more, and returns from a diary', async ({ 
   await page.goBack();
   await expect(page).toHaveURL(/\/timeline/);
   await expect(page.getByTestId('timeline-entry').first()).toBeVisible();
+  await page.getByTestId('timeline-filters').locator('summary').click();
 
   // Date filter with no matches shows the timeline empty state.
   await page.getByLabel('From date', { exact: true }).fill('2026-01-01');
@@ -296,6 +338,6 @@ for (const width of [390, 768]) {
     await page.screenshot({ path: `docs/design/evidence/diary-list/discovery-${width}-light.png`, fullPage: true });
     await page.goto('/timeline');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.screenshot({ path: `docs/design/evidence/diary-list/timeline-${width}-light.png`, fullPage: true });
+    await page.screenshot({ path: `docs/design/evidence/convenience-follow-up/timeline-discovery-${width}-light.png`, fullPage: true });
   });
 }

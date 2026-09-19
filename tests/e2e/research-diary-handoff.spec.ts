@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, selectLocale, selectTheme, signOut, test } from '../support/e2e'
+import { expect, openQuickOptions, selectLocale, selectTheme, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-research-handoff-password'
 const captureDate = '2026-09-12'
@@ -111,8 +111,10 @@ async function openCompanyAndAssertCapture(page: Page) {
 async function openQuickContext(page: Page, date = captureDate, expectNotice = true) {
   await page.goto(quickPath('NVDA', date))
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible()
+  await openQuickOptions(page)
   await expect(contextInput(page)).toHaveValue('NVDA')
   if (expectNotice) await expect(captureNotice(page)).toBeVisible()
+  await page.locator('details.quick-options').locator(':scope > summary').click()
 }
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
@@ -126,19 +128,29 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
 
     await quick.click()
     await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/)
+    await openQuickOptions(page)
     await expect(contextInput(page)).toHaveValue('NVDA')
     await expect(captureNotice(page)).toBeVisible()
+    await page.locator('details.quick-options').locator(':scope > summary').click()
     await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }) })
     await page.screenshot({ path: `docs/design/evidence/research-diary-handoff/contextual-quick-${viewport.width}.png`, fullPage: true })
 
     const marker = `Company capture marker ${viewport.width} ${randomUUID()}`
+    await openQuickOptions(page)
     await page.getByLabel('Diary date', { exact: true }).fill(captureDate)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('NVDA company observation')
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill(marker)
     const totalBefore = await diaryTotal(page)
     await page.getByRole('button', { name: 'Create diary', exact: true }).click()
-    await expect(page).toHaveURL(/\/diaries\/\d+$/)
-    const id = page.url().split('/').at(-1)!
+    await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+    const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+    expect(savedHref).toMatch(/^\/diaries\/\d+$/)
+    const id = savedHref!.split('/').at(-1)!
+    const saved = await page.request.get(`/api${savedHref!}`)
+    expect(saved.status()).toBe(200)
+    expect(await saved.json()).toMatchObject({ id, title: 'NVDA company observation', content: marker, stockSymbols: ['NVDA'] })
+    await page.getByRole('link', { name: 'Open diary', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`))
     const persisted = await readDiary(page, id)
     expect(persisted).toMatchObject({ id, title: 'NVDA company observation', content: marker, stockSymbols: ['NVDA'] })
     expect(await diaryTotal(page)).toBe(totalBefore + 1)
@@ -212,26 +224,35 @@ test('Quick legacy draft wins over incoming Company context, while Discard start
   await page.goto(quickPath('NVDA', '2026-09-16'))
   await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Restore saved draft', exact: true }).click()
+  await openQuickOptions(page)
   await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-09-16')
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('MSFT legacy title')
+  await expect(page.getByTestId('quick-existing-title')).toHaveText('Append target')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0)
+  await expect.poll(() => page.evaluate(key => {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw).value?.title : null
+  }, draftKey)).toBe('MSFT legacy title')
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('MSFT legacy body')
   await expect(contextInput(page)).toHaveValue('MSFT')
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   await selectLocale(page, 'zh-TW')
   await selectLocale(page, 'en')
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('MSFT legacy title')
+  await openQuickOptions(page)
+  await expect(page.getByTestId('quick-existing-title')).toHaveText('Append target')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0)
   await expect(contextInput(page)).toHaveValue('MSFT')
 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
+  await openQuickOptions(page)
   await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-09-16')
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('')
+  await expect(page.getByTestId('quick-existing-title')).toHaveText('Append target')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
   await expect(contextInput(page)).toHaveValue('NVDA')
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   const fresh = `Fresh NVDA writing ${randomUUID()}`
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Fresh NVDA title')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(fresh)
   await expect.poll(() => page.evaluate(key => {
     const raw = localStorage.getItem(key)
@@ -261,11 +282,16 @@ test('Quick append keeps the original Diary aggregate and rejects symbol overflo
   expect(reviewBefore).toMatchObject({ reviewStatus: 'reviewed', reviewOutcome: 'PARTIAL', reviewSummary: 'Keep this review summary', reviewLearning: 'Keep this review learning', reviewAdjustment: 'Keep this review adjustment' })
   const totalBefore = await diaryTotal(page)
   await openQuickContext(page, '2026-09-14')
+  await openQuickOptions(page)
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   const marker = `Append marker ${randomUUID()}`
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Incoming title must be ignored')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(marker)
   await page.getByRole('button', { name: 'Append to date', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect(savedHref).toBe(`/diaries/${original.id}`)
+  expect((await page.request.get(`/api${savedHref!}`)).status()).toBe(200)
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/diaries/${original.id}$`))
   const appended = await readDiary(page, original.id)
   expect(appended.id).toBe(original.id)
@@ -406,6 +432,7 @@ test('central 401 invalidation preserves a contextual Quick draft for re-login',
   // separate UI handoff. The contextual symbol/date controls are still
   // asserted by the helper; the full Company → Quick cases assert the notice.
   await openQuickContext(page, captureDate, false)
+  await openQuickOptions(page)
   const title = 'Draft through session expiry'
   const content = `401 recovery marker ${randomUUID()}`
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill(title)
@@ -438,10 +465,18 @@ test('central 401 invalidation preserves a contextual Quick draft for re-login',
   expect(await diaryTotal(page)).toBe(0)
   await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Restore saved draft', exact: true }).click()
+  await openQuickOptions(page)
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(title)
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(content)
   await page.getByRole('button', { name: 'Create diary', exact: true }).click()
-  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect(savedHref).toMatch(/^\/diaries\/\d+$/)
+  const saved = await page.request.get(`/api${savedHref!}`)
+  expect(saved.status()).toBe(200)
+  expect(await saved.json()).toMatchObject({ content })
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${savedHref!.split('/').at(-1)!}$`))
   expect((await readDiary(page, page.url().split('/').at(-1)!)).content).toBe(content)
 })
 
@@ -472,6 +507,7 @@ test('context initialization preserves valid date and manual association across 
   await startAccount(page)
   await page.goto('/diaries/quick?symbol=nvda&source=company&date=2026-09-17')
   await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-09-17')
+  await openQuickOptions(page)
   await contextInput(page).fill('MSFT')
   const content = `Manual association stays changed ${randomUUID()}`
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(content)
@@ -482,6 +518,7 @@ test('context initialization preserves valid date and manual association across 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Restore saved draft', exact: true }).click()
+  await openQuickOptions(page)
   await expect(contextInput(page)).toHaveValue('MSFT')
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(content)
 })
@@ -489,12 +526,14 @@ test('context initialization preserves valid date and manual association across 
 test('pristine contextual Quick navigation adopts the new source and date', async ({ page }) => {
   await startAccount(page)
   await page.goto(quickPath('NVDA', '2026-09-17'))
+  await openQuickOptions(page)
   await expect(contextInput(page)).toHaveValue('NVDA')
   await page.evaluate(path => {
     window.history.pushState({}, '', path)
     window.dispatchEvent(new PopStateEvent('popstate'))
   }, quickPath('MSFT', '2026-09-21'))
   await expect(page).toHaveURL(/symbol=MSFT&source=company&date=2026-09-21$/)
+  await openQuickOptions(page)
   await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-09-21')
   await expect(contextInput(page)).toHaveValue('MSFT')
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
@@ -504,6 +543,7 @@ test('unsupported Company capture context stays visible as a validation notice',
   await startAccount(page)
   await page.goto('/diaries/quick?symbol=SPX&source=company&date=2026-09-21')
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible()
+  await openQuickOptions(page)
   await expect(contextInput(page)).toHaveValue('')
   await expect(page.getByText(/unsupported|invalid.*(?:company|symbol)|(?:company|symbol).*supported/i).first()).toBeVisible()
 })
@@ -536,6 +576,10 @@ test('Quick append blocks double submit, retains failed input, and never replays
   await appendForm.evaluate(form => (form as HTMLFormElement).requestSubmit())
   expect(postCount).toBe(1)
   release()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect(savedHref).toBe(`/diaries/${existing.id}`)
+  await page.getByRole('link', { name: 'Open diary', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/diaries/${existing.id}$`))
   expect((await readDiary(page, existing.id)).content.split(marker)).toHaveLength(2)
   await page.unroute('**/api/diaries')
@@ -543,16 +587,16 @@ test('Quick append blocks double submit, retains failed input, and never replays
   const failed = await createDiary(page, { date: '2026-09-19', title: 'Failed baseline', content: 'Failed baseline body', stockSymbols: ['AAPL'] })
   await openQuickContext(page, '2026-09-19', false)
   const failedMarker = `Failed append remains ${randomUUID()}`
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Failed append title')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(failedMarker)
   await page.route('**/api/diaries', async route => {
     if (route.request().method() === 'POST') await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'handoff-failed' } }) })
     else await route.continue()
   })
   await page.getByRole('button', { name: 'Append to date', exact: true }).click()
-  await expect(page.getByTestId('request-id')).toHaveText('handoff-failed')
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Failed append title')
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_WRITE_UNCERTAIN')
+  await expect(page.locator('.quick-recovery')).toContainText(/append result could not be confirmed/i)
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(failedMarker)
+  await expect(page.getByRole('button', { name: 'Append to date', exact: true })).toBeDisabled()
   expect((await readDiary(page, failed.id)).content).toBe('Failed baseline body')
   await page.unroute('**/api/diaries')
   await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-quick-draft:')).forEach(key => localStorage.removeItem(key)))
@@ -589,7 +633,7 @@ test('Quick append blocks double submit, retains failed input, and never replays
   await page.getByRole('button', { name: 'Restore saved draft', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(uncertainMarker)
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_WRITE_UNCERTAIN')
-  await expect(page.getByText(/append result could not be confirmed/i)).toBeVisible()
+  await expect(page.locator('.quick-recovery')).toContainText(/append result could not be confirmed/i)
   await expect(page.getByRole('button', { name: 'Append to date', exact: true })).toBeDisabled()
   await page.getByRole('button', { name: 'Append to date', exact: true }).evaluate(button => (button as HTMLButtonElement).form?.requestSubmit())
   expect(uncertainCalls).toBe(1)

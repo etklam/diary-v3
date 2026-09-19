@@ -1,3 +1,12 @@
+.editor-controls {
+  display: grid;
+  gap: var(--space-5);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .original-fields {
   display: grid;
   gap: var(--space-5);
@@ -51,6 +60,27 @@
   padding: var(--space-3) var(--space-4);
   border-radius: 4px;
   background: var(--muted-surface);
+}
+
+.editor-conflict {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--tint-warn);
+}
+
+.editor-conflict h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.editor-conflict ul {
+  margin: var(--space-3) 0;
+}
+
+.editor-conflict .actions {
+  align-items: center;
 }
 
 .editor-signin {
