@@ -9,14 +9,22 @@ describe('web PWA boundary', () => {
     const manifest = JSON.parse(await readFile(resolve(webRoot, 'public/manifest.webmanifest'), 'utf8')) as Record<string, unknown>
     expect(manifest).toMatchObject({ start_url: '/', scope: '/', display: 'standalone', lang: 'zh-TW' })
     expect(manifest.icons).toEqual(expect.arrayContaining([
+      expect.objectContaining({ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }),
+      expect.objectContaining({ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }),
+      expect.objectContaining({ src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }),
       expect.objectContaining({ src: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' }),
       expect.objectContaining({ src: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' }),
     ]))
+    const pngFirst = manifest.icons.findIndex(icon => (icon as { src: string }).src.endsWith('.png'))
+    const svgFirst = manifest.icons.findIndex(icon => (icon as { src: string }).src.endsWith('.svg'))
+    expect(pngFirst).toBeGreaterThanOrEqual(0)
+    expect(svgFirst).toBeGreaterThanOrEqual(0)
+    expect(pngFirst).toBeLessThan(svgFirst)
   })
 
   it('keeps private API and document requests outside the static worker cache', async () => {
     const worker = await readFile(resolve(webRoot, 'public/sw.js'), 'utf8')
-    expect(worker).toContain("const CACHE_VERSION = 'diary-static-v2'")
+    expect(worker).toContain("const CACHE_VERSION = 'diary-static-v3'")
     expect(worker).toContain("if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return")
     expect(worker).toContain("if (request.mode === 'navigate' || request.destination === 'document') return")
     expect(worker).toContain("event.data?.type === 'CLEAR_PRIVATE_CACHE'")
