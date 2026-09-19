@@ -10,6 +10,7 @@
     ".": "./src/index.ts",
     "./ledger": "./src/ledger.ts",
     "./calendar": "./src/calendar.ts",
+    "./us-equity-calendar": "./src/us-equity-calendar.ts",
     "./portfolio": "./src/portfolio.ts",
     "./investment-thesis": "./src/investment-thesis.ts",
     "./portfolio-exposure": "./src/portfolio-exposure.ts",

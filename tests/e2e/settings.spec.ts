@@ -31,7 +31,7 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   await page.getByLabel('Expected average holding amount',{exact:true}).fill('0');
   await page.getByRole('combobox',{name:'Start page',exact:true}).selectOption('calendar');
   await page.getByLabel('Date timezone',{exact:true}).fill('America/New_York');
-  await page.getByLabel('Exclude holidays from statistics',{exact:true}).uncheck();
+  await page.getByLabel('Exclude US market closed days from statistics',{exact:true}).uncheck();
   await page.getByRole('combobox',{name:'Account language',exact:true}).selectOption('zh-CN');
   await page.getByRole('button',{name:'Save preferences',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('设置已保存。');
@@ -52,7 +52,7 @@ test('preferences persist exact zero/decimal amounts, explicit timezone, languag
   await expect(page.getByLabel('日期时区',{exact:true})).toHaveValue('America/New_York');
   await expect(page.getByLabel('每月预期交易次数',{exact:true})).toHaveValue('0');
   await expect(page.getByLabel('预期盈利金额',{exact:true})).toHaveValue('1234567890.13');
-  await expect(page.getByLabel('统计时排除假日',{exact:true})).not.toBeChecked();
+  await expect(page.getByLabel('统计时排除美股休市日',{exact:true})).not.toBeChecked();
   await page.goto('/diaries/new');
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const date=['year','month','day'].map(type=>parts.find(part=>part.type===type)?.value).join('-');
