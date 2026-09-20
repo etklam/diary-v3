@@ -56,3 +56,17 @@ describe('release manifest rendering', () => {
     expect(() => renderReleaseManifests({ target: 'staging', apiImage, webImage, hostname: 'v3.trade-basic.com' })).toThrow('Staging must not use the production hostname');
   });
 });
+
+
+it('renders the manual AI worker disabled, without a public port or generation schedule', () => {
+  const files = renderReleaseManifests({ target: 'production', apiImage, webImage });
+  const worker = files.find(file => file.fileName === '08-ai-worker.yaml');
+  expect(worker).toBeDefined();
+  const manifests = parseAllDocuments(worker!.contents).map(document => document.toJS());
+  expect(manifests).toHaveLength(2);
+  expect(manifests[0]).toMatchObject({ kind: 'Deployment', spec: { replicas: 0, template: { spec: { containers: [{ name: 'ai-worker', image: apiImage, command: ['node', 'dist/api/ai-worker.js'] }] } } } });
+  expect(manifests[0].spec.template.spec.containers[0]).not.toHaveProperty('ports');
+  expect(worker!.contents).not.toContain('CronJob');
+  expect(manifests[1]).toMatchObject({ kind: 'NetworkPolicy', spec: { policyTypes: ['Egress'], podSelector: { matchLabels: { app: 'diary-v3-ai-worker' } } } });
+  expect(manifests[1].spec.egress[2].to[0].ipBlock.except).toContain('169.254.0.0/16');
+});

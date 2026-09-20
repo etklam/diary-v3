@@ -45,3 +45,32 @@ The Web deployment's `API_ORIGIN` points to the in-cluster API Service so SSR
 article and sitemap reads do not depend on external DNS or ingress hairpinning.
 See [the environment contract](../../../docs/operations/environment-contract.md)
 for required, optional, secret, and environment-specific values.
+
+## Manual AI report worker
+
+`08-ai-worker.yaml` uses the same digest-pinned API image and has no Service or
+public port. It starts at zero replicas; rendering/validation does not enable
+it. The existing deployment workflow does not automatically apply or scale this
+new optional workload. An authorized operator must apply its rendered manifest
+after migrations and the AI beta gates, then explicitly choose one replica.
+When enabled, include its prior image and replica count in release/rollback
+records alongside API and Web. Do not leave an old worker running against a new
+incompatible API/schema.
+
+Supply `AI_ENCRYPTION_KEYS` and `AI_ENCRYPTION_ACTIVE_KEY` in the existing app
+Secret for both API and worker. They are optional on the API so the existing
+product can run with AI unconfigured, and required on the worker. Keep the
+`AI_ALLOWED_BASE_URLS` deployment allowlist identical on both workloads. Review
+network egress restrictions before enabling a non-default recipient.
+
+Generation stays disabled in the database until an Admin publishes tested
+settings and grants selected users access. There is no AI report CronJob.
+See [the AI runbook](../../../docs/runbooks/ai-reports.md) for keys, consent,
+unknown outcomes, retention and restore precautions.
+
+The worker manifest also includes an egress NetworkPolicy: same-namespace
+PostgreSQL, cluster DNS, and public HTTPS only, excluding internal/metadata and
+special-use ranges. The application still enforces the exact recipient host
+allowlist and DNS pinning. Verify that the cluster CNI enforces NetworkPolicy
+and that its DNS labels match before enabling; these manifests have not been
+applied to the production cluster by this task.

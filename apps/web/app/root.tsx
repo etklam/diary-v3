@@ -49,7 +49,7 @@ function Shell() {
     return () => { active = false; };
     // Role only changes at session boundaries; page navigations must not refetch it.
   }, [session.authenticated, session.revision]);
-  useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
+  useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/') || location.pathname === '/reviews/ai-reports' || location.pathname === '/admin/ai') navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);
     clearPrivateSession(true);

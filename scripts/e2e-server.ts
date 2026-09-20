@@ -12,6 +12,32 @@ import { createMarketData, MarketDataError } from '../apps/api/src/market-data';
 import { buildSecUrls } from '../apps/api/src/sec-edgar/client';
 import { createSecFixtureService } from '../apps/api/src/sec-edgar/service';
 import { e2eBaseURL } from '../tests/support/e2e-origin';
+import { runAiReportOnce } from '../apps/api/src/ai-reports/worker';
+import type { AiTransport } from '../apps/api/src/ai-reports/outbound-policy';
+import { z } from 'zod';
+
+// This disposable browser harness never calls an external AI provider.
+process.env.AI_ENCRYPTION_ACTIVE_KEY = 'e2e-fixture';
+process.env.AI_ENCRYPTION_KEYS = JSON.stringify({ 'e2e-fixture': Buffer.alloc(32, 7).toString('base64') });
+const aiTransport: AiTransport = async request => {
+  const messages = z.object({ messages: z.array(z.object({ role: z.string(), content: z.string() })) }).safeParse(request.body);
+  const userMessage = messages.success ? messages.data.messages.find(message => message.role === 'user') : null;
+  const projection = userMessage ? z.object({ report_context: z.object({ sources: z.array(z.object({ alias: z.string() })) }) }).safeParse(JSON.parse(userMessage.content)) : null;
+  const sourceIds = projection?.success ? projection.data.report_context.sources.slice(0, 1).map(source => source.alias) : [];
+  const item = { text: 'The saved synthetic record describes a decision to review. Compare the original reasoning with the recorded outcome and note which assumptions still need evidence.', sourceIds, metricRefs: [], evidenceLevel: 'recorded' };
+  return {
+  status: 200,
+  retryAfter: null,
+  body: JSON.stringify(request.path === 'models' ? { data: [{ id: 'synthetic-review-model' }] } : {
+    id: 'synthetic-browser-review',
+    choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({
+      summary: sourceIds.length ? [item] : [], decisionReview: sourceIds.length ? [item] : [], positionReview: [], marketReflection: [],
+      disciplineChecks: [], nextPeriodFocus: [], limitations: ['Synthetic browser fixture; no investment advice.'],
+    }) } }],
+    usage: { prompt_tokens: 10, completion_tokens: 5 },
+  }),
+  };
+};
 
 const database = await provisionTestDatabase('diary_v3_e2e');
 const { db } = database;
@@ -31,6 +57,7 @@ const secFixtureService = createSecFixtureService({
 });
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['etf-admin@example.test', await bcrypt.hash('synthetic-etf-admin-password', 4)]);
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['rotation-admin@example.test', await bcrypt.hash('synthetic-rotation-admin-password', 4)]);
+await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['ai-admin@example.test', await bcrypt.hash('synthetic-ai-admin-password', 4)]);
 try {
   const makeApp = () => {
     const quoteReads = new Map<string, number>();
@@ -65,7 +92,7 @@ try {
         ] };
       },
     } });
-    return createApp({ db, databasePool: database.pool, marketData, secFilings: secFixtureService, onAccountRevoked: id => sockets.revokeUser(id), holidays: { publicHolidays: async (year, countryCode) => [
+    return createApp({ db, databasePool: database.pool, aiTransport, marketData, secFilings: secFixtureService, onAccountRevoked: id => sockets.revokeUser(id), holidays: { publicHolidays: async (year, countryCode) => [
       { date: `${year}-01-01`, countryCode, name: 'Synthetic new year', localName: 'Synthetic new year' },
       { date: `${year}-09-07`, countryCode, name: 'Synthetic September holiday', localName: 'Synthetic September holiday' },
     ] }, config: {
@@ -89,10 +116,19 @@ try {
   // Only the synthetic FOREGROUND symbol is quoted by the price test scheduler.
   // Synthetic-only harness accelerates ticks; production keeps its 60-second interval.
   const ticks = setInterval(() => { void pusher.checkAndPushAlerts(); void priceChecker.checkPriceAlerts(); }, 1000);
+  const aiAbort = new AbortController();
+  let aiTick: Promise<unknown> | null = null;
+  const aiTicks = setInterval(() => {
+    if (aiTick) return;
+    aiTick = runAiReportOnce({ db, workerId: 'synthetic-browser-worker', transport: aiTransport, signal: aiAbort.signal })
+      .catch(error => console.error(error.message)).finally(() => { aiTick = null; });
+  }, 250);
   server.listen(3201, '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {
     clearInterval(ticks);
-    void Promise.all([pusher.stop(), priceChecker.stop()]).then(() => sockets.close()).then(cleanup).catch(error => { console.error(error.message); process.exitCode = 1; });
+    clearInterval(aiTicks);
+    aiAbort.abort();
+    void Promise.all([pusher.stop(), priceChecker.stop(), aiTick]).then(() => sockets.close()).then(cleanup).catch(error => { console.error(error.message); process.exitCode = 1; });
   });
 } catch (error) {
   await cleanup();

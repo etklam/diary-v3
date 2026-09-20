@@ -13,6 +13,7 @@ const releaseManifestFiles = [
   'ops/k8s/production/05-market-cron.yaml',
   'ops/k8s/production/06-seed-job.yaml',
   'ops/k8s/production/07-migrate-job.yaml',
+  'ops/k8s/production/08-ai-worker.yaml',
 ] as const;
 
 const apiRepository = 'git.913555.xyz/etklam/diary-v3-api';

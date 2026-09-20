@@ -12,6 +12,7 @@ export const productionManifestFiles = [
   'ops/k8s/production/05-market-cron.yaml',
   'ops/k8s/production/06-seed-job.yaml',
   'ops/k8s/production/07-migrate-job.yaml',
+  'ops/k8s/production/08-ai-worker.yaml',
 ];
 
 type Manifest = { kind?: string; metadata?: { name?: string; namespace?: string }; spec?: unknown };

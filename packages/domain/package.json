@@ -39,7 +39,9 @@
     "./market-state/breadth": "./src/market-state/breadth.ts",
     "./market-state/regime": "./src/market-state/regime.ts",
     "./market-state/update-breadth-utils": "./src/market-state/update-breadth-utils.ts",
-    "./market-state/seed-universe-utils": "./src/market-state/seed-universe-utils.ts"
-    ,"./position-sizing": "./src/position-sizing.ts"
+    "./market-state/seed-universe-utils": "./src/market-state/seed-universe-utils.ts",
+    "./ai-reports/period": "./src/ai-reports/period.ts",
+    "./ai-reports/context": "./src/ai-reports/context.ts",
+    "./position-sizing": "./src/position-sizing.ts"
   }
 }

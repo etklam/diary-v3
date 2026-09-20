@@ -43,6 +43,8 @@
     "./stock-timeline-source": "./src/stock-timeline-source.ts",
     "./sec-filings": "./src/sec-filings.ts",
     "./post": "./src/post.ts",
-    "./admin-users": "./src/admin-users.ts"
+    "./admin-users": "./src/admin-users.ts",
+    "./ai-reports": "./src/ai-reports.ts",
+    "./admin-ai": "./src/admin-ai.ts"
   }
 }

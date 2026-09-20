@@ -45,6 +45,20 @@ spec:
                 secretKeyRef:
                   name: diary-v3-app
                   key: JWT_SECRET
+            - name: AI_ENCRYPTION_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: AI_ENCRYPTION_KEYS
+                  optional: true
+            - name: AI_ENCRYPTION_ACTIVE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: AI_ENCRYPTION_ACTIVE_KEY
+                  optional: true
+            - name: AI_ALLOWED_BASE_URLS
+              value: https://api.deepseek.com
             - name: NODE_ENV
               value: production
             - name: API_HOST

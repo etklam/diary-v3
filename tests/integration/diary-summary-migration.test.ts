@@ -2,26 +2,15 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { migrateDatabase, users } from '@diary/db'
 import { diaryExcerpt } from '@diary/domain'
 import { provisionTestDatabase } from '../support/database'
+import { historicalMigrations } from '../support/historical-migrations'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
-beforeAll(async () => { database = await provisionTestDatabase('diary_excerpt_upgrade') })
-afterAll(async () => { await database?.dispose() })
+const historical = historicalMigrations('0021_steady_banshee')
+beforeAll(async () => { database = await provisionTestDatabase('diary_excerpt_upgrade', historical.folder) })
+afterAll(async () => { await database?.dispose(); historical.dispose() })
 
-it('supports fresh install and backfills existing diary rows when the migration upgrades the schema', async () => {
-  const freshColumns = await database.pool.query<{ column_name: string }>(
-    "select column_name from information_schema.columns where table_schema='public' and table_name='diaries'",
-  )
-  expect(freshColumns.rows.map(row => row.column_name)).toContain('summary_excerpt')
-  expect(freshColumns.rows.map(row => row.column_name)).toContain('summary_excerpt_content_hash')
-
+it('upgrades the historical pre-excerpt schema and backfills all existing diary rows', async () => {
   const [user] = await database.db.insert(users).values({ email: 'excerpt-upgrade@example.test', password: 'synthetic' }).returning({ id: users.id })
-  await database.pool.query('drop trigger diaries_summary_excerpt_invalidate on diaries')
-  await database.pool.query('drop function invalidate_stale_diary_summary_excerpt()')
-  await database.pool.query('alter table diaries drop column summary_excerpt, drop column summary_excerpt_content_hash')
-  await database.pool.query(`delete from drizzle.__drizzle_migrations where hash = (
-    select hash from drizzle.__drizzle_migrations order by created_at desc limit 1
-  )`)
-
   const content = '## Existing decision\n\n- [Open report](https://example.test/report)\n\n🚀 The original Markdown stays authoritative.'
   await database.pool.query(`
     insert into diaries(user_id,title,content,date)

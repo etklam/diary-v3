@@ -4,7 +4,7 @@ import { createDatabase, migrateDatabase } from '@diary/db';
 import { diaryExcerpt } from '@diary/domain';
 
 /** A fresh local database per suite; never reset or truncate an existing database. */
-export async function provisionTestDatabase(prefix = 'diary_v3_test') {
+export async function provisionTestDatabase(prefix = 'diary_v3_test', migrationsFolder?: string) {
   if (!/^[a-z][a-z0-9_]{0,25}$/.test(prefix)) throw new Error('Invalid test database prefix');
   const name = `${prefix}_${randomUUID().replaceAll('-', '')}`;
   const url = new URL(process.env.DATABASE_URL ?? 'postgresql://diary:diary_local@127.0.0.1:55433/diary_v3');
@@ -36,7 +36,7 @@ export async function provisionTestDatabase(prefix = 'diary_v3_test') {
       await admin.query(`DROP DATABASE IF EXISTS "${name}"`);
     } finally { await admin.end(); }
   }
-  try { await migrateDatabase(database.db, { diaryExcerpt }); }
+  try { await migrateDatabase(database.db, { diaryExcerpt, ...(migrationsFolder ? { migrationsFolder } : {}) }); }
   catch (error) { await dispose(); throw error; }
   return { ...database, url: url.toString(), dispose };
 }

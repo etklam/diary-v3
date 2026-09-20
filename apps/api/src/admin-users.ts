@@ -17,6 +17,7 @@ import { alerts, diaries, transactions, users, type Database } from '@diary/db'
 import { count, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import type { AppEnv } from './app.js'
 import { userSessionLock } from './auth-session.js'
+import { lockAiOwner } from './ai-reports/job-store.js'
 
 type AdminDependencies = {
   db: Database
@@ -202,6 +203,7 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
     if (targetId === adminId) return fail(403, 'AUTH_FORBIDDEN', 'Administrators cannot delete their own account')
     const deleted = await db.transaction(async tx => {
       await tx.execute(userSessionLock(targetId))
+      await lockAiOwner(tx, targetId)
       const [target] = await tx.select({ id: users.id, email: users.email })
         .from(users).where(eq(users.id, targetId)).limit(1).for('update')
       if (!target) return undefined

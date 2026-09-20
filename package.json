@@ -35,6 +35,7 @@
     "contracts:check": "node --import tsx scripts/generate-openapi.ts --check && openapi-typescript openapi/openapi.json -o packages/api-client/src/generated.ts --check",
     "manifests:check": "node --import tsx scripts/validate-production-manifests.ts",
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
+    "ai:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/ai-report-worker-cli.ts",
     "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
     "market:state": "node --env-file-if-exists=.env --import tsx apps/api/src/market-state-cli.ts",
     "db:migrate:prod": "node dist/api/migrate.js",

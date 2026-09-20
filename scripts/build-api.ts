@@ -6,6 +6,7 @@ const manifest = JSON.parse(await readFile(new URL('../package.json', import.met
 await build({
   entryPoints: {
     server: 'apps/api/src/server.ts',
+    'ai-worker': 'apps/api/src/ai-report-worker-cli.ts',
     rotation: 'apps/api/src/rotation-cli.ts',
     'market-state': 'apps/api/src/market-state-cli.ts',
     migrate: 'packages/db/src/migrate.ts',

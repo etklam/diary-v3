@@ -1,3 +1,4 @@
+import { registerAiOpenApi } from './ai-openapi.js'
 import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from './rotation-monitor.js'
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from './rotation.js'
 import {marketStateSnapshotQuerySchema, marketStateHistoryQuerySchema, marketStateSnapshotSchema, marketStateHistoryResponseSchema} from './market-state.js'
@@ -603,3 +604,5 @@ registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/publish', ta
 registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/archive', tags: ['Blog'], operationId: 'blogArchive', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Archived article'), ...errors([400, 401, 403, 404, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-publish', tags: ['Blog'], operationId: 'blogBulkPublish', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Published article count'), ...errors([400, 401, 403, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-delete', tags: ['Blog'], operationId: 'blogBulkDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Deleted article count'), ...errors([400, 401, 403, 500]) } })
+
+registerAiOpenApi(registry, ApiErrorResponse)

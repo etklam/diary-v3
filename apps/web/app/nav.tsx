@@ -16,13 +16,13 @@ const sectionCopy = {
 
 const workspaceCopy = {
   'zh-TW': {
-    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', publicArticles: '公開文章', settings: '設定',
+    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理',
   },
   'zh-CN': {
-    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', publicArticles: '公开文章', settings: '设置',
+    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理',
   },
   en: {
-    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', publicArticles: 'Public articles', settings: 'Settings',
+    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration',
   },
 } as const
 
@@ -40,11 +40,12 @@ function usePageScrollLock(locked: boolean) {
   }, [locked])
 }
 
-export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminEtf' | null
+export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminAi' | 'adminEtf' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (path === '/') return 'overview'
+  if (path === '/reviews/ai-reports') return 'aiReports'
   if (path === '/reviews' || /^\/diaries\/[1-9]\d*\/review$/.test(path)) return 'reviews'
   if (path === '/timeline' || path === '/partners/compare') return 'timeline'
   if (path === '/calendar') return 'calendar'
@@ -62,6 +63,7 @@ export function navigationOwner(pathname: string): NavigationOwner {
   if (path === '/settings' || path.startsWith('/settings/')) return 'settings'
   if (path === '/admin/blog' || path.startsWith('/admin/blog/')) return 'adminBlog'
   if (path === '/admin/users' || path.startsWith('/admin/users/')) return 'adminUsers'
+  if (path === '/admin/ai' || path.startsWith('/admin/ai/')) return 'adminAi'
   if (path === '/admin/etf' || path.startsWith('/admin/etf/')) return 'adminEtf'
   return null
 }
@@ -82,6 +84,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
         {link('/calendar', c.calendar, 'calendar', 'calendar')}
       </>}
       {link('/reviews', c.reviewQueue, 'check', 'reviews')}
+      {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
     </div><details className="nav-more" open={owner === 'diaryReminders' || owner === 'partners' || undefined}>
       <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
       <div className="nav-group-links">
@@ -111,6 +114,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
       {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
+      {link('/admin/ai', c.adminAi, 'compass', 'adminAi')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
     </div></section>}
   </>

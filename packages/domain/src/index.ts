@@ -6,6 +6,8 @@ export function currentUtcDate(now = new Date()): string {
 export { calculateFinancialFreedom, calculateFireNumber, withdrawalRatePresets } from './fire';
 export type { FinancialFreedomInput, FinancialFreedomResult, YearlyProjection, WithdrawalRatePreset } from './fire';
 export { calendarDateInTimezone } from './calendar-date';
+export * from './ai-reports/period';
+export * from './ai-reports/context';
 export * from './us-equity-calendar';
 
 export * from './quick-types';

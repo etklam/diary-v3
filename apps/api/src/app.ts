@@ -94,6 +94,10 @@ import { getHoldings, getRecentClosedTrades, LedgerValidationError } from './led
 import { registerSecFilingRoutes } from './sec-filings.js'
 import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
 import { registerAdminUserRoutes } from './admin-users.js'
+import { registerAiReportRoutes } from './ai-reports/routes.js'
+import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
+import { AiReportService } from './ai-reports/report-service.js'
+import type { AiTransport } from './ai-reports/outbound-policy.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -140,6 +144,7 @@ export interface AppDependencies {
     error(message: string, context: Record<string, unknown>): void
     info?(message: string, context?: Record<string, unknown>): void
   }
+  aiTransport?: AiTransport
 }
 
 interface ErrorDetail {
@@ -262,6 +267,7 @@ export function createApp({
   holidays,
   secFilings,
   onAccountRevoked,
+  aiTransport,
 }: AppDependencies) {
   const rateLimiter = createRateLimiter()
   const app = new Hono<AppEnv>()
@@ -466,6 +472,9 @@ export function createApp({
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
   registerPostRoutes(app, { db, now, fail, validationError, parseJson })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
+  const aiReportService = new AiReportService({ db, now })
+  registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson })
+  registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
 
   app.post('/api/auth/register', async (c) => {
     const ip = clientIp(c, config.trustProxy)

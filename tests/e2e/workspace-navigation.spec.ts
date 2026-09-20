@@ -20,7 +20,7 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
 
   const primary = page.locator('.desktop-nav')
   for (const [name, href] of [
-    ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['Trade plans', '/trade-plans'],
+    ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['AI reports', '/reviews/ai-reports'], ['Trade plans', '/trade-plans'],
     ['Holdings', '/stocks'], ['Watchlist', '/stocks/watchlist'], ['Market research', '/stocks/SPY'], ['Tools', '/tools'],
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
@@ -91,7 +91,7 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Review queue')
 
   for (const [path, active] of [
-    ['/diaries/123/edit', 'Diary library'], ['/diaries/123/review', 'Review queue'], ['/timeline', 'Timeline'], ['/calendar', 'Calendar'], ['/partners/compare', 'Timeline'],
+    ['/diaries/123/edit', 'Diary library'], ['/diaries/123/review', 'Review queue'], ['/reviews/ai-reports', 'AI reports'], ['/timeline', 'Timeline'], ['/calendar', 'Calendar'], ['/partners/compare', 'Timeline'],
     ['/partners', 'Partner management'], ['/stocks/watchlist', 'Watchlist'], ['/stocks/alerts', 'Price reminders'],
     ['/stocks/NVDA', 'Market research'], ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
   ] as const) {
@@ -208,7 +208,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await selectLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
   await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
-  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'ETF catalog'])
+  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'ETF catalog'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
   await page.goto('/admin/blog/123/edit')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
