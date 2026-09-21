@@ -262,17 +262,22 @@
     flex-wrap: wrap;
   }
 
-  /* Keep save reachable on the full quick page without covering the form:
-     the button keeps its own layout slot and only floats while the form
-     extends below the viewport. */
-  .editor .quick-composer button[type="submit"] {
+  /* Keep save reachable on the full quick page: the button rides in a
+     solid sticky bar so it reads as a bottom CTA instead of slicing
+     through controls that scroll beneath it. */
+  .editor .quick-composer .quick-submit {
     position: sticky;
     bottom: var(--mobile-diary-navigation-space, 76px);
     z-index: 2;
+    margin: 0 calc(-1 * var(--page-gutter));
+    padding: var(--space-2) var(--page-gutter) max(var(--space-2), env(safe-area-inset-bottom));
+    background: var(--canvas);
+  }
+
+  .editor .quick-composer .quick-submit button[type="submit"] {
     width: 100%;
     margin-bottom: 0;
     padding-block: 12px;
-    box-shadow: 0 -10px 14px var(--canvas);
   }
 
   .editor .quick-composer form {
