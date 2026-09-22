@@ -5,6 +5,15 @@ import { alertDraftSchema, alertResponseSchema } from './alerts.js'
 import { linkedTradePlanResponseSchema } from './trade-plan.js'
 
 export {
+  achievementContentSchema,
+  writeAchievementSchema,
+  achievementResponseSchema,
+  achievementListSchema,
+  deleteAchievementResponseSchema,
+} from './achievements.js'
+export type { AchievementResponse } from './achievements.js'
+
+export {
   aiAnalysisSchema,
   aiAnalysisItemSchema,
   aiCapabilitiesSchema,
@@ -124,6 +133,7 @@ export const errorCodes = [
   'AUTH_RATE_LIMITED',
   'CSRF_FAILED',
   'DIARY_NOT_FOUND',
+  'ACHIEVEMENT_NOT_FOUND',
   'ALERT_NOT_FOUND',
   'PRICE_ALERT_NOT_FOUND',
   'DISCIPLINE_NOT_FOUND',

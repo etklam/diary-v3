@@ -841,6 +841,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["achievementsGet"];
+        put?: never;
+        post: operations["achievementsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/achievements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["achievementsUpdate"];
+        post?: never;
+        delete: operations["achievementsDelete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/discipline/export": {
         parameters: {
             query?: never;
@@ -2284,7 +2316,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT";
                 details: {
                     field?: string;
                     message?: string;
@@ -9341,6 +9373,250 @@ export interface operations {
             };
             /** @description HTTP 403 error */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    achievementsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personal achievements ordered newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        date: string;
+                        content: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    achievementsCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Personal achievement input */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    date: string;
+                    content: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Personal achievement created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        date: string;
+                        content: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    achievementsUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Personal achievement input */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    date: string;
+                    content: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Personal achievement updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        date: string;
+                        content: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    achievementsDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personal achievement deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -385,6 +385,19 @@ export const disciplines = pgTable('disciplines', {
   check('disciplines_content_nonempty', sql`length(btrim(${table.content})) > 0`),
 ])
 
+export const personalAchievements = pgTable('personal_achievements', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  date: date('date', { mode: 'string' }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('personal_achievements_user_date_idx').on(table.userId, table.date.desc(), table.id.desc()),
+  check('personal_achievements_content_nonempty', sql`length(btrim(${table.content})) > 0`),
+  check('personal_achievements_content_length', sql`length(${table.content}) <= 1000`),
+])
+
 export const partnerLinks = pgTable('partner_links', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   userAId: bigint('user_a_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),

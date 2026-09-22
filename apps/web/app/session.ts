@@ -37,7 +37,7 @@ export function safeReturnPath(candidate: string | null): string {
   if (adminPostEdit && serializedIdSchema.safeParse(adminPostEdit[1]).success) return candidate!;
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
-  if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/reviews/ai-reports' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/ai' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
+  if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/reviews/ai-reports' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/achievements' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/ai' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
   if (candidate === '/tools' || candidate === '/tools/etf' || candidate === '/tools/financial-freedom' || candidate === '/tools/market-rotation' || candidate === '/tools/relative-value' || candidate === '/tools/seasonality' || candidate === '/tools/sec-filings') return candidate;
   if (candidate && /^\/tools\/sec-filings\/\d{1,10}\/\d{10}-\d{2}-\d{6}$/.test(candidate)) return candidate;
   const diaryEditorContinuation = candidate?.match(/^\/diaries\/([1-9]\d*)\/edit\?returnTo=([^#]+)(#review-schedule)?$/);
@@ -102,7 +102,7 @@ export const sessionFetch: typeof fetch = async (input, init) => {
   const url = input instanceof Request ? input.url : String(input);
   const pathname = new URL(url, 'http://local.invalid').pathname;
   // A remounted private surface must not refill from cookies while logout is in flight.
-  const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention'
+  const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname.startsWith('/api/achievements') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention'
     || pathname.startsWith('/api/blog/admin')
     || /^\/api\/(?:ai|diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews)(?:\/|$)/.test(pathname)
     || /^\/api\/stocks\/(?:holdings|portfolio|exposure|attention|prices|watchlist|timeline|alerts)(?:\/|$)/.test(pathname);

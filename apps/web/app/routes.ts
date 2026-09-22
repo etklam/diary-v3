@@ -41,6 +41,7 @@ export default [
   route('admin/users', 'routes/admin-users.tsx'),
   route('admin/ai', 'routes/admin-ai.tsx'),
   route('settings', 'routes/settings.tsx'),
+  route('achievements', 'routes/achievements.tsx'),
   route('settings/api-keys', 'routes/api-keys.tsx'),
   route('settings/security', 'routes/account-security.tsx'),
   route('tools/financial-freedom', 'routes/fire.tsx'),

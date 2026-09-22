@@ -62,6 +62,10 @@ diary-v3 is the current project name; the external product name is still TBD.
 4. The API is the shared business entry point for web and the future app.
 5. Reusable logic stays independent of Vue, React DOM, and native platforms.
 
+## Personal achievements
+
+Users can manually record private milestones with a calendar date and achievement text, then browse, edit, or delete them. Multiple achievements can share a date; the list runs newest first. An account first reaching USD 100,000 is an example of a user-written milestone, not an automatically detected balance event. Records belong exclusively to the signed-in user and are not exposed through partner sharing.
+
 ## Tools access model
 
 Tools are public product capabilities, not membership features. Guests can open the Tools index and the confirmed tool URLs, complete calculations, query and filter public research, view charts and filing details, copy results, export results, and download bounded SEC documents or ZIP packages without authentication. The same tool implementations are available to signed-in users from the workspace.

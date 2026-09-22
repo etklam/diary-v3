@@ -33,6 +33,7 @@ export function FailureNotice({ failure, id = 'form-error', messageOverride }: {
     ETF_NOT_FOUND:['找不到這個 ETF。請確認代號，或請管理員先加入共用目錄。','找不到这个 ETF。请确认代码，或请管理员先加入共用目录。','This ETF is not in the shared catalog. Check the symbol or ask an administrator to add it.'],
     ETF_ALREADY_IN_WATCHLIST:['這個 ETF 已在你的關注清單。請重新整理清單，或直接閱讀研究。','这个 ETF 已在你的关注清单。请刷新清单，或直接阅读研究。','This ETF is already on your watchlist. Refresh the list or open its research.'],
     DIARY_NOT_FOUND:['找不到這篇日記。請確認連結及登入帳戶。','找不到这篇日记。请确认链接及登录账户。','Diary not found. Check the link and signed-in account.'],
+    ACHIEVEMENT_NOT_FOUND:['找不到這項成就。請重新整理後再試。','找不到这项成就。请刷新后重试。','Achievement not found. Refresh and try again.'],
     SYS_NOT_FOUND:['找不到這個項目。請確認連結。','找不到这个项目。请确认链接。','Item not found. Check the link.'],
     SYS_VALIDATION_ERROR:['部分欄位不正確。請檢查標示的欄位後再試。','部分字段不正确。请检查标记的字段后重试。','Some fields are invalid. Check the marked fields and try again.'],
     SYS_INTERNAL_ERROR:['服務暫時無法完成操作。內容仍然保留，請重試。','服务暂时无法完成操作。内容仍然保留，请重试。','The service could not complete this action. Your entries are preserved. Try again.'],

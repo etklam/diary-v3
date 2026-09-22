@@ -98,6 +98,7 @@ import { registerAiReportRoutes } from './ai-reports/routes.js'
 import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
 import { AiReportService } from './ai-reports/report-service.js'
 import type { AiTransport } from './ai-reports/outbound-policy.js'
+import { registerAchievementRoutes } from './achievements.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -465,6 +466,7 @@ export function createApp({
   registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp) })
   registerPartnerRoutes(app, { db, now, fail, validationError, parseJson })
   registerDisciplineRoutes(app, { db, now, fail, validationError, parseJson })
+  registerAchievementRoutes(app, { db, now, fail, validationError, parseJson })
   registerPriceAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerPerformanceRoute(app, { db, fail, validationError })

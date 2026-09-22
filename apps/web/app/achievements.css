@@ -1,0 +1,82 @@
+.achievements-page {
+  max-width: 800px;
+}
+
+.achievement-form {
+  margin: var(--space-7) 0;
+}
+
+.achievement-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.achievement-form legend {
+  margin-bottom: var(--space-5);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.achievement-form textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.achievement-form .actions {
+  margin-top: var(--space-5);
+}
+
+.achievement-list {
+  margin: var(--space-7) 0 0;
+  padding: 0 var(--space-6);
+  list-style: none;
+}
+
+.achievement-list li {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-5);
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--border);
+}
+
+.achievement-list li:first-child {
+  border-top: 0;
+}
+
+.achievement-list time {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.achievement-content {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.achievement-list .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+  .achievement-list {
+    padding-inline: var(--space-4);
+  }
+
+  .achievement-list li {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .achievement-list .actions {
+    justify-content: flex-start;
+    margin-top: var(--space-2);
+  }
+}
