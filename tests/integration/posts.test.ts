@@ -93,8 +93,8 @@ it('enforces Admin authorization and keeps public author email private', async (
   expect((await anonymous.request('/api/blog/admin')).status).toBe(401)
 
   const { browser } = await login(true)
-  const post = await create(browser, { title: 'Public author projection', status: 'PUBLISHED' })
-  const write = { title: 'Unauthorized edit', content: 'Must remain rejected.', category: 'market', status: 'PUBLISHED' }
+  const post = await create(browser, { title: 'Public author projection', status: 'PUBLISHED', access: 'PUBLIC' })
+  const write = { title: 'Unauthorized edit', content: 'Must remain rejected.', category: 'market', status: 'PUBLISHED', access: 'MEMBER' }
   expect((await mutate(ordinary.browser, `/api/blog/${post.id}`, write)).status).toBe(403)
   expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/publish`, {})).status).toBe(403)
   expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/archive`, {})).status).toBe(403)
@@ -108,6 +108,7 @@ it('enforces Admin authorization and keeps public author email private', async (
   expect(list.data[0].author).toEqual({ id: expect.any(String), name: null })
   expect(list.data[0].author).not.toHaveProperty('email')
   const detail = await (await anonymous.request(`/api/blog/${post.slug}`)).json()
+  expect(detail.access).toBe('PUBLIC')
   expect(detail.author).not.toHaveProperty('email')
   expect(detail.content).toContain('safe Markdown')
 
@@ -215,4 +216,148 @@ it('keeps admin search distinct from public full text and enforces CSRF on write
   const missingCsrf = await browser.request(`/api/blog/${post.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'No CSRF', content: 'rejected', category: 'market', status: 'PUBLISHED' }) })
   expect(missingCsrf.status).toBe(403)
   expect((await missingCsrf.json()).data.code).toBe('CSRF_FAILED')
+})
+
+it('enforces PUBLIC and MEMBER reading access without exposing protected body text', async () => {
+  const { browser: admin } = await login(true)
+  const sentinel = 'QZK9X7M2'
+  const publicPost = await create(admin, { title: 'Access public article', content: 'Public article body', status: 'PUBLISHED', access: 'PUBLIC' })
+  const memberPost = await create(admin, { title: 'Access member article', content: `# Protected\n\n${sentinel}`, status: 'PUBLISHED', access: 'MEMBER' })
+  const guest = new BrowserSession(baseUrl)
+
+  const listResponse = await guest.request('/api/blog?sortBy=title_asc')
+  expect(listResponse.status).toBe(200)
+  expect(listResponse.headers.get('cache-control')).toBe('no-store')
+  const list = await listResponse.json()
+  expect(list.data).toEqual(expect.arrayContaining([
+    expect.objectContaining({ slug: publicPost.slug, access: 'PUBLIC', membersOnly: false }),
+    expect.objectContaining({ slug: memberPost.slug, access: 'MEMBER', membersOnly: true, excerpt: null }),
+  ]))
+  expect(JSON.stringify(list)).not.toContain(sentinel)
+
+  const search = await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)
+  expect((await search.json()).pagination.total).toBe(0)
+
+  const publicDetail = await guest.request(`/api/blog/${publicPost.slug}`)
+  expect(publicDetail.status).toBe(200)
+  expect((await publicDetail.json()).content).toContain('Public article body')
+
+  const memberDetail = await guest.request(`/api/blog/${memberPost.slug}`)
+  expect(memberDetail.status).toBe(401)
+  expect(memberDetail.headers.get('cache-control')).toBe('no-store')
+  const memberError = await memberDetail.text()
+  expect(memberError).not.toContain(sentinel)
+
+  const metadata = await guest.request(`/api/blog/${memberPost.slug}/metadata`)
+  expect(metadata.status).toBe(200)
+  const metadataBody = await metadata.json()
+  expect(metadataBody).toMatchObject({ slug: memberPost.slug, access: 'MEMBER', membersOnly: true, excerpt: null })
+  expect(metadataBody).not.toHaveProperty('content')
+  expect(JSON.stringify(metadataBody)).not.toContain(sentinel)
+
+  const member = await login(false)
+  const memberPublicDetail = await member.browser.request(`/api/blog/${publicPost.slug}`)
+  expect(memberPublicDetail.status).toBe(200)
+  expect((await memberPublicDetail.json()).content).toContain('Public article body')
+  const authorizedDetail = await member.browser.request(`/api/blog/${memberPost.slug}`)
+  expect(authorizedDetail.status).toBe(200)
+  expect(authorizedDetail.headers.get('cache-control')).toBe('no-store')
+  expect((await authorizedDetail.json()).content).toContain(sentinel)
+
+  const guestAfterAuthorizedRead = await guest.request(`/api/blog/${memberPost.slug}`)
+  expect(guestAfterAuthorizedRead.status).toBe(401)
+  expect((await guestAfterAuthorizedRead.text())).not.toContain(sentinel)
+})
+
+it('keeps derived excerpts private across PUBLIC to MEMBER changes and allows authored teasers', async () => {
+  const { browser: admin } = await login(true)
+  const sentinel = 'R4V8N2K6'
+  const post = await create(admin, { title: 'Visibility transition', content: `Body ${sentinel}`, status: 'PUBLISHED', access: 'PUBLIC' })
+  const guest = new BrowserSession(baseUrl)
+  expect((await guest.request(`/api/blog/${post.slug}`)).status).toBe(200)
+
+  const updated = await mutate(admin, `/api/blog/${post.id}`, {
+    title: post.title,
+    content: `Body ${sentinel}`,
+    excerpt: post.excerpt,
+    category: post.category,
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
+  expect(updated.status).toBe(200)
+  expect((await updated.json())).toMatchObject({ access: 'MEMBER', excerpt: null, excerptAuthored: false })
+
+  const locked = await guest.request(`/api/blog/${post.slug}`)
+  expect(locked.status).toBe(401)
+  expect((await guest.request(`/api/blog/${post.slug}/metadata`)).status).toBe(200)
+  const metadata = await (await guest.request(`/api/blog/${post.slug}/metadata`)).json()
+  expect(metadata.excerpt).toBeNull()
+  expect(JSON.stringify(metadata)).not.toContain(sentinel)
+  expect((await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)).status).toBe(200)
+  expect((await (await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)).json()).pagination.total).toBe(0)
+
+  const teaser = await create(admin, {
+    title: 'Authored teaser member article',
+    content: `Private ${sentinel}`,
+    excerpt: 'A deliberately authored public teaser.',
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
+  const teaserMetadata = await (await guest.request(`/api/blog/${teaser.slug}/metadata`)).json()
+  expect(teaserMetadata).toMatchObject({ access: 'MEMBER', excerpt: 'A deliberately authored public teaser.' })
+  expect(teaserMetadata).not.toHaveProperty('content')
+})
+
+it('keeps drafts unavailable to members while allowing authorized admin preview', async () => {
+  const { browser: admin } = await login(true)
+  const post = await create(admin, { title: 'Preview-only member draft', content: 'Draft body sentinel', access: 'MEMBER' })
+  const guest = new BrowserSession(baseUrl)
+  const member = await login(false)
+  const guestDetail = await guest.request(`/api/blog/${post.slug}`)
+  expect(guestDetail.status).toBe(404)
+  expect((await guestDetail.text())).not.toContain('Draft body sentinel')
+  const memberDetail = await member.browser.request(`/api/blog/${post.slug}`)
+  expect(memberDetail.status).toBe(404)
+  expect((await memberDetail.text())).not.toContain('Draft body sentinel')
+  const memberAdminDetail = await member.browser.request(`/api/blog/admin/${post.id}`)
+  expect(memberAdminDetail.status).toBe(403)
+  expect((await memberAdminDetail.text())).not.toContain('Draft body sentinel')
+  const preview = await admin.request(`/api/blog/admin/${post.id}`)
+  expect(preview.status).toBe(200)
+  expect((await preview.json()).content).toContain('Draft body sentinel')
+})
+
+it('rejects invalid access values at the write boundary', async () => {
+  const { browser: admin } = await login(true)
+  const response = await admin.post('/api/blog', { title: 'Invalid access', content: 'body', category: 'market', access: 'PREMIUM' })
+  expect(response.status).toBe(400)
+  expect((await response.json()).data.code).toBe('SYS_VALIDATION_ERROR')
+})
+
+it('rejects invalid, expired, and account-revoked sessions before returning a MEMBER body', async () => {
+  const { browser: admin } = await login(true)
+  const sentinel = 'AUTHENTICATED_BODY_Q7N4'
+  const post = await create(admin, { title: 'Session protected article', content: sentinel, status: 'PUBLISHED', access: 'MEMBER' })
+  const guest = new BrowserSession(baseUrl)
+
+  const invalid = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: 'Bearer definitely-invalid' } })
+  expect(invalid.status).toBe(401)
+  expect((await invalid.text())).not.toContain(sentinel)
+
+  const expiredMember = await login(false)
+  const explicitEmpty = await expiredMember.browser.request(`/api/blog/${post.slug}`, { headers: { authorization: '' } })
+  expect(explicitEmpty.status).toBe(401)
+  expect(await explicitEmpty.text()).not.toContain(sentinel)
+  const expiredToken = expiredMember.browser.cookies.get('access-token')!
+  clock = new Date(clock.getTime() + 60 * 60 * 1000 + 1_000)
+  const expired = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: `Bearer ${expiredToken}` } })
+  expect(expired.status).toBe(401)
+  expect((await expired.text())).not.toContain(sentinel)
+
+  const revokedMember = await login(false)
+  const revokedToken = revokedMember.browser.cookies.get('access-token')!
+  expect((await revokedMember.browser.post('/api/auth/logout-all', {})).status).toBe(200)
+  const revoked = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: `Bearer ${revokedToken}` } })
+  expect(revoked.status).toBe(401)
+  expect((await revoked.text())).not.toContain(sentinel)
 })

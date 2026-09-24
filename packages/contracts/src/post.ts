@@ -3,6 +3,8 @@ import { calendarDateSchema, serializedIdSchema, utcInstantSchema } from './comm
 
 export const postStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
 export type PostStatus = z.infer<typeof postStatusSchema>
+export const postAccessSchema = z.enum(['PUBLIC', 'MEMBER'])
+export type PostAccess = z.infer<typeof postAccessSchema>
 
 const CATEGORY_ALIASES: Record<string, string> = {
   fundamental: 'fundamental',
@@ -44,14 +46,18 @@ const coverImageSchema = z.string().trim().max(500).nullish()
   .refine(value => value === undefined || value === null || value.startsWith('/') || URL.canParse(value), 'Cover image must be an absolute URL or site-relative path')
   .transform(value => value || null)
 
+const postExcerptSchema = z.string().trim().max(1_000).nullish()
+  .transform(value => value === undefined ? undefined : value || null)
+
 export const postWriteRequestSchema = z.object({
   title: z.string().trim().min(1).max(255),
   content: z.string().min(1).max(100_000),
-  excerpt: z.string().trim().max(1_000).nullish().transform(value => value || null),
+  excerpt: postExcerptSchema.optional(),
   coverImage: coverImageSchema,
   category: postCategorySchema,
   tags: postTagsSchema,
   status: postStatusSchema.default('DRAFT'),
+  access: postAccessSchema.optional(),
 }).strict()
 
 export const postListQuerySchema = z.object({
@@ -84,6 +90,8 @@ const postListFields = {
   publishedAt: utcInstantSchema.nullable(),
   createdAt: utcInstantSchema,
   updatedAt: utcInstantSchema,
+  access: postAccessSchema,
+  membersOnly: z.boolean(),
 }
 
 export const postPublicListItemSchema = z.object({ ...postListFields, author: publicAuthorSchema }).strict()
@@ -106,8 +114,13 @@ export const postAdminDetailSchema = z.object({
   ...postListFields,
   content: z.string(),
   status: postStatusSchema,
+  excerptAuthored: z.boolean(),
   authorId: serializedIdSchema,
   author: adminAuthorSchema,
+}).strict()
+export const postPublicMetadataSchema = z.object({
+  ...postListFields,
+  author: publicAuthorSchema,
 }).strict()
 
 export const postBulkRequestSchema = z.object({
@@ -121,3 +134,4 @@ export type PostPublicListResponse = z.infer<typeof postPublicListResponseSchema
 export type PostAdminListResponse = z.infer<typeof postAdminListResponseSchema>
 export type PostPublicDetail = z.infer<typeof postPublicDetailSchema>
 export type PostAdminDetail = z.infer<typeof postAdminDetailSchema>
+export type PostPublicMetadata = z.infer<typeof postPublicMetadataSchema>

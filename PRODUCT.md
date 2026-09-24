@@ -72,6 +72,10 @@ Tools are public product capabilities, not membership features. Guests can open 
 
 Authentication is required only for private additions: saving or appending a Diary, creating a Trade Plan, adding a Watchlist item, saving research evidence or notes, creating reminders, reading personal holdings or settings, and all administration. Guest attempts show an explicit sign-in prompt, preserve the current tool state, use a safe in-site return path, and require confirmation after sign-in before any private write.
 
+## Article access model
+
+Published articles have exactly two reading levels: Public (anyone) and Members only (an existing valid authenticated user). Membership does not represent a paid plan. Public discovery can show a Member article's title, explicitly public teaser, category, tags, publication date, and access label; its body requires server authorization. Unpublished articles remain restricted to Admin editor previews. New articles default to Draft and Members only; Admins explicitly select Public when appropriate. Payment, billing, subscriptions, and paid entitlements are outside this scope.
+
 ## Accessibility & Inclusion
 
 The existing product docs take WCAG AA, keyboard operation, screen readers, and reduced motion as the baseline.

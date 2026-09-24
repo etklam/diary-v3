@@ -22,11 +22,13 @@ import {
   postDeleteResponseSchema,
   postPublicDetailSchema,
   postPublicListResponseSchema,
+  postPublicMetadataSchema,
   postWriteRequestSchema,
   serializedIdSchema,
   type PostStatus,
 } from '@diary/contracts'
 import { posts, users, type Database } from '@diary/db'
+import { resolveArticleReadAccess } from './article-policy.js'
 import type { AppEnv } from './app.js'
 
 const PUBLIC_DEFAULT_LIMIT = 9
@@ -127,7 +129,7 @@ export function parsePublicSearch(input: string): SearchGroup {
   return groups
 }
 
-function textVector(column: typeof posts.title | typeof posts.excerpt) {
+function textVector(column: typeof posts.title | typeof posts.excerpt | ReturnType<typeof sql>) {
   // MariaDB's frozen query uses one MATCH(excerpt,title) vector. PostgreSQL
   // keeps the same combined field boundary and applies unaccent for the
   // measured cafe/café equivalence.
@@ -136,8 +138,13 @@ function textVector(column: typeof posts.title | typeof posts.excerpt) {
   return vector
 }
 
+function searchableExcerpt() {
+  // Derived excerpts are body text. They stay out of guest search for MEMBER posts.
+  return sql`case when ${posts.access} = 'PUBLIC' or (${posts.access} = 'MEMBER' and ${posts.excerptAuthored}) then coalesce(${posts.excerpt}, '') else '' end`
+}
+
 function combinedTextVector() {
-  let vector = sql`to_tsvector('simple', unaccent(coalesce(${posts.title}, '') || ' ' || coalesce(${posts.excerpt}, '')))`
+  let vector = sql`to_tsvector('simple', unaccent(coalesce(${posts.title}, '') || ' ' || ${searchableExcerpt()}))`
   for (const stopword of SEARCH_STOPWORDS) vector = sql`ts_delete(${vector}, ${stopword})`
   return vector
 }
@@ -145,7 +152,7 @@ function combinedTextVector() {
 function matchesTerm(term: SearchTerm) {
   if (term.phrase) return or(
     sql`${textVector(posts.title)} @@ to_tsquery('simple', ${term.query})`,
-    sql`${textVector(posts.excerpt)} @@ to_tsquery('simple', ${term.query})`,
+    sql`${textVector(searchableExcerpt())} @@ to_tsquery('simple', ${term.query})`,
   )
   return sql`${combinedTextVector()} @@ to_tsquery('simple', ${term.query})`
 }
@@ -163,13 +170,19 @@ function fullText(query: string) {
 function toPublicListItem(row: {
   post: typeof posts.$inferSelect
   author: { id: bigint; name: string | null }
-}) {
+}, options: { redactProtectedExcerpt?: boolean } = {}) {
+  const redactProtectedExcerpt = options.redactProtectedExcerpt ?? true
+  const excerpt = redactProtectedExcerpt && row.post.access === 'MEMBER' && !row.post.excerptAuthored
+    ? null
+    : row.post.excerpt
   return {
     id: String(row.post.id), title: row.post.title, slug: row.post.slug,
-    excerpt: row.post.excerpt, coverImage: row.post.coverImage,
+    excerpt, coverImage: row.post.coverImage,
     category: row.post.category, tags: row.post.tags,
     publishedAt: instant(row.post.publishedAt), createdAt: row.post.createdAt.toISOString(),
     updatedAt: row.post.updatedAt.toISOString(),
+    access: row.post.access,
+    membersOnly: row.post.access === 'MEMBER',
     author: { id: String(row.author.id), name: row.author.name },
   }
 }
@@ -179,7 +192,7 @@ function toAdminListItem(row: {
   author: { id: bigint; name: string | null; email: string }
 }) {
   return {
-    ...toPublicListItem(row),
+    ...toPublicListItem(row, { redactProtectedExcerpt: false }),
     status: row.post.status,
     author: { id: String(row.author.id), name: row.author.name, email: row.author.email },
   }
@@ -189,15 +202,23 @@ function toAdminDetail(row: typeof posts.$inferSelect & { author: { id: bigint; 
   return postAdminDetailSchema.parse({
     ...toAdminListItem({ post: row, author: row.author }),
     content: row.content,
+    excerptAuthored: row.excerptAuthored,
     authorId: String(row.authorId),
   })
 }
 
-function toPublicDetail(row: typeof posts.$inferSelect & { author: { id: bigint; name: string | null } }) {
+function toPublicDetail(
+  row: typeof posts.$inferSelect & { author: { id: bigint; name: string | null } },
+  options: { redactProtectedExcerpt?: boolean } = {},
+) {
   return postPublicDetailSchema.parse({
-    ...toPublicListItem({ post: row, author: row.author }),
+    ...toPublicListItem({ post: row, author: row.author }, options),
     content: row.content,
   })
+}
+
+function toPublicMetadata(row: typeof posts.$inferSelect & { author: { id: bigint; name: string | null } }) {
+  return postPublicMetadataSchema.parse(toPublicListItem({ post: row, author: row.author }))
 }
 
 export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
@@ -286,6 +307,8 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const id = parseId(c.req.param('id'), validationError)
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    const decision = resolveArticleReadAccess(row.post, c.get('user'), { allowAdminPreview: true })
+    if (decision !== 'FULL') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     return c.json(toAdminDetail(row.post ? { ...row.post, author: row.author } : row as never))
   })
   app.post('/api/blog/admin/:id/publish', c => transition(c, 'PUBLISHED'))
@@ -320,26 +343,40 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
   })
 
   app.get('/api/blog', c => list(c, true))
+  app.get('/api/blog/:slug/metadata', async c => {
+    c.header('Cache-Control', 'no-store')
+    const row = await readPublic(decodeURIComponent(c.req.param('slug')))
+    if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    const decision = resolveArticleReadAccess(row.post, c.get('user'))
+    if (decision === 'NOT_FOUND') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    return c.json(toPublicMetadata({ ...row.post, author: row.author }))
+  })
   app.get('/api/blog/:slug', async c => {
     c.header('Cache-Control', 'no-store')
     const row = await readPublic(decodeURIComponent(c.req.param('slug')))
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(toPublicDetail({ ...row.post, author: row.author }))
+    const decision = resolveArticleReadAccess(row.post, c.get('user'))
+    if (decision === 'NOT_FOUND') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    if (decision === 'LOCKED') return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    return c.json(toPublicDetail({ ...row.post, author: row.author }, { redactProtectedExcerpt: c.get('user') === undefined }))
   })
   app.post('/api/blog', async c => {
     const authorId = admin(c)
     const input = await parseJson(c, postWriteRequestSchema)
     const timestamp = now()
+    const excerptAuthored = typeof input.excerpt === 'string' && input.excerpt.length > 0
     const [created] = await db.insert(posts).values({
       authorId,
       title: input.title,
       slug: await uniqueSlug(input.title),
       content: input.content,
       excerpt: input.excerpt || excerptFromMarkdown(input.content),
+      excerptAuthored,
       coverImage: input.coverImage,
       category: input.category,
       tags: input.tags,
       status: input.status,
+      access: input.access ?? 'MEMBER',
       publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -356,15 +393,32 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const existing = await readAdmin(id)
     if (!existing) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const timestamp = now()
+    const nextAccess = input.access ?? existing.post.access
+    const hasExcerptInput = input.excerpt !== undefined
+    const echoedDerivedExcerpt = !existing.post.excerptAuthored
+      && typeof input.excerpt === 'string'
+      && input.excerpt === existing.post.excerpt
+    const excerptAuthored = hasExcerptInput
+      ? typeof input.excerpt === 'string' && input.excerpt.length > 0 && !echoedDerivedExcerpt
+      : existing.post.excerptAuthored
+    const excerpt = hasExcerptInput
+      ? input.excerpt || excerptFromMarkdown(input.content)
+      : existing.post.excerptAuthored
+        ? existing.post.excerpt
+        : excerptFromMarkdown(input.content)
+    // Existing derived excerpts cannot be proven safe after PUBLIC -> MEMBER.
+    const safeExcerpt = nextAccess === 'MEMBER' && existing.post.access !== 'MEMBER' && !excerptAuthored ? null : excerpt
     const [updated] = await db.update(posts).set({
       title: input.title,
       slug: input.title === existing.post.title ? existing.post.slug : await uniqueSlug(input.title, id),
       content: input.content,
-      excerpt: input.excerpt || excerptFromMarkdown(input.content),
+      excerpt: safeExcerpt,
+      excerptAuthored,
       coverImage: input.coverImage,
       category: input.category,
       tags: input.tags,
       status: input.status,
+      access: nextAccess,
       publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, input.status, timestamp),
       updatedAt: timestamp,
     }).where(eq(posts.id, id)).returning()

@@ -213,3 +213,46 @@ Confirmed: React, PostgreSQL/Drizzle, full feature parity, UI/UX free to redesig
 This plan proposes: a TypeScript monorepo with a React Router framework web app and a Hono API; delivery stage by stage along complete feature flows; formal coding starts at Phase 0/1.
 
 Still to be settled during implementation: compatible package versions, visual templates, a complete item-by-item parity checklist, performance baselines, and the public brand name. These do not change this round's scope and must not be treated as done.
+
+## 11. Article reading access (2026-09-24)
+
+The current addition is exactly `PUBLIC` and `MEMBER` reading access on the existing Post entity. A member is an existing authenticated user satisfying the application's account and session validity rules. Payment, paid tiers, subscriptions, billing, entitlement expiry, and a separate membership entity are explicitly deferred. This work does not extend AI reports, market providers, native features, or private Diary/Review ownership.
+
+Publication and reading access remain independent. Published Public articles are readable by guests; published Member articles require a valid session. Draft and Archived articles remain unavailable through reader endpoints, including to signed-in users; Admins use the existing authenticated editor and preview. Only Admins may mutate content, access, or publication state. Unknown access values fail closed.
+
+The reader keeps `/articles` and existing article URLs, the public shell, Markdown rendering, filters, sorting, and pagination. Public discovery uses an explicit metadata projection; a Member teaser must be intentionally authored for public display, never inferred from its body. The locked page provides the existing sign-in and registration flows with a validated internal return destination. New articles start Draft and Member.
+
+### Delivery surfaces and compatibility
+
+The repository audit found public list/search and detail under `/api/blog`, Admin list/detail/write/bulk routes, `/articles` SSR and Router hydration, the `/blog/:slug` redirect, and sitemap URL discovery. There is no article feed, export, print API, prerendered article output, or app-hosted attachment authorization service to extend. Public search retains its title/excerpt full-text semantics; body text is not a search field. React Markdown and its existing sanitization remain unchanged.
+
+The application has no shared article query cache. The service worker already excludes API responses and navigations and caches only allowlisted static assets. Reader loader data and in-flight browser responses still require explicit session invalidation; API `no-store` alone is insufficient for SSR HTML or React state. The configured Nginx/Ingress does not enable a response cache, but independently managed edge rules cannot be inferred from the repository.
+
+Deployment must run the additive migration before the access-aware API/Web. Freeze article mutations during the first rollout, establish tested access-aware rollback images before enabling Member publication, and review conservatively classified records. See the exact first-release, rollback, cache-bypass, and external-purge procedure in [production deployment notes](ops/k8s/production/README.md#article-access-release-boundary). No production migration, content publication, edge purge, or cutover is authorized or performed by this task. Previously public copies cannot be recalled, and external/public cover or Markdown assets retain their independent URL access.
+
+### Implemented and verified
+
+The centralized API policy returns full content, a locked result, or not found. Reader metadata is explicitly projected, and `excerptAuthored` distinguishes deliberate public teasers from legacy/body-derived excerpts. The additive `0025_even_nightcrawler.sql` migration preserves existing identifiers, slugs, bodies, publication states and dates; only previously published records with a publication timestamp become Public. Other records remain Member with migration counts and an operator review query. Database enums, non-null defaults, runtime contracts, OpenAPI and the generated client agree.
+
+The editor separates publication from access, defaults to Draft/Member, and retains existing secure previews. Three-language reader cards and lock screens provide validated sign-in/registration returns. SSR forwards the existing credentials, including explicitly empty authorization headers. Article HTML and Router data use private/no-store; API bodies and previews use no-store. Session revision checks reject stale in-flight responses, and cross-tab logout completion discards original article documents, including hydration scripts retained after SPA navigation away. Admin mutations, page visibility and navigation revalidate article access. Existing single-device logout/access-token expiry semantics are retained; account-wide revocation follows the existing token-version rules.
+
+Executed checks on disposable local PostgreSQL and synthetic fixtures:
+
+| Command | Result |
+| --- | --- |
+| `npm run lint` | Passed |
+| `npm run typecheck` | Passed; also included in the production build |
+| `npm run contracts:check` | Passed |
+| `npm run test:unit` | 88 files, 806 tests passed |
+| `npm run test:integration` | 78 files, 303 tests passed |
+| `npx vitest run tests/integration/posts.test.ts tests/integration/post-access-migration.test.ts` | 2 files, 14 tests passed after the final explicit-empty-credential assertion |
+| `npm run build` | API and Web production artifacts built successfully |
+| `npx playwright test tests/e2e/article-access.spec.ts` | 1 consolidated access journey passed, including cross-tab logout and retained SSR document removal |
+| `npx playwright test tests/e2e/posts.spec.ts tests/e2e/web-session.spec.ts tests/e2e/account-security.spec.ts tests/e2e/first-diary.spec.ts tests/e2e/public-pages.spec.ts` | 10 tests passed across the four existing matching files; no separate public-pages spec exists |
+| `npm run test:e2e:release` | 10 tests passed against production artifacts, including protected HTML/Router data and existing private-data journeys |
+
+The first release-suite run found an ambiguous body/excerpt locator and synthetic clients sharing the production login rate-limit bucket. The locator now targets rendered Markdown, and the new Member test uses isolated synthetic client addresses; the complete rerun passed without relaxing the product rate limiter. Initial sandbox network restrictions were resolved for local disposable test services. No remaining failing checks or credential blockers are known; the entire unrelated browser suite and production infrastructure were not exercised.
+
+Desktop (1440px) and mobile (390px) reader/editor captures are recorded under `.impeccable/review/article-access-*.png`. Independent visual review corrected mobile publish-control flex sizing and accepted the resulting screens. Independent security review identified retained hydration after SPA navigation and empty credential forwarding; both have regression coverage and passed re-review. No physical-device/mobile-keyboard automation was performed.
+
+Remaining operational work is deployment-only: review conservatively classified records, deploy the migration and access-aware artifacts with the documented mutation freeze/rollback boundary, and bypass/purge any externally configured article cache. This task did not execute a production migration or cutover. Public/external image and attachment URLs remain independently accessible, and previously distributed Public content cannot be recalled. The parent rebuild PRD is unchanged. Payment, billing and paid tiers remain deferred.

@@ -36,6 +36,7 @@ test('built artifacts publish, update, and archive a public article', async ({ p
   expect((await page.request.post('/api/auth/login', { data: { email: 'release-admin@example.test', password: 'synthetic-release-admin-password' } })).status()).toBe(200);
   await page.goto('/articles');
   await page.getByRole('link', { name: /New article|新增文章/, exact: true }).click();
+  await page.locator('#article-access').selectOption('PUBLIC');
   await page.getByLabel(/Title|標題|标题/, { exact: true }).fill(title);
   await page.getByLabel(/Content|內容|内容/, { exact: true }).fill('Release draft body.');
   await page.getByRole('button', { name: /Save draft|保存草稿/, exact: true }).click();
@@ -50,26 +51,63 @@ test('built artifacts publish, update, and archive a public article', async ({ p
     const draft = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string };
     expect(draft.status).toBe('DRAFT');
     expect((await guest.request.get(`/api/blog/${encodeURIComponent(draft.slug)}`)).status()).toBe(404);
-    await page.getByRole('button', { name: /Publish publicly|公開發布|公开发布/, exact: true }).click();
-    await expect(page.getByText(/Article published publicly\.|文章已公開發布。|文章已公开发布。/, { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Publish|發布|发布/, exact: true }).click();
+    await expect(page.getByText(/Article published\.|文章已發布。|文章已发布。/, { exact: true })).toBeVisible();
     const published = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string };
     expect(published.status).toBe('PUBLISHED');
     await guest.goto('/articles');
     await expect(guest.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await guest.goto(`/articles/${encodeURIComponent(published.slug)}`);
     await expect(guest.getByRole('heading', { name: title, exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: /View public article|查看公開文章|查看公开文章/, exact: true })).toHaveAttribute('href', `/articles/${encodeURIComponent(published.slug)}`);
+    await expect(page.getByRole('link', { name: /View article|查看文章/, exact: true })).toHaveAttribute('href', `/articles/${encodeURIComponent(published.slug)}`);
     await page.getByLabel(/Content|內容|内容/, { exact: true }).fill('Updated through built artifacts.');
-    await page.getByRole('button', { name: /Update published article|更新公開文章|更新公开文章/, exact: true }).click();
-    await expect(page.getByText(/Published article updated\.|公開文章已更新。|公开文章已更新。/, { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Update article|更新文章/, exact: true }).click();
+    await expect(page.getByText(/Published article updated\.|已發布文章已更新。|已发布文章已更新。/, { exact: true })).toBeVisible();
     expect((await (await page.request.get(`/api/blog/admin/${id}`)).json() as { status: string }).status).toBe('PUBLISHED');
     await guest.reload();
-    await expect(guest.getByText('Updated through built artifacts.', { exact: true })).toBeVisible();
+    await expect(guest.locator('.safe-markdown').getByText('Updated through built artifacts.', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: /Archive article|封存文章|归档文章/, exact: true }).click();
     await expect(page.getByText(/Article archived and no longer public\.|文章已封存，不再公開。|文章已归档，不再公开。/, { exact: true })).toBeVisible();
     expect((await guest.goto(`/articles/${encodeURIComponent(published.slug)}`))?.status()).toBe(404);
     await guest.goto('/articles');
     await expect(guest.getByRole('heading', { name: title, exact: true })).toHaveCount(0);
+  } finally { await guestContext.close(); }
+});
+
+test('built artifacts protect Member article HTML, data, and authenticated refresh', async ({ page, browser }) => {
+  await page.context().setExtraHTTPHeaders(freshClient());
+  const sentinel = `RELEASE_MEMBER_BODY_${randomUUID()}`;
+  expect((await page.request.post('/api/auth/login', { data: { email: 'release-admin@example.test', password: 'synthetic-release-admin-password' } })).status()).toBe(200);
+  const result = await page.request.post('/api/blog', { headers: await csrfFor(page.context()), data: {
+    title: `Release Member ${randomUUID()}`, category: 'market', content: sentinel, status: 'PUBLISHED', access: 'MEMBER', excerpt: 'Public release teaser.',
+  } });
+  expect(result.status()).toBe(200);
+  const { slug } = await result.json();
+  const path = `/articles/${slug}`;
+  const guestContext = await browser.newContext({ extraHTTPHeaders: freshClient() });
+  try {
+    const guest = await guestContext.newPage();
+    const locked = await guest.goto(path);
+    expect(locked?.headers()['cache-control']).toContain('no-store');
+    expect(await locked!.text()).not.toContain(sentinel);
+    await expect(guest.getByRole('heading', { name: /Members only|僅限會員|仅限会员/, exact: true })).toBeVisible();
+    const denied = await guest.request.get(`/api/blog/${slug}`);
+    expect(denied.status()).toBe(401);
+    expect(await denied.text()).not.toContain(sentinel);
+    const email = `member-${randomUUID()}@example.test`;
+    expect((await guest.request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
+    expect((await guest.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200);
+    const memberHtml = await guest.reload();
+    expect(memberHtml?.headers()['cache-control']).toContain('no-store');
+    expect(await memberHtml!.text()).toContain(sentinel);
+    await expect(guest.locator('.safe-markdown')).toContainText(sentinel);
+    const dataResponse = await guest.request.get(`${path}.data`);
+    expect(dataResponse.headers()['cache-control']).toContain('no-store');
+    expect((await guest.request.post('/api/auth/logout', { headers: await csrfFor(guestContext) })).status()).toBe(200);
+    const guestData = await guest.request.get(`${path}.data`);
+    expect(guestData.headers()['cache-control']).toContain('no-store');
+    expect(await guestData.text()).not.toContain(sentinel);
+    expect(await (await guest.reload())!.text()).not.toContain(sentinel);
   } finally { await guestContext.close(); }
 });
 

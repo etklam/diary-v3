@@ -1533,6 +1533,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/blog/{slug}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["blogPublicMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/blog/{slug}": {
         parameters: {
             query?: never;
@@ -3162,6 +3178,9 @@ export interface components {
                 createdAt: string;
                 /** Format: date-time */
                 updatedAt: string;
+                /** @enum {string} */
+                access: "PUBLIC" | "MEMBER";
+                membersOnly: boolean;
                 author: {
                     id: string;
                     name: string | null;
@@ -3188,7 +3207,32 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @enum {string} */
+            access: "PUBLIC" | "MEMBER";
+            membersOnly: boolean;
             content: string;
+            author: {
+                id: string;
+                name: string | null;
+            };
+        };
+        PostPublicMetadata: {
+            id: string;
+            title: string;
+            slug: string;
+            excerpt: string | null;
+            coverImage: string | null;
+            category: string;
+            tags: string | null;
+            /** Format: date-time */
+            publishedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @enum {string} */
+            access: "PUBLIC" | "MEMBER";
+            membersOnly: boolean;
             author: {
                 id: string;
                 name: string | null;
@@ -3209,6 +3253,9 @@ export interface components {
                 createdAt: string;
                 /** Format: date-time */
                 updatedAt: string;
+                /** @enum {string} */
+                access: "PUBLIC" | "MEMBER";
+                membersOnly: boolean;
                 /** @enum {string} */
                 status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
                 author: {
@@ -3239,9 +3286,13 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @enum {string} */
+            access: "PUBLIC" | "MEMBER";
+            membersOnly: boolean;
             content: string;
             /** @enum {string} */
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            excerptAuthored: boolean;
             authorId: string;
             author: {
                 id: string;
@@ -3262,6 +3313,8 @@ export interface components {
              * @enum {string}
              */
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            /** @enum {string} */
+            access?: "PUBLIC" | "MEMBER";
         };
         PostBulkRequest: {
             ids: string[];
@@ -13411,6 +13464,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description HTTP 500 error */
             500: {
                 headers: {
@@ -13483,6 +13545,55 @@ export interface operations {
             };
         };
     };
+    blogPublicMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published article metadata without body content */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPublicMetadata"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     blogPublicDetail: {
         parameters: {
             query?: never;
@@ -13494,13 +13605,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Published public article */
+            /** @description Published article body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["PostPublicDetail"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
             /** @description HTTP 404 error */

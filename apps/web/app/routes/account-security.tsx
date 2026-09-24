@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
-import { clearPrivateSession, signInPath, useSessionState } from '../session';
+import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from '../session';
 import './account-security.css';
 
 const copy = {
@@ -61,6 +61,7 @@ export default function AccountSecurity() {
     // Location state survives the shell's private-session remount; it contains no secrets.
     navigate('/settings/security', { replace: true, state: { securityAction: action } });
     clearPrivateSession(true);
+    completeSignOut();
   }
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

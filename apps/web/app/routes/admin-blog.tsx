@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { postAdminListResponseSchema, postStatusSchema } from '@diary/contracts/post'
-import { csrfToken, sessionFetch, signInPath } from '../session'
+import { csrfToken, invalidateArticleCache, sessionFetch, signInPath } from '../session'
 import { useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import '../trade-plan.css'
 
 const copy = {
-  en: { title: 'Article management', intro: 'Manage drafts, publication, and the public article index.', new: 'New article', search: 'Search title or author', status: 'Status', all: 'All statuses', draft: 'Draft', published: 'Published', archived: 'Archived', apply: 'Apply', loading: 'Loading…', empty: 'No articles yet.', edit: 'Edit', view: 'View public', publish: 'Publish', archive: 'Archive', remove: 'Delete', selected: 'selected', bulkPublish: 'Publish selected', bulkDelete: 'Delete selected', confirm: 'Delete the selected articles?', author: 'Author', updated: 'Updated', actions: 'Actions', forbidden: 'You do not have permission to manage articles.', connection: 'Unable to load articles.' },
-  'zh-TW': { title: '文章管理', intro: '管理草稿、發布及公開文章索引。', new: '新增文章', search: '搜尋標題或作者', status: '狀態', all: '全部狀態', draft: '草稿', published: '已發布', archived: '已封存', apply: '套用', loading: '正在載入…', empty: '目前沒有文章。', edit: '編輯', view: '查看公開頁', publish: '發布', archive: '封存', remove: '刪除', selected: '項已選取', bulkPublish: '發布所選', bulkDelete: '刪除所選', confirm: '刪除所選文章？', author: '作者', updated: '已更新', actions: '操作', forbidden: '你沒有管理文章的權限。', connection: '暫時無法載入文章。' },
-  'zh-CN': { title: '文章管理', intro: '管理草稿、发布及公开文章索引。', new: '新增文章', search: '搜索标题或作者', status: '状态', all: '全部状态', draft: '草稿', published: '已发布', archived: '已归档', apply: '应用', loading: '正在加载…', empty: '目前没有文章。', edit: '编辑', view: '查看公开页', publish: '发布', archive: '归档', remove: '删除', selected: '项已选中', bulkPublish: '发布所选', bulkDelete: '删除所选', confirm: '删除所选文章？', author: '作者', updated: '已更新', actions: '操作', forbidden: '你没有管理文章的权限。', connection: '暂时无法加载文章。' },
+  en: { title: 'Article management', intro: 'Manage drafts, publication, and the public article index.', new: 'New article', search: 'Search title or author', status: 'Status', all: 'All statuses', draft: 'Draft', published: 'Published', archived: 'Archived', apply: 'Apply', loading: 'Loading…', empty: 'No articles yet.', edit: 'Edit', view: 'View article', publish: 'Publish', archive: 'Archive', remove: 'Delete', selected: 'selected', bulkPublish: 'Publish selected', bulkDelete: 'Delete selected', confirm: 'Delete the selected articles?', author: 'Author', updated: 'Updated', actions: 'Actions', forbidden: 'You do not have permission to manage articles.', connection: 'Unable to load articles.' },
+  'zh-TW': { title: '文章管理', intro: '管理草稿、發布及公開文章索引。', new: '新增文章', search: '搜尋標題或作者', status: '狀態', all: '全部狀態', draft: '草稿', published: '已發布', archived: '已封存', apply: '套用', loading: '正在載入…', empty: '目前沒有文章。', edit: '編輯', view: '查看文章', publish: '發布', archive: '封存', remove: '刪除', selected: '項已選取', bulkPublish: '發布所選', bulkDelete: '刪除所選', confirm: '刪除所選文章？', author: '作者', updated: '已更新', actions: '操作', forbidden: '你沒有管理文章的權限。', connection: '暫時無法載入文章。' },
+  'zh-CN': { title: '文章管理', intro: '管理草稿、发布及公开文章索引。', new: '新增文章', search: '搜索标题或作者', status: '状态', all: '全部状态', draft: '草稿', published: '已发布', archived: '已归档', apply: '应用', loading: '正在加载…', empty: '目前没有文章。', edit: '编辑', view: '查看文章', publish: '发布', archive: '归档', remove: '删除', selected: '项已选中', bulkPublish: '发布所选', bulkDelete: '删除所选', confirm: '删除所选文章？', author: '作者', updated: '已更新', actions: '操作', forbidden: '你没有管理文章的权限。', connection: '暂时无法加载文章。' },
 } as const
 
 export default function AdminBlog() {
@@ -35,6 +35,7 @@ export default function AdminBlog() {
     if (!csrfToken()) await sessionFetch('/api/auth/me')
     const response = await sessionFetch(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': csrfToken() ?? '' }, body: body === undefined ? undefined : JSON.stringify(body) })
     if (!response.ok) { setFailure(apiFailure(await response.json().catch(() => null), c.connection)); return }
+    invalidateArticleCache()
     refresh()
   }
   const allSelected = Boolean(rows?.data.length && rows.data.every(row => selected.has(row.id)))

@@ -1,7 +1,7 @@
 import { ForegroundReminders } from './foreground-reminders';
 import { useEffect, useRef, useState } from 'react';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useNavigate, useRouteError, isRouteErrorResponse } from 'react-router';
-import { clearPrivateSession, signInPath, useSessionState } from './session';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse } from 'react-router';
+import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import { BrandMark } from './icons';
 import './styles.css';
@@ -34,6 +34,7 @@ function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = useSessionState();
+  const revalidator = useRevalidator();
   const sessionRevision = useRef(session.revision);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
@@ -49,14 +50,26 @@ function Shell() {
     return () => { active = false; };
     // Role only changes at session boundaries; page navigations must not refetch it.
   }, [session.authenticated, session.revision]);
-  useEffect(() => { if(session.revision!==sessionRevision.current){sessionRevision.current=session.revision; if(location.pathname.startsWith('/diaries/') || location.pathname === '/reviews/ai-reports' || location.pathname === '/admin/ai') navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});} },[session.revision,location.pathname,location.search,navigate]);
+  useEffect(() => {
+    if (session.revision === sessionRevision.current) return;
+    sessionRevision.current = session.revision;
+    const articlePath = location.pathname === '/articles' || location.pathname.startsWith('/articles/');
+    // Loader data can contain a members-only article body. Revalidate article
+    // routes when auth changes so logout cannot reuse that data. Other private
+    // routes keep their existing redirect lifecycle.
+    if (articlePath) revalidator.revalidate();
+    if (session.authenticated === false && (location.pathname.startsWith('/diaries/') || location.pathname === '/reviews/ai-reports' || location.pathname === '/admin/ai')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});
+  }, [session.revision, location.pathname, location.search, navigate, revalidator]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);
     clearPrivateSession(true);
     setViewer(null);
-    try { const result=await api.POST('/api/auth/logout'); if(!result.response.ok) setLogoutError(true); }
+    try { const result=await api.POST('/api/auth/logout'); if(!result.response.ok) setLogoutError(true); else completeSignOut(); }
     catch { setLogoutError(true); }
-    finally { setLogoutPending(false); }
+    finally {
+      setLogoutPending(false);
+      if (location.pathname === '/articles' || location.pathname.startsWith('/articles/')) revalidator.revalidate();
+    }
   }
   const previousPath = useRef(location.pathname);
   useEffect(() => { if(previousPath.current!==location.pathname){document.getElementById('main')?.focus();previousPath.current=location.pathname;} },[location.pathname]);

@@ -11,13 +11,29 @@ function apiUrl(request: Request, path: string) {
   return `${origin}${path}`
 }
 
+const ARTICLE_NO_STORE = { 'Cache-Control': 'private, no-store' }
+
+function articleRequestInit(request: Request): RequestInit {
+  const headers = new Headers()
+  // SSR requests must carry the browser session to the API. Preserve explicit
+  // credentials when present so the API can apply its fail-closed precedence.
+  for (const name of ['cookie', 'authorization', 'x-api-key']) {
+    const value = request.headers.get(name)
+    if (value !== null) headers.set(name, value)
+  }
+  return { cache: 'no-store', credentials: 'same-origin', headers }
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url)
-  const response = await fetch(apiUrl(request, `/api/blog${url.search}`))
+  const response = await fetch(apiUrl(request, `/api/blog${url.search}`), articleRequestInit(request))
   if (!response.ok) throw new Response('Articles unavailable', { status: response.status })
   const parsed = postPublicListResponseSchema.parse(await response.json())
-  return data({ ...parsed, origin: url.origin, search: url.search })
+  return data({ ...parsed, origin: url.origin, search: url.search }, { headers: ARTICLE_NO_STORE })
 }
+
+export function headers() { return ARTICLE_NO_STORE }
+export function shouldRevalidate() { return true }
 
 export const meta: MetaFunction<typeof loader> = () => [
   { title: 'Articles — Trade basic' },
@@ -25,9 +41,9 @@ export const meta: MetaFunction<typeof loader> = () => [
 ]
 
 const copy = {
-  en: { title: 'Articles', intro: 'Published research and decision notes, kept readable and traceable.', search: 'Search', category: 'Category', all: 'All categories', submit: 'Apply', empty: 'No published articles match these filters.', previous: 'Previous', next: 'Next', page: 'Page', author: 'By', read: 'Read article', new: 'New article', manage: 'Manage articles', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy' },
-  'zh-TW': { title: '文章', intro: '已發布的研究與決策記錄，保留可讀性與脈絡。', search: '搜尋', category: '分類', all: '全部分類', submit: '套用', empty: '沒有符合條件的已發布文章。', previous: '上一頁', next: '下一頁', page: '第', author: '作者', read: '閱讀文章', new: '新增文章', manage: '管理文章', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略' },
-  'zh-CN': { title: '文章', intro: '已发布的研究与决策记录，保留可读性与脉络。', search: '搜索', category: '分类', all: '全部分类', submit: '应用', empty: '没有符合条件的已发布文章。', previous: '上一页', next: '下一页', page: '第', author: '作者', read: '阅读文章', new: '新增文章', manage: '管理文章', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略' },
+  en: { title: 'Articles', intro: 'Published research and decision notes, kept readable and traceable.', search: 'Search', category: 'Category', all: 'All categories', submit: 'Apply', empty: 'No published articles match these filters.', previous: 'Previous', next: 'Next', page: 'Page', author: 'By', read: 'Read article', new: 'New article', manage: 'Manage articles', publicAccess: 'Public', membersOnly: 'Members only', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy' },
+  'zh-TW': { title: '文章', intro: '已發布的研究與決策記錄，保留可讀性與脈絡。', search: '搜尋', category: '分類', all: '全部分類', submit: '套用', empty: '沒有符合條件的已發布文章。', previous: '上一頁', next: '下一頁', page: '第', author: '作者', read: '閱讀文章', new: '新增文章', manage: '管理文章', publicAccess: '公開', membersOnly: '僅限會員', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略' },
+  'zh-CN': { title: '文章', intro: '已发布的研究与决策记录，保留可读性与脉络。', search: '搜索', category: '分类', all: '全部分类', submit: '应用', empty: '没有符合条件的已发布文章。', previous: '上一页', next: '下一页', page: '第', author: '作者', read: '阅读文章', new: '新增文章', manage: '管理文章', publicAccess: '公开', membersOnly: '仅限会员', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略' },
 } as const
 
 export default function Articles() {
@@ -53,7 +69,7 @@ export default function Articles() {
     </Form>
     {loaded.data.length === 0 ? <p>{c.empty}</p> : <ol className="plan-list">{loaded.data.map(post => <li key={post.id}>
       <h2><Link to={`/articles/${encodeURIComponent(post.slug)}`}>{post.title}</Link></h2>
-      <p className="muted">{categoryLabel(post.category)} · {c.author} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
+      <p className="muted article-meta">{categoryLabel(post.category)} · {c.author} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time><span className="article-access-badge">{post.access === 'MEMBER' ? c.membersOnly : c.publicAccess}</span></p>
       {post.excerpt && <p>{post.excerpt}</p>}
       <Link to={`/articles/${encodeURIComponent(post.slug)}`}>{c.read}</Link>
     </li>)}</ol>}

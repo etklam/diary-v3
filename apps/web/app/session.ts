@@ -13,11 +13,28 @@ let locallySignedOut = false;
 // unmount flush still preserves the writing for re-login.
 let explicitSignOut = false;
 export function wasExplicitSignOut() { return explicitSignOut; }
+export function isLocallySignedOut() { return locallySignedOut; }
+export function getSessionRevision() { return state.revision; }
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | undefined;
 let listening = false;
 const eventKey = 'diary-logout-event';
+const startedOnArticle = typeof window !== 'undefined' && window.location.pathname.startsWith('/articles/');
 function publish(next: SessionState) { state = next; for (const listener of listeners) listener(); }
+
+function discardArticleDocument() {
+  // A full document replacement also discards the original SSR hydration
+  // scripts, which Router revalidation alone cannot remove from the document.
+  if (typeof window !== 'undefined' && (startedOnArticle || window.location.pathname.startsWith('/articles/'))) window.location.reload();
+}
+
+export function completeSignOut() {
+  if (typeof window === 'undefined') return;
+  const event = { type: 'logout-complete', nonce: `${Date.now()}-${Math.random()}` };
+  if (channel) channel.postMessage(event);
+  else { try { localStorage.setItem(eventKey, JSON.stringify(event)); } catch { /* Storage may be disabled. */ } }
+  discardArticleDocument();
+}
 
 export function csrfToken() {
   return typeof document === 'undefined' ? null : document.cookie.split('; ').find(value => value.startsWith('csrf-token='))?.slice(11) ?? null;
@@ -35,6 +52,14 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
   const adminPostEdit = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/);
   if (adminPostEdit && serializedIdSchema.safeParse(adminPostEdit[1]).success) return candidate!;
+  // Article readers may be sent to sign-in from a members-only page. Keep the
+  // slug on the same-origin allowlist so authentication can return to it.
+  if (candidate?.startsWith('/articles/')) {
+    try {
+      const slug = decodeURIComponent(candidate.slice('/articles/'.length));
+      if (/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return candidate;
+    } catch { /* Malformed encoding is not a valid article return path. */ }
+  }
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
   if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/reviews/ai-reports' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/achievements' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/ai' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
@@ -79,6 +104,7 @@ export function clearPrivateSession(broadcast = false, clearDrafts = false) {
     if (channel) channel.postMessage(event);
     else { try { localStorage.setItem(eventKey, JSON.stringify(event)); } catch { /* Storage may be disabled. */ } }
   }
+  if (!broadcast && !clearDrafts) discardArticleDocument();
 }
 
 function startListening() {
@@ -86,13 +112,36 @@ function startListening() {
   listening = true;
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel('diary-web-session');
-    channel.onmessage = event => { if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(false, true); } };
+    channel.onmessage = event => {
+      if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(false, true); }
+      if (event.data?.type === 'logout-complete') discardArticleDocument();
+    };
   }
-  window.addEventListener('storage', event => { if (event.key === eventKey && event.newValue) { explicitSignOut = true; clearPrivateSession(false, true); } });
+  window.addEventListener('storage', event => {
+    if (event.key !== eventKey || !event.newValue) return;
+    try {
+      if (JSON.parse(event.newValue).type === 'logout-complete') discardArticleDocument();
+      else { explicitSignOut = true; clearPrivateSession(false, true); }
+    } catch { /* Ignore malformed cross-tab events. */ }
+  });
 }
 function subscribe(listener: () => void) { startListening(); listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function useSessionState() { return useSyncExternalStore(subscribe, () => state, () => initial); }
-export function markSignedIn() { locallySignedOut=false; explicitSignOut=false; publish({ ...state, authenticated: true }); }
+export function markSignedIn() {
+  locallySignedOut = false;
+  explicitSignOut = false;
+  if (state.authenticated === true) return;
+  publish({ ...state, authenticated: true, revision: state.revision + 1 });
+}
+
+export const articleCacheInvalidationEvent = 'diary-article-cache-invalidated';
+
+/** Ask mounted article routes and other tabs to discard loader data after a mutation. */
+export function invalidateArticleCache() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(articleCacheInvalidationEvent));
+  try { localStorage.setItem(articleCacheInvalidationEvent, String(Date.now())); } catch { /* Storage may be disabled. */ }
+}
 
 // The shared client owns refresh, retry and single-flight; this module owns browser UI invalidation only.
 export const webSession = createWebSession({ baseUrl: typeof window === 'undefined' ? 'http://localhost' : window.location.origin });

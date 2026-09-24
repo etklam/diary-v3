@@ -6083,6 +6083,16 @@
                   "type": "string",
                   "format": "date-time"
                 },
+                "access": {
+                  "type": "string",
+                  "enum": [
+                    "PUBLIC",
+                    "MEMBER"
+                  ]
+                },
+                "membersOnly": {
+                  "type": "boolean"
+                },
                 "author": {
                   "type": "object",
                   "properties": {
@@ -6116,6 +6126,8 @@
                 "publishedAt",
                 "createdAt",
                 "updatedAt",
+                "access",
+                "membersOnly",
                 "author"
               ],
               "additionalProperties": false
@@ -6208,6 +6220,16 @@
             "type": "string",
             "format": "date-time"
           },
+          "access": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "MEMBER"
+            ]
+          },
+          "membersOnly": {
+            "type": "boolean"
+          },
           "content": {
             "type": "string"
           },
@@ -6244,7 +6266,109 @@
           "publishedAt",
           "createdAt",
           "updatedAt",
+          "access",
+          "membersOnly",
           "content",
+          "author"
+        ],
+        "additionalProperties": false
+      },
+      "PostPublicMetadata": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 19,
+            "pattern": "^[1-9]\\d*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "access": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "MEMBER"
+            ]
+          },
+          "membersOnly": {
+            "type": "boolean"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 19,
+                "pattern": "^[1-9]\\d*$"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "excerpt",
+          "coverImage",
+          "category",
+          "tags",
+          "publishedAt",
+          "createdAt",
+          "updatedAt",
+          "access",
+          "membersOnly",
           "author"
         ],
         "additionalProperties": false
@@ -6305,6 +6429,16 @@
                   "type": "string",
                   "format": "date-time"
                 },
+                "access": {
+                  "type": "string",
+                  "enum": [
+                    "PUBLIC",
+                    "MEMBER"
+                  ]
+                },
+                "membersOnly": {
+                  "type": "boolean"
+                },
                 "status": {
                   "type": "string",
                   "enum": [
@@ -6351,6 +6485,8 @@
                 "publishedAt",
                 "createdAt",
                 "updatedAt",
+                "access",
+                "membersOnly",
                 "status",
                 "author"
               ],
@@ -6444,6 +6580,16 @@
             "type": "string",
             "format": "date-time"
           },
+          "access": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "MEMBER"
+            ]
+          },
+          "membersOnly": {
+            "type": "boolean"
+          },
           "content": {
             "type": "string"
           },
@@ -6454,6 +6600,9 @@
               "PUBLISHED",
               "ARCHIVED"
             ]
+          },
+          "excerptAuthored": {
+            "type": "boolean"
           },
           "authorId": {
             "type": "string",
@@ -6498,8 +6647,11 @@
           "publishedAt",
           "createdAt",
           "updatedAt",
+          "access",
+          "membersOnly",
           "content",
           "status",
+          "excerptAuthored",
           "authorId",
           "author"
         ],
@@ -6561,6 +6713,13 @@
               "ARCHIVED"
             ],
             "default": "DRAFT"
+          },
+          "access": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "MEMBER"
+            ]
           }
         },
         "required": [
@@ -31337,6 +31496,16 @@
               }
             }
           },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "HTTP 500 error",
             "content": {
@@ -31426,14 +31595,20 @@
         }
       }
     },
-    "/api/blog/{slug}": {
+    "/api/blog/{slug}/metadata": {
       "get": {
         "tags": [
           "Blog"
         ],
-        "operationId": "blogPublicDetail",
+        "operationId": "blogPublicMetadata",
         "security": [
-          {}
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
@@ -31449,11 +31624,92 @@
         ],
         "responses": {
           "200": {
-            "description": "Published public article",
+            "description": "Published article metadata without body content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostPublicMetadata"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blog/{slug}": {
+      "get": {
+        "tags": [
+          "Blog"
+        ],
+        "operationId": "blogPublicDetail",
+        "security": [
+          {},
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published article body",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PostPublicDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }

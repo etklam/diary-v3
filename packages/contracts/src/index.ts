@@ -90,6 +90,7 @@ export {
   postAdminListItemSchema,
   postAdminListQuerySchema,
   postAdminListResponseSchema,
+  postAccessSchema,
   postBulkRequestSchema,
   postBulkResponseSchema,
   postCategorySchema,
@@ -98,10 +99,11 @@ export {
   postPublicDetailSchema,
   postPublicListItemSchema,
   postPublicListResponseSchema,
+  postPublicMetadataSchema,
   postStatusSchema,
   postWriteRequestSchema,
 } from './post.js'
-export type { PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostStatus, PostWriteRequest } from './post.js'
+export type { PostAccess, PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostPublicMetadata, PostStatus, PostWriteRequest } from './post.js'
 export {
   adminDiaryListQuerySchema,
   adminDiaryListResponseSchema,

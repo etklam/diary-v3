@@ -59,6 +59,7 @@ import {
   postDeleteResponseSchema,
   postPublicDetailSchema,
   postPublicListResponseSchema,
+  postPublicMetadataSchema,
   postWriteRequestSchema,
   postListQuerySchema,
 } from './post.js'
@@ -592,6 +593,7 @@ registry.registerPath({ method: 'get', path: '/api/tools/sec-filings/batch', tag
 
 const PostPublicListResponse = registry.register('PostPublicListResponse', postPublicListResponseSchema.clone())
 const PostPublicDetail = registry.register('PostPublicDetail', postPublicDetailSchema.clone())
+const PostPublicMetadata = registry.register('PostPublicMetadata', postPublicMetadataSchema.clone())
 const PostAdminListResponse = registry.register('PostAdminListResponse', postAdminListResponseSchema.clone())
 const PostAdminDetail = registry.register('PostAdminDetail', postAdminDetailSchema.clone())
 const PostWriteRequest = registry.register('PostWriteRequest', postWriteRequestSchema.clone())
@@ -599,8 +601,9 @@ const PostBulkRequest = registry.register('PostBulkRequest', postBulkRequestSche
 const PostBulkResponse = registry.register('PostBulkResponse', postBulkResponseSchema.clone())
 const PostDeleteResponse = registry.register('PostDeleteResponse', postDeleteResponseSchema.clone())
 
-registry.registerPath({ method: 'get', path: '/api/blog', tags: ['Blog'], operationId: 'blogPublicList', security: [{}], request: { query: postListQuerySchema.clone() }, responses: { 200: json(PostPublicListResponse, 'Published public articles'), ...errors([400, 500]) } })
-registry.registerPath({ method: 'get', path: '/api/blog/{slug}', tags: ['Blog'], operationId: 'blogPublicDetail', security: [{}], request: { params: z.object({ slug: z.string().min(1).max(255) }) }, responses: { 200: json(PostPublicDetail, 'Published public article'), ...errors([404, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog', tags: ['Blog'], operationId: 'blogPublicList', security: [{}], request: { query: postListQuerySchema.clone() }, responses: { 200: json(PostPublicListResponse, 'Published public articles'), ...errors([400, 401, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/{slug}/metadata', tags: ['Blog'], operationId: 'blogPublicMetadata', security: [{}, { accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ slug: z.string().min(1).max(255) }) }, responses: { 200: json(PostPublicMetadata, 'Published article metadata without body content'), ...errors([401, 404, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/{slug}', tags: ['Blog'], operationId: 'blogPublicDetail', security: [{}, { accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ slug: z.string().min(1).max(255) }) }, responses: { 200: json(PostPublicDetail, 'Published article body'), ...errors([401, 404, 500]) } })
 registry.registerPath({ method: 'get', path: '/api/blog/admin', tags: ['Blog'], operationId: 'blogAdminList', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: postAdminListQuerySchema.clone() }, responses: { 200: json(PostAdminListResponse, 'Admin article list'), ...errors([400, 401, 403, 500]) } })
 registry.registerPath({ method: 'get', path: '/api/blog/admin/{id}', tags: ['Blog'], operationId: 'blogAdminDetail', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Admin article detail'), ...errors([400, 401, 403, 404, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog', tags: ['Blog'], operationId: 'blogCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostWriteRequest, 'Admin article') }, responses: { 200: json(PostAdminDetail, 'Created article'), ...errors([400, 401, 403, 500]) } })

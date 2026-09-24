@@ -18,7 +18,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   let page = 1
   let totalPages = 1
   while (page <= totalPages) {
-    const response = await fetch(apiUrl(request, `/api/blog?page=${page}&limit=50&sortBy=publishedAt_desc`))
+    const response = await fetch(apiUrl(request, `/api/blog?page=${page}&limit=50&sortBy=publishedAt_desc`), { cache: 'no-store' })
     if (!response.ok) return new Response('Sitemap unavailable', { status: 502 })
     const parsed = postPublicListResponseSchema.parse(await response.json())
     rows.push(...parsed.data.map(post => ({ slug: post.slug, updatedAt: post.updatedAt })))
@@ -26,7 +26,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     page += 1
   }
   const urls = rows.map(row => `<url><loc>${escapeXml(`${origin}/articles/${encodeURIComponent(row.slug)}`)}</loc><lastmod>${escapeXml(row.updatedAt)}</lastmod></url>`).join('')
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${escapeXml(`${origin}/articles`)}</loc></url>${urls}</urlset>`, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } })
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${escapeXml(`${origin}/articles`)}</loc></url>${urls}</urlset>`, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-store' } })
 }
 
 export default function Sitemap() { return null }

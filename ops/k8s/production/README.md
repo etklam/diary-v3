@@ -46,6 +46,67 @@ article and sitemap reads do not depend on external DNS or ingress hairpinning.
 See [the environment contract](../../../docs/operations/environment-contract.md)
 for required, optional, secret, and environment-specific values.
 
+## Article-access release boundary
+
+The article-access migration is additive, but the previous API binary does not
+understand `MEMBER` authorization. Schema compatibility alone does not make an
+application rollback safe. Before this first access-aware release, back up the
+database and freeze all article mutations for the migration and API/Web rollout
+window. Use the existing operational maintenance/edge controls; this repository
+has no article maintenance switch. If that freeze cannot be enforced, keep
+article routes unavailable for the window. Reading existing Public articles
+does not otherwise need to stop.
+
+After migration, verify that this query returns zero while the freeze holds:
+
+```sql
+SELECT count(*) FROM posts
+WHERE access = 'MEMBER' AND status = 'PUBLISHED' AND published_at IS NOT NULL;
+```
+
+Migration `0025_even_nightcrawler.sql` reports classification counts through a
+PostgreSQL notice. During the same frozen window, save this metadata-only review
+list in the operator's controlled release record; do not dump article bodies:
+
+```sql
+SELECT id, slug, status, published_at
+FROM posts WHERE access = 'MEMBER' ORDER BY id;
+```
+
+These pre-existing Draft/Archived or otherwise unproven rows stay Member; review
+them in the Admin editor before deliberately changing access. All old excerpt
+provenance is unproven, so it is not a public Member teaser until intentionally
+authored. The migration retains content, identifiers, slugs, and publication
+state and does not publish any row.
+
+The first rollout's automatic rollback to the previous API is safe only while
+that invariant holds and article mutations remain frozen. If it fails, verify
+the invariant before restoring traffic; if any published Member row exists,
+keep article routes restricted until an access-aware build is restored. Verify
+guest/member/Admin behavior on both new runtimes, record their tested image
+digests as the minimum rollback baseline, and only then lift the mutation
+freeze. After Member publication begins, never restore a pre-access API image;
+subsequent releases must retain a tested access-aware rollback image. The
+existing automatic image rollback does not itself enforce this boundary.
+
+The checked-in Nginx and Ingress configurations do not configure an article
+response cache or a cache purge service. Article API and preview responses must
+retain `no-store`, and reader HTML/data uses `private, no-store`; the sitemap must not retain
+stale publication state. At any separately managed CDN/reverse proxy, bypass
+caching for `/api/blog*`, `/articles*` (including Router `.data` requests), and
+admin previews. Before reopening traffic, use that provider's existing purge
+operation to remove any previously cached article HTML/data/API variants and
+`/sitemap.xml`, including query-string variants. Do the same when tightening
+visibility if an external cache rule was previously active. Verify anonymously
+at the public edge after a member request: Member bodies must not appear, and
+unpublished URLs must return not found. There is no configured purge credential
+or provider API in this repository; this is a required operator action where
+external caching exists, not an automated or executed purge claim.
+
+Previously public reader copies cannot be recalled. Cover and Markdown image
+URLs remain independently hosted assets; article authorization does not protect
+public or external asset URLs. Do not put confidential assets at public URLs.
+
 ## Manual AI report worker
 
 `08-ai-worker.yaml` uses the same digest-pinned API image and has no Service or

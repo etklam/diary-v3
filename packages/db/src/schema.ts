@@ -30,6 +30,7 @@ export const thesisReviewOutcome = pgEnum('thesis_review_outcome', ['INTACT', 'P
 export const transactionType = pgEnum('transaction_type', ['BUY', 'SELL'])
 export const tradePlanStatus = pgEnum('trade_plan_status', ['draft', 'active', 'closed', 'cancelled'])
 export const postStatus = pgEnum('post_status', ['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+export const postAccess = pgEnum('post_access', ['PUBLIC', 'MEMBER'])
 
 export const users = pgTable('users', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
@@ -113,10 +114,12 @@ export const posts = pgTable('posts', {
   slug: varchar('slug', { length: 255 }).notNull(),
   content: text('content').notNull(),
   excerpt: text('excerpt'),
+  excerptAuthored: boolean('excerpt_authored').default(false).notNull(),
   coverImage: varchar('cover_image', { length: 500 }),
   category: varchar('category', { length: 100 }).notNull(),
   tags: varchar('tags', { length: 500 }),
   status: postStatus('status').default('DRAFT').notNull(),
+  access: postAccess('access').default('MEMBER').notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
