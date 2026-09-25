@@ -12,16 +12,18 @@ The supplied model key remains in the ignored owner-only local configuration fil
 
 | Check | Result |
 | --- | --- |
-| `npm run test:unit` | 94 files, 869 tests passed |
-| `npx vitest run tests/integration --maxWorkers=4` | 84 files, 336 tests passed using disposable PostgreSQL |
+| `npm run test:unit` | 96 files, 919 tests passed |
+| `npx vitest run tests/integration --maxWorkers=4` | 85 files, 347 tests passed using disposable PostgreSQL |
 | `npm run test:e2e -- tests/e2e/research-studio.spec.ts` | 2 principal browser journeys passed |
 | `npm run typecheck` | Passed |
 | `npm run lint` | Passed |
 | `npm run contracts:check` | Passed |
 | `npm run build` | Web and API/worker/retention bundles passed |
-| `npm run manifests:check` | 10 manifests validated; research worker disabled with zero replicas |
+| `npm run manifests:check` | 11 manifests validated; research worker disabled with zero replicas |
 | `node dist/api/research-retention.js` | Disabled by default; no database opened or records deleted |
 | `node --import tsx scripts/research-restore-smoke.ts` | Physical dump/restore passed on latest migrations; both temporary databases and archive cleaned up |
+
+The full integration run initially exposed a scheduling-dependent assertion in an existing price-alert concurrency test. A two-arrival barrier now holds both synthetic quote responses until both checkers have loaded candidates. This preserves the quote, notification, and persisted-row assertions while making the intended overlap deterministic; the checker implementation was not changed. The complete disposable-PostgreSQL suite passed after this test-only correction.
 
 Restoration preserves identifiers, evidence/title/body hashes, approval identity and time, article links, dispatch state and the exhausted live budget. A recovery pass sends zero transport calls. Attempting to publish the restored synthetic article returns 409 `RESEARCH_ARTICLE_PROVENANCE` and leaves it Draft/Member.
 

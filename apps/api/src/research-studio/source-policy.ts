@@ -55,22 +55,83 @@ export class SourcePolicyError extends Error {
   }
 }
 
-const purposeToUseKey: Readonly<Partial<Record<ResearchSourcePurpose, keyof ResearchSourceUse>>> = {
+const purposeToUseKey: Readonly<Record<ResearchSourcePurpose, keyof ResearchSourceUse>> = {
   automated_fetch: 'automatedFetch',
   evidence_storage: 'evidenceStorage',
   llm_inference: 'llmInference',
   publication_of_analysis_and_excerpts: 'publicationOfAnalysisAndExcerpts',
+  raw_data_redistribution: 'rawDataRedistribution',
+}
+
+function validPolicyBasis(value: string | null): boolean {
+  if (!value || value !== value.trim()) return false
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && Boolean(url.hostname) && !url.username && !url.password
+  } catch {
+    return false
+  }
+}
+
+function validCheckedAt(value: string | null): boolean {
+  if (typeof value !== 'string') return false
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|([+-])(\d{2}):?(\d{2}))$/u)
+  if (!match) return false
+  const [, date, hour, minute, second = '0', , , offsetHour = '0', offsetMinute = '0'] = match
+  const parsedDate = new Date(`${date}T00:00:00.000Z`)
+  return Number.isFinite(parsedDate.getTime())
+    && parsedDate.toISOString().slice(0, 10) === date
+    && Number(hour) <= 23
+    && Number(minute) <= 59
+    && Number(second) <= 59
+    && Number(offsetHour) <= 23
+    && Number(offsetMinute) <= 59
+    && Number.isFinite(Date.parse(value))
+}
+
+function policyPermission(policy: ResearchSourcePolicy, purpose: ResearchSourcePurpose): ResearchSourcePermission {
+  const configured = policy.permissions?.[purpose]
+  return configured ? { ...configured, conditions: [...configured.conditions] } : {
+    status: policy.decisions[purpose],
+    conditions: [...policy.conditions],
+    basis: policy.basisUrl,
+    checkedAt: policy.checkedAt,
+  }
+}
+
+export function sourcePermissionHasEvidence(permission: Pick<ResearchSourcePermission, 'basis' | 'checkedAt'>): boolean {
+  return validPolicyBasis(permission.basis) && validCheckedAt(permission.checkedAt)
+}
+
+export function sourcePermissionIsVerifiedAllowed(permission: ResearchSourcePermission): boolean {
+  return permission.status === 'allowed' && sourcePermissionHasEvidence(permission)
+}
+
+export function sourceOperationsAreVerifiedAllowed(use: ResearchSourceUse, purposes: readonly ResearchSourcePurpose[]): boolean {
+  return purposes.every(purpose => sourcePermissionIsVerifiedAllowed(use[purposeToUseKey[purpose]]))
+}
+
+export function sourceRecordsAreVerifiedAllowed(sources: readonly { use: ResearchSourceUse }[], purposes: readonly ResearchSourcePurpose[]): boolean {
+  return sources.length > 0 && sources.every(source => sourceOperationsAreVerifiedAllowed(source.use, purposes))
+}
+
+export function assertSourcePermission(sourceId: string, purpose: ResearchSourcePurpose, permission: ResearchSourcePermission): void {
+  if (permission.status === 'allowed') {
+    if (sourcePermissionHasEvidence(permission)) return
+    throw new SourcePolicyError('SOURCE_POLICY_UNKNOWN', sourceId, purpose, `${sourceId} permission for ${purpose} is missing a valid HTTPS policy basis or valid ISO check timestamp.`)
+  }
+  if (permission.status === 'restricted') {
+    throw new SourcePolicyError('SOURCE_POLICY_RESTRICTED', sourceId, purpose, `${sourceId} is restricted for ${purpose}.`)
+  }
+  throw new SourcePolicyError('SOURCE_POLICY_UNKNOWN', sourceId, purpose, `${sourceId} has no verified permission for ${purpose}.`)
 }
 
 export function sourceUseFromPolicy(policy: ResearchSourcePolicy): ResearchSourceUse {
   const permission = (purpose: ResearchSourcePurpose): ResearchSourcePermission => {
-    const configured = policy.permissions?.[purpose]
-    return configured ? { ...configured, conditions: [...configured.conditions] } : {
-      status: policy.decisions[purpose],
-      conditions: [...policy.conditions],
-      basis: policy.basisUrl,
-      checkedAt: policy.checkedAt,
-    }
+    const configured = policyPermission(policy, purpose)
+    return configured.status === 'allowed' && !sourcePermissionHasEvidence(configured)
+      ? { ...configured, status: 'unknown' }
+      : configured
   }
   return {
     automatedFetch: permission('automated_fetch'),
@@ -86,22 +147,7 @@ export function sourceOperationDecision(policy: ResearchSourcePolicy, purpose: R
 }
 
 export function assertSourceOperation(policy: ResearchSourcePolicy, purpose: ResearchSourcePurpose): void {
-  const decision = sourceOperationDecision(policy, purpose)
-  if (decision === 'allowed') {
-    const configured = policy.permissions?.[purpose]
-    const basis = configured?.basis ?? policy.basisUrl
-    const checkedAt = configured?.checkedAt ?? policy.checkedAt
-    const hasBasis = typeof basis === 'string' && basis.trim().length > 0
-    const hasCheckedAt = typeof checkedAt === 'string'
-      && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/u.test(checkedAt)
-      && Number.isFinite(Date.parse(checkedAt))
-    if (hasBasis && hasCheckedAt) return
-    throw new SourcePolicyError('SOURCE_POLICY_UNKNOWN', policy.sourceId, purpose, `${policy.sourceId} permission for ${purpose} is missing a policy basis or valid check timestamp.`)
-  }
-  if (decision === 'restricted') {
-    throw new SourcePolicyError('SOURCE_POLICY_RESTRICTED', policy.sourceId, purpose, `${policy.sourceId} is restricted for ${purpose}.`)
-  }
-  throw new SourcePolicyError('SOURCE_POLICY_UNKNOWN', policy.sourceId, purpose, `${policy.sourceId} has no verified permission for ${purpose}.`)
+  assertSourcePermission(policy.sourceId, purpose, policyPermission(policy, purpose))
 }
 
 export function sourcePolicyToRecord(policy: ResearchSourcePolicy, input: {
@@ -115,6 +161,14 @@ export function sourcePolicyToRecord(policy: ResearchSourcePolicy, input: {
   evidenceLocator?: string | null
   contentHash?: string | null
 } = {}) {
+  const use = sourceUseFromPolicy(policy)
+  const useByPurpose: Readonly<Record<ResearchSourcePurpose, ResearchSourcePermission>> = {
+    automated_fetch: use.automatedFetch,
+    evidence_storage: use.evidenceStorage,
+    llm_inference: use.llmInference,
+    publication_of_analysis_and_excerpts: use.publicationOfAnalysisAndExcerpts,
+    raw_data_redistribution: use.rawDataRedistribution,
+  }
   return {
     sourceId: policy.sourceId,
     purpose: 'research_evidence',
@@ -127,11 +181,11 @@ export function sourcePolicyToRecord(policy: ResearchSourcePolicy, input: {
     readRange: input.readRange ?? policy.scope,
     evidenceLocator: input.evidenceLocator ?? null,
     contentHash: input.contentHash ?? null,
-    use: sourceUseFromPolicy(policy),
+    use,
     limitations: [
       ...policy.conditions,
       ...researchSourcePurposes.map(purpose => {
-        const permission = sourceUseFromPolicy(policy)[purpose === 'automated_fetch' ? 'automatedFetch' : purpose === 'evidence_storage' ? 'evidenceStorage' : purpose === 'llm_inference' ? 'llmInference' : purpose === 'publication_of_analysis_and_excerpts' ? 'publicationOfAnalysisAndExcerpts' : 'rawDataRedistribution']
+        const permission = useByPurpose[purpose]
         return `${purpose}: ${permission.status}; conditions=${permission.conditions.join(' | ')}; basis=${permission.basis ?? 'none'}; checkedAt=${permission.checkedAt ?? 'none'}`
       }),
     ],

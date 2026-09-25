@@ -78,6 +78,42 @@ function inputFor(bars: ResearchBar[]): ResearchCalculationInput {
   }
 }
 
+function barsFromCloses(closes: readonly number[], symbol = 'GOLDEN'): ResearchBar[] {
+  let date = new Date(Date.UTC(2025, 0, 2))
+  return closes.map(close => {
+    const dateText = date.toISOString().slice(0, 10)
+    const bar: ResearchBar = {
+      symbol,
+      date: dateText,
+      open: close,
+      high: close + 1,
+      low: Math.max(1, close - 1),
+      close,
+      adjClose: close,
+      volume: 100,
+      priceSourceId: 'synthetic-price',
+      volumeSourceId: 'synthetic-volume',
+      adjustmentBasis: 'split_only',
+      volumeBasis: 'shares_regular',
+      session: 'regular_close',
+      dataAsOf: `${dateText}T21:00:00Z`,
+      retrievedAt: `${dateText}T22:00:00Z`,
+      isComplete: true,
+      isWeekFinal: date.getUTCDay() === 5,
+    }
+    date = nextWeekday(date)
+    return bar
+  })
+}
+
+function directionalBars(direction: 1 | -1, count: number): ResearchBar[] {
+  return barsFromCloses(Array.from({ length: count }, (_, index) => 100 + direction * index)).map((bar, index) => ({
+    ...bar,
+    high: 101 + direction * index,
+    low: 99 + direction * index,
+  }))
+}
+
 describe('research method bundle', () => {
   it('records the complete eight-page source bundle and calculator version', () => {
     expect(RESEARCH_METHOD_BUNDLE.appendices).toHaveLength(8)
@@ -127,6 +163,107 @@ describe('research indicators', () => {
     expect(metrics.completedWeeks.length).toBeGreaterThan(30)
     expect(metrics.completedWeeks.every(week => week.isWeekFinal)).toBe(true)
     expect(metrics.weekSma30.filter(value => value !== null).length).toBeGreaterThan(0)
+  })
+})
+
+describe('independent indicator golden vectors', () => {
+  it('matches RSI for uninterrupted rises, falls, and a flat close series', () => {
+    const rising = calculateResearchMetrics(inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 100 + index))))
+    const falling = calculateResearchMetrics(inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 114 - index))))
+    const flat = calculateResearchMetrics(inputFor(barsFromCloses(Array(15).fill(100))))
+
+    expect(rising.rsi14[13]).toBeNull()
+    expect(rising.rsi14[14]).toBe(100)
+    expect(falling.rsi14[14]).toBe(0)
+    expect(flat.rsi14[14]).toBe(50)
+  })
+
+  it('matches gap true range and ATR seed, then re-seeds ATR after missing OHLC', () => {
+    const gapBars = barsFromCloses([100, ...Array(14).fill(104)])
+    const gap = calculateResearchMetrics(inputFor(gapBars))
+    expect(gap.tr[1]).toBe(5)
+    expect(gap.tr[2]).toBe(2)
+    expect(gap.atr14[14]).toBeCloseTo(31 / 14, 12)
+
+    const missingBars = directionalBars(1, 44).map((bar, index) => index === 15 ? { ...bar, high: null, low: null } : bar)
+    const reseeded = calculateResearchMetrics(inputFor(missingBars))
+    expect(reseeded.tr[15]).toBeNull()
+    expect(reseeded.atr14.slice(15, 29)).toEqual(Array(14).fill(null))
+    expect(reseeded.atr14[29]).toBe(2)
+    expect(reseeded.plusDi14[29]).toBeNull()
+    expect(reseeded.plusDi14[30]).toBe(50)
+    expect(reseeded.adx14[42]).toBeNull()
+    expect(reseeded.adx14[43]).toBe(100)
+  })
+
+  it('matches first MACD and signal values and their signs for rising and falling step vectors', () => {
+    const risingCloses = [...Array(25).fill(100), ...Array(9).fill(101)]
+    const fallingCloses = [...Array(25).fill(101), ...Array(9).fill(100)]
+    const rising = calculateResearchMetrics(inputFor(barsFromCloses(risingCloses)))
+    const falling = calculateResearchMetrics(inputFor(barsFromCloses(fallingCloses)))
+
+    // For the rising step, EMA12 at index 25 is 100 + 2/13 and the EMA26 seed is 100 + 1/26.
+    // Holding at 101 makes MACD(k) = (25/26)(25/27)^k - (11/13)^(k+1), k=0..8; signal is their mean.
+    expect(rising.macd[24]).toBeNull()
+    expect(rising.macd[25]).toBeCloseTo(0.1153846154, 9)
+    expect(rising.macdSignal[32]).toBeNull()
+    expect(rising.macdSignal[33]).toBeCloseTo(0.2455663503, 9)
+    expect(rising.macdHistogram[33]).toBeCloseTo(0.0515694485, 9)
+    expect(rising.macd[25]).toBeGreaterThan(0)
+    expect(rising.macdSignal[33]).toBeGreaterThan(0)
+
+    expect(falling.macd[25]).toBeCloseTo(-0.1153846154, 9)
+    expect(falling.macdSignal[33]).toBeCloseTo(-0.2455663503, 9)
+    expect(falling.macdHistogram[33]).toBeCloseTo(-0.0515694485, 9)
+    expect(falling.macd[25]).toBeLessThan(0)
+    expect(falling.macdSignal[33]).toBeLessThan(0)
+  })
+
+  it('matches directional DI and ADX values for rising/falling bars and zeros for tied/flat bars', () => {
+    const rising = calculateResearchMetrics(inputFor(directionalBars(1, 28)))
+    const falling = calculateResearchMetrics(inputFor(directionalBars(-1, 28)))
+    const tiedBars = barsFromCloses(Array(28).fill(100)).map((bar, index) => {
+      const expansion = Math.min(index, 14)
+      return { ...bar, high: 101 + expansion, low: 99 - expansion }
+    })
+    const tied = calculateResearchMetrics(inputFor(tiedBars))
+    const flatBars = barsFromCloses(Array(28).fill(100)).map(bar => ({ ...bar, high: 100, low: 100 }))
+    const flat = calculateResearchMetrics(inputFor(flatBars))
+
+    expect(rising.tr[14]).toBe(2)
+    expect(rising.atr14[14]).toBe(2)
+    expect(rising.plusDi14[14]).toBe(50)
+    expect(rising.minusDi14[14]).toBe(0)
+    expect(rising.adx14[26]).toBeNull()
+    expect(rising.adx14[27]).toBe(100)
+    expect(falling.plusDi14[14]).toBe(0)
+    expect(falling.minusDi14[14]).toBe(50)
+    expect(falling.adx14[27]).toBe(100)
+
+    expect(tied.plusDm14.slice(1, 15)).toEqual(Array(14).fill(0))
+    expect(tied.minusDm14.slice(1, 15)).toEqual(Array(14).fill(0))
+    expect(tied.plusDi14[14]).toBe(0)
+    expect(tied.minusDi14[14]).toBe(0)
+    expect(tied.adx14[27]).toBe(0)
+
+    expect(flat.rsi14[14]).toBe(50)
+    expect(flat.tr[1]).toBe(0)
+    expect(flat.atr14[14]).toBe(0)
+    expect(flat.plusDi14[14]).toBe(0)
+    expect(flat.minusDi14[14]).toBe(0)
+    expect(flat.adx14[27]).toBe(0)
+    expect(flat.bollingerMid[19]).toBe(100)
+    expect(flat.bollingerUpper[19]).toBe(100)
+    expect(flat.bollingerLower[19]).toBe(100)
+  })
+
+  it('uses population deviation for a hand-computable Bollinger window', () => {
+    const metrics = calculateResearchMetrics(inputFor(barsFromCloses([...Array(10).fill(100), ...Array(10).fill(102)])))
+
+    // Ten 100s and ten 102s have mean 101 and population standard deviation 1.
+    expect(metrics.bollingerMid[19]).toBe(101)
+    expect(metrics.bollingerUpper[19]).toBe(103)
+    expect(metrics.bollingerLower[19]).toBe(99)
   })
 })
 

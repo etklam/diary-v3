@@ -46,7 +46,15 @@ it('uses signed previous-close percentages and completed moving-average levels',
 })
 it('commits before emit, deduplicates symbol reads and cannot double trigger across concurrent checkers', async () => {
   const first = await fixture('first-price@example.test'), second = await fixture('second-price@example.test')
-  const quote = vi.fn(async () => 100), emit = vi.fn((_userId: string) => { throw new Error('Synthetic delivery failure') }), log = vi.fn()
+  let quoteArrivals = 0, releaseQuotes!: () => void
+  const bothQuotesArrived = new Promise<void>(resolve => { releaseQuotes = resolve })
+  const quote = vi.fn(async () => {
+    quoteArrivals++
+    if (quoteArrivals === 2) releaseQuotes()
+    await bothQuotesArrived
+    return 100
+  })
+  const emit = vi.fn((_userId: string) => { throw new Error('Synthetic delivery failure') }), log = vi.fn()
   const dependencies = { db: database.db, quote, emit, log, now: () => new Date('2026-01-01T00:00:00.123Z') }
   const a = createPriceAlertChecker(dependencies), b = createPriceAlertChecker(dependencies)
   await Promise.all([a.checkPriceAlerts(), b.checkPriceAlerts()])

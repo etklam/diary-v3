@@ -11,6 +11,7 @@ import {
   type Database,
 } from '@diary/db'
 import { researchEvidenceManifestSchema, researchSourceRecordSchema, type ErrorCode } from '@diary/contracts'
+import { sourceRecordsAreVerifiedAllowed } from './source-policy.js'
 import type { ResearchLatestCompletedSession } from './service.js'
 import { researchQaApprovalIssue } from './qa.js'
 
@@ -54,7 +55,7 @@ export function researchPublicationEvidenceIssue(input: {
   }
   if (sha256(stableJson(hashable)) !== snapshot.contentHash) return issue('RESEARCH_ARTICLE_PROVENANCE', 'Stored research evidence failed integrity verification')
   const sourceResult = researchSourceRecordSchema.array().min(1).safeParse(hashable.sources)
-  if (!sourceResult.success || sourceResult.data.some(source => source.use.publicationOfAnalysisAndExcerpts.status !== 'allowed')) {
+  if (!sourceResult.success || !sourceRecordsAreVerifiedAllowed(sourceResult.data, ['publication_of_analysis_and_excerpts'])) {
     return issue('RESEARCH_ARTICLE_PROVENANCE', 'A source does not permit publication of analysis and excerpts')
   }
   const structured = input.structured

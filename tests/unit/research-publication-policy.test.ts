@@ -34,6 +34,16 @@ describe('publication evidence checks independent of mandatory synthetic rejecti
     const data = fixture(); data.evidence.sources[0]!.use.publicationOfAnalysisAndExcerpts.status = status
     expect(researchPublicationEvidenceIssue({ snapshot: data.snapshot(), structured: data.structured })?.code).toBe('RESEARCH_ARTICLE_PROVENANCE')
   })
+  it.each([
+    { basis: null, checkedAt: now.toISOString() },
+    { basis: 'javascript:alert(1)', checkedAt: now.toISOString() },
+    { basis: 'https://fixture.example.invalid/terms', checkedAt: '2026-02-30T00:00:00Z' },
+    { basis: null, checkedAt: null },
+  ])('rejects allowed publication evidence without a valid basis URL and check timestamp', permission => {
+    const data = fixture()
+    Object.assign(data.evidence.sources[0]!.use.publicationOfAnalysisAndExcerpts, permission)
+    expect(researchPublicationEvidenceIssue({ snapshot: data.snapshot(), structured: data.structured })?.code).toBe('RESEARCH_ARTICLE_PROVENANCE')
+  })
   it('rejects a failed frozen gate and missing exact-revision human review', () => {
     const data = fixture(); data.evidence.qa[0]!.status = 'FAIL'
     expect(researchPublicationEvidenceIssue({ snapshot: data.snapshot(), structured: data.structured })?.code).toBe('RESEARCH_QA_FAILED')

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createMarketData, type CompleteDailyResearchBar, type YahooUpstream } from '../../apps/api/src/market-data/index'
 import { collectOfficialResearchSources, createYahooResearchEvidenceProvider, createTavilySearchProvider, createVerifiedUsEquityCalendarProvider, type CompleteResearchMarket, type OfficialResearchMetadata, type ResearchCalendarSnapshot } from '../../apps/api/src/research-studio/sources'
 import { createSourceFetcher, type SourceFetchResponse } from '../../apps/api/src/research-studio/source-fetcher'
-import { assertSourceOperation, createSourcePolicy, sourceOperationDecision, sourcePolicyToRecord, sourceUseFromPolicy, type ResearchSourcePurpose } from '../../apps/api/src/research-studio/source-policy'
+import { assertSourceOperation, createSourcePolicy, sourceOperationDecision, sourceOperationsAreVerifiedAllowed, sourceRecordsAreVerifiedAllowed, sourcePolicyToRecord, sourceUseFromPolicy, type ResearchSourcePurpose } from '../../apps/api/src/research-studio/source-policy'
 
 const allAllowedPolicy = (sourceId = 'YAHOO_CHART') => createSourcePolicy({
   sourceId,
@@ -52,7 +52,7 @@ function fixtureCalendar({ fromDate, toDate, asOf }: { fromDate: string; toDate:
 describe('source policy', () => {
   it('keeps each purpose decision independent and never maps raw redistribution to publication', () => {
     const policy = createSourcePolicy({
-      sourceId: 'SOURCE_A', provider: 'fixture', scope: 'test', basisUrl: null, checkedAt: '2026-01-01T00:00:00Z', conditions: [],
+      sourceId: 'SOURCE_A', provider: 'fixture', scope: 'test', basisUrl: 'https://example.test/policy', checkedAt: '2026-01-01T00:00:00Z', conditions: [],
       decisions: { automated_fetch: 'allowed', evidence_storage: 'allowed', llm_inference: 'restricted', publication_of_analysis_and_excerpts: 'allowed', raw_data_redistribution: 'unknown' },
     })
     expect(sourceOperationDecision(policy, 'automated_fetch')).toBe('allowed')
@@ -66,8 +66,64 @@ describe('source policy', () => {
   })
 
   it('requires an allowed decision to have a nonblank basis and valid check timestamp', () => {
-    expect(() => assertSourceOperation({ ...allAllowedPolicy(), basisUrl: null }, 'automated_fetch')).toThrow(/missing a policy basis/u)
-    expect(() => assertSourceOperation({ ...allAllowedPolicy(), checkedAt: 'not-a-time' }, 'evidence_storage')).toThrow(/valid check timestamp/u)
+    expect(() => assertSourceOperation({ ...allAllowedPolicy(), basisUrl: null }, 'automated_fetch')).toThrow(/missing a valid HTTPS policy basis/u)
+    expect(() => assertSourceOperation({ ...allAllowedPolicy(), checkedAt: 'not-a-time' }, 'evidence_storage')).toThrow(/valid ISO check timestamp/u)
+    expect(() => assertSourceOperation({ ...allAllowedPolicy(), basisUrl: 'http://example.test/terms' }, 'automated_fetch')).toThrow(/valid HTTPS policy basis/u)
+    expect(() => assertSourceOperation({ ...allAllowedPolicy(), checkedAt: '2026-02-30T00:00:00Z' }, 'evidence_storage')).toThrow(/valid ISO check timestamp/u)
+  })
+
+  it('treats a status-only allowed operation as unknown in source records', () => {
+    const policy = {
+      ...allAllowedPolicy('STATUS_ONLY'),
+      permissions: { llm_inference: { status: 'allowed' as const, conditions: [], basis: null, checkedAt: null } },
+    }
+    expect(sourceUseFromPolicy(policy).llmInference).toMatchObject({ status: 'unknown', basis: null, checkedAt: null })
+    expect(() => assertSourceOperation(policy, 'llm_inference')).toThrow(/missing a valid HTTPS policy basis/u)
+  })
+
+  it.each([
+    { basis: null, checkedAt: '2026-01-01T00:00:00.000Z' },
+    { basis: 'javascript:alert(1)', checkedAt: '2026-01-01T00:00:00.000Z' },
+    { basis: 'https://example.test/policy', checkedAt: '2026-02-30T00:00:00Z' },
+    { basis: null, checkedAt: null },
+  ])('blocks generation unless every inference operation has valid evidence', permission => {
+    const use = sourceUseFromPolicy(allAllowedPolicy('GENERATION_POLICY_FIXTURE'))
+    const malformedUse = { ...use, llmInference: { ...use.llmInference, status: 'allowed' as const, ...permission } }
+    expect(sourceOperationsAreVerifiedAllowed(use, ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(true)
+    expect(sourceOperationsAreVerifiedAllowed(malformedUse, ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(false)
+  })
+
+  it.each([
+    ['automated_fetch', 'automatedFetch'],
+    ['evidence_storage', 'evidenceStorage'],
+    ['llm_inference', 'llmInference'],
+  ] as const)('requires valid permission evidence for %s before generation', (_purpose, key) => {
+    const use = sourceUseFromPolicy(allAllowedPolicy('GENERATION_POLICY_FIXTURE'))
+    const malformedUse = { ...use, [key]: { ...use[key], checkedAt: null } }
+    expect(sourceOperationsAreVerifiedAllowed(malformedUse, ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(false)
+  })
+
+  it('keeps raw-data redistribution independent from generation and publication permissions', () => {
+    const use = sourceUseFromPolicy({
+      ...allAllowedPolicy('INDEPENDENT_OPERATIONS'),
+      decisions: { ...allAllowedPolicy('INDEPENDENT_OPERATIONS').decisions, raw_data_redistribution: 'restricted' },
+    })
+    expect(sourceOperationsAreVerifiedAllowed(use, ['automated_fetch', 'evidence_storage', 'llm_inference', 'publication_of_analysis_and_excerpts'])).toBe(true)
+    expect(sourceOperationsAreVerifiedAllowed(use, ['raw_data_redistribution'])).toBe(false)
+  })
+
+  it('requires nonempty source records and verified evidence for every operation', () => {
+    const record = sourcePolicyToRecord(allAllowedPolicy('VERIFIED_SOURCE'))
+    const statusOnly = structuredClone(record)
+    statusOnly.use.llmInference = { ...statusOnly.use.llmInference, status: 'allowed', basis: null, checkedAt: null }
+    const invalidTimestamp = structuredClone(record)
+    invalidTimestamp.use.llmInference = { ...invalidTimestamp.use.llmInference, checkedAt: '2026-02-30T00:00:00Z' }
+
+    expect(sourceRecordsAreVerifiedAllowed([], ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(false)
+    expect(sourceRecordsAreVerifiedAllowed([record], ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(true)
+    expect(sourceRecordsAreVerifiedAllowed([statusOnly], ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(false)
+    expect(sourceRecordsAreVerifiedAllowed([invalidTimestamp], ['automated_fetch', 'evidence_storage', 'llm_inference'])).toBe(false)
+
   })
 })
 
@@ -249,6 +305,46 @@ describe('Yahoo research evidence provider', () => {
     expect(result.sources[0]?.dataAsOf).toBe('2026-01-07T14:00:00Z')
   })
 
+  it('includes a configured owner contact in the BLS User-Agent', async () => {
+    let headers: Readonly<Record<string, string>> = {}
+    const transport = vi.fn(async request => {
+      headers = request.headers ?? {}
+      return { status: 200, headers: { 'content-type': 'text/html' }, body: '<html>bounded</html>', retrievedAt: '2026-01-08T23:06:00.000Z' }
+    })
+    const source = {
+      sourceId: 'BLS_EVENTS', role: 'event_calendar' as const, publisher: 'BLS', url: 'https://data.bls.gov/events', contact: 'research@example.org', policy: allAllowedPolicy('BLS_EVENTS'),
+      extractMetadata: () => ({ title: 'BLS events', publishedAt: '2026-01-07T12:00:00Z' }),
+    }
+    await collectOfficialResearchSources({ symbol: 'SOXX', asOf: new Date('2026-01-08T23:00:00Z'), sources: [source], fetcher: createSourceFetcher({ transport }) })
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect(headers['User-Agent']).toBe('ResearchStudio/1.0 (+mailto:research@example.org)')
+  })
+
+  it('blocks BLS-hosted retrieval before transport when owner contact is missing', async () => {
+    const transport = vi.fn()
+    const result = await collectOfficialResearchSources({
+      symbol: 'SOXX', asOf: new Date('2026-01-08T23:00:00Z'),
+      sources: [{ sourceId: 'BLS_EVENTS', role: 'event_calendar', publisher: 'BLS', url: 'https://www.bls.gov/events', policy: allAllowedPolicy('BLS_EVENTS'), extractMetadata: () => ({}) }],
+      fetcher: createSourceFetcher({ transport }),
+    })
+    expect(transport).not.toHaveBeenCalled()
+    expect(result.evidence[0]).toMatchObject({ status: 'BLOCKED_BY_POLICY', note: expect.stringContaining('configure the source owner contact email') })
+    expect(result.warnings[0]).toContain('BLS-hosted automated retrieval was skipped')
+  })
+
+  it.each([
+    ['overlong', `${'a'.repeat(245)}@example.org`],
+    ['header injection', 'research@example.org\r\nX-Injected: true'],
+  ])('rejects %s official-source contact before transport', async (_case, contact) => {
+    const transport = vi.fn()
+    await expect(collectOfficialResearchSources({
+      symbol: 'SOXX', asOf: new Date('2026-01-08T23:00:00Z'),
+      sources: [{ sourceId: 'ISSUER_IR', role: 'issuer_ir', publisher: 'Issuer', url: 'https://example.test/ir', contact, policy: allAllowedPolicy('ISSUER_IR'), extractMetadata: () => ({}) }],
+      fetcher: createSourceFetcher({ transport }),
+    })).rejects.toMatchObject({ code: 'SOURCE_CONTACT_INVALID' })
+    expect(transport).not.toHaveBeenCalled()
+  })
+
   it('keeps direct-source policy denials before transport or extraction', async () => {
     const transport = vi.fn()
     const extractMetadata = vi.fn(() => ({ title: 'Should not be reached' }))
@@ -261,6 +357,27 @@ describe('Yahoo research evidence provider', () => {
     expect(transport).not.toHaveBeenCalled()
     expect(extractMetadata).not.toHaveBeenCalled()
     expect(result.evidence[0]).toMatchObject({ sourceId: 'FED_FOMC', role: 'event_calendar', status: 'BLOCKED_BY_POLICY', publicationAt: null, eventAt: null, holdingsAsOf: null })
+  })
+
+  it.each([
+    { basis: null, checkedAt: '2026-01-01T00:00:00.000Z' },
+    { basis: 'javascript:alert(1)', checkedAt: '2026-01-01T00:00:00.000Z' },
+    { basis: 'https://example.test/policy', checkedAt: '2026-02-30T00:00:00Z' },
+    { basis: null, checkedAt: null },
+  ])('does not transport a direct source with malformed allowed-fetch evidence', async permission => {
+    const transport = vi.fn()
+    const policy = {
+      ...allAllowedPolicy('DIRECT_POLICY_FIXTURE'),
+      permissions: { automated_fetch: { status: 'allowed' as const, conditions: [], ...permission } },
+    }
+    const result = await collectOfficialResearchSources({
+      symbol: 'NVDA', asOf: new Date('2026-01-08T23:00:00Z'),
+      sources: [{ sourceId: policy.sourceId, role: 'official_release', publisher: 'Fixture', url: 'https://example.test/release', policy, extractMetadata: () => ({}) }],
+      fetcher: createSourceFetcher({ transport }),
+    })
+    expect(transport).not.toHaveBeenCalled()
+    expect(result.evidence[0]?.status).toBe('BLOCKED_BY_POLICY')
+    expect(result.sources[0]?.use.automatedFetch.status).toBe('unknown')
   })
 
   it('allows approved direct retrieval/storage while withholding metadata when inference permission is unknown', async () => {
@@ -277,6 +394,22 @@ describe('Yahoo research evidence provider', () => {
     expect(transport).toHaveBeenCalledTimes(1)
     expect(result.sources[0]?.use).toMatchObject({ automatedFetch: { status: 'allowed' }, evidenceStorage: { status: 'allowed' }, llmInference: { status: 'unknown' } })
     expect(result.evidence[0]).toMatchObject({ status: 'WITHHELD_BY_POLICY', title: null, eventAt: null, metadata: null, note: expect.stringContaining('llm_inference') })
+  })
+
+  it('withholds metadata when llm permission says allowed without its own basis and check timestamp', async () => {
+    const transport = vi.fn(async () => ({ status: 200, headers: { 'content-type': 'text/html' }, body: '<html>bounded</html>', retrievedAt: '2026-01-08T23:06:00.000Z' }))
+    const policy = {
+      ...allAllowedPolicy('ISSUER_STATUS_ONLY_LLM'),
+      permissions: { llm_inference: { status: 'allowed' as const, conditions: [], basis: null, checkedAt: null } },
+    }
+    const result = await collectOfficialResearchSources({
+      symbol: 'NVDA', asOf: new Date('2026-01-08T23:00:00Z'),
+      sources: [{ sourceId: policy.sourceId, role: 'official_release', publisher: 'Issuer', url: 'https://example.test/release', policy, extractMetadata: () => ({ title: 'Protected facts', publishedAt: '2026-01-07T12:00:00Z', facts: { value: 10 } }) }],
+      fetcher: createSourceFetcher({ transport }),
+    })
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect(result.sources[0]?.use.llmInference).toMatchObject({ status: 'unknown', basis: null, checkedAt: null })
+    expect(result.evidence[0]).toMatchObject({ status: 'WITHHELD_BY_POLICY', title: null, metadata: null, note: expect.stringContaining('not verified as allowed') })
   })
 
   it('withholds future or publication-time-unknown metadata from historical model candidates', async () => {

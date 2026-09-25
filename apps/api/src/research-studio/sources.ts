@@ -24,8 +24,10 @@ import type { ResearchEvidencePreparation, ResearchEvidenceProvider } from './se
 import {
   assertSourceOperation,
   createSourcePolicy,
+  sourcePermissionIsVerifiedAllowed,
   sourcePolicyToRecord,
   sourcePolicySnapshot,
+  sourceUseFromPolicy,
   TAVILY_SEARCH_POLICY,
   YAHOO_RESEARCH_POLICY,
   type ResearchSourcePolicy,
@@ -182,6 +184,8 @@ export type OfficialResearchSourceInput = {
   role: OfficialResearchSourceRole
   publisher: string
   url: string
+  /** Owner email included in the User-Agent; required for BLS-hosted automated retrieval. */
+  contact?: string
   policy: ResearchSourcePolicy
   extractMetadata: (document: string, input: { symbol: string; asOf: Date }) => OfficialResearchMetadata
   maxBytes?: number
@@ -199,6 +203,30 @@ export class ResearchSourceError extends Error {
     super(message)
     this.name = 'ResearchSourceError'
   }
+}
+
+const maxOfficialSourceContactLength = 254
+const officialSourceContactPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/iu
+
+function officialSourceContact(value: string | undefined): string | null {
+  if (value === undefined) return null
+  const hasControlCharacter = [...value].some(character => {
+    const code = character.codePointAt(0) ?? 0
+    return code < 32 || (code >= 127 && code <= 159)
+  })
+  if (value.length > maxOfficialSourceContactLength || hasControlCharacter) {
+    throw new ResearchSourceError('SOURCE_CONTACT_INVALID', 'Official source contact must be a single email address no longer than 254 characters.')
+  }
+  const contact = value.trim()
+  if (!contact) return null
+  if (!officialSourceContactPattern.test(contact)) {
+    throw new ResearchSourceError('SOURCE_CONTACT_INVALID', 'Official source contact must be a valid email address without header control characters.')
+  }
+  return contact
+}
+
+function isBlsHost(hostname: string): boolean {
+  return hostname === 'bls.gov' || hostname.endsWith('.bls.gov')
 }
 
 function sourceIdFor(symbol: string): string {
@@ -357,6 +385,14 @@ export async function collectOfficialResearchSources(input: {
     if (configured.policy.sourceId !== configured.sourceId) throw new ResearchSourceError('SOURCE_POLICY_ID_MISMATCH', 'An official source policy must match its configured source ID.')
     const url = new URL(configured.url)
     if (url.protocol !== 'https:') throw new ResearchSourceError('SOURCE_UNSAFE_ENDPOINT', 'Configured official research sources must use HTTPS.')
+    const contact = officialSourceContact(configured.contact)
+    if (isBlsHost(url.hostname) && !contact) {
+      const note = 'BLS-hosted automated retrieval was skipped; configure the source owner contact email before enabling this request.'
+      sources.push(sourcePolicyToRecord(configured.policy, { requestedUrl: configured.url, resolvedUrl: null, publisher: configured.publisher, evidenceLocator: 'not_attempted:bls_owner_contact' }))
+      evidence.push({ sourceId: configured.sourceId, role: configured.role, status: 'BLOCKED_BY_POLICY', requestedUrl: configured.url, title: null, publicationAt: null, eventAt: null, holdingsAsOf: null, metadata: null, reviewRequired: true, note })
+      warnings.push(`${configured.sourceId}: ${note}`)
+      continue
+    }
     try {
       assertSourceOperation(configured.policy, 'automated_fetch')
       assertSourceOperation(configured.policy, 'evidence_storage')
@@ -368,14 +404,14 @@ export async function collectOfficialResearchSources(input: {
       continue
     }
     try {
-      const { text, response } = await input.fetcher.text({ url: configured.url, allowedBaseUrls: [url.origin], timeoutMs: configured.timeoutMs ?? 10_000, maxBytes: configured.maxBytes ?? 1_000_000, headers: { Accept: 'text/html, text/plain;q=0.9, application/json;q=0.8' } })
+      const { text, response } = await input.fetcher.text({ url: configured.url, allowedBaseUrls: [url.origin], timeoutMs: configured.timeoutMs ?? 10_000, maxBytes: configured.maxBytes ?? 1_000_000, headers: { Accept: 'text/html, text/plain;q=0.9, application/json;q=0.8', 'User-Agent': contact ? `ResearchStudio/1.0 (+mailto:${contact})` : 'ResearchStudio/1.0' } })
       const contentType = response.headers['content-type'] ?? response.headers['Content-Type'] ?? ''
       if (contentType && !/^(?:text\/|application\/(?:json|xml))/iu.test(contentType)) throw new ResearchSourceError('SOURCE_INVALID_RESPONSE', 'The official source returned an unsupported content type.')
       const metadata = normalizeOfficialMetadata(configured.extractMetadata(text, { symbol: input.symbol, asOf: input.asOf }))
       const hash = createHash('sha256').update(text).digest('hex')
       const publicationStatus = publicationAvailability(metadata.publishedAt ?? null, input.asOf)
       const publicationAvailable = publicationStatus === 'AVAILABLE_AS_OF'
-      const inferenceAllowed = (configured.policy.permissions?.llm_inference?.status ?? configured.policy.decisions.llm_inference) === 'allowed'
+      const inferenceAllowed = sourcePermissionIsVerifiedAllowed(sourceUseFromPolicy(configured.policy).llmInference)
       const metadataAllowedForModel = publicationAvailable && inferenceAllowed
       const event = metadataAllowedForModel ? eventWindow(metadata.eventAt ?? null, input.asOf) : { timing: 'EVENT_TIME_UNKNOWN' as const, inside28dWindow: null }
       const withheldReason = publicationStatus === 'AFTER_AS_OF'
@@ -383,7 +419,7 @@ export async function collectOfficialResearchSources(input: {
         : publicationStatus === 'UNKNOWN'
           ? 'Publication time is missing or not precise enough to establish availability at the requested as-of; source facts are excluded.'
           : !metadataAllowedForModel
-            ? 'Source metadata is withheld because llm_inference permission is not allowed.'
+            ? 'Source metadata is withheld because llm_inference permission is not verified as allowed.'
             : event.timing === 'EVENT_TIME_UNKNOWN'
               ? 'The event date is date-only or timezone-unknown, so no exact 28-day window claim is available.'
               : 'Publication time, event time, and holdings-as-of are separate fields; extraction is not human-verified.'

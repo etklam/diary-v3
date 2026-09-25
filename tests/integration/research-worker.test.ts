@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { researchAttempts, researchBudgetSessions, researchEvidenceSnapshots, researchMethodProfiles, researchInstrumentProfiles, researchProviderConfigs, researchRevisions, researchRuns, researchRuntimeState, users } from '@diary/db'
@@ -169,6 +169,9 @@ describe('Research Studio worker with disposable PostgreSQL', () => {
     expect(attempts[0]).toMatchObject({ dispatchStatus: 'SUCCEEDED', inputTokens: 240, outputTokens: 160, reportedCostUsd: '0.000000000' })
     expect(revisions).toHaveLength(1)
     expect(revisions[0]).toMatchObject({ revision: 1, reviewStatus: 'DRAFT' })
+    expect(revisions[0]!.bodyHash).toBe(createHash('sha256').update(revisions[0]!.content).digest('hex'))
+    expect(revisions[0]!.content).toContain('Synthetic evidence：** YES — offline fixture; not publishable.')
+    expect(revisions[0]!.content).toContain('| 正規收市 | `latest.close` | 399.00 |')
     expect(workerPayloads).toHaveLength(1)
     expect(Math.ceil(workerPayloads[0]!.length / 2)).toBeLessThanOrEqual(64_000)
     expect(workerPayloads[0]).not.toContain('DO_NOT_SEND_DISCOVERY_SNIPPET_TO_MODEL')

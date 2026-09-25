@@ -50,10 +50,11 @@ import { z } from 'zod'
 import { decryptAiSecret, encryptAiSecret } from '../ai-reports/secrets.js'
 import { RESEARCH_METHOD_DOCUMENTS, RESEARCH_REPORT_RULES } from './method-bundle.js'
 import { ResearchTransportError } from './transport.js'
-import { sourceUseFromPolicy, TAVILY_SEARCH_POLICY, YAHOO_RESEARCH_POLICY, type ResearchSourcePolicy } from './source-policy.js'
+import { sourceRecordsAreVerifiedAllowed, sourceUseFromPolicy, TAVILY_SEARCH_POLICY, YAHOO_RESEARCH_POLICY, type ResearchSourcePolicy } from './source-policy.js'
 import { lockResearchMutation, researchPublicationFreshnessIssue } from './publication.js'
 import { researchQaApprovalIssue } from './qa.js'
 import { researchOutputEvidenceIssue } from './output-validation.js'
+import { renderResearchReport, researchReportCitationSources } from './render.js'
 
 const DEFAULT_EXCHANGE_TIMEZONE = 'America/New_York'
 const DEFAULT_DISPLAY_TIMEZONE = 'Asia/Hong_Kong'
@@ -414,11 +415,7 @@ function deriveQuality(method: ResearchMethodProfile, evidence: ResearchEvidence
   const complete = Number(method.requirements.minimumCompleteOhlc ?? 150)
   const volume = Number(method.requirements.minimumVolumeRows ?? 21)
   const coreQa = evidence.qa.filter(gate => RESEARCH_COMPUTED_GATE_IDS.has(gate.gateId))
-  const sourceRights = evidence.sources.every(source => (
-    source.use.automatedFetch.status === 'allowed'
-    && source.use.evidenceStorage.status === 'allowed'
-    && source.use.llmInference.status === 'allowed'
-  ))
+  const sourceRights = sourceRecordsAreVerifiedAllowed(evidence.sources, ['automated_fetch', 'evidence_storage', 'llm_inference'])
   if (method.status !== 'COMPLETE' || manifest.synthetic || !manifest.referenceSession) return 'LIMITED'
   if (manifest.closeRows < required || manifest.completeOhlcRows < complete || manifest.volumeRows < volume) return 'LIMITED'
   if (!sourceRights || coreQa.some(gate => gate.status === 'FAIL' || gate.status === 'NOT_CHECKED' || gate.status === 'WARN')) return 'LIMITED'
@@ -906,7 +903,7 @@ export class ResearchStudioService {
         const latest = await this.latestCompletedSession?.({ symbol: current.instrument.symbol, exchangeTimezone: DEFAULT_EXCHANGE_TIMEZONE, asOf: this.now(), referenceSession: current.run.referenceSession })
         if (!latest || latest.session !== current.run.referenceSession || latest.calendarVersion !== manifest.calendarVersion) fail(409, 'RESEARCH_EVIDENCE_STALE', 'Research evidence is not the latest verified completed session')
         const sources = jsonArray<unknown>(snapshot.sourcesJson).map(source => researchSourceRecordSchema.parse(source))
-        if (sources.length === 0 || sources.some(source => source.use.automatedFetch.status !== 'allowed' || source.use.evidenceStorage.status !== 'allowed' || source.use.llmInference.status !== 'allowed')) {
+        if (!sourceRecordsAreVerifiedAllowed(sources, ['automated_fetch', 'evidence_storage', 'llm_inference'])) {
           fail(409, 'RESEARCH_SOURCE_POLICY_BLOCKED', 'Source rights do not allow this evidence to be sent for inference')
         }
       }
@@ -1067,11 +1064,7 @@ export class ResearchStudioService {
     const latest = await this.latestCompletedSession({ symbol: instrument.symbol, exchangeTimezone: DEFAULT_EXCHANGE_TIMEZONE, asOf: now, referenceSession: run.referenceSession })
     if (!latest || latest.session !== run.referenceSession || latest.calendarVersion !== manifest.calendarVersion) return 'RESEARCH_EVIDENCE_STALE'
     const sourceResult = z.array(researchSourceRecordSchema).max(100).safeParse(jsonArray(snapshot.sourcesJson))
-    if (!sourceResult.success || sourceResult.data.length === 0 || sourceResult.data.some(source => (
-      source.use.automatedFetch.status !== 'allowed'
-      || source.use.evidenceStorage.status !== 'allowed'
-      || source.use.llmInference.status !== 'allowed'
-    ))) return 'RESEARCH_SOURCE_POLICY_BLOCKED'
+    if (!sourceResult.success || !sourceRecordsAreVerifiedAllowed(sourceResult.data, ['automated_fetch', 'evidence_storage', 'llm_inference'])) return 'RESEARCH_SOURCE_POLICY_BLOCKED'
     const provider = activeProvider
     if (!provider || !provider.encryptedApiKey || provider.baseUrl !== 'https://openrouter.ai/api/v1' || provider.model !== 'openrouter/free') return 'RESEARCH_PROVIDER_NOT_CONFIGURED'
     try { this.resolveApiKey(provider.encryptedApiKey) }
@@ -1224,7 +1217,7 @@ export class ResearchStudioService {
   async runOnce(): Promise<ResearchRunDetail | null> {
     const claimed = await this.claimAttempt()
     if (!claimed) return null
-    const { attempt, run, method, snapshot, provider, apiKey, payload, timeoutMs } = claimed
+    const { attempt, run, method, instrument, snapshot, provider, apiKey, payload, timeoutMs } = claimed
     let response: ResearchTransportResponse | null = null
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -1246,17 +1239,20 @@ export class ResearchStudioService {
         return this.detail(run.requesterId ?? BigInt(0), run.id)
       }
       const draft = draftResult.data
-      const evidenceForValidation = {
-        sources: jsonArray<unknown>(snapshot.sourcesJson).map(source => researchSourceRecordSchema.parse(source)),
-        metrics: modelSafeMetrics(jsonObject(snapshot.metricsJson)),
-        candidates: jsonObject(snapshot.candidatesJson),
+      let frozenEvidence: ResearchEvidence
+      try {
+        frozenEvidence = evidenceFromRows(snapshot, method, instrument)
+        validateDraftReferences(draft, {
+          sources: researchReportCitationSources(frozenEvidence.sources),
+          metrics: modelSafeMetrics(frozenEvidence.metrics),
+          candidates: frozenEvidence.candidates,
+        })
       }
-      try { validateDraftReferences(draft, evidenceForValidation) }
       catch {
         await this.finishAttempt(attempt.id, run.id, attempt.leaseToken!, 'FAILED', 'RESEARCH_OUTPUT_INVALID', response)
         return this.detail(run.requesterId ?? BigInt(0), run.id)
       }
-      const content = renderDraft(draft)
+      const content = renderResearchReport(draft, frozenEvidence)
       const bodyHash = sha256(content)
       await this.finishSuccessfulAttempt(attempt.id, run.id, attempt.leaseToken!, draft, method, content, bodyHash, response)
       return this.detail(run.requesterId ?? BigInt(0), run.id)
@@ -1379,7 +1375,7 @@ export class ResearchStudioService {
       const qaProblem = researchQaApprovalIssue({ qa: structured.qa, structured, sources: evidence.sources, frozenQa: evidence.qa })
       if (qaProblem) fail(409, 'RESEARCH_QA_FAILED', qaProblem)
       if (!evidence.manifest.synthetic) {
-        if (evidence.sources.length === 0 || evidence.sources.some(source => source.use.publicationOfAnalysisAndExcerpts.status !== 'allowed')) fail(409, 'RESEARCH_ARTICLE_PROVENANCE', 'A source does not permit publication of analysis and excerpts')
+        if (!sourceRecordsAreVerifiedAllowed(evidence.sources, ['publication_of_analysis_and_excerpts'])) fail(409, 'RESEARCH_ARTICLE_PROVENANCE', 'A source does not permit publication of analysis and excerpts')
         const fresh = await researchPublicationFreshnessIssue({ symbol: instrument.symbol, referenceSession: run.referenceSession ?? '', now: this.now(), latestCompletedSession: this.latestCompletedSession })
         if (fresh) fail(409, fresh.code, fresh.message)
       }
@@ -1406,13 +1402,6 @@ export class ResearchStudioService {
     return { postId: String(result.postId), runId: String(runId), revision: input.revision, created: result.created, status: result.status, access: result.access }
   }
 
-}
-
-function renderDraft(draft: ResearchDraft): string {
-  const sections = [...draft.sections].sort((a, b) => a.section - b.section).map(section => `## ${section.section}. ${section.title}\n\n${section.content}`).join('\n\n')
-  const answers = draft.finalAnswers.map((answer, index) => `${index + 1}. ${answer.question}\n${answer.answer}`).join('\n\n')
-  const limitations = draft.limitations.length > 0 ? `\n\n## Limitations\n\n${draft.limitations.map(item => `- ${item}`).join('\n')}` : ''
-  return `# ${draft.title}\n\n${sections}\n\n## Final answers\n\n${answers}${limitations}`
 }
 
 export async function runResearchOnce(service: ResearchStudioService) {
