@@ -11,6 +11,7 @@ import { LedgerValidationError, replayLedger, roundDecimalString } from '@diary/
 import { and, asc, eq, ne, notInArray, sql } from 'drizzle-orm'
 
 export type LedgerTransactionRow = typeof transactions.$inferSelect
+type LedgerReplayRow = Pick<LedgerTransactionRow, 'id' | 'symbol' | 'type' | 'quantity' | 'price' | 'tradeDate' | 'strategy' | 'emotion'>
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 export { LedgerValidationError }
 
@@ -69,14 +70,23 @@ export async function readUserLedger(
   userId: bigint,
   excludeDiaryId?: bigint,
 ) {
-  return db.select().from(transactions).where(and(
+  return db.select({
+    id: transactions.id,
+    symbol: transactions.symbol,
+    type: transactions.type,
+    quantity: transactions.quantity,
+    price: transactions.price,
+    tradeDate: transactions.tradeDate,
+    strategy: transactions.strategy,
+    emotion: transactions.emotion,
+  }).from(transactions).where(and(
     eq(transactions.userId, userId),
     ...(excludeDiaryId === undefined ? [] : [ne(transactions.diaryId, excludeDiaryId)]),
   )).orderBy(asc(transactions.tradeDate), asc(transactions.id))
 }
 
 function replayRows(
-  rows: readonly LedgerTransactionRow[],
+  rows: readonly LedgerReplayRow[],
   additions: readonly (LedgerTransactionInput & { id?: string })[] = [],
 ) {
   let nextOrder = [...rows.map(row => row.id), ...additions.flatMap(input => input.id ? [BigInt(input.id)] : [])]

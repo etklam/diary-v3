@@ -40,8 +40,9 @@ import {
   registerResponseSchema,
   serializedIdSchema,
   updateDiaryRequestSchema,
+  updateDiaryV2RequestSchema,
   type ErrorCode,
-  type NativeTokenPair,
+  type UpdateDiaryRequest,
 } from '@diary/contracts'
 import { recentClosedTradesQuerySchema } from '@diary/contracts/ledger'
 import { apiKeyCredentials, refreshTokens, users, type Database } from '@diary/db'
@@ -61,12 +62,11 @@ import {
   authUser,
   createAuthSessionService,
   hashRefreshToken,
-  nativeFamilyLock,
   type SessionUser,
-  userSessionLock,
 } from './auth-session.js'
 import { getUserSettings, updateUserSettings } from './user-settings.js'
 import { createMarketData, createYahooUpstream } from './market-data/index.js'
+import { safeErrorContext } from './diagnostics.js'
 import { registerMarketRoutes } from './market-routes.js'
 import { listDiaries, listDiarySummaries } from './diary-list.js'
 import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
@@ -176,26 +176,6 @@ class ApiError extends Error {
   ) {
     super(message)
   }
-}
-
-function postgresErrorCode(error: unknown): string | undefined {
-  const seen = new Set<object>()
-  let current = error
-  for (let depth = 0; depth < 6 && current && typeof current === 'object' && !seen.has(current); depth += 1) {
-    seen.add(current)
-    if ('code' in current && typeof (current as { code?: unknown }).code === 'string') {
-      const code = (current as { code: string }).code
-      if (/^[0-9A-Z]{5}$/.test(code)) return code
-    }
-    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
-  }
-  return undefined
-}
-
-function safeStackFrames(error: unknown): string[] | undefined {
-  if (!(error instanceof Error)) return undefined
-  const frames = error.stack?.split('\n').filter(frame => /^\s*at\s/.test(frame)).slice(0, 12).map(frame => frame.trim())
-  return frames?.length ? frames : undefined
 }
 
 function fail(status: number, code: ErrorCode, message: string, details: ErrorDetail[] | null = null): never {
@@ -667,93 +647,9 @@ export function createApp({
     const timestamp = now().getTime()
     rateLimiter.consume(`refresh:ip:${clientIp(c, config.trustProxy)}`, 10, timestamp)
     rateLimiter.consume(`refresh:token:${tokenHash.slice(0, 24)}`, 10, timestamp)
-    const payload = await session.verifyRefreshToken(input.refreshToken)
-
-    const [stored] = await db.select({
-      id: refreshTokens.id,
-      userId: refreshTokens.userId,
-      clientType: refreshTokens.clientType,
-      familyId: refreshTokens.familyId,
-      deviceName: refreshTokens.deviceName,
-      revokedAt: refreshTokens.revokedAt,
-      expiresAt: refreshTokens.expiresAt,
-      user: users,
-    }).from(refreshTokens)
-      .innerJoin(users, eq(users.id, refreshTokens.userId))
-      .where(eq(refreshTokens.token, tokenHash))
-      .limit(1)
-
-    if (!stored || stored.clientType !== 'NATIVE') fail(401, 'AUTH_TOKEN_NOT_FOUND', 'Token not found')
-
-    type RefreshOutcome =
-      | { ok: true; pair: NativeTokenPair }
-      | { ok: false; reason: 'not-found' | 'revoked' | 'expired' }
-
-    const outcome: RefreshOutcome = await db.transaction(async (tx) => {
-      // Account-wide operations serialize before family-specific rotation.
-      await tx.execute(userSessionLock(stored.userId))
-      // Every mutation in one native family takes this transaction-scoped lock.
-      // The post-lock read gets a fresh READ COMMITTED snapshot, so replay/logout
-      // sees any descendant committed by the previous lock holder.
-      await tx.execute(nativeFamilyLock(stored.familyId))
-      const [current] = await tx.select({
-        id: refreshTokens.id,
-        userId: refreshTokens.userId,
-        clientType: refreshTokens.clientType,
-        familyId: refreshTokens.familyId,
-        deviceName: refreshTokens.deviceName,
-        revokedAt: refreshTokens.revokedAt,
-        expiresAt: refreshTokens.expiresAt,
-        user: users,
-      }).from(refreshTokens)
-        .innerJoin(users, eq(users.id, refreshTokens.userId))
-        .where(eq(refreshTokens.id, stored.id))
-        .limit(1)
-
-      if (!current || current.clientType !== 'NATIVE') return { ok: false, reason: 'not-found' }
-      if (current.revokedAt) {
-        await tx.update(refreshTokens).set({
-          revokedAt: now(), revocationReason: 'REUSE_DETECTED',
-        }).where(and(
-          eq(refreshTokens.userId, current.userId),
-          eq(refreshTokens.familyId, current.familyId),
-          eq(refreshTokens.clientType, 'NATIVE'),
-          isNull(refreshTokens.revokedAt),
-        ))
-        return { ok: false, reason: 'revoked' }
-      }
-
-      const operationNow = now()
-      if (current.expiresAt <= operationNow) {
-        await tx.update(refreshTokens).set({
-          revokedAt: operationNow, revocationReason: 'EXPIRED',
-        }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
-        return { ok: false, reason: 'expired' }
-      }
-      if (current.user.tokenVersion !== payload.tokenVersion || current.user.id.toString() !== payload.id) {
-        return { ok: false, reason: 'revoked' }
-      }
-
-      const replacementMaterial = await session.buildNativeTokenPair(current.user)
-      await tx.update(refreshTokens).set({
-        revokedAt: operationNow, revocationReason: 'ROTATED',
-      }).where(eq(refreshTokens.id, current.id))
-      const [replacement] = await tx.insert(refreshTokens).values({
-        token: hashRefreshToken(replacementMaterial.rawRefreshToken),
-        userId: current.userId,
-        clientType: 'NATIVE',
-        familyId: current.familyId,
-        deviceName: current.deviceName,
-        parentId: current.id,
-        expiresAt: replacementMaterial.refreshExpiresAt,
-      }).returning({ id: refreshTokens.id })
-      if (!replacement) throw new Error('Refresh replacement insert returned no row')
-      await tx.update(refreshTokens).set({ replacementId: replacement.id })
-        .where(eq(refreshTokens.id, current.id))
-      return { ok: true, pair: replacementMaterial.pair }
-    })
-
+    const outcome = await session.refreshNativeSession(input.refreshToken)
     if (!outcome.ok) {
+      if (outcome.reason === 'invalid') fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
       if (outcome.reason === 'not-found') fail(401, 'AUTH_TOKEN_NOT_FOUND', 'Token not found')
       if (outcome.reason === 'expired') fail(401, 'AUTH_TOKEN_EXPIRED', 'Token expired')
       fail(401, 'AUTH_TOKEN_REVOKED', 'Token has been revoked')
@@ -763,26 +659,7 @@ export function createApp({
 
   app.post('/api/auth/native/logout', async (c) => {
     const input = await parseJson(c, nativeLogoutRequestSchema)
-    const tokenHash = hashRefreshToken(input.refreshToken)
-    const [stored] = await db.select({
-      userId: refreshTokens.userId,
-      familyId: refreshTokens.familyId,
-      clientType: refreshTokens.clientType,
-    }).from(refreshTokens).where(eq(refreshTokens.token, tokenHash)).limit(1)
-    if (stored?.clientType === 'NATIVE') {
-      await db.transaction(async (tx) => {
-        await tx.execute(userSessionLock(stored.userId))
-        await tx.execute(nativeFamilyLock(stored.familyId))
-        await tx.update(refreshTokens).set({
-          revokedAt: now(), revocationReason: 'LOGOUT',
-        }).where(and(
-          eq(refreshTokens.userId, stored.userId),
-          eq(refreshTokens.familyId, stored.familyId),
-          eq(refreshTokens.clientType, 'NATIVE'),
-          isNull(refreshTokens.revokedAt),
-        ))
-      })
-    }
+    await session.logoutNativeSession(input.refreshToken)
     return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
   })
 
@@ -917,14 +794,13 @@ export function createApp({
     return c.json(diary, 200)
   })
 
-  app.put('/api/diaries/:id', async (c) => {
+  const updateDiaryRoute = async (c: Context<AppEnv>, input: UpdateDiaryRequest) => {
     const session = c.get('user')
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const id = c.req.param('id')
+    const id = c.req.param('id') ?? ''
     if (!serializedIdSchema.safeParse(id).success) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'id', message: 'Invalid id', value: id }])
     const parsedId = databaseId(id)
     if (parsedId === undefined) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    const input = await parseJson(c, updateDiaryRequestSchema)
     try {
       const result = await updateDiary(db, parsedId, BigInt(session.id), input, now())
       if (!result) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
@@ -940,7 +816,10 @@ export function createApp({
       }
       throw error
     }
-  })
+  }
+
+  app.put('/api/diaries/:id', async c => updateDiaryRoute(c, await parseJson(c, updateDiaryRequestSchema)))
+  app.put('/api/v2/diaries/:id', async c => updateDiaryRoute(c, await parseJson(c, updateDiaryV2RequestSchema)))
 
   app.delete('/api/diaries/:id', async (c) => {
     const session = c.get('user')
@@ -1026,16 +905,12 @@ export function createApp({
       ? error
       : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
     if (apiError.statusCode >= 500) {
-      const databaseCode = postgresErrorCode(error)
-      const stackFrames = safeStackFrames(error)
       logger.error('Unhandled API request error', {
         operation: 'http_request',
         requestId: c.get('requestId'),
         method: c.req.method,
         path: c.req.path,
-        errorName: error instanceof Error ? error.name : 'UnknownError',
-        ...(databaseCode ? { databaseCode } : {}),
-        ...(stackFrames?.length ? { stackFrames } : {}),
+        ...safeErrorContext(error, { codeField: 'databaseCode' }),
       })
     }
     const body = apiErrorResponseSchema.parse({

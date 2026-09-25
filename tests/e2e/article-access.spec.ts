@@ -20,7 +20,7 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(page.locator('#article-access')).toHaveValue('MEMBER')
     await page.getByLabel('Title', { exact: true }).fill(`${access} synthetic research ${key}`)
     await page.getByLabel('Content', { exact: true }).fill(access === 'MEMBER' ? sentinel : `Public research ${key}`)
-    await page.getByLabel('Public teaser (optional)', { exact: true }).fill('An intentionally public research introduction.')
+    if (access === 'PUBLIC') await page.getByLabel('Public teaser (optional)', { exact: true }).fill('An intentionally public research introduction.')
     await page.locator('#article-access').selectOption(access)
     await page.getByRole('button', { name: 'Save draft', exact: true }).click()
     await expect(page).toHaveURL(/\/admin\/blog\/\d+\/edit$/)
@@ -34,6 +34,16 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(page.getByText('Article published.', { exact: true })).toBeVisible()
     created[access] = { id, slug: draft.slug, title: draft.title }
   }
+  const adminCsrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')?.value ?? ''
+  const translatedPublicTitle = `English ${created.PUBLIC!.title}`
+  const translationPath = `/api/blog/admin/${created.PUBLIC!.id}/translations/en`
+  const translationEdit = await page.request.put(translationPath, {
+    headers: { 'x-csrf-token': adminCsrf },
+    data: { title: translatedPublicTitle, excerpt: 'English translation teaser.', content: `Public research ${key}` },
+  })
+  expect(translationEdit.status(), await translationEdit.text()).toBe(200)
+  expect((await page.request.post(`${translationPath}/review`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })).status()).toBe(200)
+  expect((await page.request.post(`${translationPath}/publish`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })).status()).toBe(200)
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     await fits(page)
@@ -50,7 +60,17 @@ test('article access protects SSR, login returns, logout, editor transitions, an
   const reader = await guestContext.newPage()
   try {
     expect((await reader.goto('/articles'))?.status()).toBe(200)
+    await expect(reader.getByRole('heading', { name: created.PUBLIC!.title, exact: true })).toBeVisible()
     await selectLocale(reader, 'en')
+    await expect(reader.getByRole('heading', { name: translatedPublicTitle, exact: true })).toBeVisible()
+    await reader.goto('/articles?lang=zh-TW')
+    await expect(reader.getByRole('heading', { name: created.PUBLIC!.title, exact: true })).toBeVisible()
+    await selectLocale(reader, 'zh-TW')
+    await selectLocale(reader, 'en')
+    await expect(reader.getByRole('heading', { name: created.PUBLIC!.title, exact: true })).toBeVisible()
+    await expect(reader.getByRole('link', { name: created.PUBLIC!.title, exact: true }).first()).toHaveAttribute('href', `/articles/${created.PUBLIC!.slug}?lang=zh-TW`)
+    await reader.goto('/articles')
+    await expect(reader.getByRole('heading', { name: translatedPublicTitle, exact: true })).toBeVisible()
     await expect(reader.getByRole('heading', { name: created.MEMBER!.title, exact: true })).toBeVisible()
     await reader.goto(`/articles?search=absent${key.replaceAll('-', '')}`)
     await expect(reader.getByText('No published articles match these filters.', { exact: true })).toBeVisible()
@@ -62,6 +82,33 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
     await reader.reload()
     await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
+    let releaseRefresh: (() => void) | undefined
+    const refreshGate = new Promise<void>(resolve => { releaseRefresh = resolve })
+    let refreshStarted = false
+    let refreshCompleted = false
+    let delayNextRefresh = true
+    const publicApiRoute = `**/api/blog/${created.PUBLIC!.slug}`
+    await reader.route(publicApiRoute, async route => {
+      if (!delayNextRefresh) { await route.continue(); return }
+      delayNextRefresh = false
+      refreshStarted = true
+      const response = await route.fetch()
+      await refreshGate
+      await route.fulfill({ response })
+      refreshCompleted = true
+    })
+    await reader.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect.poll(() => refreshStarted).toBe(true)
+    await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
+    releaseRefresh!()
+    await expect.poll(() => refreshCompleted).toBe(true)
+    await reader.unroute(publicApiRoute)
+    await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
+    await reader.route(publicApiRoute, route => route.fulfill({ status: 503, body: 'Synthetic outage' }))
+    await reader.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(reader.getByRole('alert')).toContainText('The article could not be updated')
+    await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
+    await reader.unroute(publicApiRoute)
     const locked = await reader.goto(memberReaderPath)
     expect(locked?.status()).toBe(200)
     expect(await locked!.text()).not.toContain(sentinel)
@@ -89,12 +136,39 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(reader).toHaveURL(`/login?returnTo=${expectedReturnTo}`)
     await reader.getByLabel('Email', { exact: true }).fill(email)
     await reader.getByLabel('Password', { exact: true }).fill(password)
+    const loginResponsePromise = reader.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/login')
     await reader.getByRole('button', { name: 'Sign in', exact: true }).click()
+    const loginResponse = await loginResponsePromise
+    expect(loginResponse.status(), await loginResponse.text()).toBe(200)
     await expect(reader).toHaveURL(url => `${url.pathname}${url.search}` === memberReaderPath)
     await expect(reader.locator('.safe-markdown')).toContainText(sentinel)
     const authenticated = await reader.reload()
     expect(await authenticated!.text()).toContain(sentinel)
     expect(authenticated?.headers()['cache-control']).toContain('no-store')
+    await expect(reader.locator('.safe-markdown')).toContainText(sentinel)
+
+    await expect(reader.locator('header .lede')).toContainText(sentinel.replaceAll('_', ''))
+    let releaseMetadata: (() => void) | undefined
+    const metadataGate = new Promise<void>(resolve => { releaseMetadata = resolve })
+    let metadataRequested = false
+    const memberDetailRoute = `**/api/blog/${created.MEMBER!.slug}*`
+    const memberMetadataRoute = `**/api/blog/${created.MEMBER!.slug}/metadata*`
+    await reader.route(memberDetailRoute, route => route.fulfill({ status: 401, body: 'Synthetic revoked access' }))
+    await reader.route(memberMetadataRoute, async route => {
+      metadataRequested = true
+      await metadataGate
+      await route.fulfill({ status: 503, body: 'Synthetic metadata outage' })
+    })
+    await reader.getByRole('button', { name: /Refresh|重新整理|刷新/, exact: true }).click()
+    await expect.poll(() => metadataRequested).toBe(true)
+    await expect(reader.locator('.safe-markdown')).toHaveCount(0)
+    await expect(reader.locator('header .lede')).toHaveCount(0)
+    await expect(reader.getByText(sentinel, { exact: false })).toHaveCount(0)
+    releaseMetadata!()
+    await expect(reader.getByRole('alert')).toContainText(/This article is no longer available|這篇文章目前無法使用|这篇文章目前无法使用/)
+    await reader.unroute(memberDetailRoute)
+    await reader.unroute(memberMetadataRoute)
+    await reader.getByRole('button', { name: /Refresh|重新整理|刷新/, exact: true }).click()
     await expect(reader.locator('.safe-markdown')).toContainText(sentinel)
 
     const departedReader = await guestContext.newPage()
@@ -144,6 +218,6 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(reader.getByRole('heading', { name: created.PUBLIC!.title, exact: true })).toHaveCount(0)
     expect(await (await reader.request.get('/sitemap.xml')).text()).not.toContain(created.PUBLIC!.slug)
     await reader.goto('/articles/nonexistent-synthetic-article')
-    await expect(reader.locator('body')).toContainText(/not found|找不到|不存在/i)
+    await expect(reader.locator('body')).toContainText(/could not be found|找不到|不存在/i)
   } finally { await guestContext.close() }
 })

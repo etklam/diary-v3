@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
+import { postTranslations } from '@diary/db'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
@@ -62,6 +63,35 @@ function mutate(browser: BrowserSession, path: string, body: unknown, method = '
     headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! },
     body: JSON.stringify(body),
   })
+}
+
+async function publishTranslation(post: PostAdminDetail, locale: 'zh-TW' | 'zh-CN' | 'en', values: { title: string; excerpt?: string | null; content?: string; sourceRevision?: number; sourceHash?: string; status?: 'published' | 'unpublished' }) {
+  const sourceRevision = values.sourceRevision ?? post.sourceRevision
+  const sourceHash = values.sourceHash ?? post.sourceHash
+  return database.db.insert(postTranslations).values({
+    postId: BigInt(post.id),
+    locale,
+    status: values.status ?? 'published',
+    draftTitle: values.title,
+    draftExcerpt: values.excerpt ?? null,
+    draftContent: values.content ?? values.title,
+    draftVersion: 1,
+    draftSourceRevision: sourceRevision,
+    draftSourceHash: sourceHash,
+    draftProvider: 'manual',
+    publishedTitle: values.title,
+    publishedExcerpt: values.excerpt ?? null,
+    publishedContent: values.content ?? values.title,
+    publishedVersion: 1,
+    publishedSourceRevision: sourceRevision,
+    publishedSourceHash: sourceHash,
+    publishedProvider: 'manual',
+    reviewedAt: clock,
+    reviewedDraftVersion: 1,
+    publishedAt: clock,
+    createdAt: clock,
+    updatedAt: clock,
+  }).returning()
 }
 
 it('persists an admin draft, reopens long Markdown, and keeps it out of public projections', async () => {
@@ -156,18 +186,158 @@ it('preserves first publishedAt across archive and republish', async () => {
 it('matches the measured public full-text boundary and excludes content-only terms', async () => {
   const { browser } = await login(true)
   await create(browser, { title: 'Investment the AI Alphabet', excerpt: 'Longterm investment evidence', content: 'bodyonly', status: 'PUBLISHED' })
+  await create(browser, { title: 'Rail station notes', excerpt: 'Transport planning', content: 'otherbody', status: 'PUBLISHED' })
   await create(browser, { title: '投資策略', excerpt: 'Café notes', content: 'otherbody', status: 'PUBLISHED' })
   const publicQuery = async (term: string) => (await (await browser.request(`/api/blog?search=${encodeURIComponent(term)}`)).json()).pagination.total
   expect(await publicQuery('investment')).toBe(1)
   expect(await publicQuery('vest')).toBe(0)
   expect(await publicQuery('the')).toBe(0)
-  expect(await publicQuery('AI')).toBe(0)
-  expect(await publicQuery('投資')).toBe(0)
+  expect(await publicQuery('AI')).toBe(1)
+  expect(await publicQuery('投資')).toBe(1)
   expect(await publicQuery('投資策略')).toBe(1)
-  expect(await publicQuery('investment 投資')).toBe(1)
+  expect(await publicQuery('investment 投資')).toBe(2)
   expect(await publicQuery('bodyonly')).toBe(0)
   expect(await publicQuery('alpha*')).toBe(1)
   expect(await publicQuery('cafe')).toBe(1)
+})
+
+it('searches current published translations without exposing translated body or protected teasers', async () => {
+  const { browser: admin } = await login(true)
+  const translated = await create(admin, {
+    title: '來源文章標題',
+    excerpt: '來源安全摘要',
+    content: 'SOURCE_BODY_PRIVATE_SENTINEL',
+    status: 'PUBLISHED',
+    access: 'PUBLIC',
+  })
+  await publishTranslation(translated, 'en', {
+    title: 'English translation search sentinel',
+    excerpt: 'English public summary',
+    content: 'TRANSLATED_BODY_PRIVATE_SENTINEL',
+  })
+  await publishTranslation(translated, 'zh-CN', {
+    title: 'StaleOnlyUnique translation search sentinel',
+    sourceRevision: translated.sourceRevision + 1,
+    sourceHash: '00000000000000000000000000000000',
+  })
+
+  const guest = new BrowserSession(baseUrl)
+  const translatedSearch = await guest.request('/api/blog?search=English%20translation')
+  expect(translatedSearch.status).toBe(200)
+  const translatedPayload = await translatedSearch.json()
+  expect(translatedPayload.pagination).toMatchObject({ total: 1, page: 1, limit: 9 })
+  expect(translatedPayload.data).toHaveLength(1)
+  expect(translatedPayload.data[0]).toMatchObject({
+    id: translated.id,
+    title: translated.title,
+    requestedLocale: 'zh-TW',
+    resolvedLocale: 'zh-TW',
+    matchedTranslationLocale: 'en',
+  })
+  expect(JSON.stringify(translatedPayload)).not.toContain('TRANSLATED_BODY_PRIVATE_SENTINEL')
+
+  const staleSearch = await guest.request('/api/blog?search=StaleOnlyUnique')
+  const stalePayload = await staleSearch.json()
+  expect(stalePayload.pagination.total).toBe(0)
+
+  const unpublishedTarget = await create(admin, {
+    title: 'Unpublished source title',
+    content: 'UNPUBLISHED_SOURCE_BODY_SENTINEL',
+    status: 'PUBLISHED',
+    access: 'PUBLIC',
+  })
+  await publishTranslation(unpublishedTarget, 'en', {
+    title: 'UnpublishedOnlyUnique translation search sentinel',
+    status: 'unpublished',
+  })
+  const unpublishedSearch = await guest.request('/api/blog?search=UnpublishedOnlyUnique')
+  expect((await unpublishedSearch.json()).pagination.total).toBe(0)
+
+  const draftTarget = await create(admin, {
+    title: 'Draft source title',
+    content: 'DRAFT_SOURCE_BODY_SENTINEL',
+    status: 'PUBLISHED',
+    access: 'PUBLIC',
+  })
+  const draftTranslation = await database.db.insert(postTranslations).values({
+    postId: BigInt(draftTarget.id),
+    locale: 'zh-CN',
+    status: 'draft',
+    draftTitle: 'DraftOnlyUnique translation search sentinel',
+    draftExcerpt: null,
+    draftContent: 'DRAFT_BODY_PRIVATE_SENTINEL',
+    draftVersion: 1,
+    draftSourceRevision: draftTarget.sourceRevision,
+    draftSourceHash: draftTarget.sourceHash,
+    createdAt: clock,
+    updatedAt: clock,
+  }).returning()
+  expect(draftTranslation).toHaveLength(1)
+  const draftSearch = await guest.request('/api/blog?search=DraftOnlyUnique')
+  expect((await draftSearch.json()).pagination.total).toBe(0)
+
+  const member = await create(admin, {
+    title: 'Member source title',
+    content: 'MEMBER_BODY_PRIVATE_SENTINEL',
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
+  await publishTranslation(member, 'en', {
+    title: 'TranslatedTitleOnlyUnique sentinel',
+    excerpt: 'DerivedOnlyUnique teaser sentinel',
+    content: 'MEMBER_TRANSLATED_BODY_PRIVATE_SENTINEL',
+  })
+  const protectedTeaserSearch = await guest.request('/api/blog?search=DerivedOnlyUnique')
+  expect((await protectedTeaserSearch.json()).pagination.total).toBe(0)
+  const translatedTitleSearch = await guest.request('/api/blog?search=TranslatedTitleOnlyUnique')
+  expect((await translatedTitleSearch.json()).pagination.total).toBe(1)
+
+  const authoredTeaser = await create(admin, {
+    title: 'Member authored teaser source',
+    excerpt: 'Explicit public teaser',
+    content: 'MEMBER_AUTHORED_BODY_SENTINEL',
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
+  await publishTranslation(authoredTeaser, 'en', {
+    title: 'Member authored translated title',
+    excerpt: 'TranslatedExplicitOnlyUnique teaser',
+    content: 'MEMBER_AUTHORED_TRANSLATED_BODY_SENTINEL',
+  })
+  const authoredTeaserSearch = await guest.request('/api/blog?search=TranslatedExplicitOnlyUnique')
+  expect((await authoredTeaserSearch.json()).pagination.total).toBe(1)
+})
+
+it('deduplicates multilingual matches before count and pagination and prefers the requested match locale', async () => {
+  const { browser: admin } = await login(true)
+  const posts = []
+  for (let index = 0; index < 10; index += 1) {
+    const post = await create(admin, {
+      title: `Source page ${index}`,
+      content: `PAGE_BODY_${index}`,
+      status: 'PUBLISHED',
+      access: 'PUBLIC',
+    })
+    await publishTranslation(post, 'en', { title: `Pagination translation ${index}` })
+    if (index === 0) await publishTranslation(post, 'zh-CN', { title: 'Pagination translation 0 alternate' })
+    posts.push(post)
+  }
+
+  const guest = new BrowserSession(baseUrl)
+  const firstPage = await guest.request('/api/blog?search=Pagination%20translation&lang=en')
+  expect(firstPage.status).toBe(200)
+  const firstPayload = await firstPage.json()
+  expect(firstPayload.pagination).toMatchObject({ total: 10, page: 1, limit: 9, totalPages: 2 })
+  expect(firstPayload.data).toHaveLength(9)
+  expect(new Set(firstPayload.data.map((row: { id: string }) => row.id)).size).toBe(9)
+  expect(firstPayload.data[0]).toMatchObject({ id: posts[9]!.id, matchedTranslationLocale: 'en' })
+  expect(firstPayload.data.at(-1)).toMatchObject({ id: posts[1]!.id, matchedTranslationLocale: 'en' })
+
+  const secondPage = await guest.request('/api/blog?search=Pagination%20translation&lang=zh-CN&page=2')
+  const secondPayload = await secondPage.json()
+  expect(secondPayload.pagination).toMatchObject({ total: 10, page: 2, limit: 9, totalPages: 2 })
+  expect(secondPayload.data).toHaveLength(1)
+  expect(secondPayload.data[0]).toMatchObject({ id: posts[0]!.id, matchedTranslationLocale: 'zh-CN' })
 })
 
 it('matches every frozen MariaDB boolean probe through the public API', async () => {

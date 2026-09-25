@@ -124,6 +124,32 @@ function databaseFailingOnSelect(error: Error) {
   return db
 }
 
+function databaseFailingOnSelectFrom(table: unknown, error: Error) {
+  const wrapQuery = (query: object, shouldFail: boolean): object => new Proxy(query, {
+    get(target, property) {
+      if (property === 'then' && shouldFail) {
+        return (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => Promise.reject(error).then(resolve, reject)
+      }
+      const value = Reflect.get(target, property, target)
+      if (typeof value !== 'function') return value
+      return (...args: unknown[]) => {
+        const next: unknown = Reflect.apply(value, target, args)
+        if (typeof next !== 'object' || next === null) return next
+        return wrapQuery(next, shouldFail || (property === 'from' && args[0] === table))
+      }
+    },
+  })
+  return new Proxy(database.db, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target)
+      if (property === 'select' && typeof value === 'function') {
+        return (...args: unknown[]) => wrapQuery(Reflect.apply(value, target, args), false)
+      }
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  }) as Database
+}
+
 async function mutate(browser: BrowserSession, path: string, body: unknown, method = 'POST') {
   return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
 }
@@ -204,6 +230,67 @@ it('queues independent automatic drafts after publishing without publishing mach
   expect(english).toMatchObject({ locale: 'en', status: 'pending_review', publishedVersion: 0, publishedContent: null })
   const reader = await (await admin.request(`/api/blog/${post.slug}?lang=en`)).json()
   expect(reader).toMatchObject({ requestedLocale: 'en', resolvedLocale: 'zh-TW', isFallback: true, title: post.title })
+})
+
+it('keeps a published article live when automatic settings lookup fails', async () => {
+  const admin = await login(true)
+  const secret = `SYNTHETIC-AUTO-SETTINGS-${randomUUID()} PRIVATE_ARTICLE_TEXT_SENTINEL`
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+  const error = wrappedDatabaseError('57P03', secret)
+  const app = createApp({
+    db: databaseFailingOnSelectFrom(articleTranslationAiSettings, error),
+    now: () => clock,
+    config: { jwtSecret: 'synthetic-article-translations-key-32chars', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    logger: { error(message, context) { logs.push({ message, context }) } },
+  })
+  const cookie = [...admin.cookies].map(([key, value]) => `${key}=${value}`).join('; ')
+  const response = await app.request('http://localhost/api/blog', {
+    method: 'POST',
+    headers: { cookie, 'x-csrf-token': admin.cookies.get('csrf-token')!, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: secret,
+      content: `# ${secret}`,
+      category: 'market',
+      status: 'PUBLISHED',
+      access: 'PUBLIC',
+      autoTranslateEnabled: true,
+      autoTranslateLocales: ['en'],
+      autoTranslateProvider: 'ai',
+    }),
+  })
+  const published = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(published).toMatchObject({
+    status: 'PUBLISHED',
+    automaticTranslationAdmission: { status: 'not_queued', reason: 'settings_unavailable', resumeAt: null },
+  })
+  expect(await database.db.select().from(posts).where(eq(posts.id, BigInt(published.id)))).toHaveLength(1)
+  expect(await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(published.id)))).toHaveLength(0)
+  expect(logs).toHaveLength(1)
+  expect(logs[0]?.context).toMatchObject({ operation: 'article_translation_enqueue', stage: 'admission', provider: 'ai', errorCode: '57P03' })
+  expect(JSON.stringify(logs[0]?.context)).not.toContain(secret)
+})
+
+it('does not auto-queue while the Edge circuit is open and reports its resume time', async () => {
+  const admin = await login(true)
+  const resumeAt = new Date(clock.getTime() + 30 * 60_000)
+  await database.db.update(articleTranslationRuntime).set({ edgeDisabledUntil: resumeAt }).where(eq(articleTranslationRuntime.singleton, 'default'))
+
+  const post = await createArticle(admin, {
+    autoTranslateEnabled: true,
+    autoTranslateLocales: ['en'],
+    autoTranslateProvider: 'edge',
+  })
+
+  expect(post).toMatchObject({
+    status: 'PUBLISHED',
+    automaticTranslationAdmission: { status: 'not_queued', reason: 'provider_circuit_open', resumeAt: resumeAt.toISOString() },
+  })
+  expect(await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(post.id)))).toHaveLength(0)
+  const manual = await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'edge' })
+  expect(manual.status).toBe(409)
+  expect((await manual.json()).data.code).toBe('ARTICLE_TRANSLATION_PROVIDER_DISABLED')
 })
 
 it('stores multiple OpenAI-compatible provider profiles encrypted and pins queued jobs to the selected profile', async () => {
@@ -465,7 +552,7 @@ it('keeps the worker loop alive after a wrapped recoverable database error', asy
 })
 
 it('logs only safe stack frames and never records SQL parameters', async () => {
-  const secret = `SYNTHETIC-ARTICLE-${randomUUID()}`
+  const secret = `SYNTHETIC-ARTICLE-${randomUUID()} PRIVATE_ARTICLE_TEXT_SENTINEL PRIVATE_DIARY_TEXT_SENTINEL TOKEN_SENTINEL`
   const faulty = databaseFailingOnTransaction(1, wrappedDatabaseError('23505', secret))
   const logs: Array<{ message: string; context: Record<string, unknown> }> = []
 
@@ -502,7 +589,7 @@ it('logs unexpected API failures with request metadata and safe database diagnos
 
 it('logs automatic enqueue failures without article content', async () => {
   const admin = await login(true)
-  const secret = `SYNTHETIC-AUTO-TRANSLATE-${randomUUID()}`
+  const secret = `SYNTHETIC-AUTO-TRANSLATE-${randomUUID()} PRIVATE_ARTICLE_TEXT_SENTINEL PRIVATE_DIARY_TEXT_SENTINEL TOKEN_SENTINEL`
   const faulty = databaseFailingOnTransaction(2, wrappedDatabaseError('23505', secret))
   const logs: Array<{ message: string; context: Record<string, unknown> }> = []
   const app = createApp({
@@ -530,6 +617,7 @@ it('logs automatic enqueue failures without article content', async () => {
 
   expect(response.status).toBe(200)
   expect(body.id).toBeDefined()
+  expect(body.automaticTranslationAdmission).toMatchObject({ status: 'not_queued', reason: 'queue_unavailable', resumeAt: null })
   expect(logs).toHaveLength(1)
   expect(logs[0]?.context).toMatchObject({ operation: 'article_translation_enqueue', stage: 'enqueue', targetLocale: 'en', provider: 'edge' })
   expect(logs[0]?.context.requestId).toEqual(expect.any(String))

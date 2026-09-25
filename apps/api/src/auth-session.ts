@@ -25,6 +25,16 @@ interface TokenPayload extends SessionUser {
   type: 'access' | 'refresh'
 }
 
+export type NativeRefreshOutcome =
+  | { ok: true; pair: NativeTokenPair }
+  | { ok: false; reason: 'invalid' | 'not-found' | 'revoked' | 'expired' }
+
+export type NativeLogoutOutcome =
+  | { outcome: 'revoked' }
+  | { outcome: 'already-revoked' }
+  | { outcome: 'not-found' }
+  | { outcome: 'not-native' }
+
 type Fail = (
   status: number,
   code: ErrorCode,
@@ -116,11 +126,11 @@ export function createAuthSessionService({
     return token.sign(secret)
   }
 
-  const verifyToken = async (
+  const parseToken = async (
     token: string,
     expectedType: TokenPayload['type'],
     allowExpired = false,
-  ): Promise<TokenPayload> => {
+  ): Promise<TokenPayload | undefined> => {
     try {
       const { payload } = await jwtVerify(token, secret, {
         algorithms: ['HS256'],
@@ -145,8 +155,18 @@ export function createAuthSessionService({
         expiresAt: payload.exp,
       }
     } catch {
-      return fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
+      return undefined
     }
+  }
+
+  const verifyToken = async (
+    token: string,
+    expectedType: TokenPayload['type'],
+    allowExpired = false,
+  ): Promise<TokenPayload> => {
+    const payload = await parseToken(token, expectedType, allowExpired)
+    if (!payload) return fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
+    return payload
   }
 
   const authenticateAccess = async (token: string): Promise<SessionUser> => {
@@ -242,6 +262,130 @@ export function createAuthSessionService({
         user: authUser(user),
       }),
     }
+  }
+
+  const refreshNativeSession = async (token: string): Promise<NativeRefreshOutcome> => {
+    const payload = await parseToken(token, 'refresh', true)
+    if (!payload) return { ok: false, reason: 'invalid' }
+
+    const [stored] = await db.select({
+      id: refreshTokens.id,
+      userId: refreshTokens.userId,
+      clientType: refreshTokens.clientType,
+      familyId: refreshTokens.familyId,
+    }).from(refreshTokens)
+      .where(eq(refreshTokens.token, hashRefreshToken(token)))
+      .limit(1)
+
+    if (!stored || stored.clientType !== 'NATIVE') return { ok: false, reason: 'not-found' }
+
+    return db.transaction(async (tx): Promise<NativeRefreshOutcome> => {
+      // Account-wide operations serialize before family-specific rotation.
+      await tx.execute(userSessionLock(stored.userId))
+      // Every mutation in one native family takes this transaction-scoped lock.
+      // The post-lock read gets a fresh READ COMMITTED snapshot, so replay/logout
+      // sees any descendant committed by the previous lock holder.
+      await tx.execute(nativeFamilyLock(stored.familyId))
+      const [current] = await tx.select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        clientType: refreshTokens.clientType,
+        familyId: refreshTokens.familyId,
+        deviceName: refreshTokens.deviceName,
+        revokedAt: refreshTokens.revokedAt,
+        expiresAt: refreshTokens.expiresAt,
+        user: users,
+      }).from(refreshTokens)
+        .innerJoin(users, eq(users.id, refreshTokens.userId))
+        .where(eq(refreshTokens.id, stored.id))
+        .limit(1)
+
+      if (!current || current.clientType !== 'NATIVE') return { ok: false, reason: 'not-found' }
+      if (current.revokedAt) {
+        // This update is part of the transaction, so the family revocation is
+        // committed before the caller maps replay to its 401 response.
+        await tx.update(refreshTokens).set({
+          revokedAt: now(), revocationReason: 'REUSE_DETECTED',
+        }).where(and(
+          eq(refreshTokens.userId, current.userId),
+          eq(refreshTokens.familyId, current.familyId),
+          eq(refreshTokens.clientType, 'NATIVE'),
+          isNull(refreshTokens.revokedAt),
+        ))
+        return { ok: false, reason: 'revoked' }
+      }
+
+      const operationNow = now()
+      // Database expiry is authoritative. This branch intentionally follows
+      // replay detection so an expired rotated ancestor still revokes its family.
+      if (current.expiresAt <= operationNow) {
+        await tx.update(refreshTokens).set({
+          revokedAt: operationNow, revocationReason: 'EXPIRED',
+        }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
+        return { ok: false, reason: 'expired' }
+      }
+      if (current.user.tokenVersion !== payload.tokenVersion || current.user.id.toString() !== payload.id) {
+        return { ok: false, reason: 'revoked' }
+      }
+
+      const replacementMaterial = await buildNativeTokenPair(current.user)
+      await tx.update(refreshTokens).set({
+        revokedAt: operationNow, revocationReason: 'ROTATED',
+      }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
+      const [replacement] = await tx.insert(refreshTokens).values({
+        token: hashRefreshToken(replacementMaterial.rawRefreshToken),
+        userId: current.userId,
+        clientType: 'NATIVE',
+        familyId: current.familyId,
+        deviceName: current.deviceName,
+        parentId: current.id,
+        expiresAt: replacementMaterial.refreshExpiresAt,
+      }).returning({ id: refreshTokens.id })
+      if (!replacement) throw new Error('Refresh replacement insert returned no row')
+      await tx.update(refreshTokens).set({ replacementId: replacement.id })
+        .where(eq(refreshTokens.id, current.id))
+      return { ok: true, pair: replacementMaterial.pair }
+    })
+  }
+
+  const logoutNativeSession = async (token: string): Promise<NativeLogoutOutcome> => {
+    const [stored] = await db.select({
+      id: refreshTokens.id,
+      userId: refreshTokens.userId,
+      familyId: refreshTokens.familyId,
+      clientType: refreshTokens.clientType,
+    }).from(refreshTokens)
+      .where(eq(refreshTokens.token, hashRefreshToken(token)))
+      .limit(1)
+
+    if (!stored) return { outcome: 'not-found' }
+    if (stored.clientType !== 'NATIVE') return { outcome: 'not-native' }
+
+    return db.transaction(async (tx): Promise<NativeLogoutOutcome> => {
+      // Keep the same user-then-family lock order as refresh and account-wide
+      // revocation, then reread state after both locks.
+      await tx.execute(userSessionLock(stored.userId))
+      await tx.execute(nativeFamilyLock(stored.familyId))
+      const [current] = await tx.select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        familyId: refreshTokens.familyId,
+        clientType: refreshTokens.clientType,
+      }).from(refreshTokens)
+        .where(eq(refreshTokens.id, stored.id))
+        .limit(1)
+
+      if (!current || current.clientType !== 'NATIVE') return { outcome: 'not-found' }
+      const revoked = await tx.update(refreshTokens).set({
+        revokedAt: now(), revocationReason: 'LOGOUT',
+      }).where(and(
+        eq(refreshTokens.userId, current.userId),
+        eq(refreshTokens.familyId, current.familyId),
+        eq(refreshTokens.clientType, 'NATIVE'),
+        isNull(refreshTokens.revokedAt),
+      )).returning({ id: refreshTokens.id })
+      return revoked.length > 0 ? { outcome: 'revoked' } : { outcome: 'already-revoked' }
+    })
   }
 
   const createLoginSession = async ({
@@ -346,6 +490,8 @@ export function createAuthSessionService({
     changePassword,
     createLoginSession,
     logoutAllSessions,
+    logoutNativeSession,
+    refreshNativeSession,
     refreshWebSession,
     signToken,
     verifyRefreshToken: (token: string) => verifyToken(token, 'refresh', true),

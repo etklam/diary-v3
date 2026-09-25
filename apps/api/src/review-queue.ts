@@ -18,6 +18,13 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
     const user = c.get('user'); if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const parsed = reviewQueueQuerySchema.safeParse(c.req.query()); if (!parsed.success) return validationError(parsed.error)
     const { page, limit, target } = parsed.data, userId = BigInt(user.id), timestamp = now().toISOString()
+    const pages = {
+      overdue: parsed.data.overduePage ?? page,
+      today: parsed.data.todayPage ?? page,
+      upcoming: parsed.data.upcomingPage ?? page,
+      unscheduled: parsed.data.unscheduledPage ?? page,
+      completed: parsed.data.completedPage ?? page,
+    }
     // One SQL snapshot. Local midnight boundaries are calculated before converting
     // to UTC, so DST days naturally span 23/25 hours rather than a fixed duration.
     // The optional target filter narrows entries before ranking, so positions,
@@ -77,7 +84,18 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
         page_items.bucket as bucket, page_items.item as item
       from bucket_counts left join lateral (
         select ranked.bucket,ranked.position,ranked.item from ranked
-        where ranked.bucket = bucket_counts.bucket and ranked.position > ${(page - 1) * limit} and ranked.position <= ${page * limit}
+        where ranked.bucket = bucket_counts.bucket and ranked.position > case bucket_counts.bucket
+          when 'overdue' then ${(pages.overdue - 1) * limit}::bigint
+          when 'today' then ${(pages.today - 1) * limit}::bigint
+          when 'upcoming' then ${(pages.upcoming - 1) * limit}::bigint
+          when 'unscheduled' then ${(pages.unscheduled - 1) * limit}::bigint
+          when 'completed' then ${(pages.completed - 1) * limit}::bigint end
+          and ranked.position <= case bucket_counts.bucket
+          when 'overdue' then ${pages.overdue * limit}::bigint
+          when 'today' then ${pages.today * limit}::bigint
+          when 'upcoming' then ${pages.upcoming * limit}::bigint
+          when 'unscheduled' then ${pages.unscheduled * limit}::bigint
+          when 'completed' then ${pages.completed * limit}::bigint end
         order by ranked.position
       ) page_items on true order by page_items.position nulls last
     `)

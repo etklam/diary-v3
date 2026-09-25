@@ -220,9 +220,27 @@ export interface paths {
             cookie?: never;
         };
         get: operations["diariesGet"];
+        /** @description Compatibility operation. expectedRevision is optional; when omitted this preserves legacy last-writer replacement semantics. New clients should use the versioned operation. */
         put: operations["diariesUpdate"];
         post?: never;
         delete: operations["diariesDelete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/diaries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Versioned full replacement. expectedRevision is required; stale revisions are rejected without mutation. */
+        put: operations["diariesUpdateV2"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2679,6 +2697,40 @@ export interface components {
             /** Format: date-time */
             reviewDueAt?: string | null;
             stockSymbols?: string[];
+            expectedRevision?: number;
+            transactions?: {
+                symbol: string;
+                quantity: number | string;
+                price: number | string;
+                /** Format: date-time */
+                tradeDate: string;
+                notes?: string | null;
+                strategy?: string | null;
+                emotion?: string | null;
+                id?: string;
+                /** @enum {string} */
+                type: "BUY" | "SELL";
+            }[];
+        };
+        UpdateDiaryV2Request: {
+            alerts?: {
+                message: string;
+                /** Format: date-time */
+                triggerAt: string;
+                /** @enum {string} */
+                recurringMode?: "WEEK" | "MONTH";
+                id?: string;
+            }[];
+            title: string;
+            content: string;
+            tags?: string[];
+            date?: string;
+            thesis?: string | null;
+            risk?: string | null;
+            execution?: string | null;
+            /** Format: date-time */
+            reviewDueAt?: string | null;
+            stockSymbols?: string[];
             expectedRevision: number;
             transactions?: {
                 symbol: string;
@@ -3427,6 +3479,10 @@ export interface components {
                 dayChangePercent?: number;
                 /** Format: date-time */
                 quoteAsOf?: string;
+                /** @enum {string} */
+                source?: "upstream" | "cache" | "stale";
+                /** Format: date-time */
+                fetchedAt?: string;
             }[];
             valuation: {
                 totalHoldings: number;
@@ -3449,6 +3505,8 @@ export interface components {
                 /** Format: date-time */
                 valuationAsOf: string | null;
                 staleQuoteCount: number;
+                staleFallbackPositionCount?: number;
+                unknownQuoteTimeCount?: number;
                 /** @enum {string} */
                 valuationStatus: "empty" | "complete" | "partial" | "unavailable";
                 unsupportedMetrics: [
@@ -3563,6 +3621,8 @@ export interface components {
                 isFallback: boolean;
                 /** @enum {string|null} */
                 fallbackReason: "translation_unavailable" | "translation_stale" | null;
+                /** @enum {string|null} */
+                matchedTranslationLocale: "zh-TW" | "zh-CN" | "en" | null;
                 author: {
                     id: string;
                     name: string | null;
@@ -3728,6 +3788,14 @@ export interface components {
             autoTranslateLocales: ("zh-TW" | "zh-CN" | "en")[];
             /** @enum {string} */
             autoTranslateProvider: "edge" | "ai";
+            automaticTranslationAdmission?: {
+                /** @enum {string} */
+                status: "queued" | "not_queued" | "partial";
+                /** @enum {string|null} */
+                reason: "provider_circuit_open" | "provider_unavailable" | "settings_unavailable" | "queue_unavailable" | null;
+                /** Format: date-time */
+                resumeAt: string | null;
+            };
         };
         PostWriteRequest: {
             title: string;
@@ -3755,6 +3823,9 @@ export interface components {
         };
         PostBulkResponse: {
             count: number;
+            automaticTranslationWarningCount?: number;
+            /** Format: date-time */
+            automaticTranslationResumeAt?: string | null;
         };
         PostDeleteResponse: {
             /** @enum {boolean} */
@@ -3768,6 +3839,8 @@ export interface components {
             sourceRevision: number;
             sourceHash: string;
             edgeEnabled: boolean;
+            /** Format: date-time */
+            edgeDisabledUntil?: string | null;
             /** @enum {string} */
             warning: "Article text will be sent to a third-party translation service.";
             translations: {
@@ -6316,7 +6389,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Diary updated */
+            /** @description Diary updated. Revision is optional for compatibility; when present it is checked. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6430,6 +6503,86 @@ export interface operations {
             };
             /** @description HTTP 404 error */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diariesUpdateV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateDiaryV2Request"];
+            };
+        };
+        responses: {
+            /** @description Diary updated with optimistic concurrency */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8668,6 +8821,11 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
+                overduePage?: number;
+                todayPage?: number;
+                upcomingPage?: number;
+                unscheduledPage?: number;
+                completedPage?: number;
                 target?: "diary" | "thesis";
             };
             header?: never;
@@ -8676,7 +8834,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope */
+            /** @description Five review groups with independent bucket pages (legacy page remains a fallback), plus absolute per-bucket counts for the requested target scope */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8956,6 +9114,12 @@ export interface operations {
                             concentrationBasis: "cost_basis" | "unavailable";
                             /** @enum {string} */
                             quoteStatus: "priced" | "missing";
+                            /** Format: date-time */
+                            quoteAsOf?: string | null;
+                            /** @enum {string|null} */
+                            source?: "upstream" | "cache" | "stale" | null;
+                            /** Format: date-time */
+                            fetchedAt?: string | null;
                         };
                         thesis: {
                             id: string;
@@ -9477,6 +9641,10 @@ export interface operations {
                                     dayChangePercent?: number;
                                     /** Format: date-time */
                                     quoteAsOf?: string;
+                                    /** @enum {string} */
+                                    source?: "upstream" | "cache" | "stale";
+                                    /** Format: date-time */
+                                    fetchedAt?: string;
                                 }[];
                                 valuation: {
                                     totalHoldings: number;
@@ -9499,6 +9667,8 @@ export interface operations {
                                     /** Format: date-time */
                                     valuationAsOf: string | null;
                                     staleQuoteCount: number;
+                                    staleFallbackPositionCount?: number;
+                                    unknownQuoteTimeCount?: number;
                                     /** @enum {string} */
                                     valuationStatus: "empty" | "complete" | "partial" | "unavailable";
                                     unsupportedMetrics: [

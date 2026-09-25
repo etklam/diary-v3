@@ -59,8 +59,15 @@ export type ReviewBucketCounts = z.infer<typeof reviewBucketCountsSchema>
 export type ReviewGroups = z.infer<typeof reviewGroupsResponseSchema>
 
 export const reviewQueueQuerySchema = z.object({
+  // Legacy shared page remains the default for every bucket when the newer
+  // bucket-specific page fields are absent.
   page: z.coerce.number().int().min(1).max(1000000).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(100),
+  overduePage: z.coerce.number().int().min(1).max(1000000).optional(),
+  todayPage: z.coerce.number().int().min(1).max(1000000).optional(),
+  upcomingPage: z.coerce.number().int().min(1).max(1000000).optional(),
+  unscheduledPage: z.coerce.number().int().min(1).max(1000000).optional(),
+  completedPage: z.coerce.number().int().min(1).max(1000000).optional(),
   // Optional focus filter; pagination and counts stay scoped to the selection.
   target: z.enum(['diary', 'thesis']).optional(),
 }).strict()

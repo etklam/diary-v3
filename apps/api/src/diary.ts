@@ -216,20 +216,20 @@ export async function updateDiary(
       eq(diaries.id, id), eq(diaries.userId, userId),
     )).limit(1).for('update')
     if (!existing) return undefined
-    if (input.expectedRevision !== existing.revision) {
+    if (input.expectedRevision !== undefined && input.expectedRevision !== existing.revision) {
       return { conflict: true as const, revision: existing.revision }
     }
 
     const transactionRows = input.transactions === undefined
       ? await listDiaryTransactions(tx, id, userId)
       : await replaceDiaryTransactions(tx, id, userId, input.transactions)
+    const updatePredicate = input.expectedRevision === undefined
+      ? and(eq(diaries.id, id), eq(diaries.userId, userId))
+      : and(eq(diaries.id, id), eq(diaries.userId, userId), eq(diaries.revision, input.expectedRevision))
     const [diary] = await tx.update(diaries).set({
       ...values,
       revision: sql`${diaries.revision} + 1`,
-    }).where(and(
-      eq(diaries.id, id), eq(diaries.userId, userId),
-      eq(diaries.revision, input.expectedRevision),
-    )).returning()
+    }).where(updatePredicate).returning()
     if (!diary) throw new Error('Diary update returned no row')
     if (input.stockSymbols !== undefined) await writeDiaryStocks(tx, id, input.stockSymbols, true)
     await writeAlerts(tx, userId, id, input.alerts, updatedAt, true)

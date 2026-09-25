@@ -71,12 +71,18 @@ it('uses half-open account-local midnight windows through spring and fall DST', 
 it('paginates each bucket deterministically and rejects invalid credentials and limits', async () => {
   const browser = await login(), ids = []
   for (let i = 1; i <= 5; i++) ids.push((await diary(browser, `2026-09-0${i}`, '2026-09-05T10:00:00Z')).id)
+  const overdueIds = []
+  for (let i = 1; i <= 3; i++) overdueIds.push((await diary(browser, `2026-08-0${i}`, '2026-09-04T10:00:00Z')).id)
   expect((await queue(browser, '?page=1&limit=2')).today.map((row: {id:string}) => row.id)).toEqual(ids.slice(0,2))
   expect((await queue(browser, '?page=2&limit=2')).today.map((row: {id:string}) => row.id)).toEqual(ids.slice(2,4))
   expect((await queue(browser, '?page=3&limit=2')).today.map((row: {id:string}) => row.id)).toEqual(ids.slice(4))
+  const independent = await queue(browser, '?limit=2&overduePage=2&todayPage=1')
+  expect(independent.overdue.map((row: {id:string}) => row.id)).toEqual(overdueIds.slice(2))
+  expect(independent.today.map((row: {id:string}) => row.id)).toEqual(ids.slice(0,2))
   // Counts stay absolute across pages so navigation never reads as empty work.
-  expect((await queue(browser, '?page=3&limit=2')).counts).toEqual({ overdue: 0, today: 5, upcoming: 0, unscheduled: 0, completed: 0 })
+  expect((await queue(browser, '?page=3&limit=2')).counts).toEqual({ overdue: 3, today: 5, upcoming: 0, unscheduled: 0, completed: 0 })
   expect((await browser.request('/api/reviews?limit=201')).status).toBe(400)
+  expect((await browser.request('/api/reviews?overduePage=0')).status).toBe(400)
   expect((await browser.request('/api/reviews?target=company')).status).toBe(400)
   expect((await browser.request('/api/reviews', { headers: { authorization: 'Bearer invalid' } })).status).toBe(401)
   expect((await fetch(baseUrl+'/api/reviews')).status).toBe(401)

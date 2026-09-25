@@ -10,7 +10,7 @@ describe('AI browser session boundary', () => {
     expect(safeReturnPath(`//outside.example${path}`)).toBe('/diaries/new')
   })
 
-  it.each(['/api/ai/reports/42', '/api/admin/ai/settings'])('blocks a remounted private fetch after logout: %s', async path => {
+  it.each(['/api/ai/reports/42', '/api/admin/ai/settings', '/api/v2/diaries/42'])('blocks a remounted private fetch after logout: %s', async path => {
     const transport = vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ privateBody: 'synthetic' }))
     markSignedIn()
     clearPrivateSession()
@@ -18,11 +18,11 @@ describe('AI browser session boundary', () => {
     expect(transport).not.toHaveBeenCalled()
   })
 
-  it('discards an in-flight report response when the owner epoch changes', async () => {
+  it.each(['/api/ai/reports/42', '/api/v2/diaries/42'])('discards an in-flight private response when the owner epoch changes: %s', async path => {
     let resolve!: (response: Response) => void
     vi.spyOn(webSession, 'fetch').mockImplementation(() => new Promise<Response>(done => { resolve = done }))
     markSignedIn()
-    const pending = sessionFetch('http://localhost/api/ai/reports/42')
+    const pending = sessionFetch(`http://localhost${path}`)
     clearPrivateSession()
     markSignedIn()
     resolve(Response.json({ privateBody: 'previous-owner-synthetic-report' }))

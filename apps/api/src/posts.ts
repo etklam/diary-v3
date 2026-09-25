@@ -5,12 +5,16 @@ import {
   count,
   desc,
   eq,
+  gt,
   ilike,
   inArray,
   isNotNull,
+  ne,
+  notInArray,
   or,
   sql,
 } from 'drizzle-orm'
+import type { SQLWrapper } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import {
@@ -25,18 +29,20 @@ import {
   postPublicMetadataSchema,
   postWriteRequestSchema,
   serializedIdSchema,
+  type AutomaticTranslationAdmission,
   type ErrorCode,
   type PostStatus,
 } from '@diary/contracts'
 import { articleLocaleSchema, type ArticleLocale } from '@diary/contracts'
-import { articleTranslationAiProfiles, articleTranslationAiSettings, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
+import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationRuntime, postTranslations, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
 import { getCookie } from 'hono/cookie'
 import { resolveArticleReadAccess } from './article-policy.js'
 import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from './research-studio/publication.js'
 import type { ResearchLatestCompletedSession } from './research-studio/service.js'
-import { loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
+import { loadArticleTranslationSummaries, loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
 import { enqueueArticleTranslationJob } from './article-translations/store.js'
 import type { AppEnv } from './app.js'
+import { safeErrorContext } from './diagnostics.js'
 
 const PUBLIC_DEFAULT_LIMIT = 9
 const ADMIN_DEFAULT_LIMIT = 20
@@ -100,25 +106,30 @@ function publishedAtFor(_currentStatus: PostStatus, currentPublishedAt: Date | n
 
 const SEARCH_STOPWORDS = new Set(['a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'with', 'about'])
 
-type SearchTerm = { query: string; phrase: boolean }
+type SearchTerm = { query: string; phrase: boolean; words: SearchWord[] }
 type SearchGroup = { required: SearchTerm[]; optional: SearchTerm[]; excluded: SearchTerm[] }
 
-function normalizeSearchWords(value: string, allowShortPrefix = false): string[] {
+type SearchWord = { value: string; prefix: boolean }
+type SearchableFields = { title: SQLWrapper; excerpt: SQLWrapper }
+
+function normalizeSearchWordObjects(value: string, allowShortPrefix = false): SearchWord[] {
   return (value.normalize('NFKC').match(/[\p{Letter}\p{Number}]+\*?/gu) ?? []).flatMap(token => {
     const prefix = token.endsWith('*')
     const word = prefix ? token.slice(0, -1) : token
-    if (Array.from(word).length < (prefix && allowShortPrefix ? 2 : 3) || (!prefix && SEARCH_STOPWORDS.has(word.toLowerCase()))) return []
+    const minimumLength = prefix && !allowShortPrefix ? 3 : 2
+    if (Array.from(word).length < minimumLength || (!prefix && SEARCH_STOPWORDS.has(word.toLowerCase()))) return []
     const safe = word.replace(/[^\p{Letter}\p{Number}_]/gu, '')
-    return safe ? [prefix ? `${safe}:*` : safe] : []
+    return safe ? [{ value: safe, prefix }] : []
   })
 }
 
 export function parsePublicSearch(input: string): SearchGroup {
   const groups: SearchGroup = { required: [], optional: [], excluded: [] }
   const add = (marker: string, value: string, phrase: boolean, allowShortPrefix = false) => {
-    const words = normalizeSearchWords(value, allowShortPrefix)
-    if (words.length === 0) return
-    const term = { query: phrase ? words.join(' <-> ') : words.join(' | '), phrase }
+    const wordObjects = normalizeSearchWordObjects(value, allowShortPrefix)
+    if (wordObjects.length === 0) return
+    const words = wordObjects.map(word => word.prefix ? `${word.value}:*` : word.value)
+    const term = { query: phrase ? words.join(' <-> ') : words.join(' | '), phrase, words: wordObjects }
     if (marker === '-') groups.excluded.push(term)
     else if (marker === '+') groups.required.push(term)
     else groups.optional.push(term)
@@ -136,7 +147,15 @@ export function parsePublicSearch(input: string): SearchGroup {
   return groups
 }
 
-function textVector(column: typeof posts.title | typeof posts.excerpt | ReturnType<typeof sql>) {
+function searchWords(term: SearchTerm): SearchWord[] {
+  return term.words
+}
+
+function containsHan(value: string): boolean {
+  return /\p{Script=Han}/u.test(value)
+}
+
+function textVector(column: SQLWrapper) {
   // MariaDB's frozen query uses one MATCH(excerpt,title) vector. PostgreSQL
   // keeps the same combined field boundary and applies unaccent for the
   // measured cafe/café equivalence.
@@ -145,39 +164,105 @@ function textVector(column: typeof posts.title | typeof posts.excerpt | ReturnTy
   return vector
 }
 
-function searchableExcerpt() {
+function searchableExcerpt(fields: { access: SQLWrapper; excerptAuthored: SQLWrapper; excerpt: SQLWrapper }) {
   // Derived excerpts are body text. They stay out of guest search for MEMBER posts.
-  return sql`case when ${posts.access} = 'PUBLIC' or (${posts.access} = 'MEMBER' and ${posts.excerptAuthored}) then coalesce(${posts.excerpt}, '') else '' end`
+  return sql`case when ${fields.access} = 'PUBLIC' or (${fields.access} = 'MEMBER' and ${fields.excerptAuthored}) then coalesce(${fields.excerpt}, '') else '' end`
 }
 
-function combinedTextVector() {
-  let vector = sql`to_tsvector('simple', unaccent(coalesce(${posts.title}, '') || ' ' || ${searchableExcerpt()}))`
+function combinedTextVector(fields: SearchableFields) {
+  let vector = sql`to_tsvector('simple', unaccent(coalesce(${fields.title}, '') || ' ' || coalesce(${fields.excerpt}, '')))`
   for (const stopword of SEARCH_STOPWORDS) vector = sql`ts_delete(${vector}, ${stopword})`
   return vector
 }
 
-function matchesTerm(term: SearchTerm) {
-  if (term.phrase) return or(
-    sql`${textVector(posts.title)} @@ to_tsquery('simple', ${term.query})`,
-    sql`${textVector(searchableExcerpt())} @@ to_tsquery('simple', ${term.query})`,
-  )
-  return sql`${combinedTextVector()} @@ to_tsquery('simple', ${term.query})`
+function substringMatch(column: SQLWrapper, value: string) {
+  return sql`strpos(lower(unaccent(coalesce(${column}, ''))), lower(unaccent(${value}))) > 0`
 }
 
-function fullText(query: string) {
+function cjkMatch(term: SearchTerm, fields: SearchableFields): ReturnType<typeof or> | null {
+  const words = searchWords(term).filter(word => containsHan(word.value) && Array.from(word.value).length >= 2)
+  if (words.length === 0) return null
+  if (term.phrase) {
+    if (words.length !== term.words.length) return null
+    const phrase = words.map(word => word.value).join('')
+    return or(substringMatch(fields.title, phrase), substringMatch(fields.excerpt, phrase))
+  }
+  return or(...words.flatMap(word => [substringMatch(fields.title, word.value), substringMatch(fields.excerpt, word.value)]))
+}
+
+function matchesTerm(term: SearchTerm, fields: SearchableFields) {
+  const tokenMatch = term.phrase
+    ? or(
+      sql`${textVector(fields.title)} @@ to_tsquery('simple', ${term.query})`,
+      sql`${textVector(fields.excerpt)} @@ to_tsquery('simple', ${term.query})`,
+    )
+    : sql`${combinedTextVector(fields)} @@ to_tsquery('simple', ${term.query})`
+  const substring = cjkMatch(term, fields)
+  return substring ? or(tokenMatch, substring) : tokenMatch
+}
+
+function fullText(query: string, fields: SearchableFields) {
   const parsed = parsePublicSearch(query)
   const clauses = []
-  if (parsed.required.length > 0) clauses.push(and(...parsed.required.map(matchesTerm)))
-  else if (parsed.optional.length > 0) clauses.push(or(...parsed.optional.map(matchesTerm)))
+  if (parsed.required.length > 0) clauses.push(and(...parsed.required.map(term => matchesTerm(term, fields))))
+  else if (parsed.optional.length > 0) clauses.push(or(...parsed.optional.map(term => matchesTerm(term, fields))))
   else return sql`false`
-  if (parsed.excluded.length > 0) clauses.push(sql`not (${or(...parsed.excluded.map(matchesTerm))})`)
+  if (parsed.excluded.length > 0) clauses.push(sql`not (${or(...parsed.excluded.map(term => matchesTerm(term, fields)))})`)
   return and(...clauses)
 }
 
+const sourceSearchFields: SearchableFields = {
+  title: posts.title,
+  excerpt: searchableExcerpt({ access: posts.access, excerptAuthored: posts.excerptAuthored, excerpt: posts.excerpt }),
+}
+
+const translationSearchFields: SearchableFields = {
+  title: postTranslations.publishedTitle,
+  excerpt: searchableExcerpt({ access: posts.access, excerptAuthored: posts.excerptAuthored, excerpt: postTranslations.publishedExcerpt }),
+}
+
+function currentTranslationWhere() {
+  return and(
+    eq(postTranslations.postId, posts.id),
+    ne(postTranslations.locale, posts.sourceLocale),
+    gt(postTranslations.publishedVersion, 0),
+    isNotNull(postTranslations.publishedAt),
+    notInArray(postTranslations.status, ['draft', 'stale', 'unpublished']),
+    eq(postTranslations.publishedSourceRevision, posts.sourceRevision),
+    eq(postTranslations.publishedSourceHash, posts.sourceHash),
+  )
+}
+
+function publicSearch(query: string) {
+  return or(
+    fullText(query, sourceSearchFields),
+    sql`exists (select 1 from ${postTranslations} where ${currentTranslationWhere()} and ${fullText(query, translationSearchFields)})`,
+  )
+}
+
+type PostListProjection = Pick<typeof posts.$inferSelect,
+  'id'
+  | 'title'
+  | 'slug'
+  | 'excerpt'
+  | 'excerptAuthored'
+  | 'coverImage'
+  | 'category'
+  | 'tags'
+  | 'sourceLocale'
+  | 'sourceRevision'
+  | 'sourceHash'
+  | 'status'
+  | 'access'
+  | 'publishedAt'
+  | 'createdAt'
+  | 'updatedAt'
+>
+
 function toPublicListItem(row: {
-  post: typeof posts.$inferSelect
+  post: PostListProjection
   author: { id: bigint; name: string | null }
-}, options: { redactProtectedExcerpt?: boolean } = {}) {
+}, options: { redactProtectedExcerpt?: boolean; matchedTranslationLocale?: ArticleLocale | null } = {}) {
   const redactProtectedExcerpt = options.redactProtectedExcerpt ?? true
   const excerpt = redactProtectedExcerpt && row.post.access === 'MEMBER' && !row.post.excerptAuthored
     ? null
@@ -196,12 +281,13 @@ function toPublicListItem(row: {
     availableLocales: [row.post.sourceLocale as ArticleLocale],
     isFallback: false,
     fallbackReason: null,
+    ...(options.matchedTranslationLocale !== undefined ? { matchedTranslationLocale: options.matchedTranslationLocale } : {}),
     author: { id: String(row.author.id), name: row.author.name },
   }
 }
 
 function toAdminListItem(row: {
-  post: typeof posts.$inferSelect
+  post: PostListProjection
   author: { id: bigint; name: string | null; email: string }
 }) {
   return {
@@ -301,47 +387,63 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     if (actor?.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
   }
   const queueAutomaticTranslations = async (post: typeof posts.$inferSelect, requestedBy: bigint, requestId?: string) => {
-    if (post.status !== 'PUBLISHED' || !post.publishedAt || !post.autoTranslateEnabled || !post.autoTranslateProvider) return
+    if (post.status !== 'PUBLISHED' || !post.publishedAt || !post.autoTranslateEnabled) return null
     const provider = post.autoTranslateProvider
-    if (provider !== 'edge' && provider !== 'ai') return
-    if (provider === 'edge' && post.access !== 'PUBLIC') return
+    if (provider !== 'edge' && provider !== 'ai') return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+    if (provider === 'edge' && post.access !== 'PUBLIC') return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
     const targets = articleLocaleSchema.array().safeParse(post.autoTranslateLocales)
-    if (!targets.success) return
-    let aiProfile: typeof articleTranslationAiProfiles.$inferSelect | undefined
-    if (provider === 'ai') {
-      const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
-      if (!settings?.defaultProfileId) return
-      const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
-      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return
-      if (post.access === 'MEMBER' && !profile.allowMemberArticles) return
-      aiProfile = profile
-    }
-    for (const targetLocale of targets.data) {
-      if (targetLocale === post.sourceLocale) continue
-      try {
-        await enqueueArticleTranslationJob(db, {
-          postId: post.id,
-          targetLocale,
-          provider,
-          requestedBy,
-          aiProfileId: aiProfile?.id ?? null,
-          aiProfileName: aiProfile?.name ?? null,
-          configRevision: aiProfile?.revision ?? null,
-          now: now(),
-        })
-      } catch (error) {
-        const candidate = error as { code?: unknown }
-        logger.error('Automatic article translation enqueue failed', {
-          operation: 'article_translation_enqueue',
-          stage: 'enqueue',
-          requestId,
-          postId: post.id.toString(),
-          targetLocale,
-          provider,
-          errorName: error instanceof Error ? error.name : 'UnknownError',
-          ...(typeof candidate.code === 'string' && /^[A-Z0-9_]{2,16}$/.test(candidate.code) ? { errorCode: candidate.code } : {}),
-        })
+    if (!targets.success) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+    try {
+      if (provider === 'edge') {
+        const [runtime] = await db.select({ edgeDisabledUntil: articleTranslationRuntime.edgeDisabledUntil })
+          .from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1)
+        if (runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now()) {
+          return { status: 'not_queued', reason: 'provider_circuit_open', resumeAt: runtime.edgeDisabledUntil.toISOString() } satisfies AutomaticTranslationAdmission
+        }
       }
+      let aiProfile: typeof articleTranslationAiProfiles.$inferSelect | undefined
+      if (provider === 'ai') {
+        const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
+        if (!settings?.defaultProfileId) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+        const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
+        if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+        if (post.access === 'MEMBER' && !profile.allowMemberArticles) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+        aiProfile = profile
+      }
+      let queued = 0
+      let failed = 0
+      for (const targetLocale of targets.data) {
+        if (targetLocale === post.sourceLocale) continue
+        try {
+          await enqueueArticleTranslationJob(db, {
+            postId: post.id,
+            targetLocale,
+            provider,
+            requestedBy,
+            aiProfileId: aiProfile?.id ?? null,
+            aiProfileName: aiProfile?.name ?? null,
+            configRevision: aiProfile?.revision ?? null,
+            now: now(),
+          })
+          queued += 1
+        } catch (error) {
+          failed += 1
+          logger.error('Automatic article translation enqueue failed', {
+            operation: 'article_translation_enqueue', stage: 'enqueue', requestId,
+            postId: post.id.toString(), targetLocale, provider, ...safeErrorContext(error),
+          })
+        }
+      }
+      if (failed > 0) return { status: queued > 0 ? 'partial' : 'not_queued', reason: 'queue_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+      return queued > 0
+        ? { status: 'queued', reason: null, resumeAt: null } satisfies AutomaticTranslationAdmission
+        : { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+    } catch (error) {
+      logger.error('Automatic article translation admission failed', {
+        operation: 'article_translation_enqueue', stage: 'admission', requestId,
+        postId: post.id.toString(), provider, ...safeErrorContext(error),
+      })
+      return { status: 'not_queued', reason: 'settings_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
     }
   }
   const listWhere = (query: { category?: string; tag?: string; search?: string; dateFrom?: string; dateTo?: string; status?: PostStatus; author?: string }, publicView: boolean) => {
@@ -351,7 +453,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       query.category ? inArray(posts.category, [query.category, ...(CATEGORY_ALIASES[query.category] ?? [])]) : undefined,
       query.tag ? ilike(posts.tags, `%${query.tag}%`) : undefined,
       query.search ? publicView
-        ? fullText(query.search)
+        ? publicSearch(query.search)
         : or(ilike(posts.title, `%${query.search}%`), ilike(users.name, `%${query.search}%`), ilike(users.email, `%${query.search}%`))
         : undefined,
       query.author ? or(ilike(users.name, `%${query.author}%`), ilike(users.email, `%${query.author}%`)) : undefined,
@@ -387,25 +489,67 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const limit = query.limit && query.limit >= 1 && query.limit <= MAX_LIMIT ? query.limit : defaultLimit
     const page = query.page
     const where = listWhere(query, publicView)
-    const rows = await db.select({ post: posts, author: publicView ? { id: users.id, name: users.name } : { id: users.id, name: users.name, email: users.email } })
-      .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
+    const postProjection = {
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      excerptAuthored: posts.excerptAuthored,
+      coverImage: posts.coverImage,
+      category: posts.category,
+      tags: posts.tags,
+      sourceLocale: posts.sourceLocale,
+      sourceRevision: posts.sourceRevision,
+      sourceHash: posts.sourceHash,
+      status: posts.status,
+      access: posts.access,
+      publishedAt: posts.publishedAt,
+      createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
+    } as const
+    const rows = publicView
+      ? await db.select({ post: postProjection, author: { id: users.id, name: users.name } })
+        .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
+      : await db.select({ post: postProjection, author: { id: users.id, name: users.name, email: users.email } })
+        .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
     const [totalRow] = await db.select({ total: count() }).from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where)
     const total = Number(totalRow?.total ?? 0)
     let data: unknown[]
     if (publicView) {
-      const publicRows = rows as Array<{ post: typeof posts.$inferSelect; author: { id: bigint; name: string | null } }>
+      const publicRows = rows as Array<{ post: PostListProjection; author: { id: bigint; name: string | null } }>
       const accessibleRows = publicRows.filter(row => resolveArticleReadAccess(row.post, c.get('user')) !== 'NOT_FOUND')
-      const translations = await loadArticleTranslations(db, accessibleRows.map(row => row.post.id))
+      const accessiblePostIds = accessibleRows.map(row => row.post.id)
+      const translations = await loadArticleTranslationSummaries(db, accessiblePostIds)
+      const matchedTranslationLocales = new Map<string, ArticleLocale[]>()
+      if (query.search && accessiblePostIds.length > 0) {
+        const matches = await db.select({ postId: postTranslations.postId, locale: postTranslations.locale })
+          .from(postTranslations)
+          .innerJoin(posts, eq(posts.id, postTranslations.postId))
+          .where(and(
+            inArray(postTranslations.postId, accessiblePostIds),
+            currentTranslationWhere(),
+            fullText(query.search, translationSearchFields),
+          ))
+          .orderBy(asc(postTranslations.postId), asc(postTranslations.locale))
+        for (const match of matches) {
+          const locale = articleLocaleSchema.safeParse(match.locale)
+          if (!locale.success) continue
+          const key = match.postId.toString()
+          matchedTranslationLocales.set(key, [...(matchedTranslationLocales.get(key) ?? []), locale.data])
+        }
+      }
       data = accessibleRows.map(row => {
         const requested = explicitLang ?? preference ?? row.post.sourceLocale as ArticleLocale
         const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
+        const translationMatches = matchedTranslationLocales.get(row.post.id.toString()) ?? []
+        const matchedTranslationLocale = translationMatches.find(locale => locale === requested) ?? translationMatches[0] ?? null
         return postPublicListResponseSchema.shape.data.element.parse({
-          ...toPublicListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null } }),
+          ...toPublicListItem(row, { matchedTranslationLocale }),
           ...localizedPostFields(row.post, resolution),
         })
       })
     } else {
-      data = rows.map(row => toAdminListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null; email: string } }))
+      data = rows.map(row => toAdminListItem(row as { post: PostListProjection; author: { id: bigint; name: string | null; email: string } }))
     }
     const response = { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
     return c.json(publicView ? postPublicListResponseSchema.parse(response) : postAdminListResponseSchema.parse(response))
@@ -436,8 +580,9 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const latest = await readAdmin(id)
     if (!latest) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    if (status === 'PUBLISHED') await queueAutomaticTranslations(latest.post, actorId, c.get('requestId'))
-    return c.json(toAdminDetail({ ...latest.post, author: latest.author }))
+    const admission = status === 'PUBLISHED' ? await queueAutomaticTranslations(latest.post, actorId, c.get('requestId')) : null
+    const response = toAdminDetail({ ...latest.post, author: latest.author })
+    return c.json(admission ? { ...response, automaticTranslationAdmission: admission } : response)
   }
   app.post('/api/blog/admin/bulk-publish', async c => {
     const actorId = admin(c)
@@ -451,8 +596,13 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       return rows.length
     })
     const publishedRows = await db.select().from(posts).where(and(inArray(posts.id, ids), eq(posts.status, 'PUBLISHED')))
-    for (const post of publishedRows) await queueAutomaticTranslations(post, actorId, c.get('requestId'))
-    return c.json(postBulkResponseSchema.parse({ count: result }))
+    const admissions = await Promise.all(publishedRows.map(post => queueAutomaticTranslations(post, actorId, c.get('requestId'))))
+    const warnings = admissions.flatMap(admission => admission && admission.status !== 'queued' ? [admission] : [])
+    const resumeAt = warnings.map(admission => admission.resumeAt).filter((value): value is string => value !== null).sort().at(-1) ?? null
+    return c.json(postBulkResponseSchema.parse({
+      count: result,
+      ...(warnings.length > 0 ? { automaticTranslationWarningCount: warnings.length, automaticTranslationResumeAt: resumeAt } : {}),
+    }))
   })
   app.post('/api/blog/admin/bulk-delete', async c => {
     const actorId = admin(c)
@@ -529,10 +679,11 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       return post
     })
     if (!created) throw new Error('Post insert returned no row')
-    if (created.status === 'PUBLISHED') await queueAutomaticTranslations(created, authorId, c.get('requestId'))
+    const admission = created.status === 'PUBLISHED' ? await queueAutomaticTranslations(created, authorId, c.get('requestId')) : null
     const row = await readAdmin(created.id)
     if (!row) throw new Error('Post read after insert returned no row')
-    return c.json(toAdminDetail({ ...row.post, author: row.author }), 200)
+    const response = toAdminDetail({ ...row.post, author: row.author })
+    return c.json(admission ? { ...response, automaticTranslationAdmission: admission } : response, 200)
   })
   app.put('/api/blog/:id', async c => {
     const actorId = admin(c)
@@ -595,8 +746,9 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    if (row.post.status === 'PUBLISHED') await queueAutomaticTranslations(row.post, actorId, c.get('requestId'))
-    return c.json(toAdminDetail({ ...row.post, author: row.author }))
+    const admission = row.post.status === 'PUBLISHED' ? await queueAutomaticTranslations(row.post, actorId, c.get('requestId')) : null
+    const response = toAdminDetail({ ...row.post, author: row.author })
+    return c.json(admission ? { ...response, automaticTranslationAdmission: admission } : response)
   })
   app.delete('/api/blog/:id', async c => {
     const actorId = admin(c)

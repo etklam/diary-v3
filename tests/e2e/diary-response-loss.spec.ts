@@ -87,21 +87,23 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
 
   let putCalls = 0
   let concurrentApplied = false
-  await page.route(`**/api/diaries/${source.id}`, async route => {
-    const method = route.request().method()
-    if (method === 'PUT' && putCalls === 0) {
+  await page.route(`**/api/v2/diaries/${source.id}`, async route => {
+    if (route.request().method() === 'PUT' && putCalls === 0) {
       putCalls += 1
       const response = await route.fetch()
       expect(response.status()).toBe(200)
       await route.abort('failed')
       return
     }
-    if (method === 'GET' && putCalls === 1 && !concurrentApplied) {
+    await route.continue()
+  })
+  await page.route(`**/api/diaries/${source.id}`, async route => {
+    if (route.request().method() === 'GET' && putCalls === 1 && !concurrentApplied) {
       concurrentApplied = true
-      const current = await (await page.request.get(`/api/diaries/${source.id}`)).json() as { alerts: Array<{ triggerAt: string }> }
-      const concurrent = await page.request.put(`/api/diaries/${source.id}`, {
+      const current = await (await page.request.get(`/api/diaries/${source.id}`)).json() as { revision: number; alerts: Array<{ triggerAt: string }> }
+      const concurrent = await page.request.put(`/api/v2/diaries/${source.id}`, {
         headers: { 'x-csrf-token': csrfToken },
-        data: { title: 'Concurrent decision', content: 'Concurrent decision body.', alerts: [{ message: 'Concurrent reminder', triggerAt: current.alerts[0]!.triggerAt }] },
+        data: { expectedRevision: current.revision, title: 'Concurrent decision', content: 'Concurrent decision body.', alerts: [{ message: 'Concurrent reminder', triggerAt: current.alerts[0]!.triggerAt }] },
       })
       expect(concurrent.status()).toBe(200)
     }
@@ -119,5 +121,6 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.getByRole('button', { name: 'Load latest version', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Concurrent decision')
   await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Concurrent reminder')
+  await page.unroute(`**/api/v2/diaries/${source.id}`)
   await page.unroute(`**/api/diaries/${source.id}`)
 })

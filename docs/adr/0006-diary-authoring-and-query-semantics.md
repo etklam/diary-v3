@@ -24,13 +24,23 @@ Both ordinary creation and append take a transaction-scoped advisory lock for th
 
 When a row exists, append also reads it with `FOR UPDATE`. If a full PUT has
 already acquired the row lock, append waits and merges onto that committed
-body rather than writing from a stale pre-update snapshot. A full PUT that
-runs after append deliberately replaces the body, and a DELETE that runs
-after a successful append deliberately removes the Diary; those are the
-documented last-writer semantics of explicit full replacement and deletion.
-If deletion commits before a waiting append reads the row, append treats the
-date as empty and creates a new Diary instead of failing with an internal
-error.
+body rather than writing from a stale pre-update snapshot. A revision-aware
+replacement through `PUT /api/v2/diaries/:id` compares the submitted
+`expectedRevision` under that same row lock. A mismatch returns
+`DIARY_REVISION_CONFLICT` before changing the Diary or any transaction, stock,
+or alert association; a matching replacement increments the revision. Thus a
+PUT opened before a later append conflicts instead of removing the appended
+text. A user who loaded the appended revision may still deliberately replace
+the full Diary.
+
+The legacy `PUT /api/diaries/:id` remains compatible during the versioned
+transition: `expectedRevision` is optional there, and omission retains its
+historical last-writer behavior. When supplied, the revision is checked. The
+legacy behavior does not provide optimistic-concurrency protection and must
+not be described as doing so. A DELETE that runs after a successful append
+deliberately removes the Diary. If deletion commits before a waiting append
+reads the row, append treats the date as empty and creates a new Diary instead
+of failing with an internal error.
 
 ## Search decision for ticket 10
 

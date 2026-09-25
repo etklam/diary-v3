@@ -341,7 +341,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   const writeRevision=sessionRef.current.revision;
   const finishConfirmed=(diary:DiaryResponse)=>{if(!liveWrite(writeRevision))return;revisionRef.current=diary.revision;const confirmed=canonicalState(editableFromResponse(diary));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);if(liveWrite(writeRevision))rememberTags(body.tags??[]);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(returnTo??`/diaries/${diary.id}`,{state:{saved:true,captureContext:captureRef.current}});};
   try{
-   const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body:{...body,expectedRevision:revisionRef.current}}):await api.POST('/api/diaries',{body});
+   const result=id?await api.PUT('/api/v2/diaries/{id}',{params:{path:{id}},body:{...body,expectedRevision:revisionRef.current}}):await api.POST('/api/diaries',{body});
    if(!liveWrite(writeRevision))return;
    if(result.response.ok&&result.data){finishConfirmed(result.data);return;}
    const failure=apiFailure(result.error,t('failed'));setSaveState('failed');setError(failure.code==='DIARY_REVISION_CONFLICT'?{...failure,message:writeRecoveryCopy[locale].revisionConflict}:failure);

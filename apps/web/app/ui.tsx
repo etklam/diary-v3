@@ -10,6 +10,9 @@ const copy = {
 type Locale = keyof typeof copy;
 type Theme = 'light' | 'dark' | 'system';
 type Key = keyof typeof copy.en;
+function persistLocaleCookie(locale: Locale) {
+  try { document.cookie=`diary-locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`; } catch { /* Server locale resolution can use the signed-in account preference. */ }
+}
 const UiContext = createContext<{ t:(key:Key)=>string; locale:Locale; setLocale:(locale:Locale)=>void; theme:Theme; ready:boolean; localeReady:boolean; localeError:boolean; retryLocale:()=>void; applyLocale:(locale:Locale)=>void; setTheme:(theme:Theme)=>void } | null>(null);
 export function UiProvider({children}:{children:ReactNode}) {
   const [locale,applyLocale] = useState<Locale>('zh-TW');
@@ -25,7 +28,7 @@ export function UiProvider({children}:{children:ReactNode}) {
   useEffect(()=>{setReady(true);},[]);
   const [theme,setTheme] = useState<Theme>('system');
   useEffect(() => { try { const l=localStorage.getItem('diary-locale'); const th=localStorage.getItem('diary-theme'); if(l==='en'||l==='zh-CN'||l==='zh-TW') applyLocale(l); if(th==='dark'||th==='light'||th==='system') setTheme(th); } catch { /* Preferences remain usable when storage is disabled. */ } },[]);
-  useEffect(() => { document.documentElement.lang=locale; try { localStorage.setItem('diary-locale',locale); } catch { /* Optional preference storage. */ } try { document.cookie=`diary-locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`; } catch { /* Server locale resolution can use the signed-in account preference. */ } },[locale]);
+  useEffect(() => { document.documentElement.lang=locale; try { localStorage.setItem('diary-locale',locale); } catch { /* Optional preference storage. */ } persistLocaleCookie(locale); },[locale]);
   useEffect(() => {
     if (!ready) return;
     document.documentElement.dataset.theme=theme;
@@ -49,14 +52,14 @@ export function UiProvider({children}:{children:ReactNode}) {
     return () => { active = false; };
   }, [session.authenticated, session.revision, localeAttempt]);
   function setLocale(value: Locale) {
-    if (!session.authenticated) { applyLocale(value); return; }
+    if (!session.authenticated) { persistLocaleCookie(value); applyLocale(value); return; }
     if (!localeReady) return;
     const revision = session.revision;
     const active = () => currentSession.current.authenticated === true && currentSession.current.revision === revision;
     setLocalePending(true); setLocaleError(false);
     api.PUT('/api/user/settings', { body: { locale: value } }).then(result => {
       if (!active()) return;
-      if (result.response.ok && result.data) applyLocale(result.data.settings.locale);
+      if (result.response.ok && result.data) { persistLocaleCookie(result.data.settings.locale); applyLocale(result.data.settings.locale); }
       else setLocaleError(true);
     }).catch(() => { if (active()) setLocaleError(true); }).finally(() => { if (active()) setLocalePending(false); });
   }

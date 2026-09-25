@@ -113,7 +113,12 @@ const postListFields = {
   fallbackReason: z.enum(['translation_unavailable', 'translation_stale']).nullable(),
 }
 
-export const postPublicListItemSchema = z.object({ ...postListFields, author: publicAuthorSchema }).strict()
+export const postPublicListItemSchema = z.object({
+  ...postListFields,
+  /** Locale of a current published translation that satisfied the search. */
+  matchedTranslationLocale: articleLocaleSchema.nullable(),
+  author: publicAuthorSchema,
+}).strict()
 export const postAdminListItemSchema = z.object({ ...postListFields, status: postStatusSchema, author: adminAuthorSchema }).strict()
 export const postPublicListResponseSchema = z.object({
   data: z.array(postPublicListItemSchema),
@@ -129,6 +134,11 @@ export const postPublicDetailSchema = z.object({
   content: z.string(),
   author: publicAuthorSchema,
 }).strict()
+export const automaticTranslationAdmissionSchema = z.object({
+  status: z.enum(['queued', 'not_queued', 'partial']),
+  reason: z.enum(['provider_circuit_open', 'provider_unavailable', 'settings_unavailable', 'queue_unavailable']).nullable(),
+  resumeAt: utcInstantSchema.nullable(),
+}).strict()
 export const postAdminDetailSchema = z.object({
   ...postListFields,
   content: z.string(),
@@ -141,6 +151,7 @@ export const postAdminDetailSchema = z.object({
   autoTranslateEnabled: z.boolean(),
   autoTranslateLocales: z.array(articleLocaleSchema),
   autoTranslateProvider: z.enum(['edge', 'ai']),
+  automaticTranslationAdmission: automaticTranslationAdmissionSchema.optional(),
 }).strict()
 export const postPublicMetadataSchema = z.object({
   ...postListFields,
@@ -150,10 +161,15 @@ export const postPublicMetadataSchema = z.object({
 export const postBulkRequestSchema = z.object({
   ids: z.array(serializedIdSchema).min(1).max(100),
 }).strict()
-export const postBulkResponseSchema = z.object({ count: z.number().int().nonnegative() }).strict()
+export const postBulkResponseSchema = z.object({
+  count: z.number().int().nonnegative(),
+  automaticTranslationWarningCount: z.number().int().nonnegative().optional(),
+  automaticTranslationResumeAt: utcInstantSchema.nullable().optional(),
+}).strict()
 export const postDeleteResponseSchema = z.object({ success: z.literal(true), message: z.string() }).strict()
 
 export type PostWriteRequest = z.infer<typeof postWriteRequestSchema>
+export type AutomaticTranslationAdmission = z.infer<typeof automaticTranslationAdmissionSchema>
 export type PostPublicListResponse = z.infer<typeof postPublicListResponseSchema>
 export type PostAdminListResponse = z.infer<typeof postAdminListResponseSchema>
 export type PostPublicDetail = z.infer<typeof postPublicDetailSchema>

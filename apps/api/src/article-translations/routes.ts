@@ -227,6 +227,7 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
       sourceRevision: post.sourceRevision,
       sourceHash: post.sourceHash,
       edgeEnabled: !runtime[0]?.edgeDisabledUntil || runtime[0].edgeDisabledUntil <= now(),
+      edgeDisabledUntil: runtime[0]?.edgeDisabledUntil?.toISOString() ?? null,
       warning: 'Article text will be sent to a third-party translation service.',
       translations: rows,
     }))

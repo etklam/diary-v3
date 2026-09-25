@@ -58,6 +58,7 @@ export const articleTranslationAdminResponseSchema = z.object({
   sourceRevision: z.number().int().nonnegative(),
   sourceHash: z.string(),
   edgeEnabled: z.boolean(),
+  edgeDisabledUntil: utcInstantSchema.nullable().optional(),
   warning: z.literal('Article text will be sent to a third-party translation service.'),
   translations: z.array(articleTranslationAdminRowSchema),
 }).strict()

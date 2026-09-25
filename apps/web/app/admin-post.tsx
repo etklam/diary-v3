@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useBlocker, useLocation, useNavigate, useOutletContext } from 'react-router'
-import { postAdminDetailSchema, postWriteRequestSchema, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
+import { postAdminDetailSchema, postWriteRequestSchema, type AutomaticTranslationAdmission, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
 import type { ArticleLocale } from '@diary/contracts'
 import { csrfToken, invalidateArticleCache, sessionFetch, signInPath, wasExplicitSignOut } from './session'
 import { Markdown } from './markdown'
@@ -14,7 +14,7 @@ import { ArticleLanguagesPanel } from './article-languages'
 type PostAccess = 'PUBLIC' | 'MEMBER'
 type Draft = { title: string; content: string; excerpt: string; excerptAuthored: boolean; coverImage: string; category: string; tags: string; access: PostAccess; status: PostStatus; sourceLocale: ArticleLocale; autoTranslateEnabled: boolean; autoTranslateLocales: ArticleLocale[]; autoTranslateProvider: 'edge' | 'ai' }
 type RecoveryDraft = Pick<Draft, 'title' | 'content' | 'excerpt' | 'coverImage' | 'category' | 'tags' | 'excerptAuthored' | 'sourceLocale' | 'autoTranslateEnabled' | 'autoTranslateLocales' | 'autoTranslateProvider'>
-type Success = { status: PostStatus; slug: string; kind: 'saved' | 'published' | 'updated' | 'archived' | 'restored' }
+type Success = { status: PostStatus; slug: string; kind: 'saved' | 'published' | 'updated' | 'archived' | 'restored'; automaticTranslationAdmission?: AutomaticTranslationAdmission }
 const blank: Draft = { title: '', content: '', excerpt: '', excerptAuthored: false, coverImage: '', category: 'market', tags: '', access: 'MEMBER', status: 'DRAFT', sourceLocale: 'zh-TW', autoTranslateEnabled: false, autoTranslateLocales: [], autoTranslateProvider: 'edge' }
 
 const copy = {
@@ -27,6 +27,12 @@ const accessCopy = {
   en: { intro: 'Drafts are private to administrators. Choose who can read the article after publication.', excerpt: 'Public teaser (optional)', excerptHint: 'This teaser is shown before a member signs in.', access: 'Who can read after publication', publicAccess: 'Public', publicHint: 'Anyone can read.', memberAccess: 'Members only', memberHint: 'Readers must sign in.', publish: 'Publish', republish: 'Republish', update: 'Update article', published: 'Article published.', publicList: 'Articles', view: 'View article' },
   'zh-TW': { intro: '草稿僅供管理員查看。請選擇發布後的閱讀權限。', excerpt: '公開摘要（選填）', excerptHint: '會員登入前會看到這段摘要。', access: '發布後誰可以閱讀', publicAccess: '公開', publicHint: '任何人都能閱讀。', memberAccess: '僅限會員', memberHint: '讀者需要登入。', publish: '發布', republish: '重新發布', update: '更新文章', published: '文章已發布。', publicList: '文章', view: '查看文章' },
   'zh-CN': { intro: '草稿仅供管理员查看。请选择发布后的阅读权限。', excerpt: '公开摘要（选填）', excerptHint: '会员登录前会看到这段摘要。', access: '发布后谁可以阅读', publicAccess: '公开', publicHint: '任何人都能阅读。', memberAccess: '仅限会员', memberHint: '读者需要登录。', publish: '发布', republish: '重新发布', update: '更新文章', published: '文章已发布。', publicList: '文章', view: '查看文章' },
+} as const
+
+const translationAdmissionCopy = {
+  en: { notQueued: 'The article was published, but its translation was skipped. It will need a new request; you can start one below.', partial: 'The article was published, but some translations were skipped. Review the translation states and request those translations again below.', edgePaused: (value: string) => `The Edge provider can accept requests again after ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))}. This skipped translation is not queued automatically; request it below or choose AI.` },
+  'zh-TW': { notQueued: '文章已發布，但翻譯未入列。這次跳過的翻譯需要重新發起，你可以在下方手動開始。', partial: '文章已發布，但部分翻譯已跳過。請查看各語言狀態，並在下方重新發起需要的翻譯。', edgePaused: (value: string) => `Edge 服務可在 ${new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} 後再次接受請求。這次跳過的翻譯不會自動補排；你可在下方重新發起，或改用 AI。` },
+  'zh-CN': { notQueued: '文章已发布，但翻译未入队。这次跳过的翻译需要重新发起，你可以在下方手动开始。', partial: '文章已发布，但部分翻译已跳过。请查看各语言状态，并在下方重新发起需要的翻译。', edgePaused: (value: string) => `Edge 服务可在 ${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} 后再次接受请求。这次跳过的翻译不会自动补入队列；你可在下方重新发起，或改用 AI。` },
 } as const
 
 function fromPost(post: PostAdminDetail): Draft {
@@ -130,7 +136,7 @@ export function AdminPostEditor({ id }: { id?: string }) {
   }
   function confirmSaved(post: PostAdminDetail, kind: Success['kind']) {
     const next = fromPost(post)
-    setDraft(next); setBaseline(next); setPublicSlug(post.slug); dirtyRef.current = false; setSuccess({ status: post.status, slug: post.slug, kind })
+    setDraft(next); setBaseline(next); setPublicSlug(post.slug); dirtyRef.current = false; setSuccess({ status: post.status, slug: post.slug, kind, automaticTranslationAdmission: post.automaticTranslationAdmission })
     if (draftKey) { try { localStorage.removeItem(draftKey) } catch { /* Ignore unavailable storage. */ } }
   }
 
@@ -183,10 +189,16 @@ export function AdminPostEditor({ id }: { id?: string }) {
   if (loading) return <section className="editor"><p role="status">{c.loading}</p></section>
   const statusLabel = draft.status === 'DRAFT' ? c.draftStatus : draft.status === 'PUBLISHED' ? c.publishedStatus : c.archivedStatus
   const successText = success?.kind === 'restored' ? c.restored : success?.kind === 'published' ? c.published : success?.kind === 'updated' ? c.updated : success?.kind === 'archived' ? c.archived : success?.status === 'ARCHIVED' ? c.savedArchived : c.savedDraft
+  const admission = success?.automaticTranslationAdmission
+  const admissionNotice = admission && admission.status !== 'queued'
+    ? admission.status === 'partial' ? translationAdmissionCopy[locale].partial
+      : admission.reason === 'provider_circuit_open' && admission.resumeAt ? translationAdmissionCopy[locale].edgePaused(admission.resumeAt)
+        : translationAdmissionCopy[locale].notQueued
+    : null
   return <section className="editor">
     <header><Link to="/admin/blog">{c.back}</Link><div className="article-editor-title"><h1>{id ? c.editTitle : c.newTitle}</h1><span className="badge">{statusLabel}</span></div><p className="lede">{c.intro}</p></header>
     <FailureNotice failure={failure} id="article-editor-error" />
-    {success && <div className="article-save-result" role="status"><span>{successText}</span></div>}
+    {success && <div className="article-save-result" role="status"><span>{successText}</span>{admissionNotice && <p>{admissionNotice}</p>}</div>}
     {!preview && <ArticleLanguagesPanel
       id={id}
       sourceLocale={draft.sourceLocale}

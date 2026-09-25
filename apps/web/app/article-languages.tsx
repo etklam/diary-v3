@@ -24,7 +24,7 @@ const copy = {
   en: {
     title: 'Article Languages / 文章語言', original: 'Original language', targets: 'Translate to', provider: 'Provider', settings: 'AI settings',
     edge: 'Microsoft Edge Translate (Experimental)', ai: 'AI Translate', automatic: 'Automatically create translation drafts after publishing original',
-    warning: 'Article text will be sent to a third-party translation service.', edgeUnavailable: 'Edge Translate is temporarily unavailable. You can choose AI explicitly.',
+    warning: 'Article text will be sent to a third-party translation service.', edgeUnavailable: 'Edge Translate is temporarily unavailable. You can choose AI explicitly.', edgeResume: (value: string) => `Edge Translate can accept requests again after ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))}. Skipped translations are not queued automatically.`,
     edgeMembers: 'Edge Translate is limited to publicly publishable articles.', saveFirst: 'Save the article before requesting a translation.', saveChangesFirst: 'Save the original changes before translating the latest version.',
     translate: 'Translate Now', preview: 'Preview', edit: 'Edit', publish: 'Publish', approve: 'Approve', unpublish: 'Unpublish', retranslate: 'Retranslate', retry: 'Retry', useAi: 'Use AI',
     originalBadge: 'Original', missing: 'Not translated', queued: 'Queued', translating: 'Translating', review: 'Pending review', published: 'Published', stale: 'Stale', failed: 'Failed',
@@ -36,7 +36,7 @@ const copy = {
   'zh-TW': {
     title: 'Article Languages / 文章語言', original: '原文語言', targets: '翻譯成', provider: '翻譯服務', settings: 'AI 設定',
     edge: 'Microsoft Edge Translate (Experimental)', ai: 'AI 翻譯', automatic: '原文發布後自動建立翻譯草稿',
-    warning: '文章內容會傳送至第三方翻譯服務。', edgeUnavailable: 'Edge Translate 暫時無法使用。你可以明確選擇 AI 翻譯。',
+    warning: '文章內容會傳送至第三方翻譯服務。', edgeUnavailable: 'Edge Translate 暫時無法使用。你可以明確選擇 AI 翻譯。', edgeResume: (value: string) => `Edge Translate 可在 ${new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} 後再次接受請求。已跳過的翻譯不會自動入列。`,
     edgeMembers: 'Edge Translate 僅能處理可公開發布的文章。', saveFirst: '請先保存文章，再建立翻譯。', saveChangesFirst: '請先保存原文變更，再翻譯最新版本。',
     translate: '立即翻譯', preview: '預覽', edit: '編輯', publish: '發布', approve: '審核通過', unpublish: '取消發布', retranslate: '重新翻譯', retry: '重試', useAi: '改用 AI',
     originalBadge: '原文', missing: '尚未翻譯', queued: '等待中', translating: '翻譯中', review: '待審核', published: '已發布', stale: '原文已更新', failed: '失敗',
@@ -49,7 +49,7 @@ const copy = {
   'zh-CN': {
     title: 'Article Languages / 文章語言', original: '原文语言', targets: '翻译成', provider: '翻译服务', settings: 'AI 设置',
     edge: 'Microsoft Edge Translate (Experimental)', ai: 'AI 翻译', automatic: '原文发布后自动创建翻译草稿',
-    warning: '文章内容会发送至第三方翻译服务。', edgeUnavailable: 'Edge Translate 暂时无法使用。你可以明确选择 AI 翻译。',
+    warning: '文章内容会发送至第三方翻译服务。', edgeUnavailable: 'Edge Translate 暂时无法使用。你可以明确选择 AI 翻译。', edgeResume: (value: string) => `Edge Translate 可在 ${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} 后再次接受请求。已跳过的翻译不会自动入队。`,
     edgeMembers: 'Edge Translate 仅能处理可公开发布的文章。', saveFirst: '请先保存文章，再创建翻译。', saveChangesFirst: '请先保存原文更改，再翻译最新版本。',
     translate: '立即翻译', preview: '预览', edit: '编辑', publish: '发布', approve: '审核通过', unpublish: '取消发布', retranslate: '重新翻译', retry: '重试', useAi: '改用 AI',
     originalBadge: '原文', missing: '尚未翻译', queued: '等待中', translating: '翻译中', review: '待审核', published: '已发布', stale: '原文已更新', failed: '失败',
@@ -286,7 +286,7 @@ export function ArticleLanguagesPanel({
       }} />{c.automatic}</label>
       <div className="article-language-notices">
         {provider === 'edge' && <p className="article-language-warning" role="note"><strong>{c.thirdPartyHeading}:</strong> {c.warning} {access === 'MEMBER' ? ` ${c.edgeMembers}` : ''}</p>}
-        {provider === 'edge' && data && !data.edgeEnabled && <p className="muted">{c.edgeUnavailable}</p>}
+        {provider === 'edge' && data && !data.edgeEnabled && <p className="muted">{c.edgeUnavailable} {data.edgeDisabledUntil && new Date(data.edgeDisabledUntil).getTime() > Date.now() ? c.edgeResume(data.edgeDisabledUntil) : ''}</p>}
       </div>
       <div className="article-language-toolbar"><button type="button" disabled={busy || needsSave || chosenTargets.length === 0 || (provider === 'edge' && !edgeAllowed)} onClick={() => void translate(chosenTargets)}>{busy ? (locale === 'en' ? 'Working…' : '處理中…') : c.translate}</button><button type="button" className="secondary" disabled={!previewTarget || busy} onClick={() => previewTarget && setPreviewLocale(previewTarget)}>{c.preview}</button><span className="muted">{autoTranslateEnabled ? c.jobQueued : ''}</span></div>
     </div>

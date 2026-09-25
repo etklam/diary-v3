@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { utcInstantSchema } from './common.js'
 const stockSymbolSchema = z.string().trim().min(1).max(32)
+const marketReadSourceSchema = z.enum(['upstream', 'cache', 'stale'])
 
 export const PORTFOLIO_MAX_HOLDINGS = 1_000
 export const PORTFOLIO_MAX_QUOTE_ERRORS = 1_000
@@ -20,6 +21,10 @@ export const portfolioHoldingSchema = z.object({
   dayChange: z.number().finite().optional(),
   dayChangePercent: z.number().finite().optional(),
   quoteAsOf: utcInstantSchema.optional(),
+  // `quoteAsOf` is the exchange-provided time. These fields describe how the
+  // provider supplied the value and when that successful read was fetched.
+  source: marketReadSourceSchema.optional(),
+  fetchedAt: utcInstantSchema.optional(),
 }).strict()
 
 export const portfolioHoldingsResponseSchema = z.array(portfolioHoldingSchema).max(PORTFOLIO_MAX_HOLDINGS)
@@ -47,6 +52,8 @@ export const portfolioAggregationsSchema = z.object({
   quoteCoveragePct: z.number().finite().min(0).max(100),
   valuationAsOf: utcInstantSchema.nullable(),
   staleQuoteCount: z.number().int().nonnegative(),
+  staleFallbackPositionCount: z.number().int().nonnegative().optional(),
+  unknownQuoteTimeCount: z.number().int().nonnegative().optional(),
   valuationStatus: z.enum(['empty', 'complete', 'partial', 'unavailable']),
   unsupportedMetrics: z.tuple([
     z.literal('ytdReturn'),
@@ -74,4 +81,3 @@ export function toPortfolioHoldingsResponse(value: unknown): PortfolioHoldingsRe
 export function toPortfolioValuationResponse(value: unknown): PortfolioValuationResponse {
   return portfolioValuationResponseSchema.parse(value)
 }
-

@@ -105,6 +105,7 @@ import {
   registerResponseSchema,
   serializedIdSchema,
   updateDiaryRequestSchema,
+  updateDiaryV2RequestSchema,
 } from './index.js'
 
 extendZodWithOpenApi(z)
@@ -122,6 +123,7 @@ const CreateDiaryRequest = registry.register('CreateDiaryRequest', createDiaryRe
 const DiaryResponse = registry.register('DiaryResponse', diaryResponseSchema.clone())
 const DiaryByDateResponse = registry.register('DiaryByDateResponse', diaryByDateResponseSchema.clone())
 const UpdateDiaryRequest = registry.register('UpdateDiaryRequest', updateDiaryRequestSchema.clone())
+const UpdateDiaryV2Request = registry.register('UpdateDiaryV2Request', updateDiaryV2RequestSchema.clone())
 const DeleteDiaryResponse = registry.register('DeleteDiaryResponse', deleteDiaryResponseSchema.clone())
 const ApiErrorResponse = registry.register('ApiErrorResponse', apiErrorResponseSchema.clone())
 const NativeLoginRequest = registry.register('NativeLoginRequest', nativeLoginRequestSchema.clone())
@@ -252,12 +254,24 @@ registry.registerPath({
   responses: { 200: json(DiaryResponse, 'Diary detail'), ...errors([400, 401, 404, 500]) },
 })
 registry.registerPath({
-  method: 'put', path: '/api/diaries/{id}', tags: ['Diaries'], operationId: 'diariesUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  method: 'put', path: '/api/diaries/{id}', tags: ['Diaries'], operationId: 'diariesUpdate',
+  description: 'Compatibility operation. expectedRevision is optional; when omitted this preserves legacy last-writer replacement semantics. New clients should use the versioned operation.',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
   request: {
     params: z.object({ id: serializedIdSchema }),
     body: { content: { 'application/json': { schema: UpdateDiaryRequest } } },
   },
-  responses: { 200: json(DiaryResponse, 'Diary updated'), ...errors([400, 401, 403, 404, 409, 500]) },
+  responses: { 200: json(DiaryResponse, 'Diary updated. Revision is optional for compatibility; when present it is checked.'), ...errors([400, 401, 403, 404, 409, 500]) },
+})
+registry.registerPath({
+  method: 'put', path: '/api/v2/diaries/{id}', tags: ['Diaries'], operationId: 'diariesUpdateV2',
+  description: 'Versioned full replacement. expectedRevision is required; stale revisions are rejected without mutation.',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: {
+    params: z.object({ id: serializedIdSchema }),
+    body: { content: { 'application/json': { schema: UpdateDiaryV2Request } } },
+  },
+  responses: { 200: json(DiaryResponse, 'Diary updated with optimistic concurrency'), ...errors([400, 401, 403, 404, 409, 500]) },
 })
 registry.registerPath({
   method: 'delete', path: '/api/diaries/{id}', tags: ['Diaries'], operationId: 'diariesDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
@@ -485,7 +499,7 @@ registry.registerPath({
   request: { params: z.object({ symbol: stockSymbolSchema }), body: { content: { 'application/json': { schema: completeThesisReviewRequestSchema.clone() } } } },
   responses: { 200: json(thesisReviewResponseSchema.clone(), 'Review with atomically captured thesis snapshot'), ...errors([400, 401, 403, 404, 409, 500]) },
 })
-registry.registerPath({ method: 'get', path: '/api/reviews', tags: ['Review'], operationId: 'reviewQueueGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: reviewQueueQuerySchema.clone() }, responses: { 200: json(reviewGroupsResponseSchema.clone(), 'Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope'), ...errors([400, 401, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/reviews', tags: ['Review'], operationId: 'reviewQueueGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: reviewQueueQuerySchema.clone() }, responses: { 200: json(reviewGroupsResponseSchema.clone(), 'Five review groups with independent bucket pages (legacy page remains a fallback), plus absolute per-bucket counts for the requested target scope'), ...errors([400, 401, 500]) } })
 export const openApiRegistry = registry
 
 export function createOpenApiDocument() {

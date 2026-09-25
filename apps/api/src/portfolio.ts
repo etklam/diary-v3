@@ -1,5 +1,5 @@
 import { portfolioValuationResponseSchema, type PortfolioHolding } from '@diary/contracts/portfolio'
-import { computePortfolioAggregations } from '@diary/domain/portfolio'
+import { computePortfolioAggregations, hasFiniteQuote } from '@diary/domain/portfolio'
 import type { Database } from '@diary/db'
 import { getHoldings } from './ledger.js'
 import type { createMarketData } from './market-data/index.js'
@@ -39,18 +39,29 @@ export async function valuePortfolioFromHoldings(
     while (index < holdings.length) {
       const holding = holdings[index++]!
       try {
-        const { data: quote } = await market.quote(holding.symbol, false, signal)
+        const read = await market.quote(holding.symbol, false, signal)
+        const { data: quote } = read
         if (quote.regularMarketPrice < 0) { quoteErrors.push(holding.symbol); continue }
         holding.price = quote.regularMarketPrice
         if (quote.change !== null) holding.dayChange = quote.change
         if (quote.changePercent !== null) holding.dayChangePercent = quote.changePercent
         if (quote.lastUpdateTime !== null) holding.quoteAsOf = quote.lastUpdateTime
+        holding.source = read.source
+        holding.fetchedAt = read.fetchedAt
         if (quote.marketState) marketStates.set(holding.symbol, quote.marketState)
       } catch { quoteErrors.push(holding.symbol) }
     }
   }))
+  const valuation = computePortfolioAggregations(holdings, { now })
+  const pricedHoldings = holdings.filter(hasFiniteQuote)
+  const staleFallbackPositionCount = pricedHoldings.filter(holding => holding.source === 'stale').length
+  const unknownQuoteTimeCount = pricedHoldings.filter(holding => !holding.quoteAsOf).length
+  // Keep price coverage and exchange-time coverage distinct. A value with no
+  // exchange timestamp cannot claim complete valuation coverage.
+  if (valuation.valuationStatus === 'complete' && unknownQuoteTimeCount > 0) valuation.valuationStatus = 'partial'
   return portfolioValuationResponseSchema.parse({
-    holdings, valuation: computePortfolioAggregations(holdings, { now }),
+    holdings,
+    valuation: { ...valuation, staleFallbackPositionCount, unknownQuoteTimeCount },
     quoteErrors: holdings.filter(row => quoteErrors.includes(row.symbol)).map(row => row.symbol),
     marketState: holdings.map(row => marketStates.get(row.symbol)).find(Boolean) ?? null,
   })

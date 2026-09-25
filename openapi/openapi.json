@@ -1543,6 +1543,198 @@
         },
         "required": [
           "title",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateDiaryV2Request": {
+        "type": "object",
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "triggerAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "recurringMode": {
+                  "type": "string",
+                  "enum": [
+                    "WEEK",
+                    "MONTH"
+                  ]
+                },
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                }
+              },
+              "required": [
+                "message",
+                "triggerAt"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 50
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500000
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "maxItems": 50
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "thesis": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10000
+          },
+          "risk": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10000
+          },
+          "execution": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10000
+          },
+          "reviewDueAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "stockSymbols": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "maxItems": 20
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbol": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                },
+                "quantity": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    }
+                  ]
+                },
+                "price": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    }
+                  ]
+                },
+                "tradeDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "notes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 10000
+                },
+                "strategy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 100
+                },
+                "emotion": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 20
+                },
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "BUY",
+                    "SELL"
+                  ]
+                }
+              },
+              "required": [
+                "symbol",
+                "quantity",
+                "price",
+                "tradeDate",
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "title",
           "content",
           "expectedRevision"
         ],
@@ -5516,6 +5708,18 @@
                 "quoteAsOf": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "upstream",
+                    "cache",
+                    "stale"
+                  ]
+                },
+                "fetchedAt": {
+                  "type": "string",
+                  "format": "date-time"
                 }
               },
               "required": [
@@ -5629,6 +5833,14 @@
                 "format": "date-time"
               },
               "staleQuoteCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "staleFallbackPositionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unknownQuoteTimeCount": {
                 "type": "integer",
                 "minimum": 0
               },
@@ -6198,6 +6410,18 @@
                     null
                   ]
                 },
+                "matchedTranslationLocale": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "zh-TW",
+                    "zh-CN",
+                    "en",
+                    null
+                  ]
+                },
                 "author": {
                   "type": "object",
                   "properties": {
@@ -6239,6 +6463,7 @@
                 "availableLocales",
                 "isFallback",
                 "fallbackReason",
+                "matchedTranslationLocale",
                 "author"
               ],
               "additionalProperties": false
@@ -6987,6 +7212,45 @@
               "edge",
               "ai"
             ]
+          },
+          "automaticTranslationAdmission": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "not_queued",
+                  "partial"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "provider_circuit_open",
+                  "provider_unavailable",
+                  "settings_unavailable",
+                  "queue_unavailable",
+                  null
+                ]
+              },
+              "resumeAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "status",
+              "reason",
+              "resumeAt"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7148,6 +7412,17 @@
           "count": {
             "type": "integer",
             "minimum": 0
+          },
+          "automaticTranslationWarningCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "automaticTranslationResumeAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         },
         "required": [
@@ -7199,6 +7474,13 @@
           },
           "edgeEnabled": {
             "type": "boolean"
+          },
+          "edgeDisabledUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           },
           "warning": {
             "type": "string",
@@ -16825,6 +17107,7 @@
           "Diaries"
         ],
         "operationId": "diariesUpdate",
+        "description": "Compatibility operation. expectedRevision is optional; when omitted this preserves legacy last-writer replacement semantics. New clients should use the versioned operation.",
         "security": [
           {
             "accessTokenCookie": []
@@ -16856,7 +17139,7 @@
         },
         "responses": {
           "200": {
-            "description": "Diary updated",
+            "description": "Diary updated. Revision is optional for compatibility; when present it is checked.",
             "content": {
               "application/json": {
                 "schema": {
@@ -16995,6 +17278,116 @@
           },
           "404": {
             "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/diaries/{id}": {
+      "put": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diariesUpdateV2",
+        "description": "Versioned full replacement. expectedRevision is required; stale revisions are rejected without mutation.",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDiaryV2Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Diary updated with optimistic concurrency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -21436,6 +21829,56 @@
           },
           {
             "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "required": false,
+            "name": "overduePage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "required": false,
+            "name": "todayPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "required": false,
+            "name": "upcomingPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "required": false,
+            "name": "unscheduledPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "required": false,
+            "name": "completedPage",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "string",
               "enum": [
                 "diary",
@@ -21449,7 +21892,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Five review groups with page/limit applied per group, plus absolute per-bucket counts for the requested target scope",
+            "description": "Five review groups with independent bucket pages (legacy page remains a fallback), plus absolute per-bucket counts for the requested target scope",
             "content": {
               "application/json": {
                 "schema": {
@@ -22701,6 +23144,32 @@
                             "priced",
                             "missing"
                           ]
+                        },
+                        "quoteAsOf": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "source": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "upstream",
+                            "cache",
+                            "stale",
+                            null
+                          ]
+                        },
+                        "fetchedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
                         }
                       },
                       "required": [
@@ -24649,6 +25118,18 @@
                                       "quoteAsOf": {
                                         "type": "string",
                                         "format": "date-time"
+                                      },
+                                      "source": {
+                                        "type": "string",
+                                        "enum": [
+                                          "upstream",
+                                          "cache",
+                                          "stale"
+                                        ]
+                                      },
+                                      "fetchedAt": {
+                                        "type": "string",
+                                        "format": "date-time"
                                       }
                                     },
                                     "required": [
@@ -24762,6 +25243,14 @@
                                       "format": "date-time"
                                     },
                                     "staleQuoteCount": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "staleFallbackPositionCount": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "unknownQuoteTimeCount": {
                                       "type": "integer",
                                       "minimum": 0
                                     },

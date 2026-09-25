@@ -86,6 +86,7 @@ export type { AiAccessItem, AiAdminRuntimeUpdate, AiPromptVersion, AiProviderDra
 
 export { calendarDateSchema, MAX_SERIALIZED_ID, serializedIdSchema, utcInstantSchema } from './common.js'
 export {
+  automaticTranslationAdmissionSchema,
   postAdminDetailSchema,
   postAdminListItemSchema,
   postAdminListQuerySchema,
@@ -103,7 +104,7 @@ export {
   postStatusSchema,
   postWriteRequestSchema,
 } from './post.js'
-export type { PostAccess, PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostPublicMetadata, PostStatus, PostWriteRequest } from './post.js'
+export type { AutomaticTranslationAdmission, PostAccess, PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostPublicMetadata, PostStatus, PostWriteRequest } from './post.js'
 export {
   articleLocaleSchema,
   articleLocaleResolutionSchema,
@@ -488,9 +489,9 @@ export const createDiaryRequestSchema = z.object({
   transactions: z.array(ledgerTransactionInputSchema).max(100).optional(),
   appendToToday: z.boolean().optional(),
 }).strict()
-export const updateDiaryRequestSchema = z.object({
+const updateDiaryFields = {
   ...diaryWriteFields,
-  expectedRevision: z.number().int().positive(),
+  expectedRevision: z.number().int().positive().optional(),
   transactions: z.array(ledgerTransactionUpdateInputSchema).max(100)
     .superRefine((rows, context) => {
       const seen = new Set<string>()
@@ -502,6 +503,12 @@ export const updateDiaryRequestSchema = z.object({
         seen.add(row.id)
       })
     }).optional(),
+}
+/** Existing /api replacement input remains compatible with clients that do not send a revision. */
+export const updateDiaryRequestSchema = z.object(updateDiaryFields).strict()
+/** Versioned replacement requires optimistic concurrency. */
+export const updateDiaryV2RequestSchema = updateDiaryRequestSchema.extend({
+  expectedRevision: z.number().int().positive(),
 }).strict()
 export const deleteDiaryResponseSchema = z.object({ success: z.literal(true) }).strict()
 
@@ -553,5 +560,6 @@ export type NativeSession = NativeTokenPair
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>
 export type CreateDiaryRequest = z.infer<typeof createDiaryRequestSchema>
 export type UpdateDiaryRequest = z.infer<typeof updateDiaryRequestSchema>
+export type UpdateDiaryV2Request = z.infer<typeof updateDiaryV2RequestSchema>
 export type DiaryResponse = z.infer<typeof diaryResponseSchema>
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>

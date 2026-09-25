@@ -5,7 +5,7 @@ import { serve } from '@hono/node-server'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../../apps/api/src/app'
-import { createMarketData } from '../../apps/api/src/market-data'
+import { createMarketData, MarketDataError } from '../../apps/api/src/market-data'
 import { schema } from '@diary/db'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
@@ -16,12 +16,14 @@ let baseUrl: string
 let clock: Date
 let observedQueries: Array<{ query: string; params: unknown[] }>
 let quoteCalls: Map<string, number>
+let failedSymbols: Set<string>
 
 beforeAll(async () => { database = await provisionTestDatabase('portfolio_overview') })
 beforeEach(async () => {
   clock = new Date('2026-09-05T12:00:00.000Z')
   observedQueries = []
   quoteCalls = new Map()
+  failedSymbols = new Set()
   const db = drizzle(database.pool, { schema, logger: { logQuery(query, params) { observedQueries.push({ query, params }) } } })
   const marketData = createMarketData({
     now: () => clock,
@@ -29,11 +31,12 @@ beforeEach(async () => {
     upstream: {
       quote: async symbol => {
         quoteCalls.set(symbol, (quoteCalls.get(symbol) ?? 0) + 1)
+        if (failedSymbols.has(symbol)) throw new MarketDataError('Synthetic quote failure', 'not-found')
         return {
           symbol,
-          regularMarketPrice: symbol === 'MISSING' ? null : 120,
+          regularMarketPrice: symbol === 'MISSING' ? null : symbol === 'ZERO' ? 0 : 120,
           regularMarketPreviousClose: 100,
-          regularMarketTime: new Date(symbol === 'STALE' ? '2026-09-01T10:00:00.000Z' : clock),
+          regularMarketTime: symbol === 'NOTIME' ? null : new Date(symbol === 'STALE' ? '2026-09-01T10:00:00.000Z' : clock),
           marketState: 'REGULAR',
         }
       },
@@ -145,6 +148,39 @@ describe('Overview portfolio composition through real HTTP and PostgreSQL', () =
       data: { valuation: { valuationStatus: 'partial', totalHoldings: 3, staleQuoteCount: 1 }, quoteErrors: ['MISSING'] },
     })
     expect(partial.body.attention).toMatchObject({ status: 'ready', data: { coverage: { complete: false, priced: 2, total: 3 } } })
+  })
+
+  it('keeps exchange quote time separate from provider freshness and counts incomplete time coverage', async () => {
+    const owner = await login()
+    await createDiary(owner, '2026-09-03', ['AAPL', 'STALE', 'NOTIME', 'ZERO', 'MISSING'])
+
+    const initial = await overview(owner)
+    expect(initial.body.valuation).toMatchObject({
+      status: 'ready',
+      data: {
+        valuation: {
+          valuationAsOf: '2026-09-01T10:00:00.000Z',
+          staleQuoteCount: 1,
+          staleFallbackPositionCount: 0,
+          unknownQuoteTimeCount: 1,
+          valuationStatus: 'partial',
+        },
+      },
+    })
+    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL')).toMatchObject({ source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z', quoteAsOf: '2026-09-05T12:00:00.000Z' })
+    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'NOTIME')).toMatchObject({ source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
+    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'ZERO')).toMatchObject({ price: 0, source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
+
+    clock = new Date(clock.getTime() + 86_401_000)
+    failedSymbols.add('AAPL')
+    const stale = await overview(owner)
+    expect(stale.body.valuation).toMatchObject({
+      status: 'ready',
+      data: {
+        valuation: { staleFallbackPositionCount: 1, staleQuoteCount: 1, unknownQuoteTimeCount: 1, valuationAsOf: '2026-09-01T10:00:00.000Z' },
+      },
+    })
+    expect(stale.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL')).toMatchObject({ price: 120, source: 'stale', fetchedAt: '2026-09-05T12:00:00.000Z', quoteAsOf: '2026-09-05T12:00:00.000Z' })
   })
 
   it('reports a section failure without discarding valuation and succeeds on retry after correction', async () => {

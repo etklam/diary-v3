@@ -2,6 +2,25 @@
   margin-top: var(--space-8);
 }
 
+.queue-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-pagination > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.queue-pagination button {
+  min-height: 2.5rem;
+}
+
 /* Urgent buckets share one 'Needs attention' heading; the buckets sit under it. */
 .queue-attention {
   margin-top: var(--space-5);
@@ -55,6 +74,11 @@
 @media (max-width: 759px) {
   .queue-filter a {
     padding: 0.6rem 1rem;
+  }
+
+  .queue-pagination button {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

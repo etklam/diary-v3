@@ -4,17 +4,22 @@ import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { beforeAll, afterAll, beforeEach, afterEach, it, expect } from 'vitest'
 import { createApp } from '../../apps/api/src/app'
-import { createMarketData } from '../../apps/api/src/market-data'
+import { createMarketData, MarketDataError } from '../../apps/api/src/market-data'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>, baseUrl: string, clock: Date
+let failedSymbols: Set<string>
 beforeAll(async () => { database = await provisionTestDatabase('company_hub') })
 beforeEach(async () => {
   clock = new Date('2026-09-05T12:00:00Z')
+  failedSymbols = new Set()
   const app = createApp({ db: database.db, now: () => clock, marketData: createMarketData({ now: () => clock, timeoutMs: 50, upstream: {
-    quote: async symbol => ({ symbol, regularMarketPrice: symbol === 'MISSING' ? null : symbol === 'ZERO' ? 0 : 120, regularMarketPreviousClose: 100, regularMarketTime: new Date(symbol === 'STALE' ? '2026-09-01T10:00:00Z' : '2026-09-05T10:00:00Z'), marketState: 'REGULAR' }),
+    quote: async symbol => {
+      if (failedSymbols.has(symbol)) throw new MarketDataError('Synthetic quote failure', 'not-found')
+      return { symbol, regularMarketPrice: symbol === 'MISSING' ? null : symbol === 'ZERO' ? 0 : 120, regularMarketPreviousClose: 100, regularMarketTime: symbol === 'NOTIME' ? null : new Date(symbol === 'STALE' ? '2026-09-01T10:00:00Z' : '2026-09-05T10:00:00Z'), marketState: 'REGULAR' }
+    },
     chart: async () => ({ quotes: [] }),
   } }), config: {
     jwtSecret: 'synthetic-review-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
@@ -79,4 +84,21 @@ it('retains research during missing quotes and rejects guest or invalid credenti
   expect((await fetch(baseUrl + '/api/stocks/AAPL/hub')).status).toBe(401)
   expect((await browser.request('/api/stocks/AAPL/hub', { headers: { authorization: 'Bearer invalid' } })).status).toBe(401)
   expect((await browser.request('/api/stocks/INVALID%20SYMBOL/hub')).status).toBe(400)
+})
+
+it('keeps provider freshness separate from exchange quote time, including zero and unknown times', async () => {
+  const browser = await login()
+  await browser.post('/api/diaries', { date: '2026-09-05', title: 'AAPL holding', content: 'Synthetic', transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-01T00:00:00Z' }] })
+  const initial = await hub(browser)
+  expect(initial.position).toMatchObject({ price: 120, quoteAsOf: '2026-09-05T10:00:00.000Z', source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
+
+  clock = new Date(clock.getTime() + 86_401_000)
+  const refreshedAt = clock.toISOString()
+  failedSymbols.add('AAPL')
+  const stale = await hub(browser)
+  expect(stale.position).toMatchObject({ price: 120, quoteAsOf: '2026-09-05T10:00:00.000Z', source: 'stale', fetchedAt: '2026-09-05T12:00:00.000Z' })
+
+  expect((await hub(browser, 'STALE')).position).toMatchObject({ price: 120, quoteAsOf: '2026-09-01T10:00:00.000Z', source: 'upstream', fetchedAt: refreshedAt })
+  expect((await hub(browser, 'NOTIME')).position).toMatchObject({ price: 120, quoteAsOf: null, source: 'upstream', fetchedAt: refreshedAt })
+  expect((await hub(browser, 'ZERO')).position).toMatchObject({ price: 0, marketValue: null, quoteStatus: 'priced', source: 'upstream', fetchedAt: refreshedAt })
 })

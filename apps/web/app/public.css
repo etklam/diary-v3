@@ -855,12 +855,14 @@
 
 .article-language-control {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
   width: min(100%, 20rem);
   margin: 0 0 var(--space-4);
 }
 
 .article-language-control label {
+  grid-column: 1 / -1;
   color: var(--muted);
   font-size: 0.875rem;
 }
@@ -873,6 +875,15 @@
   background: var(--surface);
   color: var(--text);
   font: inherit;
+}
+
+.article-language-control button {
+  min-height: 44px;
+}
+
+.article-refresh-status {
+  max-width: 72ch;
+  margin: 0 0 var(--space-4);
 }
 
 .article-language-fallback {

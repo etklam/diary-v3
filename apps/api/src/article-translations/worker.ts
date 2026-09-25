@@ -12,6 +12,7 @@ import { aiHttpsTransport, type AiTransport } from '../ai-reports/outbound-polic
 import { decryptAiSecret } from '../ai-reports/secrets.js'
 import { createAiTranslationProvider } from './ai-provider.js'
 import { createEdgeTranslationProvider, type EdgeTranslationProviderOptions } from './edge-provider.js'
+import { errorCode, safeErrorContext } from '../diagnostics.js'
 import { translateMarkdownDocuments } from './markdown.js'
 import { TranslationProviderError, type ArticleTranslationLocale, type TranslationProvider } from './types.js'
 
@@ -20,11 +21,6 @@ const DEFAULT_HEARTBEAT_MS = 5_000
 const MAX_EDGE_CIRCUIT_MS = 60 * 60_000
 const EDGE_CIRCUIT_THRESHOLD = 3
 const EDGE_FAILURE_WINDOW_MS = 30 * 60_000
-const SAFE_PROVIDER_ERROR_CODES = new Set([
-  'TRANSLATION_CONFIGURATION_INVALID', 'TRANSLATION_PROVIDER_DISABLED', 'TRANSLATION_INPUT_TOO_LARGE',
-  'TRANSLATION_PRIVACY_RESTRICTED', 'TRANSLATION_PROVIDER_REJECTED', 'TRANSLATION_PROVIDER_UNAVAILABLE',
-  'TRANSLATION_PROVIDER_TIMEOUT', 'TRANSLATION_RATE_LIMITED', 'TRANSLATION_OUTPUT_INVALID',
-])
 const SAFE_CONNECTION_ERROR_CODES = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED'])
 const RECOVERABLE_DATABASE_ERROR_CODES = new Set(['40P01', '40001', '53300', '55P03', '57P01', '57P02', '57P03'])
 
@@ -64,19 +60,6 @@ function jobIsCurrent(job: JobRow, post: PostRow): boolean {
     && job.targetLocale !== post.sourceLocale
 }
 
-function errorCode(error: unknown): string | undefined {
-  const seen = new Set<object>()
-  let current = error
-  for (let depth = 0; depth < 6 && current && typeof current === 'object' && !seen.has(current); depth += 1) {
-    seen.add(current)
-    if ('code' in current && typeof (current as { code?: unknown }).code === 'string') {
-      return (current as { code: string }).code
-    }
-    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
-  }
-  return undefined
-}
-
 function isDatabaseError(error: unknown): boolean {
   const code = errorCode(error)
   return Boolean(code && (/^[0-9A-Z]{5}$/.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code)))
@@ -85,12 +68,6 @@ function isDatabaseError(error: unknown): boolean {
 function isRecoverableDatabaseError(error: unknown): boolean {
   const code = errorCode(error)
   return Boolean(code && (code.startsWith('08') || RECOVERABLE_DATABASE_ERROR_CODES.has(code) || SAFE_CONNECTION_ERROR_CODES.has(code)))
-}
-
-function loggedErrorCode(error: unknown, fallback?: string): string | undefined {
-  const code = errorCode(error)
-  if (code && (/^[0-9A-Z]{5}$/.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code) || SAFE_PROVIDER_ERROR_CODES.has(code))) return code
-  return fallback && SAFE_PROVIDER_ERROR_CODES.has(fallback) ? fallback : undefined
 }
 
 function setWorkerStage(error: unknown, stage: string): unknown {
@@ -118,16 +95,12 @@ async function transactionWithRetry<T>(db: Database, work: (tx: DbTransaction) =
 
 function logWorkerError(options: ArticleTranslationWorkerOptions, stage: string, error: unknown, claimed?: ClaimedJob, provider?: string, safeCode?: string) {
   const logger = options.logger ?? console
-  const stackFrames = error instanceof Error ? error.stack?.split('\n').filter(frame => /^\s*at\s/.test(frame)).slice(0, 12).map(frame => frame.trim()) : undefined
-  const code = loggedErrorCode(error, safeCode)
   logger.error('Article translation worker operation failed', {
     operation: 'article_translation_worker',
     stage,
     workerId: options.workerId ?? `article-translation-${process.pid}`,
     ...(claimed ? { jobId: claimed.job.id.toString(), provider: claimed.job.provider } : provider ? { provider } : {}),
-    errorName: error instanceof Error ? error.name : 'UnknownError',
-    ...(code ? { errorCode: code } : {}),
-    ...(stackFrames?.length ? { stackFrames } : {}),
+    ...safeErrorContext(error, { fallbackCode: safeCode }),
   })
 }
 

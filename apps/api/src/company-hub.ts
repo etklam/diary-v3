@@ -24,7 +24,9 @@ export function registerCompanyHubRoute(app: Hono<AppEnv>, dependencies: {
     const parsed = stockSymbolSchema.safeParse(c.req.param('symbol')); if (!parsed.success) return validationError(parsed.error)
     const symbol = parsed.data, userId = BigInt(user.id)
     // Provider errors affect valuation only; owner data uses one coherent snapshot.
-    const quotePromise = market.quote(symbol, false, c.req.raw.signal).then(({ data }) => data.regularMarketPrice >= 0 ? data : null).catch(() => null)
+    const quotePromise = market.quote(symbol, false, c.req.raw.signal)
+      .then(read => read.data.regularMarketPrice >= 0 ? read : null)
+      .catch(() => null)
     const snapshot = await db.transaction(async tx => {
       const [stock] = await tx.select().from(stocks).where(eq(stocks.symbol, symbol))
       const holdings = (await getHoldings(tx, userId)).map(row => ({ symbol: row.symbol, quantity: Number(row.quantity), avgCost: Number(row.avgCost), totalCost: Number(row.totalCost) }))
@@ -59,12 +61,16 @@ export function registerCompanyHubRoute(app: Hono<AppEnv>, dependencies: {
         relatedDiaries: related.rows,
       }
     }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
-    const quote = await quotePromise
+    const quoteRead = await quotePromise
+    const quote = quoteRead?.data ?? null
     return c.json(companyHubResponseSchema.parse({ ...snapshot,
       company: { ...snapshot.company, currency: quote?.currency ?? snapshot.company.currency },
       position: { ...snapshot.position, price: quote?.regularMarketPrice ?? null,
         marketValue: snapshot.position.state === 'held' && quote ? snapshot.position.quantity * quote.regularMarketPrice : null,
-        quoteStatus: quote ? 'priced' : 'missing' },
+        quoteStatus: quote ? 'priced' : 'missing',
+        quoteAsOf: quote?.lastUpdateTime ?? null,
+        source: quoteRead?.source ?? null,
+        fetchedAt: quoteRead?.fetchedAt ?? null },
     }))
   })
 }

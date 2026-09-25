@@ -71,17 +71,17 @@ describe('diary editor through real HTTP and PostgreSQL', () => {
       return response.json()
     }
     const replace = (diary: { id: string }, expectedRevision: number, title: string, content: string) =>
-      mutation(browser, 'PUT', `/api/diaries/${diary.id}`, { expectedRevision, title, content })
+      mutation(browser, 'PUT', `/api/v2/diaries/${diary.id}`, { expectedRevision, title, content })
     const append = (date: string, title: string, content: string) => browser.post('/api/diaries', {
       date, title, content, appendToToday: true,
     })
 
     const stale = await create('2026-10-10', 'Two editors')
     expect(stale.revision).toBe(1)
-    const winner = await replace(stale, 1, 'First editor', 'First editor saved')
+    const winner = await mutation(browser, 'PUT', `/api/v2/diaries/${stale.id}`, { expectedRevision: 1, title: 'First editor', content: 'First editor saved' })
     expect(winner.status).toBe(200)
     expect((await winner.json()).revision).toBe(2)
-    const loser = await replace(stale, 1, 'Second editor', 'Must not overwrite')
+    const loser = await mutation(browser, 'PUT', `/api/v2/diaries/${stale.id}`, { expectedRevision: 1, title: 'Second editor', content: 'Must not overwrite' })
     expect(loser.status).toBe(409)
     expect((await loser.json()).data.code).toBe('DIARY_REVISION_CONFLICT')
     expect(await browser.request(`/api/diaries/${stale.id}`).then(response => response.json())).toMatchObject({
@@ -92,18 +92,18 @@ describe('diary editor through real HTTP and PostgreSQL', () => {
     const appended = await append(appendFirst.date, 'Ignored append title', 'Quick Note fragment')
     expect(appended.status).toBe(201)
     expect((await appended.json()).revision).toBe(2)
-    expect((await replace(appendFirst, 1, 'Stale full edit', 'Would lose the Quick Note')).status).toBe(409)
+    expect((await mutation(browser, 'PUT', `/api/v2/diaries/${appendFirst.id}`, { expectedRevision: 1, title: 'Stale full edit', content: 'Would lose the Quick Note' })).status).toBe(409)
     expect(await browser.request(`/api/diaries/${appendFirst.id}`).then(response => response.json())).toMatchObject({
       revision: 2, title: 'Append before stale save', content: 'Original body\n\n---\n\nQuick Note fragment',
     })
 
     const putFirst = await create('2026-10-12', 'Full edit before append')
-    const updated = await replace(putFirst, 1, 'Full edit before append', 'Full edit saved')
+    const updated = await mutation(browser, 'PUT', `/api/v2/diaries/${putFirst.id}`, { expectedRevision: 1, title: 'Full edit before append', content: 'Full edit saved' })
     expect((await updated.json()).revision).toBe(2)
     const appendedAfter = await append(putFirst.date, 'Ignored append title', 'Later Quick Note')
     expect(appendedAfter.status).toBe(201)
     expect((await appendedAfter.json()).revision).toBe(3)
-    expect((await replace(putFirst, 1, 'Stale again', 'Do not overwrite either write')).status).toBe(409)
+    expect((await mutation(browser, 'PUT', `/api/v2/diaries/${putFirst.id}`, { expectedRevision: 1, title: 'Stale again', content: 'Do not overwrite either write' })).status).toBe(409)
     expect(await browser.request(`/api/diaries/${putFirst.id}`).then(response => response.json())).toMatchObject({
       revision: 3, title: 'Full edit before append', content: 'Full edit saved\n\n---\n\nLater Quick Note',
     })
@@ -117,7 +117,7 @@ describe('diary editor through real HTTP and PostgreSQL', () => {
     const relatedDiary = await related.json()
     expect(related.status).toBe(201)
     expect((await replace(relatedDiary, 1, 'Concurrent relation winner', 'Server relations stay')).status).toBe(200)
-    const staleWithRelations = await mutation(browser, 'PUT', `/api/diaries/${relatedDiary.id}`, {
+    const staleWithRelations = await mutation(browser, 'PUT', `/api/v2/diaries/${relatedDiary.id}`, {
       expectedRevision: 1,
       title: 'Stale relation overwrite', content: 'Must not overwrite associations',
       transactions: [], stockSymbols: ['MSFT'], alerts: [],
@@ -127,6 +127,36 @@ describe('diary editor through real HTTP and PostgreSQL', () => {
     expect(relationState).toMatchObject({ revision: 2, title: 'Concurrent relation winner', content: 'Server relations stay', stockSymbols: ['AAPL'] })
     expect(relationState.transactions).toMatchObject([{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '10' }])
     expect(relationState.alerts).toMatchObject([expect.objectContaining({ message: 'Keep this reminder' })])
+  })
+
+  it('keeps the legacy replacement request shape while requiring revisions on v2', async () => {
+    const browser = new BrowserSession(baseUrl)
+    await login(browser)
+    const created = await browser.post('/api/diaries', { date: '2026-10-14', title: 'Compatibility diary', content: 'Initial body' })
+    expect(created.status).toBe(201)
+    const diary = await created.json()
+    const headers = new Headers({ 'x-csrf-token': browser.cookies.get('csrf-token')!, 'content-type': 'application/json' })
+
+    const missingV2Revision = await browser.request(`/api/v2/diaries/${diary.id}`, {
+      method: 'PUT', headers, body: JSON.stringify({ title: 'Rejected v2 edit', content: 'No expected revision' }),
+    })
+    expect(missingV2Revision.status).toBe(400)
+    expect((await missingV2Revision.json()).data.code).toBe('SYS_VALIDATION_ERROR')
+
+    const legacyWrite = await browser.request(`/api/diaries/${diary.id}`, {
+      method: 'PUT', headers, body: JSON.stringify({ title: 'Legacy client edit', content: 'Accepted without revision' }),
+    })
+    expect(legacyWrite.status).toBe(200)
+    expect(await legacyWrite.json()).toMatchObject({ revision: 2, title: 'Legacy client edit', content: 'Accepted without revision' })
+
+    const staleV2Revision = await browser.request(`/api/v2/diaries/${diary.id}`, {
+      method: 'PUT', headers, body: JSON.stringify({ expectedRevision: 1, title: 'Stale v2 edit', content: 'Must not replace' }),
+    })
+    expect(staleV2Revision.status).toBe(409)
+    expect((await staleV2Revision.json()).data.code).toBe('DIARY_REVISION_CONFLICT')
+    expect(await browser.request(`/api/diaries/${diary.id}`).then(response => response.json())).toMatchObject({
+      revision: 2, title: 'Legacy client edit', content: 'Accepted without revision',
+    })
   })
 
   it('does not lock or replay the owner ledger for text-only updates and preserves explicit clearing', async () => {
@@ -180,28 +210,6 @@ describe('diary editor through real HTTP and PostgreSQL', () => {
     expect(ledgerLocks()).toHaveLength(1)
     expect(await transactionRows(traded.id)).toEqual([])
     expect((await browser.request(`/api/diaries/${traded.id}`).then(response => response.json())).transactions).toEqual([])
-  })
-
-  it('requires a revision on full diary replacement requests', async () => {
-    const browser = new BrowserSession(baseUrl)
-    await login(browser)
-    const created = await browser.post('/api/diaries', {
-      title: 'Revision required', content: 'Original body', date: '2026-10-14',
-    })
-    const diary = await created.json()
-    const headers = new Headers({
-      'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')!,
-    })
-
-    const response = await browser.request(`/api/diaries/${diary.id}`, {
-      method: 'PUT', headers,
-      body: JSON.stringify({ title: 'Missing revision', content: 'Must be rejected' }),
-    })
-
-    expect(response.status).toBe(400)
-    expect(await (await browser.request(`/api/diaries/${diary.id}`)).json()).toMatchObject({
-      revision: 1, title: 'Revision required', content: 'Original body',
-    })
   })
 
   it('round-trips Markdown, structured text and lossless normalized tags', async () => {

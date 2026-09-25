@@ -4,6 +4,8 @@ import { currentInvestmentThesisSchema, thesisReviewRecordSchema } from './inves
 import { stockSymbolSchema } from './watchlist.js'
 import { stockTimelineSourceTypeSchema } from './stock-timeline-source.js'
 
+const marketReadSourceSchema = z.enum(['upstream', 'cache', 'stale'])
+
 export const companyHoldingStateSchema = z.enum(['held', 'closed', 'research_only', 'untracked'])
 
 export const companyHubPositionSchema = z.object({
@@ -16,6 +18,11 @@ export const companyHubPositionSchema = z.object({
   concentrationPct: z.number().finite().nonnegative().nullable(),
   concentrationBasis: z.enum(['cost_basis', 'unavailable']),
   quoteStatus: z.enum(['priced', 'missing']),
+  // `quoteAsOf` is the exchange-provided time. These fields describe how the
+  // provider supplied the value and when that successful read was fetched.
+  quoteAsOf: utcInstantSchema.nullable().optional(),
+  source: marketReadSourceSchema.nullable().optional(),
+  fetchedAt: utcInstantSchema.nullable().optional(),
 }).strict()
 
 export const companyHubDiarySchema = z.object({

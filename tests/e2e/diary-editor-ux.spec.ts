@@ -46,7 +46,7 @@ test('save status reflects clean, dirty, saving and failed states without fake f
   let requestStarted!: () => void;
   const heldFailure = new Promise<void>(resolve => { releaseFailure = resolve; });
   const started = new Promise<void>(resolve => { requestStarted = resolve; });
-  await page.route('**/api/diaries/*', async route => {
+  await page.route('**/api/v2/diaries/*', async route => {
     if (route.request().method() === 'PUT') {
       requestStarted();
       await heldFailure;
@@ -69,7 +69,7 @@ test('save status reflects clean, dirty, saving and failed states without fake f
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Status machine diary, revised');
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeEnabled();
   await expect(page.getByLabel('Review due at', { exact: true })).toBeEnabled();
-  await page.unroute('**/api/diaries/*');
+  await page.unroute('**/api/v2/diaries/*');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${diaryId}$`));
 });
@@ -90,14 +90,14 @@ test('a stale editor keeps its writing, stops resubmitting and can explicitly lo
 
   const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
   const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number; title: string; content: string };
-  const concurrent = await page.request.put(`/api/diaries/${diaryId}`, {
+  const concurrent = await page.request.put(`/api/v2/diaries/${diaryId}`, {
     headers: { 'x-csrf-token': csrf },
     data: { expectedRevision: loaded.revision, title: 'Updated on another device', content: 'Server changes to preserve.' },
   });
   expect(concurrent.status()).toBe(200);
 
   let fullEditorPuts = 0;
-  await page.route(`**/api/diaries/${diaryId}`, async route => {
+  await page.route(`**/api/v2/diaries/${diaryId}`, async route => {
     if (route.request().method() === 'PUT') fullEditorPuts += 1;
     await route.continue();
   });
@@ -111,7 +111,7 @@ test('a stale editor keeps its writing, stops resubmitting and can explicitly lo
   await page.getByRole('button', { name: 'Reload server version', exact: true }).click();
   await expect(content).toHaveValue('Server changes to preserve.');
   await expect(page.getByTestId('error-code')).toHaveCount(0);
-  await page.unroute(`**/api/diaries/${diaryId}`);
+  await page.unroute(`**/api/v2/diaries/${diaryId}`);
   await content.fill('Reloaded, then edited safely.');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/diaries/${diaryId}$`));
@@ -138,7 +138,7 @@ test('a restored local draft keeps its original revision after another device sa
 
   const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
   const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number };
-  const concurrent = await page.request.put(`/api/diaries/${diaryId}`, {
+  const concurrent = await page.request.put(`/api/v2/diaries/${diaryId}`, {
     headers: { 'x-csrf-token': csrf },
     data: { expectedRevision: loaded.revision, title: 'Newer server version', content: 'Server body to preserve.' },
   });
@@ -158,7 +158,7 @@ test('a restored local draft keeps its original revision after another device sa
   expect(await storedDraft()).toBe(1);
 
   let fullEditorPuts = 0;
-  await page.route(`**/api/diaries/${diaryId}`, async route => {
+  await page.route(`**/api/v2/diaries/${diaryId}`, async route => {
     if (route.request().method() === 'PUT') fullEditorPuts += 1;
     await route.continue();
   });
@@ -348,7 +348,7 @@ test('an expired session keeps local writing through re-login and returns to the
   const editPath = `${new URL(page.url()).pathname}/edit`;
   await page.goto(editPath);
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Session expiry diary, edited after expiry');
-  await page.route('**/api/diaries/*', async route => {
+  await page.route('**/api/v2/diaries/*', async route => {
     if (route.request().method() === 'PUT') await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }) });
     else await route.continue();
   });
@@ -365,7 +365,7 @@ test('an expired session keeps local writing through re-login and returns to the
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Session expiry diary, edited after expiry');
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Long reasoning that must survive an expired session.');
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await page.unroute('**/api/diaries/*');
+  await page.unroute('**/api/v2/diaries/*');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   await expect(page.getByRole('heading', { name: 'Session expiry diary, edited after expiry', exact: true })).toBeVisible();
@@ -462,7 +462,7 @@ test('text-only diary saves omit transactions while an explicit empty list clear
   expect(createdResponse.status()).toBe(201);
   const created = await createdResponse.json() as { id: string; transactions: unknown[] };
   const payloads: Array<Record<string, unknown>> = [];
-  await page.route(`**/api/diaries/${created.id}`, async route => {
+  await page.route(`**/api/v2/diaries/${created.id}`, async route => {
     if (route.request().method() === 'PUT') payloads.push(route.request().postDataJSON() as Record<string, unknown>);
     await route.continue();
   });
@@ -500,13 +500,13 @@ test('uncertain text save confirms without overwriting a concurrent transaction 
   await page.goto(`/diaries/${created.id}/edit`);
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Committed text with an ambiguous response.');
   let sentBody: Record<string, unknown> | undefined;
-  await page.route(`**/api/diaries/${created.id}`, async route => {
+  await page.route(`**/api/v2/diaries/${created.id}`, async route => {
     if (route.request().method() !== 'PUT') { await route.continue(); return; }
     sentBody = route.request().postDataJSON() as Record<string, unknown>;
     const response = await route.fetch();
     expect(response.status()).toBe(200);
     const row = created.transactions[0]!;
-    const concurrent = await page.request.put(`/api/diaries/${created.id}`, {
+    const concurrent = await page.request.put(`/api/v2/diaries/${created.id}`, {
       headers: { 'x-csrf-token': csrf },
       data: {
         expectedRevision: Number(sentBody.expectedRevision) + 1,
@@ -558,7 +558,7 @@ test('recovery restores transaction, review and reminder modifications after re-
   const draftKey = () => page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null);
   await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
 
-  await page.route('**/api/diaries/*', async route => {
+  await page.route('**/api/v2/diaries/*', async route => {
     if (route.request().method() === 'PUT') await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }) });
     else await route.continue();
   });
@@ -575,7 +575,7 @@ test('recovery restores transaction, review and reminder modifications after re-
   await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
   await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
-  await page.unroute('**/api/diaries/*');
+  await page.unroute('**/api/v2/diaries/*');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   const diaryId = page.url().split('/').at(-1)!;

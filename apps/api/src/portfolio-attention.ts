@@ -9,6 +9,7 @@ import { eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app.js'
+import { safeErrorContext } from './diagnostics.js'
 import type { createMarketData } from './market-data/index.js'
 import { valuePortfolio, valuePortfolioFromHoldings } from './portfolio.js'
 
@@ -66,7 +67,13 @@ function failedSection(requestId: string) {
 }
 
 function logSectionFailure(logger: { error(message: string, context: Record<string, unknown>): void }, requestId: string, section: string, error: unknown) {
-  logger.error('Overview portfolio composition failed', { requestId, section, error })
+  logger.error('Overview portfolio composition failed', {
+    operation: 'portfolio_overview',
+    stage: section,
+    requestId,
+    section,
+    ...safeErrorContext(error),
+  })
 }
 
 export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies: {
