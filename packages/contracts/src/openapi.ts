@@ -1,4 +1,5 @@
 import { registerAiOpenApi } from './ai-openapi.js'
+import { registerResearchOpenApi } from './research-openapi.js'
 import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from './rotation-monitor.js'
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from './rotation.js'
 import {marketStateSnapshotQuerySchema, marketStateHistoryQuerySchema, marketStateSnapshotSchema, marketStateHistoryResponseSchema} from './market-state.js'
@@ -615,3 +616,4 @@ registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-publish', ta
 registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-delete', tags: ['Blog'], operationId: 'blogBulkDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Deleted article count'), ...errors([400, 401, 403, 500]) } })
 
 registerAiOpenApi(registry, ApiErrorResponse)
+registerResearchOpenApi(registry, ApiErrorResponse)

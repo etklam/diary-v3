@@ -34,7 +34,7 @@ const adminUserColumns = {
   name: users.name,
   role: users.role,
   createdAt: users.createdAt,
-  diaryCount: sql<number>`(select count(*)::int from diaries where diaries.user_id = ${users.id})`,
+  diaryCount: sql<number>`(select count(*)::int from diaries where diaries.user_id = "users"."id")`,
 }
 
 // Explicitly list fields rather than selecting the Diary row. Review outcome

@@ -2,6 +2,7 @@ import {parseDailyMarketPrices} from './daily-prices.js';
 import { normalizeMarketSymbol, marketSymbolSchema, marketRangeSchema, marketQuoteSchema, marketHistoricalSchema, type MarketQuote, type MarketHistorical, type MarketRange } from '../../../../packages/contracts/src/market';
 import { createYahooQueue, MarketDataError } from './queue';
 import { getMarketDataCacheTtlSeconds } from './ttl';
+import { calendarDateInTimezone } from '@diary/domain';
 export { MarketDataError } from './queue';
 export { getMarketDataCacheTtlSeconds } from './ttl';
 
@@ -12,6 +13,23 @@ export type YahooUpstream = {
 };
 export type MonthlyQuote={timestamp:number;open:number;high:number;low:number;close:number;adjClose:number;volume:number|null};
 export type IntradayQuote={timestamp:number;open:number|null;high:number|null;low:number|null;close:number;volume:number|null};
+export type CompleteDailyResearchBar = {
+  symbol: string
+  date: string
+  open: number | null
+  high: number | null
+  low: number | null
+  close: number | null
+  adjustedClose: number | null
+  volume: number | null
+  priceSourceId: 'YAHOO_CHART'
+  volumeSourceId: 'YAHOO_CHART' | null
+  adjustmentBasis: 'total_return_rebased' | 'unavailable'
+  volumeBasis: 'raw' | 'unavailable'
+  session: 'regular'
+  dataAsOf: string | null
+  retrievedAt: string
+};
 export type MarketRead<T> = { data:T; source:'upstream'|'cache'|'stale'; fetchedAt:string };
 function object(value:unknown):Record<string,unknown> {
   return value !== null && typeof value==='object' ? value as Record<string,unknown> : {};
@@ -113,6 +131,35 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
       });
     },false,900,consumerSignal);
   }
+  /** Complete research contract; the legacy dailyResearch shape intentionally remains unchanged. */
+  function dailyResearchBars(input:string,rangeInput:MarketRange='5y',consumerSignal?:AbortSignal):Promise<MarketRead<CompleteDailyResearchBar[]>> {
+    const symbol=marketSymbolSchema.parse(input),range=marketRangeSchema.parse(rangeInput);
+    return read(`research-daily-bars:${symbol}:${range}`,'historical',async signal=>{
+      const at=now(),raw=object(await options.upstream.chart(symbol,{period1:rangeStart(range,at),period2:at,interval:'1d',return:'array'},signal));
+      if(!Array.isArray(raw.quotes))throw new MarketDataError('Yahoo complete daily research response malformed');
+      const dates=new Set<string>();
+      const rows:CompleteDailyResearchBar[]=[];
+      for(const value of raw.quotes){
+        const bar=object(value),instantValue=instant(bar.date);
+        if(!instantValue)throw new MarketDataError('Yahoo complete daily research date malformed');
+        const date=calendarDateInTimezone(new Date(instantValue),'America/New_York');
+        if(dates.has(date))throw new MarketDataError(`Yahoo complete daily research duplicate session ${date}`);
+        dates.add(date);
+        const nullable=(candidate:unknown)=>finite(candidate);
+        const adjustedClose=nullable(bar.adjclose ?? bar.adjustedClose);
+        const volume=nullable(bar.volume);
+        rows.push({
+          symbol,date,open:nullable(bar.open),high:nullable(bar.high),low:nullable(bar.low),close:nullable(bar.close),adjustedClose,volume,
+          priceSourceId:'YAHOO_CHART',volumeSourceId:volume===null?null:'YAHOO_CHART',
+          adjustmentBasis:adjustedClose===null?'unavailable':'total_return_rebased',volumeBasis:volume===null?'unavailable':'raw',session:'regular',
+          dataAsOf:instantValue,retrievedAt:at.toISOString(),
+        });
+      }
+      rows.sort((a,b)=>a.date.localeCompare(b.date));
+      if(!rows.length)throw new MarketDataError('Yahoo complete daily research data unavailable','not-found');
+      return rows;
+    },false,undefined,consumerSignal);
+  }
   function fundValuation(input:string,consumerSignal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input);
     return read(`fund-valuation:${symbol}`,'quote',async signal=>{
@@ -159,7 +206,7 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
     }));
     return {quotes:result,errors};
   }
-  return {quote,historical,intraday,monthly,dailyPrices,dailyResearch,fundValuation,quotes,close:()=>queue.close()};
+  return {quote,historical,intraday,monthly,dailyPrices,dailyResearch,dailyResearchBars,fundValuation,quotes,close:()=>queue.close()};
 }
 
 export { createYahooUpstream } from './yahoo';

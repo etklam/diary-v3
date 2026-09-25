@@ -84,8 +84,9 @@ describe('production delivery safety', () => {
 
   it('validates every required source manifest', () => {
     expect(() => validateProductionManifests()).not.toThrow();
-    expect(productionManifestFiles).toHaveLength(9);
+    expect(productionManifestFiles).toHaveLength(10);
     expect(productionManifestFiles).toContain('ops/k8s/production/08-ai-worker.yaml');
+    expect(productionManifestFiles).toContain('ops/k8s/production/09-research-worker.yaml');
   });
 });
 

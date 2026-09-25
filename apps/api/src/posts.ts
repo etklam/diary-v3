@@ -25,10 +25,13 @@ import {
   postPublicMetadataSchema,
   postWriteRequestSchema,
   serializedIdSchema,
+  type ErrorCode,
   type PostStatus,
 } from '@diary/contracts'
-import { posts, users, type Database } from '@diary/db'
+import { posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
 import { resolveArticleReadAccess } from './article-policy.js'
+import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from './research-studio/publication.js'
+import type { ResearchLatestCompletedSession } from './research-studio/service.js'
 import type { AppEnv } from './app.js'
 
 const PUBLIC_DEFAULT_LIMIT = 9
@@ -40,7 +43,7 @@ const CATEGORY_ALIASES: Record<string, string[]> = {
   market: ['市场观察', '市場觀察', 'Market Watch'],
   strategy: ['投资策略', '投資策略', 'Investment Strategy'],
 }
-type PostFail = (status: number, code: 'AUTH_UNAUTHORIZED' | 'AUTH_FORBIDDEN' | 'BLOG_NOT_FOUND' | 'SYS_VALIDATION_ERROR' | 'SYS_NOT_FOUND', message: string, details?: { field?: string; message?: string }[] | null) => never
+type PostFail = (status: number, code: ErrorCode, message: string, details?: { field?: string; message?: string }[] | null) => never
 
 function instant(value: Date | null): string | null {
   return value?.toISOString() ?? null
@@ -224,6 +227,7 @@ function toPublicMetadata(row: typeof posts.$inferSelect & { author: { id: bigin
 export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
   db: Database
   now: () => Date
+  latestCompletedSession?: ResearchLatestCompletedSession
   fail: PostFail
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
@@ -246,11 +250,20 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(and(eq(posts.slug, slug), eq(posts.status, 'PUBLISHED'), isNotNull(posts.publishedAt))).limit(1)
     return row
   }
-  const uniqueSlug = async (title: string, excludeId?: bigint) => {
+  const uniqueSlug = async (title: string, excludeId?: bigint, connection: Database | ResearchTransaction = db) => {
     const base = slugFromTitle(title)
-    const [clash] = await db.select({ id: posts.id }).from(posts)
+    const [clash] = await connection.select({ id: posts.id }).from(posts)
       .where(excludeId === undefined ? eq(posts.slug, base) : and(eq(posts.slug, base), sql`${posts.id} <> ${excludeId}`)).limit(1)
     return clash ? `${base}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}` : base
+  }
+  const guardResearchPublication = async (tx: ResearchTransaction, postId: bigint, overrides?: { title?: string; content?: string }) => {
+    const problem = await researchPublicationIssue({ db: tx, postId, now: now(), latestCompletedSession: dependencies.latestCompletedSession, ...overrides })
+    if (problem) return fail(409, problem.code, problem.message)
+  }
+  const lockMutation = async (tx: ResearchTransaction, actorId: bigint) => {
+    await lockResearchMutation(tx)
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId))
+    if (actor?.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
   }
   const listWhere = (query: { category?: string; tag?: string; search?: string; dateFrom?: string; dateTo?: string; status?: PostStatus; author?: string }, publicView: boolean) => {
     const clauses = [
@@ -314,31 +327,40 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
   app.post('/api/blog/admin/:id/publish', c => transition(c, 'PUBLISHED'))
   app.post('/api/blog/admin/:id/archive', c => transition(c, 'ARCHIVED'))
   async function transition(c: Context<AppEnv>, status: PostStatus) {
-    admin(c)
+    const actorId = admin(c)
     const id = parseId(c.req.param('id'), validationError)
-    const row = await readAdmin(id)
-    if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    const [updated] = await db.update(posts).set({ status, publishedAt: publishedAtFor(row.post.status, row.post.publishedAt, status, now()), updatedAt: now() }).where(eq(posts.id, id)).returning()
-    if (!updated) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    await db.transaction(async tx => {
+      await lockMutation(tx, actorId)
+      const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
+      if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+      if (status === 'PUBLISHED') await guardResearchPublication(tx, id)
+      const timestamp = now()
+      await tx.update(posts).set({ status, publishedAt: publishedAtFor(post.status, post.publishedAt, status, timestamp), updatedAt: timestamp }).where(eq(posts.id, id))
+    })
     const latest = await readAdmin(id)
     if (!latest) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     return c.json(toAdminDetail({ ...latest.post, author: latest.author }))
   }
   app.post('/api/blog/admin/bulk-publish', async c => {
-    admin(c)
+    const actorId = admin(c)
     const input = await parseJson(c, postBulkRequestSchema)
     const ids = input.ids.map(BigInt)
     const result = await db.transaction(async tx => {
-      const rows = await tx.select({ id: posts.id, status: posts.status, publishedAt: posts.publishedAt }).from(posts).where(inArray(posts.id, ids)).for('update')
+      await lockMutation(tx, actorId)
+      const rows = await tx.select({ id: posts.id, status: posts.status, publishedAt: posts.publishedAt }).from(posts).where(inArray(posts.id, ids)).orderBy(asc(posts.id)).for('update')
+      for (const row of rows) await guardResearchPublication(tx, row.id)
       for (const row of rows) await tx.update(posts).set({ status: 'PUBLISHED', publishedAt: publishedAtFor(row.status, row.publishedAt, 'PUBLISHED', now()), updatedAt: now() }).where(eq(posts.id, row.id))
       return rows.length
     })
     return c.json(postBulkResponseSchema.parse({ count: result }))
   })
   app.post('/api/blog/admin/bulk-delete', async c => {
-    admin(c)
+    const actorId = admin(c)
     const input = await parseJson(c, postBulkRequestSchema)
-    const result = await db.delete(posts).where(inArray(posts.id, input.ids.map(BigInt))).returning({ id: posts.id })
+    const result = await db.transaction(async tx => {
+      await lockMutation(tx, actorId)
+      return tx.delete(posts).where(inArray(posts.id, input.ids.map(BigInt))).returning({ id: posts.id })
+    })
     return c.json(postBulkResponseSchema.parse({ count: result.length }))
   })
 
@@ -365,72 +387,92 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const input = await parseJson(c, postWriteRequestSchema)
     const timestamp = now()
     const excerptAuthored = typeof input.excerpt === 'string' && input.excerpt.length > 0
-    const [created] = await db.insert(posts).values({
-      authorId,
-      title: input.title,
-      slug: await uniqueSlug(input.title),
-      content: input.content,
-      excerpt: input.excerpt || excerptFromMarkdown(input.content),
-      excerptAuthored,
-      coverImage: input.coverImage,
-      category: input.category,
-      tags: input.tags,
-      status: input.status,
-      access: input.access ?? 'MEMBER',
-      publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }).returning()
+    const created = await db.transaction(async tx => {
+      await lockMutation(tx, authorId)
+      const [post] = await tx.insert(posts).values({
+        authorId,
+        title: input.title,
+        slug: await uniqueSlug(input.title, undefined, tx),
+        content: input.content,
+        excerpt: input.excerpt || excerptFromMarkdown(input.content),
+        excerptAuthored,
+        coverImage: input.coverImage,
+        category: input.category,
+        tags: input.tags,
+        status: input.status,
+        access: input.access ?? 'MEMBER',
+        publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }).returning()
+      if (!post) throw new Error('Post insert returned no row')
+      if (input.status === 'PUBLISHED') await guardResearchPublication(tx, post.id)
+      return post
+    })
     if (!created) throw new Error('Post insert returned no row')
     const row = await readAdmin(created.id)
     if (!row) throw new Error('Post read after insert returned no row')
     return c.json(toAdminDetail({ ...row.post, author: row.author }), 200)
   })
   app.put('/api/blog/:id', async c => {
-    admin(c)
+    const actorId = admin(c)
     const id = parseId(c.req.param('id'), validationError)
     const input = await parseJson(c, postWriteRequestSchema)
-    const existing = await readAdmin(id)
-    if (!existing) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    const timestamp = now()
-    const nextAccess = input.access ?? existing.post.access
-    const hasExcerptInput = input.excerpt !== undefined
-    const echoedDerivedExcerpt = !existing.post.excerptAuthored
-      && typeof input.excerpt === 'string'
-      && input.excerpt === existing.post.excerpt
-    const excerptAuthored = hasExcerptInput
-      ? typeof input.excerpt === 'string' && input.excerpt.length > 0 && !echoedDerivedExcerpt
-      : existing.post.excerptAuthored
-    const excerpt = hasExcerptInput
-      ? input.excerpt || excerptFromMarkdown(input.content)
-      : existing.post.excerptAuthored
-        ? existing.post.excerpt
-        : excerptFromMarkdown(input.content)
-    // Existing derived excerpts cannot be proven safe after PUBLIC -> MEMBER.
-    const safeExcerpt = nextAccess === 'MEMBER' && existing.post.access !== 'MEMBER' && !excerptAuthored ? null : excerpt
-    const [updated] = await db.update(posts).set({
-      title: input.title,
-      slug: input.title === existing.post.title ? existing.post.slug : await uniqueSlug(input.title, id),
-      content: input.content,
-      excerpt: safeExcerpt,
-      excerptAuthored,
-      coverImage: input.coverImage,
-      category: input.category,
-      tags: input.tags,
-      status: input.status,
-      access: nextAccess,
-      publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, input.status, timestamp),
-      updatedAt: timestamp,
-    }).where(eq(posts.id, id)).returning()
-    if (!updated) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    await db.transaction(async tx => {
+      await lockMutation(tx, actorId)
+      const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
+      if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+      const existing = { post }
+      const [researchLink] = await tx.select().from(researchArticleLinks).where(eq(researchArticleLinks.postId, id)).for('update')
+      const researchContentChanged = Boolean(researchLink) && (input.title !== post.title || input.content !== post.content)
+      if (input.status === 'PUBLISHED' && !researchContentChanged) await guardResearchPublication(tx, id, { title: input.title, content: input.content })
+      const timestamp = now()
+      const nextAccess = input.access ?? existing.post.access
+      const hasExcerptInput = input.excerpt !== undefined
+      const echoedDerivedExcerpt = !existing.post.excerptAuthored
+        && typeof input.excerpt === 'string'
+        && input.excerpt === existing.post.excerpt
+      const excerptAuthored = hasExcerptInput
+        ? typeof input.excerpt === 'string' && input.excerpt.length > 0 && !echoedDerivedExcerpt
+        : existing.post.excerptAuthored
+      const excerpt = hasExcerptInput
+        ? input.excerpt || excerptFromMarkdown(input.content)
+        : existing.post.excerptAuthored
+          ? existing.post.excerpt
+          : excerptFromMarkdown(input.content)
+      // Existing derived excerpts cannot be proven safe after PUBLIC -> MEMBER.
+      const safeExcerpt = !excerptAuthored && (researchLink || (nextAccess === 'MEMBER' && existing.post.access !== 'MEMBER')) ? null : excerpt
+      const nextStatus = researchContentChanged ? 'DRAFT' as const : input.status
+      const [updated] = await tx.update(posts).set({
+        title: input.title,
+        slug: input.title === existing.post.title ? existing.post.slug : await uniqueSlug(input.title, id, tx),
+        content: input.content,
+        excerpt: safeExcerpt,
+        excerptAuthored,
+        coverImage: input.coverImage,
+        category: input.category,
+        tags: input.tags,
+        status: nextStatus,
+        access: nextAccess,
+        publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, nextStatus, timestamp),
+        updatedAt: timestamp,
+      }).where(eq(posts.id, id)).returning()
+      if (!updated) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+      if (researchContentChanged && researchLink) {
+        await tx.update(researchRuns).set({ reviewStatus: 'CHANGES_REQUIRED', version: sql`${researchRuns.version} + 1`, updatedAt: timestamp }).where(eq(researchRuns.id, researchLink.runId))
+      }
+    })
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     return c.json(toAdminDetail({ ...row.post, author: row.author }))
   })
   app.delete('/api/blog/:id', async c => {
-    admin(c)
+    const actorId = admin(c)
     const id = parseId(c.req.param('id'), validationError)
-    const result = await db.delete(posts).where(eq(posts.id, id)).returning({ id: posts.id })
+    const result = await db.transaction(async tx => {
+      await lockMutation(tx, actorId)
+      return tx.delete(posts).where(eq(posts.id, id)).returning({ id: posts.id })
+    })
     if (!result.length) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     return c.json(postDeleteResponseSchema.parse({ success: true, message: 'Post deleted successfully' }))
   })

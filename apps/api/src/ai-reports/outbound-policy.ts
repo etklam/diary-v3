@@ -31,7 +31,7 @@ export function isPublicAiAddress(address: string): boolean {
   }
   return false
 }
-export interface AiTransportRequest { baseUrl: string; path: 'models' | 'chat/completions'; apiKey: string; body?: unknown; timeoutMs: number; signal?: AbortSignal }
+export interface AiTransportRequest { baseUrl: string; path: 'models' | 'chat/completions'; apiKey: string; body?: unknown; timeoutMs: number; signal?: AbortSignal; allowedBaseUrls?: string[] }
 export interface AiTransportResponse { status: number; body: string; retryAfter: string | null }
 export type AiTransport = (input: AiTransportRequest) => Promise<AiTransportResponse>
 export async function resolveAiEndpoint(baseUrl: string, resolver: (hostname: string, options: { all: true; verbatim: true }) => Promise<Array<{ address: string; family: number }>> = lookup, allowlist?: string[]) {
@@ -44,7 +44,7 @@ export const aiHttpsTransport: AiTransport = async input => {
   const signal = AbortSignal.any([AbortSignal.timeout(input.timeoutMs), ...(input.signal ? [input.signal] : [])])
   if (signal.aborted) throw new AiProviderError('AI_PROVIDER_TIMEOUT')
   const endpoint = await Promise.race([
-    resolveAiEndpoint(input.baseUrl),
+    resolveAiEndpoint(input.baseUrl, undefined, input.allowedBaseUrls),
     new Promise<never>((_, reject) => { signal.addEventListener('abort', () => reject(new AiProviderError('AI_PROVIDER_TIMEOUT')), { once: true }) }),
   ])
   if (signal.aborted) throw new AiProviderError('AI_PROVIDER_TIMEOUT')

@@ -32,4 +32,4 @@ Focused evidence: `tests/unit/market-rotation-view.test.ts` plus trend, monitor 
 
 ## Root acceptance — 2026-09-06
 
-Astra accepted the existing canonical-universe/90%-coverage/tenth-qualified-date and base100 gap-preserving domain fixtures together with the source-reviewed filter/sort module. Twenty rotation unit files passed231 tests. The focused Chrome controls/export case passed1/1 (latest functional run7.8s), demonstrating filtering, stable rank order and same-payload trend rendering. Existing desktop/mobile guest-boundary evidence remains applicable; no duplicate test run is required. Ticket44 is done.
+Astra accepted the existing canonical-universe/90%-coverage/tenth-qualified-date and base100 gap-preserving domain fixtures together with the source-reviewed filter/sort module. Twenty rotation unit files passed231 tests. The focused Chrome controls/export case passed1/1 (latest functional run7.8s), demonstrating filtering, stable rank order and same-payload trend rendering. Existing desktop/mobile guest-boundary evidence remains applicable; no duplicate test run is required. Ticket45 is done.

@@ -1,6 +1,10 @@
 /**
  * Curated US equity market closure data, verified on 2026-09-20 against:
+ * - https://ir.theice.com/press/news-details/2025/NYSE-Group-Announces-2026-2027-and-2028-Holiday-and-Early-Closings-Calendar/
  * - https://ir.theice.com/press/news-details/2024/NYSE-Group-Announces-2025-2026-and-2027-Holiday-and-Early-Closings-Calendar/default.aspx
+ * - https://www.nasdaqtrader.com/Trader.aspx?id=Calendar
+ * - https://www.nasdaqtrader.com/content/technicalsupport/2025tradingcalendar.pdf
+ * - https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-closure-its-us-markets-honor-national-day-0
  * - https://www.nyse.com/trade/hours-calendars
  * - https://ir.theice.com/press/news-details/2024/The-New-York-Stock-Exchange-Will-Close-Markets-on-January-9-to-Honor-the-Passing-of-Former-President-Jimmy-Carter-on-National-Day-of-Mourning/default.aspx
  *
@@ -11,7 +15,11 @@
 export const US_EQUITY_CALENDAR_VERIFIED_AT = '2026-09-20' as const
 
 export const US_EQUITY_CALENDAR_SOURCE_URLS = [
+  'https://ir.theice.com/press/news-details/2025/NYSE-Group-Announces-2026-2027-and-2028-Holiday-and-Early-Closings-Calendar/',
   'https://ir.theice.com/press/news-details/2024/NYSE-Group-Announces-2025-2026-and-2027-Holiday-and-Early-Closings-Calendar/default.aspx',
+  'https://www.nasdaqtrader.com/Trader.aspx?id=Calendar',
+  'https://www.nasdaqtrader.com/content/technicalsupport/2025tradingcalendar.pdf',
+  'https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-closure-its-us-markets-honor-national-day-0',
   'https://www.nyse.com/trade/hours-calendars',
   'https://ir.theice.com/press/news-details/2024/The-New-York-Stock-Exchange-Will-Close-Markets-on-January-9-to-Honor-the-Passing-of-Former-President-Jimmy-Carter-on-National-Day-of-Mourning/default.aspx',
 ] as const

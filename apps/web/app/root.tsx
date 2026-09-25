@@ -58,7 +58,7 @@ function Shell() {
     // routes when auth changes so logout cannot reuse that data. Other private
     // routes keep their existing redirect lifecycle.
     if (articlePath) revalidator.revalidate();
-    if (session.authenticated === false && (location.pathname.startsWith('/diaries/') || location.pathname === '/reviews/ai-reports' || location.pathname === '/admin/ai')) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});
+    if (session.authenticated === false && (location.pathname.startsWith('/diaries/') || location.pathname === '/reviews/ai-reports' || location.pathname === '/admin/ai' || location.pathname === '/admin/research' || location.pathname.startsWith('/admin/research/'))) navigate(signInPath(`${location.pathname}${location.search}`),{replace:true});
   }, [session.revision, location.pathname, location.search, navigate, revalidator]);
   async function logout() {
     setLogoutPending(true); setLogoutError(false);

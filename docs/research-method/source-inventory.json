@@ -1,0 +1,25 @@
+{
+  "methodId": "us-equity-swing-report",
+  "version": "1.0.0",
+  "fixture": {
+    "path": "tests/fixtures/research-method/notion-pages.json",
+    "sha256": "b45697fb82435cfc4c45961620be209ab8ebe59f558e36c02bcda380eff6206d",
+    "hashScope": "complete fixture bytes",
+    "capturedAt": "2026-09-24T17:41:21.300Z"
+  },
+  "pages": [
+    { "name": "main", "title": "us-equity-swing-report", "sourceEditedAt": "2026-09-24T09:52:35.936Z", "sha256": "6204a58b4b1004e1b42e40bd0436d0cb6288340c0672a9461b6bbb515d73a9a4", "hashScope": "decoded page text field" },
+    { "name": "01-data-sources", "title": "01 Data Sources", "sourceEditedAt": "2026-09-24T09:45:08.878Z", "sha256": "7e583ecf6f9359b2d7373071eec12002631ad41041a57e9edcbb1f44c4df0c92", "hashScope": "decoded page text field" },
+    { "name": "02-data-contract", "title": "02 Data Contract", "sourceEditedAt": "2026-09-24T09:45:08.878Z", "sha256": "a81f35b1c4a409cb147017496ef9f8a12d519a3bf5ff90ad2684aa8717404d6d", "hashScope": "decoded page text field" },
+    { "name": "03-indicator-spec", "title": "03 Indicator Spec", "sourceEditedAt": "2026-09-24T09:45:08.878Z", "sha256": "6277e7a3ed90f654883cbf1ca37716c368373054ea2689a3fb4394513f9a3f28", "hashScope": "decoded page text field" },
+    { "name": "04-analysis-and-trades", "title": "04 Analysis & Trades", "sourceEditedAt": "2026-09-24T09:46:52.029Z", "sha256": "94fd97e09ad01717bbd28c8d27fdc2588dabd7d1f5b0f5d2823fdc57f063dd", "hashScope": "decoded page text field" },
+    { "name": "05-news-and-events", "title": "05 News & Events", "sourceEditedAt": "2026-09-24T09:46:52.029Z", "sha256": "efb8812b2e1866b5862c82fa0b7d87b11ed369b40911d28bbd0a2bf1b82dc345", "hashScope": "decoded page text field" },
+    { "name": "06-report-and-qa", "title": "06 Report & QA", "sourceEditedAt": "2026-09-24T09:48:31.082Z", "sha256": "0bff47edc96189e32d6138ce54da6b74cb7d6a4c98b348a15aa4c78db7dbc520", "hashScope": "decoded page text field" },
+    { "name": "07-runbook", "title": "07 Runbook", "sourceEditedAt": "2026-09-24T09:48:31.082Z", "sha256": "1da2561001ef174f5b298194998caf9386a7ab8d7e1bb1a7f30b437b9995b818", "hashScope": "decoded page text field" }
+  ],
+  "missingArtifacts": [
+    "original Python calculator",
+    "original calculator test suite",
+    "portable ZIP and Markdown bundle mentioned by the source page"
+  ]
+}

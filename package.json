@@ -36,12 +36,15 @@
     "manifests:check": "node --import tsx scripts/validate-production-manifests.ts",
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
     "ai:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/ai-report-worker-cli.ts",
+    "research:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/research-worker-cli.ts",
     "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
     "market:state": "node --env-file-if-exists=.env --import tsx apps/api/src/market-state-cli.ts",
     "db:migrate:prod": "node dist/api/migrate.js",
     "seed:system:prod": "node dist/api/seed-system.js",
     "market:rotation:prod": "node dist/api/rotation.js",
-    "market:state:prod": "node dist/api/market-state.js"
+    "market:state:prod": "node dist/api/market-state.js",
+    "research:worker:prod": "node dist/api/research-worker.js",
+    "research:retention:prod": "node dist/api/research-retention.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "9.1.0",

@@ -14,7 +14,16 @@ import {
 describe('curated US equity calendar', () => {
   it('records the verified source metadata and exact annual full-closure sets', () => {
     expect(US_EQUITY_CALENDAR_VERIFIED_AT).toBe('2026-09-20')
-    expect(US_EQUITY_CALENDAR_SOURCE_URLS).toHaveLength(3)
+    expect(US_EQUITY_CALENDAR_SOURCE_URLS).toEqual([
+      'https://ir.theice.com/press/news-details/2025/NYSE-Group-Announces-2026-2027-and-2028-Holiday-and-Early-Closings-Calendar/',
+      'https://ir.theice.com/press/news-details/2024/NYSE-Group-Announces-2025-2026-and-2027-Holiday-and-Early-Closings-Calendar/default.aspx',
+      'https://www.nasdaqtrader.com/Trader.aspx?id=Calendar',
+      'https://www.nasdaqtrader.com/content/technicalsupport/2025tradingcalendar.pdf',
+      'https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-announces-closure-its-us-markets-honor-national-day-0',
+      'https://www.nyse.com/trade/hours-calendars',
+      'https://ir.theice.com/press/news-details/2024/The-New-York-Stock-Exchange-Will-Close-Markets-on-January-9-to-Honor-the-Passing-of-Former-President-Jimmy-Carter-on-National-Day-of-Mourning/default.aspx',
+    ])
+    expect(buildUsEquityClosedDateSet(2025)).toContain('2025-01-09')
     expect(US_EQUITY_FULL_CLOSURE_DATES[2025]).toEqual([
       '2025-01-01', '2025-01-09', '2025-01-20', '2025-02-17', '2025-04-18', '2025-05-26',
       '2025-06-19', '2025-07-04', '2025-09-01', '2025-11-27', '2025-12-25',

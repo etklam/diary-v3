@@ -1,0 +1,6 @@
+ALTER TABLE "research_provider_config" DROP CONSTRAINT "research_provider_config_base_url_https";--> statement-breakpoint
+ALTER TABLE "research_attempt" ADD COLUMN "reasoning_tokens" integer;--> statement-breakpoint
+ALTER TABLE "research_attempt" ADD COLUMN "request_id" varchar(200);--> statement-breakpoint
+ALTER TABLE "research_attempt" ADD COLUMN "reported_cost_usd" numeric(15, 9);--> statement-breakpoint
+ALTER TABLE "research_provider_config" ADD CONSTRAINT "research_provider_config_base_url" CHECK ("research_provider_config"."base_url" = 'https://openrouter.ai/api/v1');--> statement-breakpoint
+ALTER TABLE "research_runtime_state" ADD CONSTRAINT "research_runtime_lease_fields" CHECK (("research_runtime_state"."active_attempt_id" is null and "research_runtime_state"."active_lease_token" is null and "research_runtime_state"."active_lease_expires_at" is null) or ("research_runtime_state"."active_attempt_id" is not null and "research_runtime_state"."active_lease_token" is not null and "research_runtime_state"."active_lease_expires_at" is not null));

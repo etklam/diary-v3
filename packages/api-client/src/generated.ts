@@ -2029,6 +2029,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/research/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["researchMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/instruments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["researchInstruments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["researchRuns"];
+        put?: never;
+        post: operations["researchPrepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["researchRunDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchGenerate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchCancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/import-article-revision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchImportArticleRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runs/{id}/handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["researchHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["researchSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["researchRuntime"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/research/provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["researchProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2332,7 +2540,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -4168,6 +4376,640 @@ export interface components {
         AiProviderType: "deepseek";
         /** @enum {string} */
         AiThinking: "enabled" | "disabled";
+        ResearchMethodProfile: {
+            id: string;
+            key: string;
+            version: string;
+            title: string;
+            /** @enum {string} */
+            status: "COMPLETE" | "INCOMPLETE" | "RETIRED";
+            /** Format: uri */
+            sourceUri: string | null;
+            bundleHash: string | null;
+            requirements: {
+                [key: string]: unknown;
+            };
+            coverageManifest: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ResearchInstrumentProfile: {
+            id: string;
+            methodProfileId: string;
+            symbol: string;
+            name: string;
+            exchange: string;
+            currency: string;
+            /** @enum {string} */
+            assetType: "EQUITY" | "ETF";
+            benchmarks: string[];
+            peers: string[];
+            enabled: boolean;
+            configHash: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ResearchRunListResponse: {
+            data: {
+                id: string;
+                requesterId: string | null;
+                method: {
+                    id: string;
+                    key: string;
+                    version: string;
+                    title: string;
+                    /** @enum {string} */
+                    status: "COMPLETE" | "INCOMPLETE" | "RETIRED";
+                    /** Format: uri */
+                    sourceUri: string | null;
+                    bundleHash: string | null;
+                    requirements: {
+                        [key: string]: unknown;
+                    };
+                    coverageManifest: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    createdAt: string;
+                };
+                instrument: {
+                    id: string;
+                    methodProfileId: string;
+                    symbol: string;
+                    name: string;
+                    exchange: string;
+                    currency: string;
+                    /** @enum {string} */
+                    assetType: "EQUITY" | "ETF";
+                    benchmarks: string[];
+                    peers: string[];
+                    enabled: boolean;
+                    configHash: string | null;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                };
+                /** @enum {string} */
+                executionStatus: "CREATED" | "COLLECTING" | "DATA_READY" | "GENERATING" | "DRAFT_READY" | "BLOCKED" | "FAILED" | "CANCELLED";
+                /** @enum {string} */
+                dispatchStatus: "NOT_SENT" | "DISPATCH_INTENT" | "SENT" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+                /** @enum {string} */
+                quality: "FULL" | "LIMITED" | "STALE" | "FAILED";
+                /** @enum {string} */
+                reviewStatus: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+                referenceSession: string | null;
+                /** Format: date-time */
+                asOf: string | null;
+                displayTimezone: string;
+                evidenceHash: string | null;
+                currentRevision: number;
+                version: number;
+                linkedPostId: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
+        ResearchRunDetail: {
+            id: string;
+            requesterId: string | null;
+            method: {
+                id: string;
+                key: string;
+                version: string;
+                title: string;
+                /** @enum {string} */
+                status: "COMPLETE" | "INCOMPLETE" | "RETIRED";
+                /** Format: uri */
+                sourceUri: string | null;
+                bundleHash: string | null;
+                requirements: {
+                    [key: string]: unknown;
+                };
+                coverageManifest: {
+                    [key: string]: unknown;
+                };
+                /** Format: date-time */
+                createdAt: string;
+            };
+            instrument: {
+                id: string;
+                methodProfileId: string;
+                symbol: string;
+                name: string;
+                exchange: string;
+                currency: string;
+                /** @enum {string} */
+                assetType: "EQUITY" | "ETF";
+                benchmarks: string[];
+                peers: string[];
+                enabled: boolean;
+                configHash: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            };
+            /** @enum {string} */
+            executionStatus: "CREATED" | "COLLECTING" | "DATA_READY" | "GENERATING" | "DRAFT_READY" | "BLOCKED" | "FAILED" | "CANCELLED";
+            /** @enum {string} */
+            dispatchStatus: "NOT_SENT" | "DISPATCH_INTENT" | "SENT" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+            /** @enum {string} */
+            quality: "FULL" | "LIMITED" | "STALE" | "FAILED";
+            /** @enum {string} */
+            reviewStatus: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+            referenceSession: string | null;
+            /** Format: date-time */
+            asOf: string | null;
+            displayTimezone: string;
+            evidenceHash: string | null;
+            currentRevision: number;
+            version: number;
+            linkedPostId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            evidence: {
+                id: string;
+                runId: string;
+                version: number;
+                manifest: {
+                    referenceSession: string | null;
+                    /** Format: date-time */
+                    asOf: string;
+                    displayTimezone: string;
+                    exchangeTimezone: string;
+                    calendarVersion: string | null;
+                    normalizationVersion: string;
+                    targetSessions: number;
+                    rowCount: number;
+                    completeOhlcRows: number;
+                    closeRows: number;
+                    volumeRows: number;
+                    missingSessions: string[];
+                    warnings: string[];
+                    sourceIds: string[];
+                    synthetic: boolean;
+                };
+                bars: {
+                    symbol: string;
+                    date: string;
+                    open: string | null;
+                    high: string | null;
+                    low: string | null;
+                    close: string | null;
+                    adjustedClose: string | null;
+                    volume: string | null;
+                    priceSourceId: string | null;
+                    volumeSourceId: string | null;
+                    /** @enum {string} */
+                    adjustmentBasis: "total_return_rebased" | "split_only" | "unavailable";
+                    /** @enum {string} */
+                    volumeBasis: "raw" | "unavailable";
+                    /** @enum {string} */
+                    session: "regular" | "pre" | "post";
+                    /** Format: date-time */
+                    dataAsOf: string | null;
+                    /** Format: date-time */
+                    retrievedAt: string;
+                }[];
+                sources: {
+                    sourceId: string;
+                    purpose: string;
+                    /** Format: uri */
+                    requestedUrl: string | null;
+                    /** Format: uri */
+                    resolvedUrl: string | null;
+                    publisher: string | null;
+                    title: string | null;
+                    /** Format: date-time */
+                    retrievedAt: string | null;
+                    /** Format: date-time */
+                    dataAsOf: string | null;
+                    readRange: string | null;
+                    evidenceLocator: string | null;
+                    contentHash: string | null;
+                    use: {
+                        automatedFetch: {
+                            /** @enum {string} */
+                            status: "allowed" | "restricted" | "unknown";
+                            conditions: string[];
+                            basis: string | null;
+                            /** Format: date-time */
+                            checkedAt: string | null;
+                        };
+                        evidenceStorage: {
+                            /** @enum {string} */
+                            status: "allowed" | "restricted" | "unknown";
+                            conditions: string[];
+                            basis: string | null;
+                            /** Format: date-time */
+                            checkedAt: string | null;
+                        };
+                        llmInference: {
+                            /** @enum {string} */
+                            status: "allowed" | "restricted" | "unknown";
+                            conditions: string[];
+                            basis: string | null;
+                            /** Format: date-time */
+                            checkedAt: string | null;
+                        };
+                        publicationOfAnalysisAndExcerpts: {
+                            /** @enum {string} */
+                            status: "allowed" | "restricted" | "unknown";
+                            conditions: string[];
+                            basis: string | null;
+                            /** Format: date-time */
+                            checkedAt: string | null;
+                        };
+                        rawDataRedistribution: {
+                            /** @enum {string} */
+                            status: "allowed" | "restricted" | "unknown";
+                            conditions: string[];
+                            basis: string | null;
+                            /** Format: date-time */
+                            checkedAt: string | null;
+                        };
+                    };
+                    limitations: string[];
+                }[];
+                metrics: {
+                    [key: string]: unknown;
+                };
+                candidates: {
+                    search?: {
+                        /** @enum {string} */
+                        status: "SEARCH_NOT_CONFIGURED" | "SEARCH_QUOTA_EXCEEDED" | "SEARCH_BUDGET_NOT_CONFIGURED" | "READY";
+                        /** @enum {boolean} */
+                        discoveryOnly?: true;
+                        query?: string;
+                        results?: {
+                            title: string;
+                            /** Format: uri */
+                            url: string;
+                            snippet: string;
+                            score: number | null;
+                            publishedDate: string | null;
+                        }[];
+                        /** Format: date-time */
+                        retrievedAt?: string;
+                        usage?: {
+                            calls: number;
+                            returnedResults: number;
+                            billedCredits: number | null;
+                        };
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+                qa: {
+                    gateId: string;
+                    /** @enum {string} */
+                    severity: "CORE" | "OPTIONAL";
+                    /** @enum {string} */
+                    status: "NOT_CHECKED" | "PASS" | "WARN" | "FAIL" | "N_A";
+                    evidence: string[];
+                    reason: string | null;
+                    remediation: string | null;
+                    reviewerId: string | null;
+                    /** Format: date-time */
+                    reviewedAt: string | null;
+                }[];
+                /** @enum {string} */
+                quality: "FULL" | "LIMITED" | "STALE" | "FAILED";
+                hash: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            revisions: {
+                id: string;
+                runId: string;
+                revision: number;
+                parentRevision: number | null;
+                structured: {
+                    [key: string]: unknown;
+                };
+                content: string;
+                titleHash: string | null;
+                bodyHash: string;
+                /** @enum {string} */
+                qaStatus: "NOT_CHECKED" | "PASS" | "WARN" | "FAIL" | "N_A";
+                /** @enum {string} */
+                reviewStatus: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+                approvedBy: string | null;
+                /** Format: date-time */
+                approvedAt: string | null;
+                createdBy: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            attempts: {
+                id: string;
+                runId: string;
+                idempotencyKey: string;
+                /** @enum {string} */
+                dispatchStatus: "NOT_SENT" | "DISPATCH_INTENT" | "SENT" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+                leaseToken: string | null;
+                workerId: string | null;
+                providerRevision: number | null;
+                model: string | null;
+                inputTokens: number | null;
+                outputTokens: number | null;
+                reasoningTokens: number | null;
+                requestId: string | null;
+                reportedCostUsd: string | null;
+                reservedCostCents: number;
+                estimatedCostCents: number | null;
+                diagnostics: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                dispatchedAt: string | null;
+                /** Format: date-time */
+                finishedAt: string | null;
+            }[];
+            latestQa: {
+                gateId: string;
+                /** @enum {string} */
+                severity: "CORE" | "OPTIONAL";
+                /** @enum {string} */
+                status: "NOT_CHECKED" | "PASS" | "WARN" | "FAIL" | "N_A";
+                evidence: string[];
+                reason: string | null;
+                remediation: string | null;
+                reviewerId: string | null;
+                /** Format: date-time */
+                reviewedAt: string | null;
+            }[];
+        };
+        ResearchRevision: {
+            id: string;
+            runId: string;
+            revision: number;
+            parentRevision: number | null;
+            structured: {
+                [key: string]: unknown;
+            };
+            content: string;
+            titleHash: string | null;
+            bodyHash: string;
+            /** @enum {string} */
+            qaStatus: "NOT_CHECKED" | "PASS" | "WARN" | "FAIL" | "N_A";
+            /** @enum {string} */
+            reviewStatus: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+            approvedBy: string | null;
+            /** Format: date-time */
+            approvedAt: string | null;
+            createdBy: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ResearchGenerateResponse: {
+            run: {
+                id: string;
+                requesterId: string | null;
+                method: {
+                    id: string;
+                    key: string;
+                    version: string;
+                    title: string;
+                    /** @enum {string} */
+                    status: "COMPLETE" | "INCOMPLETE" | "RETIRED";
+                    /** Format: uri */
+                    sourceUri: string | null;
+                    bundleHash: string | null;
+                    requirements: {
+                        [key: string]: unknown;
+                    };
+                    coverageManifest: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    createdAt: string;
+                };
+                instrument: {
+                    id: string;
+                    methodProfileId: string;
+                    symbol: string;
+                    name: string;
+                    exchange: string;
+                    currency: string;
+                    /** @enum {string} */
+                    assetType: "EQUITY" | "ETF";
+                    benchmarks: string[];
+                    peers: string[];
+                    enabled: boolean;
+                    configHash: string | null;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                };
+                /** @enum {string} */
+                executionStatus: "CREATED" | "COLLECTING" | "DATA_READY" | "GENERATING" | "DRAFT_READY" | "BLOCKED" | "FAILED" | "CANCELLED";
+                /** @enum {string} */
+                dispatchStatus: "NOT_SENT" | "DISPATCH_INTENT" | "SENT" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+                /** @enum {string} */
+                quality: "FULL" | "LIMITED" | "STALE" | "FAILED";
+                /** @enum {string} */
+                reviewStatus: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+                referenceSession: string | null;
+                /** Format: date-time */
+                asOf: string | null;
+                displayTimezone: string;
+                evidenceHash: string | null;
+                currentRevision: number;
+                version: number;
+                linkedPostId: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            };
+            attempt: {
+                id: string;
+                runId: string;
+                idempotencyKey: string;
+                /** @enum {string} */
+                dispatchStatus: "NOT_SENT" | "DISPATCH_INTENT" | "SENT" | "SUCCEEDED" | "FAILED" | "OUTCOME_UNKNOWN";
+                leaseToken: string | null;
+                workerId: string | null;
+                providerRevision: number | null;
+                model: string | null;
+                inputTokens: number | null;
+                outputTokens: number | null;
+                reasoningTokens: number | null;
+                requestId: string | null;
+                reportedCostUsd: string | null;
+                reservedCostCents: number;
+                estimatedCostCents: number | null;
+                diagnostics: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                dispatchedAt: string | null;
+                /** Format: date-time */
+                finishedAt: string | null;
+            };
+            reused: boolean;
+        };
+        ResearchHandoffResponse: {
+            postId: string;
+            runId: string;
+            revision: number;
+            created: boolean;
+            /** @enum {string} */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            /** @enum {string} */
+            access: "PUBLIC" | "MEMBER";
+        };
+        ResearchRuntime: {
+            revision: number;
+            featureEnabled: boolean;
+            generationEnabled: boolean;
+            workerAvailable: boolean;
+            workerId: string | null;
+            /** Format: date-time */
+            workerHeartbeatAt: string | null;
+            budget: {
+                sessionId: string | null;
+                limit: number;
+                reserved: number;
+                consumed: number;
+                unknown: number;
+            };
+        };
+        ResearchSettingsResponse: {
+            runtime: {
+                revision: number;
+                featureEnabled: boolean;
+                generationEnabled: boolean;
+                workerAvailable: boolean;
+                workerId: string | null;
+                /** Format: date-time */
+                workerHeartbeatAt: string | null;
+                budget: {
+                    sessionId: string | null;
+                    limit: number;
+                    reserved: number;
+                    consumed: number;
+                    unknown: number;
+                };
+            };
+            provider: {
+                id: string;
+                revision: number;
+                /** @enum {string} */
+                status: "DRAFT" | "ACTIVE" | "RETIRED";
+                /** @enum {string} */
+                provider: "openrouter";
+                /** @enum {string} */
+                protocol: "chat_completions";
+                /** Format: uri */
+                baseUrl: string;
+                /** @enum {string} */
+                model: "openrouter/free";
+                maxInputTokens: number;
+                maxOutputTokens: number;
+                timeoutMs: number;
+                hasSecret: boolean;
+                /** Format: date-time */
+                updatedAt: string;
+            } | null;
+            sources: {
+                sourceId: string;
+                provider: string;
+                configured: boolean;
+                /** @enum {string} */
+                status: "READY" | "NOT_CONFIGURED" | "POLICY_UNKNOWN" | "POLICY_RESTRICTED" | "BUDGET_NOT_CONFIGURED";
+                use: {
+                    automatedFetch: {
+                        /** @enum {string} */
+                        status: "allowed" | "restricted" | "unknown";
+                        conditions: string[];
+                        basis: string | null;
+                        /** Format: date-time */
+                        checkedAt: string | null;
+                    };
+                    evidenceStorage: {
+                        /** @enum {string} */
+                        status: "allowed" | "restricted" | "unknown";
+                        conditions: string[];
+                        basis: string | null;
+                        /** Format: date-time */
+                        checkedAt: string | null;
+                    };
+                    llmInference: {
+                        /** @enum {string} */
+                        status: "allowed" | "restricted" | "unknown";
+                        conditions: string[];
+                        basis: string | null;
+                        /** Format: date-time */
+                        checkedAt: string | null;
+                    };
+                    publicationOfAnalysisAndExcerpts: {
+                        /** @enum {string} */
+                        status: "allowed" | "restricted" | "unknown";
+                        conditions: string[];
+                        basis: string | null;
+                        /** Format: date-time */
+                        checkedAt: string | null;
+                    };
+                    rawDataRedistribution: {
+                        /** @enum {string} */
+                        status: "allowed" | "restricted" | "unknown";
+                        conditions: string[];
+                        basis: string | null;
+                        /** Format: date-time */
+                        checkedAt: string | null;
+                    };
+                };
+            }[];
+            search: {
+                /** @enum {string} */
+                status: "SEARCH_NOT_CONFIGURED" | "SEARCH_QUOTA_EXCEEDED" | "SEARCH_BUDGET_NOT_CONFIGURED" | "READY";
+                configured: boolean;
+                budget: {
+                    limit: number | null;
+                    reserved: number;
+                    consumed: number;
+                    unknown: number;
+                };
+            };
+        };
+        ResearchProviderSettings: {
+            id: string;
+            revision: number;
+            /** @enum {string} */
+            status: "DRAFT" | "ACTIVE" | "RETIRED";
+            /** @enum {string} */
+            provider: "openrouter";
+            /** @enum {string} */
+            protocol: "chat_completions";
+            /** Format: uri */
+            baseUrl: string;
+            /** @enum {string} */
+            model: "openrouter/free";
+            maxInputTokens: number;
+            maxOutputTokens: number;
+            timeoutMs: number;
+            hasSecret: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -17229,6 +18071,1429 @@ export interface operations {
                 };
             };
             /** @description Request could not be completed */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Research method profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchMethodProfile"][];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchInstruments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configured research instruments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchInstrumentProfile"][];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchRuns: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                symbol?: string;
+                executionStatus?: "CREATED" | "COLLECTING" | "DATA_READY" | "GENERATING" | "DRAFT_READY" | "BLOCKED" | "FAILED" | "CANCELLED";
+                quality?: "FULL" | "LIMITED" | "STALE" | "FAILED";
+                reviewStatus?: "DRAFT" | "CHANGES_REQUIRED" | "APPROVED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Research runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRunListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchPrepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepare a research run */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    instrumentProfileId?: string;
+                    symbol?: string;
+                    methodProfileId?: string;
+                    /** Format: date-time */
+                    asOf?: string;
+                    displayTimezone?: string;
+                    /** @default false */
+                    synthetic?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Prepared research run */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRunDetail"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchRunDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Research run detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRunDetail"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchGenerate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Explicit one-shot generation request */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    idempotencyKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Existing idempotent generation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchGenerateResponse"];
+                };
+            };
+            /** @description Generation admitted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchGenerateResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchCancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled research run */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRunDetail"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Create a CAS-checked revision */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    expectedRevision?: number;
+                    structured: {
+                        [key: string]: unknown;
+                    };
+                    content: string;
+                    qa: {
+                        gateId: string;
+                        /** @enum {string} */
+                        severity: "CORE" | "OPTIONAL";
+                        /** @enum {string} */
+                        status: "NOT_CHECKED" | "PASS" | "WARN" | "FAIL" | "N_A";
+                        evidence: string[];
+                        reason: string | null;
+                        remediation: string | null;
+                        reviewerId: string | null;
+                        /** Format: date-time */
+                        reviewedAt: string | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRevision"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchImportArticleRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Import current linked article edits for exact-content review */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Imported linked article revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRevision"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchApprove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Approve an exact revision */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    revision: number;
+                    bodyHash: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Approved research revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRunDetail"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchHandoff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Create or return the linked article draft */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                    revision: number;
+                    bodyHash: string;
+                    /**
+                     * @default MEMBER
+                     * @enum {string}
+                     */
+                    access?: "PUBLIC" | "MEMBER";
+                    /** @default technical */
+                    category?: string;
+                    /** @default [] */
+                    tags?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Article draft handoff */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchHandoffResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Research runtime and provider settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchSettingsResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchRuntime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Research feature and generation switches */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    featureEnabled?: boolean;
+                    generationEnabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Research runtime state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchRuntime"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    researchProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Research writer configuration */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    /** Format: uri */
+                    baseUrl: string;
+                    /** @enum {string} */
+                    model: "openrouter/free";
+                    maxInputTokens: number;
+                    maxOutputTokens: number;
+                    timeoutMs: number;
+                    apiKey?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved provider settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchProviderSettings"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 413 error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -1,0 +1,2 @@
+ALTER TABLE "research_runtime_state" ADD COLUMN "revision" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "research_runtime_state" ADD CONSTRAINT "research_runtime_revision_positive" CHECK ("research_runtime_state"."revision" > 0);

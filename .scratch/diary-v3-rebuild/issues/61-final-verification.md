@@ -101,7 +101,9 @@ Response-loss evidence: `tests/e2e/diary-response-loss.spec.ts` passed the real 
 
 ### Final operations evidence
 
-Current schema acceptance is supported by `docs/operations/deployment-59-smoke.md` (isolated K3s/TLS empty deployment, controlled batch and real API/Socket.IO recovery) and `docs/operations/restore-60-smoke.md` (N0019 backup→empty restore→0020 upgrade, plus complete N+1 backup→empty restore; 21 migration rows, constraints, seeds and representative ownership/sharing API checks). No schema edits have followed those runs. Astra accepted the core/operations/performance evidence and Claude UI verification; ticket61 is complete.
+At that checkpoint, operations acceptance was supported by `docs/operations/deployment-59-smoke.md` (isolated K3s/TLS empty deployment, controlled batch and real API/Socket.IO recovery) and `docs/operations/restore-60-smoke.md` (N0019 backup→empty restore→0020 upgrade, plus complete N+1 backup→empty restore; 21 migration rows, constraints, seeds and representative ownership/sharing API checks). No schema edits had followed those runs at that checkpoint. Astra accepted the core/operations/performance evidence and Claude UI verification; ticket61 is complete.
+
+Current-schema restore evidence refreshed on 2026-09-25: the fresh `npm run db:restore-smoke` passed with migration N=`0032_research_search_budget`, `schema_N=33`, `schema_N_plus_1=34`, synthetic fixture `2|1|1|1|1|1|1|1`, seed `24|213`, N+1 restore ledger `34`, and invalid restore exit `1` with zero public tables in the failed target. The earlier 0019→0020 rehearsal remains historical evidence in the operations record.
 
 ### Browser gate evidence — 2026-09-06
 

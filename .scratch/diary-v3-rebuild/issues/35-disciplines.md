@@ -62,4 +62,4 @@ Focused real PostgreSQL tests cover 128-row collections and a concurrent reorder
 
 ## Root acceptance — 2026-09-06
 
-Astra accepted the source-preserving CRUD/random/partial-order contract, serialized PostgreSQL ownership/concurrency checks, 128-row collection evidence, desktop/mobile keyboard flows and conservative lost-create response recovery. The focused browser run passed ten cases; the two response-loss cases passed after correcting only their status-text locators. Prior passing cases were not repeated for that trivial test correction. Ticket04 is done.
+Astra accepted the source-preserving CRUD/random/partial-order contract, serialized PostgreSQL ownership/concurrency checks, 128-row collection evidence, desktop/mobile keyboard flows and conservative lost-create response recovery. The focused browser run passed ten cases; the two response-loss cases passed after correcting only their status-text locators. Prior passing cases were not repeated for that trivial test correction. Ticket35 is done.

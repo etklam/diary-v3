@@ -48,7 +48,7 @@ test('admin account inventory preserves current-account guard and manages a synt
   const targetRow = page.locator('tr').filter({ hasText: targetEmail })
   const adminRow = page.locator('tr').filter({ hasText: adminEmail })
   await expect(targetRow).toContainText('Synthetic account')
-  await expect(targetRow).toContainText('1')
+  await expect(targetRow.locator('td').nth(3)).toHaveText('1')
   await expect(page.locator('main')).toContainText('Synthetic admin diary')
   await expect(adminRow.getByRole('button', { name: 'Delete account', exact: true })).toHaveCount(0)
 

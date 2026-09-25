@@ -71,6 +71,15 @@ rows and all eight fixture categories. After applying 0020 it had 21 rows and
 the `posts` table. The seed job returned `addedEtfs: 24` and
 `addedUniverse: 213`.
 
+## Current release-gate run — 2026-09-25
+
+The fresh main smoke command, `npm run db:restore-smoke`, passed. It selected
+migration N=`0032_research_search_budget`; `schema_N=33` and
+`schema_N_plus_1=34`. The synthetic fixture result was
+`2|1|1|1|1|1|1|1`, the seed result was `24|213`, and the N+1 restore ledger
+was `34`. The invalid restore exited `1` and left zero public tables in the
+failed target.
+
 ## Verification evidence
 
 The restored database reported 68 PostgreSQL check/foreign-key constraints,

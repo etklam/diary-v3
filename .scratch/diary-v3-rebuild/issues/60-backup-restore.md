@@ -38,3 +38,7 @@ User stories covered: US-112
 ## Astra acceptance — 2026-09-06
 
 Accepted the isolated N=0019 backup→empty restore→0020 upgrade, representative real API/owner-sharing checks, and persistent `npm run db:restore-smoke` execution: N ledger20, N+1 ledger21, full N+1 backup restore ledger21, seeds24/213, invalid restore exit1 with zero target tables. The runner is a required CI step and cleans only its own temporary container. Rollback instructions explicitly restore the single API replica after image undo. No real user data or production cutover.
+
+## Current-schema smoke refresh — 2026-09-25
+
+The root agent's fresh `npm run db:restore-smoke` run passed. It selected migration N=`0032_research_search_budget`; `schema_N=33`, `schema_N_plus_1=34`, synthetic fixture `2|1|1|1|1|1|1|1`, seed `24|213`, N+1 restore ledger `34`, and invalid restore exit `1` with zero public tables in the failed target. The historical 0019→0020 rehearsal above remains unchanged.

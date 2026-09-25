@@ -42,6 +42,7 @@
     "./market-state/seed-universe-utils": "./src/market-state/seed-universe-utils.ts",
     "./ai-reports/period": "./src/ai-reports/period.ts",
     "./ai-reports/context": "./src/ai-reports/context.ts",
-    "./position-sizing": "./src/position-sizing.ts"
+    "./position-sizing": "./src/position-sizing.ts",
+    "./research-studio": "./src/research-studio.ts"
   }
 }

@@ -81,17 +81,26 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  }
 
  await selectLocale(page, 'en');
- let retryReads = 0;
+ let retryEnabled = false;
+ let retryFailures = 0;
+ let retrySuccesses = 0;
  await page.unroute('**/api/stocks/portfolio');
  await page.route('**/api/stocks/portfolio', route => {
-  retryReads += 1;
-  if (retryReads === 1) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-keyboard-retry' } }) });
+  if (!retryEnabled) {
+   retryFailures += 1;
+   return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-keyboard-retry' } }) });
+  }
+  retrySuccesses += 1;
   return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedPortfolioFixture) });
  });
  await page.reload(); await expect(page.getByTestId('request-id')).toHaveText('portfolio-keyboard-retry');
  const retry = page.locator('.portfolio-valuation').getByRole('button', { name: 'Try again', exact: true });
- await retry.focus(); await expect(retry).toBeFocused(); await page.keyboard.press('Enter');
+ await retry.focus(); await expect(retry).toBeFocused();
+ expect(retryFailures).toBeGreaterThan(0);
+ retryEnabled = true;
+ await page.keyboard.press('Enter');
  await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
  await expect(page.getByText('Quotes older than 72 hours: 1', { exact: true })).toBeVisible();
+ expect(retrySuccesses).toBeGreaterThan(0);
  await page.unroute('**/api/stocks/portfolio');
 });

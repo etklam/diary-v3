@@ -14,6 +14,8 @@ import { createSecFixtureService } from '../apps/api/src/sec-edgar/service';
 import { e2eBaseURL } from '../tests/support/e2e-origin';
 import { runAiReportOnce } from '../apps/api/src/ai-reports/worker';
 import type { AiTransport } from '../apps/api/src/ai-reports/outbound-policy';
+import { ResearchStudioService, runResearchOnce } from '../apps/api/src/research-studio/service';
+import { createSyntheticResearchFixture } from '../tests/support/research-fixtures';
 import { z } from 'zod';
 
 // This disposable browser harness never calls an external AI provider.
@@ -42,6 +44,7 @@ const aiTransport: AiTransport = async request => {
 const database = await provisionTestDatabase('diary_v3_e2e');
 const { db } = database;
 const cleanup = database.dispose;
+const researchFixture = createSyntheticResearchFixture();
 const secFixtureAccession = '0000000001-24-000001';
 const secFixtureService = createSecFixtureService({
   async getJson<T>(url: string): Promise<T> {
@@ -58,6 +61,7 @@ const secFixtureService = createSecFixtureService({
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['etf-admin@example.test', await bcrypt.hash('synthetic-etf-admin-password', 4)]);
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['rotation-admin@example.test', await bcrypt.hash('synthetic-rotation-admin-password', 4)]);
 await database.pool.query("insert into users(email,password,role) values ($1,$2,'ADMIN')", ['ai-admin@example.test', await bcrypt.hash('synthetic-ai-admin-password', 4)]);
+await database.pool.query("insert into users(email,password,role) values ($1,$2,'USER')", ['research-member@example.test', await bcrypt.hash('synthetic-research-member-password', 4)]);
 try {
   const makeApp = () => {
     const quoteReads = new Map<string, number>();
@@ -92,7 +96,7 @@ try {
         ] };
       },
     } });
-    return createApp({ db, databasePool: database.pool, aiTransport, marketData, secFilings: secFixtureService, onAccountRevoked: id => sockets.revokeUser(id), holidays: { publicHolidays: async (year, countryCode) => [
+    return createApp({ db, databasePool: database.pool, aiTransport, marketData, secFilings: secFixtureService, researchEvidenceProvider: researchFixture.evidenceProvider, researchLatestCompletedSession: researchFixture.latestCompletedSession, researchTransport: researchFixture.transport, allowSyntheticEvidence: true, onAccountRevoked: id => sockets.revokeUser(id), holidays: { publicHolidays: async (year, countryCode) => [
       { date: `${year}-01-01`, countryCode, name: 'Synthetic new year', localName: 'Synthetic new year' },
       { date: `${year}-09-07`, countryCode, name: 'Synthetic September holiday', localName: 'Synthetic September holiday' },
     ] }, config: {
@@ -101,6 +105,7 @@ try {
     } });
   };
   const defaultApp = makeApp();
+  const researchWorker = new ResearchStudioService({ db, evidenceProvider: researchFixture.evidenceProvider, latestCompletedSession: researchFixture.latestCompletedSession, transport: researchFixture.transport, allowSyntheticEvidence: true, workerId: 'synthetic-browser-research-worker' });
   const scenarios = new Map<string, ReturnType<typeof createApp>>();
   const server = createServer(getRequestListener((request, env) => {
     const scenario = request.headers.get('x-e2e-test-id');
@@ -123,12 +128,19 @@ try {
     aiTick = runAiReportOnce({ db, workerId: 'synthetic-browser-worker', transport: aiTransport, signal: aiAbort.signal })
       .catch(error => console.error(error.message)).finally(() => { aiTick = null; });
   }, 250);
+  let researchTick: Promise<unknown> | null = null;
+  const researchTicks = setInterval(() => {
+    if (researchTick) return;
+    researchTick = runResearchOnce(researchWorker)
+      .catch(error => console.error(error.message)).finally(() => { researchTick = null; });
+  }, 250);
   server.listen(3201, '127.0.0.1');
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {
     clearInterval(ticks);
     clearInterval(aiTicks);
+    clearInterval(researchTicks);
     aiAbort.abort();
-    void Promise.all([pusher.stop(), priceChecker.stop(), aiTick]).then(() => sockets.close()).then(cleanup).catch(error => { console.error(error.message); process.exitCode = 1; });
+    void Promise.all([pusher.stop(), priceChecker.stop(), aiTick, researchTick]).then(() => sockets.close()).then(cleanup).catch(error => { console.error(error.message); process.exitCode = 1; });
   });
 } catch (error) {
   await cleanup();

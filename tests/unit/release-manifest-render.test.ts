@@ -70,3 +70,22 @@ it('renders the manual AI worker disabled, without a public port or generation s
   expect(manifests[1]).toMatchObject({ kind: 'NetworkPolicy', spec: { policyTypes: ['Egress'], podSelector: { matchLabels: { app: 'diary-v3-ai-worker' } } } });
   expect(manifests[1].spec.egress[2].to[0].ipBlock.except).toContain('169.254.0.0/16');
 });
+
+it('renders the manual Research Studio worker disabled with keyring secrets and isolated egress', () => {
+  const files = renderReleaseManifests({ target: 'production', apiImage, webImage });
+  const worker = files.find(file => file.fileName === '09-research-worker.yaml');
+  expect(worker).toBeDefined();
+  const manifests = parseAllDocuments(worker!.contents).map(document => document.toJS());
+  expect(manifests).toHaveLength(2);
+  expect(manifests[0]).toMatchObject({ kind: 'Deployment', spec: { replicas: 0, strategy: { type: 'Recreate' }, template: { spec: { containers: [{ name: 'research-worker', image: apiImage, command: ['node', 'dist/api/research-worker.js'] }] } } } });
+  expect(manifests[0].spec.template.spec.containers[0]).not.toHaveProperty('ports');
+  expect(manifests[0].spec.template.spec.containers[0].env).toEqual(expect.arrayContaining([
+    { name: 'RESEARCH_WORKER_ID', value: 'diary-v3-research-worker' },
+    { name: 'RESEARCH_WORKER_POLL_MS', value: '5000' },
+  ]));
+  expect(worker!.contents).toContain('key: AI_ENCRYPTION_KEYS');
+  expect(worker!.contents).toContain('key: AI_ENCRYPTION_ACTIVE_KEY');
+  expect(worker!.contents).not.toContain('CronJob');
+  expect(manifests[1]).toMatchObject({ kind: 'NetworkPolicy', spec: { policyTypes: ['Egress'], podSelector: { matchLabels: { app: 'diary-v3-research-worker' } } } });
+  expect(manifests[1].spec.egress[2].to[0].ipBlock.except).toContain('169.254.0.0/16');
+});

@@ -1,6 +1,6 @@
 # Ticket61 performance baseline (legacy vs rebuilt runtime)
 
-Direction: `docs/agents/final-performance-acceptance.md`. This records the measurement design, equivalence decisions and gate policy for the outstanding ticket61 performance requirement. It does not claim any runtime is faster or accepted; numbers live only in the JSON artifacts.
+Direction: `docs/agents/final-performance-acceptance.md`. This records the measurement design, equivalence decisions, frozen gate policy and completed ticket61 performance evidence. The sequential regression baseline covers four controlled HTTP workloads; it is not a capacity or concurrency benchmark. Numbers and verification details live in the JSON artifacts below.
 
 ## Artifacts
 

@@ -46,6 +46,7 @@
     "./post": "./src/post.ts",
     "./admin-users": "./src/admin-users.ts",
     "./ai-reports": "./src/ai-reports.ts",
-    "./admin-ai": "./src/admin-ai.ts"
+    "./admin-ai": "./src/admin-ai.ts",
+    "./research-studio": "./src/research-studio.ts"
   }
 }

@@ -97,6 +97,24 @@ it('enforces fresh admin roles, stable search pagination, self guards and privat
   expect(JSON.stringify(statsBody.data.recentActivity.diaries)).not.toContain('PRIVATE_SECRET')
 })
 
+it('returns each account\'s exact Diary count in the admin user inventory', async () => {
+  const admin = await account('ADMIN', 'Admin count operator')
+  const suffix = randomUUID()
+  const first = await account('USER', `Count target ${suffix} first`)
+  const second = await account('USER', `Count target ${suffix} second`)
+
+  await database.pool.query(
+    'insert into diaries(user_id,title,content,date) values ($1,$2,$3,$4),($1,$5,$3,$6),($7,$8,$3,$9)',
+    [first.user.id, 'First account diary one', 'Synthetic count fixture', '2026-01-01', 'First account diary two', '2026-01-02', second.user.id, 'Second account diary', '2026-01-03'],
+  )
+
+  const response = await admin.browser.request(`/api/admin/users?search=${encodeURIComponent(suffix)}&limit=10`)
+  expect(response.status).toBe(200)
+  const body = await response.json()
+  expect(body.data.map((row: { id: string; diaryCount: number }) => [row.id, row.diaryCount]))
+    .toEqual([[second.user.id, 1], [first.user.id, 2]])
+})
+
 it('deletes account data atomically and revokes HTTP, native, API-key and socket access after commit', async () => {
   const admin = await account('ADMIN', 'Admin operator')
   const target = await account('USER', 'Delete target')

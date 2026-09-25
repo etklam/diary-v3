@@ -99,6 +99,13 @@ import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
 import { AiReportService } from './ai-reports/report-service.js'
 import type { AiTransport } from './ai-reports/outbound-policy.js'
 import { registerAchievementRoutes } from './achievements.js'
+import { registerResearchRoutes } from './research-studio/routes.js'
+import type { ResearchEvidenceProvider, ResearchLatestCompletedSession, ResearchTransport } from './research-studio/service.js'
+import { createLatestCompletedUsEquitySessionResolver, createResearchEvidenceProvider, createTavilySearchProvider, createVerifiedUsEquityCalendarProvider } from './research-studio/sources.js'
+import { createOpenRouterResearchTransport } from './research-studio/transport.js'
+import { TAVILY_SEARCH_POLICY } from './research-studio/source-policy.js'
+import type { OfficialResearchSourceInput } from './research-studio/sources.js'
+import { createPostgresTavilySearchBudget } from './research-studio/search-budget.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -146,6 +153,11 @@ export interface AppDependencies {
     info?(message: string, context?: Record<string, unknown>): void
   }
   aiTransport?: AiTransport
+  researchTransport?: ResearchTransport
+  researchEvidenceProvider?: ResearchEvidenceProvider
+  researchLatestCompletedSession?: ResearchLatestCompletedSession
+  allowSyntheticEvidence?: boolean
+  researchOfficialSources?: readonly OfficialResearchSourceInput[]
 }
 
 interface ErrorDetail {
@@ -269,6 +281,11 @@ export function createApp({
   secFilings,
   onAccountRevoked,
   aiTransport,
+  researchTransport,
+  researchEvidenceProvider,
+  researchLatestCompletedSession,
+  allowSyntheticEvidence = false,
+  researchOfficialSources,
 }: AppDependencies) {
   const rateLimiter = createRateLimiter()
   const app = new Hono<AppEnv>()
@@ -424,6 +441,26 @@ export function createApp({
   })
 
   const market = marketData ?? createMarketData({ upstream: createYahooUpstream(), now })
+  const researchCalendar = createVerifiedUsEquityCalendarProvider()
+  const researchSearchBudget = createPostgresTavilySearchBudget(db)
+  const evidenceProvider = researchEvidenceProvider ?? createResearchEvidenceProvider({
+    market,
+    calendar: researchCalendar,
+    now,
+    officialSources: researchOfficialSources,
+    search: {
+      // A prepare makes one search call. Create its bounded adapter per call so
+      // the adapter-local maxCallsPerRun counter cannot leak across runs.
+      provider: {
+        search(query, signal) {
+          return createTavilySearchProvider({ apiKey: process.env.TAVILY_API_KEY, policy: TAVILY_SEARCH_POLICY, now, budget: researchSearchBudget }).search(query, signal)
+        },
+      },
+      policy: TAVILY_SEARCH_POLICY,
+      query: instrument => `${instrument.symbol} ${instrument.name} recent official events and news`,
+    },
+  })
+  const latestResearchSession = researchLatestCompletedSession ?? createLatestCompletedUsEquitySessionResolver(researchCalendar)
   registerMarketRoutes(app, {
     market,
     now,
@@ -472,11 +509,23 @@ export function createApp({
   registerPerformanceRoute(app, { db, fail, validationError })
   registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
-  registerPostRoutes(app, { db, now, fail, validationError, parseJson })
+  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
   const aiReportService = new AiReportService({ db, now })
   registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson })
   registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
+  registerResearchRoutes(app, {
+    db,
+    now,
+    transport: researchTransport ?? createOpenRouterResearchTransport(aiTransport),
+    evidenceProvider,
+    latestCompletedSession: latestResearchSession,
+    allowSyntheticEvidence,
+    officialSourcePolicies: researchOfficialSources?.map(source => source.policy),
+    fail,
+    validationError,
+    parseJson,
+  })
 
   app.post('/api/auth/register', async (c) => {
     const ip = clientIp(c, config.trustProxy)

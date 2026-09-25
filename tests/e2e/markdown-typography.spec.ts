@@ -98,12 +98,13 @@ test('markdown fixture renders with the shared typography across surfaces, theme
   const title = `Markdown fixture ${randomUUID()}`;
   await page.getByLabel('Title',{exact:true}).fill(title);
   await page.getByLabel('Content',{exact:true}).fill(markdownFixture);
+  await page.getByLabel('Who can read after publication').selectOption('PUBLIC');
   await page.getByRole('button',{name:'Save draft',exact:true}).click();
   await expect(page).toHaveURL(/\/admin\/blog\/\d+\/edit$/);
   const id = page.url().match(/admin\/blog\/(\d+)\/edit$/)?.[1];
   expect(id).toBeTruthy();
-  await page.getByRole('button',{name:'Publish publicly',exact:true}).click();
-  await expect(page.getByText('Article published publicly.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Publish',exact:true}).click();
+  await expect(page.getByText('Article published.',{exact:true})).toBeVisible();
   expect((await (await page.request.get(`/api/blog/admin/${id}`)).json() as { status: string }).status).toBe('PUBLISHED');
   const { slug } = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string };
   await page.goto(`/articles/${encodeURIComponent(slug)}`);

@@ -208,7 +208,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await selectLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
   await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
-  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'ETF catalog'])
+  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'Research Studio', 'ETF catalog'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
   await page.goto('/admin/blog/123/edit')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')

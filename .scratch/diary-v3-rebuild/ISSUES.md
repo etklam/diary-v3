@@ -1,6 +1,6 @@
 # diary-v3 實作 tickets
 
-61 張票覆蓋 PRD 全部 114 條 user stories。依使用者授權自主實作；僅當 blockers 已完成才領取票。ready-for-agent 表示規格就緒，並不表示工作已完成或依賴已解除。各票內的狀態與驗收證據為準。
+Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are indexed below and in the linked follow-up index. Per-ticket status and acceptance evidence remain authoritative; `ready-for-agent` means the specification is ready, not that implementation or blockers are complete. See the [all-ticket acceptance inventory](../../docs/features/all-tickets-acceptance-2026-09-25.md).
 
 | Ticket | Type | Blocked by | 發佈狀態 |
 | --- | --- | --- | --- |
@@ -65,3 +65,12 @@
 | [59 在隔離 K3s 部署並更新完整運行路徑](issues/59-deployment.md) | AFK | 33, 43 | ready-for-agent |
 | [60 備份還原 PostgreSQL 並驗證產品流程](issues/60-backup-restore.md) | AFK | 59 | ready-for-agent |
 | [61 完成全功能對等與跨裝置發布驗收](issues/61-final-verification.md) | AFK | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60 | ready-for-agent |
+
+## Follow-up and tracker additions (62–82)
+
+| Ticket | Type | Recorded state | Issue file |
+| --- | --- | --- | --- |
+| 62 — Daily Workspace & First-use Flow | Follow-up | Execution: done | [62-daily-workspace.md](issues/62-daily-workspace.md) |
+| 63 — Research to Diary context handoff | Follow-up | Execution: done | [63-research-diary-handoff.md](issues/63-research-diary-handoff.md) |
+| 64–81 — Convenience and architecture follow-ups | Follow-up | All record Execution: done; see the index for each ticket | [Follow-up issues](FOLLOW-UP-ISSUES.md) |
+| 82 — Return exact per-user Diary counts in Admin inventory | Bug | done; focused HTTP and Admin browser reruns passed | [82-admin-users-diary-count.md](issues/82-admin-users-diary-count.md); [final verification](../../docs/features/all-tickets-acceptance-2026-09-25.md) |
