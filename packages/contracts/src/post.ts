@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { calendarDateSchema, serializedIdSchema, utcInstantSchema } from './common.js'
+import { articleLocaleSchema } from './article-translation.js'
 
 export const postStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
 export type PostStatus = z.infer<typeof postStatusSchema>
@@ -58,7 +59,18 @@ export const postWriteRequestSchema = z.object({
   tags: postTagsSchema,
   status: postStatusSchema.default('DRAFT'),
   access: postAccessSchema.optional(),
-}).strict()
+  sourceLocale: articleLocaleSchema.optional(),
+  autoTranslateEnabled: z.boolean().optional(),
+  autoTranslateLocales: z.array(articleLocaleSchema).max(2).refine(values => new Set(values).size === values.length).optional(),
+  autoTranslateProvider: z.enum(['edge', 'ai']).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.autoTranslateEnabled && (value.autoTranslateLocales?.length ?? 0) === 0) {
+    context.addIssue({ code: 'custom', path: ['autoTranslateLocales'], message: 'Select at least one translation locale' })
+  }
+  if (value.sourceLocale && value.autoTranslateLocales?.includes(value.sourceLocale)) {
+    context.addIssue({ code: 'custom', path: ['autoTranslateLocales'], message: 'The source locale cannot be a translation target' })
+  }
+})
 
 export const postListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -69,6 +81,7 @@ export const postListQuerySchema = z.object({
   dateFrom: calendarDateSchema.optional(),
   dateTo: calendarDateSchema.optional(),
   sortBy: z.enum(['publishedAt_desc', 'publishedAt_asc', 'createdAt_desc', 'createdAt_asc', 'updatedAt_desc', 'updatedAt_asc', 'title_asc', 'title_desc']).optional(),
+  lang: articleLocaleSchema.optional(),
 }).strict()
 
 export const postAdminListQuerySchema = postListQuerySchema.extend({
@@ -92,6 +105,12 @@ const postListFields = {
   updatedAt: utcInstantSchema,
   access: postAccessSchema,
   membersOnly: z.boolean(),
+  sourceLocale: articleLocaleSchema,
+  requestedLocale: articleLocaleSchema,
+  resolvedLocale: articleLocaleSchema,
+  availableLocales: z.array(articleLocaleSchema),
+  isFallback: z.boolean(),
+  fallbackReason: z.enum(['translation_unavailable', 'translation_stale']).nullable(),
 }
 
 export const postPublicListItemSchema = z.object({ ...postListFields, author: publicAuthorSchema }).strict()
@@ -117,6 +136,11 @@ export const postAdminDetailSchema = z.object({
   excerptAuthored: z.boolean(),
   authorId: serializedIdSchema,
   author: adminAuthorSchema,
+  sourceRevision: z.number().int().nonnegative(),
+  sourceHash: z.string(),
+  autoTranslateEnabled: z.boolean(),
+  autoTranslateLocales: z.array(articleLocaleSchema),
+  autoTranslateProvider: z.enum(['edge', 'ai']),
 }).strict()
 export const postPublicMetadataSchema = z.object({
   ...postListFields,

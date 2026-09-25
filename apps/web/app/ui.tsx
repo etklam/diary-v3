@@ -25,7 +25,7 @@ export function UiProvider({children}:{children:ReactNode}) {
   useEffect(()=>{setReady(true);},[]);
   const [theme,setTheme] = useState<Theme>('system');
   useEffect(() => { try { const l=localStorage.getItem('diary-locale'); const th=localStorage.getItem('diary-theme'); if(l==='en'||l==='zh-CN'||l==='zh-TW') applyLocale(l); if(th==='dark'||th==='light'||th==='system') setTheme(th); } catch { /* Preferences remain usable when storage is disabled. */ } },[]);
-  useEffect(() => { document.documentElement.lang=locale; try { localStorage.setItem('diary-locale',locale); } catch { /* Optional preference storage. */ } },[locale]);
+  useEffect(() => { document.documentElement.lang=locale; try { localStorage.setItem('diary-locale',locale); } catch { /* Optional preference storage. */ } try { document.cookie=`diary-locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol==='https:'?'; Secure':''}`; } catch { /* Server locale resolution can use the signed-in account preference. */ } },[locale]);
   useEffect(() => {
     if (!ready) return;
     document.documentElement.dataset.theme=theme;

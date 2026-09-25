@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
-import { posts, researchArticleLinks, researchEvidenceSnapshots, researchInstrumentProfiles, researchMethodProfiles, researchRevisions, researchRuns } from '@diary/db'
+import { postTranslations, posts, researchArticleLinks, researchEvidenceSnapshots, researchInstrumentProfiles, researchMethodProfiles, researchRevisions, researchRuns } from '@diary/db'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
@@ -89,6 +89,32 @@ it('serializes concurrent edit and publish without exposing the changed research
   expect(published.status).toBe(409)
   const [row] = await database.db.select().from(posts).where(eq(posts.id, BigInt(post.id)))
   expect(row).toMatchObject({ status: 'DRAFT', content: 'Concurrent synthetic edit.' })
+})
+
+it('keeps research approval and freshness checks on translation publication', async () => {
+  const { post, runId } = await seedResearch()
+  expect((await edit(post, { content: 'Changed synthetic source after approval.' })).status).toBe(200)
+  const [invalidated] = await database.db.select().from(researchRuns).where(eq(researchRuns.id, runId))
+  expect(invalidated?.reviewStatus).toBe('CHANGES_REQUIRED')
+  await database.db.update(posts).set({ status: 'PUBLISHED', publishedAt: now }).where(eq(posts.id, BigInt(post.id)))
+  const translationPath = `/api/blog/admin/${post.id}/translations/en`
+  const csrf = browser.cookies.get('csrf-token')!
+  const draft = await browser.request(translationPath, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+    body: JSON.stringify({
+      title: `Synthetic English research ${post.title.slice('Synthetic research '.length)}`,
+      excerpt: null,
+      content: 'Synthetic English draft.',
+    }),
+  })
+  expect(draft.status, await draft.clone().text()).toBe(200)
+  expect((await browser.post(`${translationPath}/review`, {})).status).toBe(200)
+  const publish = await browser.post(`${translationPath}/publish`, {})
+  expect(publish.status).toBe(409)
+  expect(await publish.json()).toMatchObject({ data: { code: 'RESEARCH_ARTICLE_NOT_APPROVED' } })
+  const [translation] = await database.db.select().from(postTranslations).where(eq(postTranslations.postId, BigInt(post.id)))
+  expect(translation).toMatchObject({ status: 'draft', publishedVersion: 0, publishedContent: null, reviewedDraftVersion: 1 })
 })
 
 it('preserves ordinary create-as-published and Public/Member behavior', async () => {

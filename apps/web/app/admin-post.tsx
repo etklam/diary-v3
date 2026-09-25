@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useBlocker, useLocation, useNavigate, useOutletContext } from 'react-router'
 import { postAdminDetailSchema, postWriteRequestSchema, type PostAdminDetail, type PostStatus } from '@diary/contracts/post'
+import type { ArticleLocale } from '@diary/contracts'
 import { csrfToken, invalidateArticleCache, sessionFetch, signInPath, wasExplicitSignOut } from './session'
 import { Markdown } from './markdown'
 import './diary-editor.css'
@@ -8,12 +9,13 @@ import './trade-plan.css'
 import { useUi } from './ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from './api-error'
 import type { ShellOutletContext } from './root'
+import { ArticleLanguagesPanel } from './article-languages'
 
 type PostAccess = 'PUBLIC' | 'MEMBER'
-type Draft = { title: string; content: string; excerpt: string; excerptAuthored: boolean; coverImage: string; category: string; tags: string; access: PostAccess; status: PostStatus }
-type RecoveryDraft = Pick<Draft, 'title' | 'content' | 'excerpt' | 'coverImage' | 'category' | 'tags' | 'excerptAuthored'>
+type Draft = { title: string; content: string; excerpt: string; excerptAuthored: boolean; coverImage: string; category: string; tags: string; access: PostAccess; status: PostStatus; sourceLocale: ArticleLocale; autoTranslateEnabled: boolean; autoTranslateLocales: ArticleLocale[]; autoTranslateProvider: 'edge' | 'ai' }
+type RecoveryDraft = Pick<Draft, 'title' | 'content' | 'excerpt' | 'coverImage' | 'category' | 'tags' | 'excerptAuthored' | 'sourceLocale' | 'autoTranslateEnabled' | 'autoTranslateLocales' | 'autoTranslateProvider'>
 type Success = { status: PostStatus; slug: string; kind: 'saved' | 'published' | 'updated' | 'archived' | 'restored' }
-const blank: Draft = { title: '', content: '', excerpt: '', excerptAuthored: false, coverImage: '', category: 'market', tags: '', access: 'MEMBER', status: 'DRAFT' }
+const blank: Draft = { title: '', content: '', excerpt: '', excerptAuthored: false, coverImage: '', category: 'market', tags: '', access: 'MEMBER', status: 'DRAFT', sourceLocale: 'zh-TW', autoTranslateEnabled: false, autoTranslateLocales: [], autoTranslateProvider: 'edge' }
 
 const copy = {
   en: { newTitle: 'New article', editTitle: 'Edit article', intro: 'Drafts are private to administrators. After publication, any visitor can read the article.', title: 'Title', content: 'Content', excerpt: 'Excerpt (optional)', cover: 'Cover image (optional)', coverUnavailable: 'The cover image could not be previewed.', category: 'Category', tags: 'Tags', preview: 'Preview', hidePreview: 'Return to editing', saveDraft: 'Save draft', saveArchived: 'Save changes', publish: 'Publish publicly', republish: 'Republish publicly', update: 'Update published article', archive: 'Archive article', archiveHint: 'Archiving removes the article from public view.', back: 'Back to article management', publicList: 'Public articles', view: 'View public article', signIn: 'Sign in', loading: 'Loading…', savedDraft: 'Draft saved.', savedArchived: 'Archived article saved.', published: 'Article published publicly.', updated: 'Published article updated.', archived: 'Article archived and no longer public.', restored: 'Unsaved edits were restored for this article.', pending: 'Saving…', invalid: 'Check the marked fields.', connection: 'Unable to connect. Your content remains in the form.', forbidden: 'You do not have permission to manage articles.', discard: 'Discard unsaved article changes?', draftStatus: 'Draft', publishedStatus: 'Published', archivedStatus: 'Archived', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy' },
@@ -28,19 +30,21 @@ const accessCopy = {
 } as const
 
 function fromPost(post: PostAdminDetail): Draft {
-  return { title: post.title, content: post.content, excerpt: post.excerptAuthored ? post.excerpt ?? '' : '', excerptAuthored: post.excerptAuthored, coverImage: post.coverImage ?? '', category: post.category, tags: post.tags ?? '', access: post.access, status: post.status }
+  return { title: post.title, content: post.content, excerpt: post.excerptAuthored ? post.excerpt ?? '' : '', excerptAuthored: post.excerptAuthored, coverImage: post.coverImage ?? '', category: post.category, tags: post.tags ?? '', access: post.access, status: post.status, sourceLocale: post.sourceLocale, autoTranslateEnabled: post.autoTranslateEnabled, autoTranslateLocales: post.autoTranslateLocales, autoTranslateProvider: post.autoTranslateProvider }
 }
 
 function recoveryDraft(draft: Draft): RecoveryDraft {
-  const { title, content, excerpt, excerptAuthored, coverImage, category, tags } = draft
-  return { title, content, excerpt, excerptAuthored, coverImage, category, tags }
+  const { title, content, excerpt, excerptAuthored, coverImage, category, tags, sourceLocale, autoTranslateEnabled, autoTranslateLocales, autoTranslateProvider } = draft
+  return { title, content, excerpt, excerptAuthored, coverImage, category, tags, sourceLocale, autoTranslateEnabled, autoTranslateLocales, autoTranslateProvider }
 }
 
 function storedDraft(value: unknown): RecoveryDraft | null {
   if (!value || typeof value !== 'object') return null
   const item = value as Record<string, unknown>
   if (!['title', 'content', 'excerpt', 'coverImage', 'category', 'tags'].every(field => typeof item[field] === 'string')) return null
-  return { title: item.title as string, content: item.content as string, excerpt: item.excerptAuthored === true ? item.excerpt as string : '', excerptAuthored: item.excerptAuthored === true, coverImage: item.coverImage as string, category: item.category as string, tags: item.tags as string }
+  const sourceLocale = item.sourceLocale === 'zh-CN' || item.sourceLocale === 'en' ? item.sourceLocale : 'zh-TW'
+  const autoTranslateLocales = Array.isArray(item.autoTranslateLocales) ? item.autoTranslateLocales.filter((value): value is ArticleLocale => value === 'zh-TW' || value === 'zh-CN' || value === 'en') : []
+  return { title: item.title as string, content: item.content as string, excerpt: item.excerptAuthored === true ? item.excerpt as string : '', excerptAuthored: item.excerptAuthored === true, coverImage: item.coverImage as string, category: item.category as string, tags: item.tags as string, sourceLocale, autoTranslateEnabled: item.autoTranslateEnabled === true, autoTranslateLocales, autoTranslateProvider: item.autoTranslateProvider === 'ai' ? 'ai' : 'edge' }
 }
 
 async function bodyOf(response: Response) { return response.json().catch(() => null) as Promise<unknown> }
@@ -62,6 +66,10 @@ export function AdminPostEditor({ id }: { id?: string }) {
   const previewHeading = useRef<HTMLHeadingElement>(null), previewTrigger = useRef<HTMLButtonElement>(null)
   draftRef.current = draft
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline])
+  const sourceDirty = useMemo(() => {
+    const sourceFields: (keyof Draft)[] = ['title', 'content', 'excerpt', 'excerptAuthored', 'coverImage', 'category', 'tags', 'access', 'status', 'sourceLocale']
+    return sourceFields.some(field => draft[field] !== baseline[field])
+  }, [draft, baseline])
   dirtyRef.current = dirty
   const draftKey = viewer ? `post-editor-draft:${viewer.id}:${id ?? 'new'}` : null
 
@@ -137,6 +145,10 @@ export function AdminPostEditor({ id }: { id?: string }) {
       tags: draft.tags,
       access: draft.access,
       status,
+      sourceLocale: draft.sourceLocale,
+      autoTranslateEnabled: draft.autoTranslateEnabled,
+      autoTranslateLocales: draft.autoTranslateLocales,
+      autoTranslateProvider: draft.autoTranslateProvider,
     })
     if (!input.success) { setSuccess(null); setFailure({ message: c.invalid, fields: input.error.issues.flatMap(issue => typeof issue.path[0] === 'string' ? [issue.path[0]] : []) }); return }
     pendingRef.current = true; setPending(true); setSuccess(null); setFailure(null)
@@ -175,6 +187,20 @@ export function AdminPostEditor({ id }: { id?: string }) {
     <header><Link to="/admin/blog">{c.back}</Link><div className="article-editor-title"><h1>{id ? c.editTitle : c.newTitle}</h1><span className="badge">{statusLabel}</span></div><p className="lede">{c.intro}</p></header>
     <FailureNotice failure={failure} id="article-editor-error" />
     {success && <div className="article-save-result" role="status"><span>{successText}</span></div>}
+    {!preview && <ArticleLanguagesPanel
+      id={id}
+      sourceLocale={draft.sourceLocale}
+      onSourceLocaleChange={sourceLocale => setDraft(current => ({ ...current, sourceLocale }))}
+      targetLocales={draft.autoTranslateLocales}
+      onTargetLocalesChange={autoTranslateLocales => setDraft(current => ({ ...current, autoTranslateLocales }))}
+      provider={draft.autoTranslateProvider}
+      onProviderChange={autoTranslateProvider => setDraft(current => ({ ...current, autoTranslateProvider }))}
+      autoTranslateEnabled={draft.autoTranslateEnabled}
+      onAutoTranslateEnabledChange={autoTranslateEnabled => setDraft(current => ({ ...current, autoTranslateEnabled }))}
+      access={draft.access}
+      sourceDirty={sourceDirty}
+      locale={locale}
+    />}
     {preview ? <div className="context-panel"><h2 ref={previewHeading} tabIndex={-1}>{draft.title || c.preview}</h2>{draft.excerpt && <p className="lede">{draft.excerpt}</p>}{draft.coverImage && (coverFailed ? <p role="status">{c.coverUnavailable}</p> : <img className="article-cover-preview" src={draft.coverImage} alt={draft.title || c.cover} onError={() => setCoverFailed(true)} />)}<Markdown>{draft.content || ' '}</Markdown><button type="button" className="secondary" onClick={() => { setPreview(false); requestAnimationFrame(() => previewTrigger.current?.focus()) }}>{c.hidePreview}</button></div> : <form onSubmit={event => { event.preventDefault(); void save(draft.status) }} aria-busy={pending}>
       <fieldset className="article-editor-fields" disabled={pending}>
         <label>{c.title}<input className="title-input" value={draft.title} onChange={event => update('title', event.target.value)} maxLength={255} required aria-invalid={invalidField(failure, 'title')} aria-describedby={invalidField(failure, 'title') ? 'article-editor-error' : undefined} /></label>

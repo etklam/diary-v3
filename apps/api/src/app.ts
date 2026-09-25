@@ -18,6 +18,7 @@ import { registerPortfolioAttentionRoutes } from './portfolio-attention.js'
 import { readPortfolioExposure } from './portfolio-exposure.js'
 import { registerCompanyHubRoute } from './company-hub.js'
 import { registerPostRoutes } from './posts.js'
+import { registerArticleTranslationRoutes } from './article-translations/routes.js'
 import { createHash, randomBytes, randomUUID as nodeRandomUUID, timingSafeEqual } from 'node:crypto'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import {
@@ -510,6 +511,7 @@ export function createApp({
   registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
   registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
+  registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
   const aiReportService = new AiReportService({ db, now })
   registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson })

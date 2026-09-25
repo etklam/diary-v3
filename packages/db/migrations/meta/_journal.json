@@ -239,6 +239,20 @@
       "when": 1790277041646,
       "tag": "0033_research_dispatch_runtime_fence",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790307589148,
+      "tag": "0034_article_translations",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790312283620,
+      "tag": "0035_talented_proudstar",
+      "breakpoints": true
     }
   ]
 }

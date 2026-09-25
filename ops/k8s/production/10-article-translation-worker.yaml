@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diary-v3-article-translation-worker
+  namespace: diary-v3
+spec:
+  # Enable explicitly only after migration and mock-provider verification.
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: diary-v3-article-translation-worker
+  template:
+    metadata:
+      labels:
+        app: diary-v3-article-translation-worker
+    spec:
+      terminationGracePeriodSeconds: 150
+      containers:
+        - name: article-translation-worker
+          image: git.913555.xyz/etklam/diary-v3-api:placeholder
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist/api/article-translation-worker.js"]
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: DATABASE_URL
+            - name: AI_ENCRYPTION_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: AI_ENCRYPTION_KEYS
+            - name: AI_ENCRYPTION_ACTIVE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: AI_ENCRYPTION_ACTIVE_KEY
+            - name: AI_ALLOWED_BASE_URLS
+              value: https://api.deepseek.com
+            - name: ARTICLE_TRANSLATION_WORKER_ID
+              value: diary-v3-article-translation-worker
+            - name: ARTICLE_TRANSLATION_WORKER_POLL_MS
+              value: "5000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: diary-v3-article-translation-worker-egress
+  namespace: diary-v3
+spec:
+  podSelector:
+    matchLabels:
+      app: diary-v3-article-translation-worker
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: diary-v3-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 0.0.0.0/8
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.0.0.0/24
+              - 192.0.2.0/24
+              - 192.88.99.0/24
+              - 192.168.0.0/16
+              - 198.18.0.0/15
+              - 198.51.100.0/24
+              - 203.0.113.0/24
+              - 224.0.0.0/4
+              - 240.0.0.0/4
+        - ipBlock:
+            cidr: 2000::/3
+            except:
+              - 2001::/23
+              - 2001:db8::/32
+              - 2002::/16
+              - 3ffe::/16
+              - 3fff::/16
+      ports:
+        - protocol: TCP
+          port: 443

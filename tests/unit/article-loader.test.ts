@@ -13,6 +13,7 @@ vi.mock('../../apps/web/app/session', async importOriginal => ({
 const metadata = {
   id: '1', title: 'Synthetic article', slug: 'synthetic-article', excerpt: 'Public teaser',
   coverImage: null, category: 'market', tags: null, access: 'MEMBER', membersOnly: true,
+  sourceLocale: 'zh-TW', requestedLocale: 'zh-TW', resolvedLocale: 'zh-TW', availableLocales: ['zh-TW'], isFallback: false, fallbackReason: null,
   publishedAt: '2026-09-24T00:00:00.000Z', createdAt: '2026-09-24T00:00:00.000Z',
   updatedAt: '2026-09-24T00:00:00.000Z', author: { id: '1', name: null },
 }
@@ -30,6 +31,19 @@ it('returns only metadata for a locked reader and prohibits HTTP caching', async
   expect(result.data.post).not.toHaveProperty('content')
   expect(JSON.stringify(result)).not.toContain(sentinel)
   expect(result.init?.headers).toEqual({ 'Cache-Control': 'private, no-store' })
+})
+
+it('keeps the requested locale query after the member metadata path in SSR', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(Response.json({ ...metadata, requestedLocale: 'en', resolvedLocale: 'zh-TW' }))
+  vi.stubGlobal('fetch', fetcher)
+  const input = args()
+  input.request = new Request('http://localhost/articles/synthetic-article?lang=en')
+  await loader(input)
+  expect(fetcher.mock.calls.map(([url]) => String(url))).toEqual([
+    'http://localhost/api/blog/synthetic-article?lang=en',
+    'http://localhost/api/blog/synthetic-article/metadata?lang=en',
+  ])
 })
 
 it('forwards SSR credentials without bypassing explicit credential precedence', async () => {

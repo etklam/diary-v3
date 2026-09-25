@@ -853,6 +853,34 @@
   color: var(--muted);
 }
 
+.article-language-control {
+  display: grid;
+  gap: var(--space-2);
+  width: min(100%, 20rem);
+  margin: 0 0 var(--space-4);
+}
+
+.article-language-control label {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.article-language-control select {
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.article-language-fallback {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 @media (max-width: 850px) {
   .public-header {
     gap: var(--space-3);

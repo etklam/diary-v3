@@ -1677,6 +1677,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/blog/admin/{id}/translations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["blogTranslationsAdminGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["blogTranslationJobsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["blogTranslationDraftEdit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/{locale}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["blogTranslationDraftReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/{locale}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["blogTranslationPublish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/{locale}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["blogTranslationUnpublish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blog/admin/{id}/translations/{locale}/retranslate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["blogTranslationRetranslate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/article-translations/ai-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["articleTranslationAiConfigGet"];
+        put: operations["articleTranslationAiConfigUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/capabilities": {
         parameters: {
             query?: never;
@@ -2540,7 +2668,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -3389,6 +3517,16 @@ export interface components {
                 /** @enum {string} */
                 access: "PUBLIC" | "MEMBER";
                 membersOnly: boolean;
+                /** @enum {string} */
+                sourceLocale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                requestedLocale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                resolvedLocale: "zh-TW" | "zh-CN" | "en";
+                availableLocales: ("zh-TW" | "zh-CN" | "en")[];
+                isFallback: boolean;
+                /** @enum {string|null} */
+                fallbackReason: "translation_unavailable" | "translation_stale" | null;
                 author: {
                     id: string;
                     name: string | null;
@@ -3418,6 +3556,16 @@ export interface components {
             /** @enum {string} */
             access: "PUBLIC" | "MEMBER";
             membersOnly: boolean;
+            /** @enum {string} */
+            sourceLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            requestedLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            resolvedLocale: "zh-TW" | "zh-CN" | "en";
+            availableLocales: ("zh-TW" | "zh-CN" | "en")[];
+            isFallback: boolean;
+            /** @enum {string|null} */
+            fallbackReason: "translation_unavailable" | "translation_stale" | null;
             content: string;
             author: {
                 id: string;
@@ -3441,6 +3589,16 @@ export interface components {
             /** @enum {string} */
             access: "PUBLIC" | "MEMBER";
             membersOnly: boolean;
+            /** @enum {string} */
+            sourceLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            requestedLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            resolvedLocale: "zh-TW" | "zh-CN" | "en";
+            availableLocales: ("zh-TW" | "zh-CN" | "en")[];
+            isFallback: boolean;
+            /** @enum {string|null} */
+            fallbackReason: "translation_unavailable" | "translation_stale" | null;
             author: {
                 id: string;
                 name: string | null;
@@ -3464,6 +3622,16 @@ export interface components {
                 /** @enum {string} */
                 access: "PUBLIC" | "MEMBER";
                 membersOnly: boolean;
+                /** @enum {string} */
+                sourceLocale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                requestedLocale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                resolvedLocale: "zh-TW" | "zh-CN" | "en";
+                availableLocales: ("zh-TW" | "zh-CN" | "en")[];
+                isFallback: boolean;
+                /** @enum {string|null} */
+                fallbackReason: "translation_unavailable" | "translation_stale" | null;
                 /** @enum {string} */
                 status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
                 author: {
@@ -3497,6 +3665,16 @@ export interface components {
             /** @enum {string} */
             access: "PUBLIC" | "MEMBER";
             membersOnly: boolean;
+            /** @enum {string} */
+            sourceLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            requestedLocale: "zh-TW" | "zh-CN" | "en";
+            /** @enum {string} */
+            resolvedLocale: "zh-TW" | "zh-CN" | "en";
+            availableLocales: ("zh-TW" | "zh-CN" | "en")[];
+            isFallback: boolean;
+            /** @enum {string|null} */
+            fallbackReason: "translation_unavailable" | "translation_stale" | null;
             content: string;
             /** @enum {string} */
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -3508,6 +3686,12 @@ export interface components {
                 /** Format: email */
                 email: string;
             };
+            sourceRevision: number;
+            sourceHash: string;
+            autoTranslateEnabled: boolean;
+            autoTranslateLocales: ("zh-TW" | "zh-CN" | "en")[];
+            /** @enum {string} */
+            autoTranslateProvider: "edge" | "ai";
         };
         PostWriteRequest: {
             title: string;
@@ -3523,6 +3707,12 @@ export interface components {
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
             /** @enum {string} */
             access?: "PUBLIC" | "MEMBER";
+            /** @enum {string} */
+            sourceLocale?: "zh-TW" | "zh-CN" | "en";
+            autoTranslateEnabled?: boolean;
+            autoTranslateLocales?: ("zh-TW" | "zh-CN" | "en")[];
+            /** @enum {string} */
+            autoTranslateProvider?: "edge" | "ai";
         };
         PostBulkRequest: {
             ids: string[];
@@ -3534,6 +3724,141 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             message: string;
+        };
+        ArticleTranslationAdminResponse: {
+            articleId: string;
+            /** @enum {string} */
+            sourceLocale: "zh-TW" | "zh-CN" | "en";
+            sourceRevision: number;
+            sourceHash: string;
+            edgeEnabled: boolean;
+            /** @enum {string} */
+            warning: "Article text will be sent to a third-party translation service.";
+            translations: {
+                /** @enum {string} */
+                locale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                status: "MISSING" | "QUEUED" | "TRANSLATING" | "NEEDS_REVIEW" | "READY" | "PUBLISHED" | "UNPUBLISHED" | "STALE" | "FAILED";
+                draftTitle: string | null;
+                draftExcerpt: string | null;
+                draftContent: string | null;
+                draftSourceRevision: number | null;
+                draftSourceHash: string | null;
+                /** @enum {string|null} */
+                draftProvider: "edge" | "ai" | "manual" | null;
+                draftModel: string | null;
+                draftPromptVersion: string | null;
+                publishedTitle: string | null;
+                publishedExcerpt: string | null;
+                publishedContent: string | null;
+                publishedVersion: number | null;
+                publishedSourceRevision: number | null;
+                publishedSourceHash: string | null;
+                reviewedBy: string | null;
+                /** Format: date-time */
+                reviewedAt: string | null;
+                /** Format: date-time */
+                publishedAt: string | null;
+                draftIsCurrent: boolean;
+                isCurrent: boolean;
+                latestJob: {
+                    id: string;
+                    /** @enum {string} */
+                    provider: "edge" | "ai";
+                    /** @enum {string} */
+                    status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED";
+                    progress: number;
+                    error: string | null;
+                    retryCount: number;
+                } | null;
+            }[];
+        };
+        ArticleTranslationJobRequest: {
+            targetLocales: ("zh-TW" | "zh-CN" | "en")[];
+            /** @enum {string} */
+            provider: "edge" | "ai";
+        };
+        ArticleTranslationJobResponse: {
+            jobs: {
+                id: string;
+                /** @enum {string} */
+                locale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED";
+            }[];
+        };
+        ArticleTranslationEditRequest: {
+            title: string;
+            excerpt: string | null;
+            content: string;
+        };
+        ArticleTranslationActionResponse: {
+            translation: {
+                /** @enum {string} */
+                locale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                status: "MISSING" | "QUEUED" | "TRANSLATING" | "NEEDS_REVIEW" | "READY" | "PUBLISHED" | "UNPUBLISHED" | "STALE" | "FAILED";
+                draftTitle: string | null;
+                draftExcerpt: string | null;
+                draftContent: string | null;
+                draftSourceRevision: number | null;
+                draftSourceHash: string | null;
+                /** @enum {string|null} */
+                draftProvider: "edge" | "ai" | "manual" | null;
+                draftModel: string | null;
+                draftPromptVersion: string | null;
+                publishedTitle: string | null;
+                publishedExcerpt: string | null;
+                publishedContent: string | null;
+                publishedVersion: number | null;
+                publishedSourceRevision: number | null;
+                publishedSourceHash: string | null;
+                reviewedBy: string | null;
+                /** Format: date-time */
+                reviewedAt: string | null;
+                /** Format: date-time */
+                publishedAt: string | null;
+                draftIsCurrent: boolean;
+                isCurrent: boolean;
+                latestJob: {
+                    id: string;
+                    /** @enum {string} */
+                    provider: "edge" | "ai";
+                    /** @enum {string} */
+                    status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED";
+                    progress: number;
+                    error: string | null;
+                    retryCount: number;
+                } | null;
+            };
+        };
+        ArticleTranslationAiConfig: {
+            enabled: boolean;
+            /** Format: uri */
+            baseUrl: string;
+            model: string;
+            secretConfigured: boolean;
+            timeoutMs: number;
+            prompt: string;
+            promptVersion: string;
+            maxTokens: number;
+            maxCallsPerJob: number;
+            tokenBudgetPerJob: number;
+            allowMemberArticles: boolean;
+        };
+        ArticleTranslationAiConfigUpdate: {
+            enabled: boolean;
+            /** Format: uri */
+            baseUrl: string;
+            model: string;
+            timeoutMs: number;
+            prompt: string;
+            promptVersion: string;
+            maxTokens: number;
+            maxCallsPerJob: number;
+            tokenBudgetPerJob: number;
+            allowMemberArticles: boolean;
+            apiKey?: string;
         };
         AiAnalysisItem: {
             text: string;
@@ -14281,6 +14606,7 @@ export interface operations {
                 dateFrom?: string;
                 dateTo?: string;
                 sortBy?: "publishedAt_desc" | "publishedAt_asc" | "createdAt_desc" | "createdAt_asc" | "updatedAt_desc" | "updatedAt_asc" | "title_asc" | "title_desc";
+                lang?: "zh-TW" | "zh-CN" | "en";
             };
             header?: never;
             path?: never;
@@ -14496,6 +14822,7 @@ export interface operations {
                 dateFrom?: string;
                 dateTo?: string;
                 sortBy?: "publishedAt_desc" | "publishedAt_asc" | "createdAt_desc" | "createdAt_asc" | "updatedAt_desc" | "updatedAt_asc" | "title_asc" | "title_desc";
+                lang?: "zh-TW" | "zh-CN" | "en";
                 status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
                 author?: string;
             };
@@ -14974,6 +15301,651 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PostBulkResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationsAdminGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Translation drafts and published snapshots */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationAdminResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationJobsCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Locales and explicit provider selection */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Persistent translation job IDs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationDraftEdit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: "zh-TW" | "zh-CN" | "en";
+            };
+            cookie?: never;
+        };
+        /** @description Manually edited translation draft */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved translation draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationActionResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationDraftReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: "zh-TW" | "zh-CN" | "en";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Review the current translation draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationActionResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationPublish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: "zh-TW" | "zh-CN" | "en";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Publish a reviewed translation snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationActionResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationUnpublish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: "zh-TW" | "zh-CN" | "en";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unpublish a translation snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationActionResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    blogTranslationRetranslate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                locale: "zh-TW" | "zh-CN" | "en";
+            };
+            cookie?: never;
+        };
+        /** @description Explicit provider selection */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    provider: "edge" | "ai";
+                };
+            };
+        };
+        responses: {
+            /** @description Persistent translation job ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationAiConfigGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Translation-only AI settings with secret status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationAiConfig"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationAiConfigUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Translation-only AI settings */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationAiConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved translation-only AI settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationAiConfig"];
                 };
             };
             /** @description HTTP 400 error */

@@ -1,6 +1,6 @@
 import { ForegroundReminders } from './foreground-reminders';
 import { useEffect, useRef, useState } from 'react';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse } from 'react-router';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useMatches, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse } from 'react-router';
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import { BrandMark } from './icons';
@@ -12,7 +12,15 @@ import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  return <html lang="zh-TW" suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
+  const matches = useMatches() as Array<{ data?: unknown }>;
+  const articleLocale = matches.map(match => {
+    if (!match.data || typeof match.data !== 'object' || !('post' in match.data)) return null;
+    const post = (match.data as { post?: unknown }).post;
+    if (!post || typeof post !== 'object' || !('resolvedLocale' in post)) return null;
+    const value = (post as { resolvedLocale?: unknown }).resolvedLocale;
+    return value === 'zh-TW' || value === 'zh-CN' || value === 'en' ? value : null;
+  }).find(Boolean) ?? 'zh-TW';
+  return <html lang={articleLocale} suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
 }
 
 function PreferencesControls({ mobile = false, compact = false }: { mobile?: boolean; compact?: boolean }) {

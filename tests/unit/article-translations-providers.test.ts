@@ -120,6 +120,15 @@ describe('article translation Markdown pipeline', () => {
     await expect(translateMarkdown(markdown, { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' }, provider))
       .rejects.toMatchObject({ code: 'TRANSLATION_OUTPUT_INVALID' })
   })
+
+  it('protects standalone tickers and inline LaTeX formulas', async () => {
+    const markdown = 'SOXX outperformed by 2.1%. Keep $r = p - e$ and \\(x + y = 2\\).'
+    const provider = mockTranslate(value => value.replace('outperformed by', 'performed better than'))
+    const result = await translateMarkdown(markdown, { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' }, provider)
+    expect(result.markdown).toContain('SOXX performed better than 2.1%.')
+    expect(result.markdown).toContain('$r = p - e$')
+    expect(result.markdown).toContain('\\(x + y = 2\\)')
+  })
 })
 
 describe('Microsoft Edge Translate adapter', () => {

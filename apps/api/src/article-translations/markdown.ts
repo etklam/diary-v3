@@ -21,9 +21,17 @@ export interface TranslateMarkdownResult {
   translatedBlockCount: number
 }
 
+export interface TranslateMarkdownDocumentsResult {
+  documents: Record<string, string>
+  provider: 'edge' | 'ai'
+  model: string | null
+  usage: TranslationUsageMetadata | null
+  translatedBlockCount: number
+}
+
 interface TextRange { start: number; end: number }
 interface MarkdownUnit { kind: 'heading' | 'paragraph' | 'list-item' | 'blockquote' | 'table-cell'; range: TextRange }
-interface Marker { value: string; structural: boolean }
+interface Marker { value: string; structural: boolean; immutable: boolean }
 interface PreparedUnit { block: string; markerPrefix: string; markers: Map<string, Marker>; structureOrder: string[] }
 interface MdNode {
   type: string
@@ -152,6 +160,15 @@ function matchingEmphasis(text: string, index: number): string | null {
 
 function isWordCharacter(value: string | undefined): boolean { return value !== undefined && /[A-Za-z0-9_]/.test(value) }
 
+function findUnescapedSequence(text: string, sequence: string, start: number): number {
+  for (let index = text.indexOf(sequence, start); index !== -1; index = text.indexOf(sequence, index + sequence.length)) {
+    let slashCount = 0
+    for (let prior = index - 1; prior >= 0 && text[prior] === '\\'; prior--) slashCount++
+    if (slashCount % 2 === 0) return index
+  }
+  return -1
+}
+
 function citationToken(text: string): string | null {
   const match = text.match(/^\[(?:\d+(?:,[ \t]*\d+)*|\^?[A-Za-z]+[-_:][A-Za-z0-9_.:-]+|@[-A-Za-z0-9_.:]+)\]/)
   return match?.[0] ?? null
@@ -160,9 +177,9 @@ function citationToken(text: string): string | null {
 function protectInline(text: string, markerPrefix: string, markers: Map<string, Marker>, structureOrder: string[]): string {
   let result = ''
   let nextMarker = markers.size
-  const marker = (value: string, structural: boolean): string => {
+  const marker = (value: string, structural: boolean, immutable = !structural): string => {
     const token = `${markerPrefix}${String(nextMarker++).padStart(4, '0')}QXZ`
-    markers.set(token, { value, structural })
+    markers.set(token, { value, structural, immutable })
     if (structural) structureOrder.push(token)
     return token
   }
@@ -190,7 +207,27 @@ function protectInline(text: string, markerPrefix: string, markers: Map<string, 
       const closing = text.indexOf('`'.repeat(run), index + run)
       if (closing !== -1) {
         const end = closing + run
-        result += marker(text.slice(index, end), true)
+        result += marker(text.slice(index, end), true, true)
+        index = end
+        continue
+      }
+    }
+    if (text[index] === '$') {
+      const delimiter = text.startsWith('$$', index) ? '$$' : '$'
+      const closing = findUnescapedSequence(text, delimiter, index + delimiter.length)
+      if (closing !== -1 && closing > index + delimiter.length) {
+        const end = closing + delimiter.length
+        result += marker(text.slice(index, end), true, true)
+        index = end
+        continue
+      }
+    }
+    const mathDelimiter = text.startsWith('\\(', index) ? '\\)' : text.startsWith('\\[', index) ? '\\]' : null
+    if (mathDelimiter) {
+      const closing = findUnescapedSequence(text, mathDelimiter, index + 2)
+      if (closing !== -1) {
+        const end = closing + 2
+        result += marker(text.slice(index, end), true, true)
         index = end
         continue
       }
@@ -315,14 +352,63 @@ function structuralSignature(root: MdNode): string {
   return JSON.stringify(visit(root))
 }
 
+function immutableValues(markdown: string): string[][] {
+  const units = discoverUnits(markdown, parseMarkdown(markdown))
+  return units.map(unit => {
+    const prepared = prepareUnit(markdown, unit)
+    return [...prepared.markers.values()].filter(value => value.immutable).map(value => value.value).sort()
+  })
+}
+
+export function assertMarkdownTranslationPreservesSource(source: string, candidate: string): void {
+  const sourceTree = parseMarkdown(source)
+  const candidateTree = parseMarkdown(candidate)
+  markdownProcessor.stringify(candidateTree as never)
+  if (structuralSignature(sourceTree) !== structuralSignature(candidateTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  const sourceValues = immutableValues(source)
+  const candidateValues = immutableValues(candidate)
+  if (sourceValues.length !== candidateValues.length || sourceValues.some((values, index) => JSON.stringify(values) !== JSON.stringify(candidateValues[index]))) {
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  }
+}
+
 export async function translateMarkdown(markdown: string, options: TranslateMarkdownOptions, provider: TranslationProvider): Promise<TranslateMarkdownResult> {
-  if (Buffer.byteLength(markdown, 'utf8') > MAX_MARKDOWN_BYTES) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
+  const translated = await translateMarkdownDocuments([{ key: 'content', markdown }], options, provider)
+  return {
+    markdown: translated.documents.content ?? markdown,
+    provider: translated.provider,
+    model: translated.model,
+    usage: translated.usage,
+    translatedBlockCount: translated.translatedBlockCount,
+  }
+}
+
+export async function translateMarkdownDocuments(
+  documents: readonly { key: string; markdown: string }[],
+  options: Omit<TranslateMarkdownOptions, 'markdown'>,
+  provider: TranslationProvider,
+): Promise<TranslateMarkdownDocumentsResult> {
+  if (documents.length === 0 || new Set(documents.map(document => document.key)).size !== documents.length || documents.some(document => !document.key)) {
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  }
+  if (documents.reduce((total, document) => total + Buffer.byteLength(document.markdown, 'utf8'), 0) > MAX_MARKDOWN_BYTES) {
+    throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
+  }
   if (options.sourceLocale === options.targetLocale) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  const sourceTree = parseMarkdown(markdown)
-  const units = discoverUnits(markdown, sourceTree)
+  const parsedDocuments = documents.map(document => ({ ...document, sourceTree: parseMarkdown(document.markdown) }))
+  const units = parsedDocuments.flatMap(document => discoverUnits(document.markdown, document.sourceTree).map(unit => ({ ...unit, key: document.key })))
   if (units.length > MAX_MARKDOWN_UNITS) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
-  if (units.length === 0) return { markdown, provider: provider.id, model: null, usage: null, translatedBlockCount: 0 }
-  const prepared = units.map(unit => prepareUnit(markdown, unit))
+  if (units.length === 0) {
+    return {
+      documents: Object.fromEntries(documents.map(document => [document.key, document.markdown])),
+      provider: provider.id,
+      model: null,
+      usage: null,
+      translatedBlockCount: 0,
+    }
+  }
+  const markdownByKey = new Map(documents.map(document => [document.key, document.markdown]))
+  const prepared = units.map(unit => prepareUnit(markdownByKey.get(unit.key) ?? '', unit))
   const response = await provider.translate({
     sourceLocale: options.sourceLocale,
     targetLocale: options.targetLocale,
@@ -331,14 +417,23 @@ export async function translateMarkdown(markdown: string, options: TranslateMark
     ...(options.signal ? { signal: options.signal } : {}),
   })
   if (!Array.isArray(response.translations) || response.translations.length !== prepared.length) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
-  const replacements = units.map((unit, index) => ({ range: unit.range, value: decodedBlock(response.translations[index]!, prepared[index]!) }))
-  replacements.sort((left, right) => right.range.start - left.range.start)
-  let translated = markdown
-  for (const replacement of replacements) translated = `${translated.slice(0, replacement.range.start)}${replacement.value}${translated.slice(replacement.range.end)}`
-  const translatedTree = parseMarkdown(translated)
-  markdownProcessor.stringify(translatedTree as never)
-  if (structuralSignature(sourceTree) !== structuralSignature(translatedTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
-  return { markdown: translated, provider: response.provider, model: response.model, usage: response.usage, translatedBlockCount: prepared.length }
+  const replacementsByKey = new Map<string, { range: TextRange; value: string }[]>()
+  units.forEach((unit, index) => replacementsByKey.set(unit.key, [
+    ...(replacementsByKey.get(unit.key) ?? []),
+    { range: unit.range, value: decodedBlock(response.translations[index]!, prepared[index]!) },
+  ]))
+  const translatedDocuments: Record<string, string> = {}
+  for (const document of parsedDocuments) {
+    let translated = document.markdown
+    const replacements = replacementsByKey.get(document.key) ?? []
+    replacements.sort((left, right) => right.range.start - left.range.start)
+    for (const replacement of replacements) translated = `${translated.slice(0, replacement.range.start)}${replacement.value}${translated.slice(replacement.range.end)}`
+    const translatedTree = parseMarkdown(translated)
+    markdownProcessor.stringify(translatedTree as never)
+    if (structuralSignature(document.sourceTree) !== structuralSignature(translatedTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+    translatedDocuments[document.key] = translated
+  }
+  return { documents: translatedDocuments, provider: response.provider, model: response.model, usage: response.usage, translatedBlockCount: prepared.length }
 }
 
 export function markdownTranslationUnitCount(markdown: string): number {

@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { data, Link, useLoaderData, useOutletContext, useRevalidator, type ClientLoaderFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, Link, useLoaderData, useLocation, useNavigate, useOutletContext, useRevalidator, type ClientLoaderFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { postPublicDetailSchema, postPublicMetadataSchema, type PostPublicDetail } from '@diary/contracts/post'
+import { articleLocaleSchema } from '@diary/contracts'
 import { Markdown } from '../markdown'
 import { articleCacheInvalidationEvent, getSessionRevision, isLocallySignedOut, signInPath, useSessionState } from '../session'
 import { useUi } from '../ui'
@@ -37,8 +38,10 @@ function unavailable(status: number) {
 async function loadMetadata(request: Request, params: LoaderFunctionArgs['params'], allowPublicBody = false) {
   const slug = params.slug
   if (!slug) throw unavailable(404)
-  const detailUrl = apiUrl(request, `/api/blog/${encodeURIComponent(slug)}`)
-  const metadataResponse = await fetch(`${detailUrl}/metadata`, articleRequestInit(request))
+  const query = new URL(request.url).search
+  const detailUrl = `${apiUrl(request, `/api/blog/${encodeURIComponent(slug)}`)}${query}`
+  const metadataUrl = `${apiUrl(request, `/api/blog/${encodeURIComponent(slug)}/metadata`)}${query}`
+  const metadataResponse = await fetch(metadataUrl, articleRequestInit(request))
   if (!metadataResponse.ok) throw unavailable(metadataResponse.status === 404 ? 404 : 502)
   const post = postPublicMetadataSchema.parse(await metadataResponse.json())
   if (allowPublicBody && post.access === 'PUBLIC') {
@@ -59,7 +62,7 @@ async function loadMetadata(request: Request, params: LoaderFunctionArgs['params
 async function loadArticle({ request, params }: LoaderFunctionArgs) {
   const slug = params.slug
   if (!slug) throw unavailable(404)
-  const detailUrl = apiUrl(request, `/api/blog/${encodeURIComponent(slug)}`)
+  const detailUrl = apiUrl(request, `/api/blog/${encodeURIComponent(slug)}${new URL(request.url).search}`)
   const init = articleRequestInit(request)
   const response = await fetch(detailUrl, init)
   if (response.ok) {
@@ -91,10 +94,15 @@ export async function clientLoader({ request, params, serverLoader }: ClientLoad
 export function headers() { return ARTICLE_NO_STORE }
 export function shouldRevalidate() { return true }
 
+function localeUrl(origin: string, slug: string, locale: string, sourceLocale: string) {
+  const path = `${origin}/articles/${encodeURIComponent(slug)}`
+  return locale === sourceLocale ? path : `${path}?lang=${encodeURIComponent(locale)}`
+}
+
 export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => {
   if (!loaded) return [{ title: 'Article — Trade basic' }]
   const description = loaded.post.excerpt ?? loaded.post.title
-  const canonical = `${loaded.origin}/articles/${encodeURIComponent(loaded.post.slug)}`
+  const canonical = localeUrl(loaded.origin, loaded.post.slug, loaded.post.resolvedLocale, loaded.post.sourceLocale)
   return [
     { title: `${loaded.post.title} — Trade basic` },
     { name: 'description', content: description },
@@ -102,19 +110,25 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => {
     { property: 'og:description', content: description },
     { property: 'og:type', content: 'article' },
     { tagName: 'link', rel: 'canonical', href: canonical },
+    ...loaded.post.availableLocales.map(item => ({ tagName: 'link' as const, rel: 'alternate', hrefLang: item, href: localeUrl(loaded.origin, loaded.post.slug, item, loaded.post.sourceLocale) })),
+    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: localeUrl(loaded.origin, loaded.post.slug, loaded.post.sourceLocale, loaded.post.sourceLocale) },
   ]
 }
 
 const copy = {
-  en: { back: 'All articles', by: 'By', edit: 'Edit article', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy', membersOnly: 'Members only', memberHint: 'Sign in with a valid account to read the full article.', signIn: 'Sign in', register: 'Create account', loading: 'Refreshing article…' },
-  'zh-TW': { back: '全部文章', by: '作者', edit: '編輯文章', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略', membersOnly: '僅限會員', memberHint: '請登入有效帳戶，以閱讀完整文章。', signIn: '登入', register: '建立帳戶', loading: '正在更新文章…' },
-  'zh-CN': { back: '全部文章', by: '作者', edit: '编辑文章', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略', membersOnly: '仅限会员', memberHint: '请登录有效账户，以阅读完整文章。', signIn: '登录', register: '创建账户', loading: '正在更新文章…' },
+  en: { back: 'All articles', by: 'By', edit: 'Edit article', fundamental: 'Fundamental', technical: 'Technical', market: 'Market', strategy: 'Strategy', membersOnly: 'Members only', memberHint: 'Sign in with a valid account to read the full article.', signIn: 'Sign in', register: 'Create account', loading: 'Refreshing article…', articleLanguage: 'Article language', original: 'Original', fallback: (requested: string, source: string) => `${requested} is unavailable. Showing the original in ${source}.`, updating: 'Translation is being updated. Showing the original version.' },
+  'zh-TW': { back: '全部文章', by: '作者', edit: '編輯文章', fundamental: '基本面', technical: '技術面', market: '市場觀察', strategy: '投資策略', membersOnly: '僅限會員', memberHint: '請登入有效帳戶，以閱讀完整文章。', signIn: '登入', register: '建立帳戶', loading: '正在更新文章…', articleLanguage: '文章語言', original: '原文', fallback: (requested: string, source: string) => `目前沒有${requested}版本，以下顯示${source}原文。`, updating: '翻譯更新中，以下顯示原文。' },
+  'zh-CN': { back: '全部文章', by: '作者', edit: '编辑文章', fundamental: '基本面', technical: '技术面', market: '市场观察', strategy: '投资策略', membersOnly: '仅限会员', memberHint: '请登录有效账户，以阅读完整文章。', signIn: '登录', register: '创建账户', loading: '正在更新文章…', articleLanguage: '文章语言', original: '原文', fallback: (requested: string, source: string) => `目前没有${requested}版本，以下显示${source}原文。`, updating: '翻译更新中，以下显示原文。' },
 } as const
+
+const localeNames = { 'zh-TW': '繁體中文', 'zh-CN': '简体中文', en: 'English' } as const
 
 export default function Article() {
   const loaded = useLoaderData<typeof loader>() as ArticleLoaderData
   const { post } = loaded
   const { locale } = useUi()
+  const location = useLocation()
+  const navigate = useNavigate()
   const { viewer } = useOutletContext<ShellOutletContext>()
   const session = useSessionState()
   const revalidator = useRevalidator()
@@ -124,6 +138,11 @@ export default function Article() {
   const categoryLabel = post.category in c ? c[post.category as 'fundamental' | 'technical' | 'market' | 'strategy'] : post.category
   const formatDate = (value: string) => `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))} UTC`
   const articlePath = `/articles/${encodeURIComponent(post.slug)}`
+  const readerPath = `${articlePath}${location.search}`
+  const requestedLocale = articleLocaleSchema.parse(post.requestedLocale)
+  const fallbackText = post.isFallback
+    ? post.fallbackReason === 'translation_stale' ? c.updating : c.fallback(localeNames[requestedLocale], localeNames[post.sourceLocale])
+    : null
 
   const refreshArticle = useCallback(() => {
     setCacheRefreshing(true)
@@ -159,11 +178,20 @@ export default function Article() {
 
   const memberLocked = loaded.locked || (post.access === 'MEMBER' && session.authenticated === false)
   const bodyVisible = !cacheRefreshing && !memberLocked
-  const registerPath = `/register?returnTo=${encodeURIComponent(articlePath)}`
-  return <article className="diary-reading">
+  const registerPath = `/register?returnTo=${encodeURIComponent(readerPath)}`
+  useEffect(() => { document.documentElement.lang = post.resolvedLocale }, [post.resolvedLocale, locale])
+  return <article className="diary-reading" lang={post.resolvedLocale}>
     <div className="article-reading-actions"><Link to="/articles">{c.back}</Link>{viewer?.role === 'ADMIN' && <Link className="button secondary" to={`/admin/blog/${post.id}/edit`}>{c.edit}</Link>}</div>
     <header>
       <p className="muted article-meta">{categoryLabel} · {c.by} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time></p>
+      <div className="article-language-control"><label htmlFor="article-language">{c.articleLanguage}</label><select id="article-language" value={post.resolvedLocale} onChange={event => {
+        const parsed = articleLocaleSchema.safeParse(event.currentTarget.value)
+        if (parsed.success) navigate(`${articlePath}?lang=${encodeURIComponent(parsed.data)}`)
+      }}>
+        {post.availableLocales.map(item => <option key={item} value={item}>{localeNames[item]}{item === post.sourceLocale ? ` (${c.original})` : ''}</option>)}
+        {post.isFallback && !post.availableLocales.includes(requestedLocale) && <option value={requestedLocale} disabled>{localeNames[requestedLocale]}</option>}
+      </select></div>
+      {fallbackText && <p className="article-language-fallback" role="status">{fallbackText}</p>}
       <h1>{post.title}</h1>
       {post.excerpt && <p className="lede">{post.excerpt}</p>}
       {post.coverImage && <img src={post.coverImage} alt={post.title} style={{ width: '100%', height: 'auto', maxHeight: 480, objectFit: 'cover' }} />}

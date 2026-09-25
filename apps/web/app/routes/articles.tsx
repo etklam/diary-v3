@@ -59,19 +59,21 @@ export default function Articles() {
     next.set('page', String(nextPage))
     return `/articles?${next.toString()}`
   }
+  const articleHref = (slug: string, resolvedLocale: string) => `/articles/${encodeURIComponent(slug)}?lang=${encodeURIComponent(resolvedLocale)}`
   const formatDate = (value: string) => `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))} UTC`
   return <section className="plan-page">
     <header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div>{viewer?.role === 'ADMIN' && <div className="article-admin-actions"><Link className="button" to="/admin/blog/new">{c.new}</Link><Link to="/admin/blog">{c.manage}</Link></div>}</header>
     <Form method="get" className="plan-filters" role="search">
+      {params.get('lang') && <input type="hidden" name="lang" value={params.get('lang')!} />}
       <label>{c.search}<input name="search" defaultValue={params.get('search') ?? ''} /></label>
       <label>{c.category}<select name="category" defaultValue={params.get('category') ?? ''}><option value="">{c.all}</option><option value="fundamental">{c.fundamental}</option><option value="technical">{c.technical}</option><option value="market">{c.market}</option><option value="strategy">{c.strategy}</option></select></label>
       <button type="submit">{c.submit}</button>
     </Form>
     {loaded.data.length === 0 ? <p>{c.empty}</p> : <ol className="plan-list">{loaded.data.map(post => <li key={post.id}>
-      <h2><Link to={`/articles/${encodeURIComponent(post.slug)}`}>{post.title}</Link></h2>
+      <h2><Link to={articleHref(post.slug, post.resolvedLocale)}>{post.title}</Link></h2>
       <p className="muted article-meta">{categoryLabel(post.category)} · {c.author} {post.author.name ?? '—'} · <time dateTime={post.publishedAt ?? post.createdAt}>{formatDate(post.publishedAt ?? post.createdAt)}</time><span className="article-access-badge">{post.access === 'MEMBER' ? c.membersOnly : c.publicAccess}</span></p>
       {post.excerpt && <p>{post.excerpt}</p>}
-      <Link to={`/articles/${encodeURIComponent(post.slug)}`}>{c.read}</Link>
+      <Link to={articleHref(post.slug, post.resolvedLocale)}>{c.read}</Link>
     </li>)}</ol>}
     {loaded.pagination.totalPages > 1 && <nav className="plan-pagination" aria-label="Article pages">
       {page > 1 && <Link className="button secondary" to={makePage(page - 1)}>{c.previous}</Link>}

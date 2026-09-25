@@ -105,6 +105,22 @@ export {
 } from './post.js'
 export type { PostAccess, PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostPublicMetadata, PostStatus, PostWriteRequest } from './post.js'
 export {
+  articleLocaleSchema,
+  articleLocaleResolutionSchema,
+  articleTranslationActionResponseSchema,
+  articleTranslationAdminResponseSchema,
+  articleTranslationAdminRowSchema,
+  articleTranslationAiConfigSchema,
+  articleTranslationAiConfigUpdateSchema,
+  articleTranslationEditRequestSchema,
+  articleTranslationJobRequestSchema,
+  articleTranslationJobResponseSchema,
+  articleTranslationStatusSchema,
+  translationJobStatusSchema,
+  translationProviderSchema,
+} from './article-translation.js'
+export type { ArticleLocale, ArticleTranslationAdminResponse, ArticleTranslationAiConfig, ArticleTranslationEditRequest, ArticleTranslationJobRequest, TranslationProviderName } from './article-translation.js'
+export {
   researchApproveRequestSchema,
   researchAssetTypeSchema,
   researchAttemptSchema,
@@ -224,6 +240,14 @@ export const errorCodes = [
   'SYS_VALIDATION_ERROR',
   'SYS_NOT_FOUND',
   'BLOG_NOT_FOUND',
+  'ARTICLE_TRANSLATION_NOT_FOUND',
+  'ARTICLE_TRANSLATION_SOURCE_STALE',
+  'ARTICLE_TRANSLATION_REVIEW_REQUIRED',
+  'ARTICLE_TRANSLATION_NOT_PUBLISHED',
+  'ARTICLE_TRANSLATION_PROVIDER_DISABLED',
+  'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED',
+  'ARTICLE_TRANSLATION_JOB_NOT_FOUND',
+  'ARTICLE_TRANSLATION_UNAVAILABLE',
   'SEC_CONFIG_MISSING',
   'SEC_VALIDATION_ERROR',
   'SEC_COMPANY_NOT_FOUND',

@@ -36,6 +36,7 @@
     "manifests:check": "node --import tsx scripts/validate-production-manifests.ts",
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
     "ai:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/ai-report-worker-cli.ts",
+    "article-translations:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/article-translation-worker-cli.ts",
     "research:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/research-worker-cli.ts",
     "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
     "market:state": "node --env-file-if-exists=.env --import tsx apps/api/src/market-state-cli.ts",
@@ -44,6 +45,7 @@
     "market:rotation:prod": "node dist/api/rotation.js",
     "market:state:prod": "node dist/api/market-state.js",
     "research:worker:prod": "node dist/api/research-worker.js",
+    "article-translations:worker:prod": "node dist/api/article-translation-worker.js",
     "research:retention:prod": "node dist/api/research-retention.js"
   },
   "dependencies": {
@@ -62,8 +64,11 @@
     "react-markdown": "10.1.0",
     "react-router": "8.3.1",
     "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3",
+    "unified": "11.0.5",
     "yahoo-finance2": "4.0.2",
     "zod": "4.5.4"
   },

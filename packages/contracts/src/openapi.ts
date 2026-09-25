@@ -65,6 +65,15 @@ import {
   postListQuerySchema,
 } from './post.js'
 import {
+  articleTranslationActionResponseSchema,
+  articleTranslationAdminResponseSchema,
+  articleTranslationAiConfigSchema,
+  articleTranslationAiConfigUpdateSchema,
+  articleTranslationEditRequestSchema,
+  articleTranslationJobRequestSchema,
+  articleTranslationJobResponseSchema,
+} from './article-translation.js'
+import {
   adminDiaryListQuerySchema,
   adminDiaryListResponseSchema,
   adminStatsResponseSchema,
@@ -601,6 +610,13 @@ const PostWriteRequest = registry.register('PostWriteRequest', postWriteRequestS
 const PostBulkRequest = registry.register('PostBulkRequest', postBulkRequestSchema.clone())
 const PostBulkResponse = registry.register('PostBulkResponse', postBulkResponseSchema.clone())
 const PostDeleteResponse = registry.register('PostDeleteResponse', postDeleteResponseSchema.clone())
+const ArticleTranslationAdminResponse = registry.register('ArticleTranslationAdminResponse', articleTranslationAdminResponseSchema.clone())
+const ArticleTranslationJobRequest = registry.register('ArticleTranslationJobRequest', articleTranslationJobRequestSchema.clone())
+const ArticleTranslationJobResponse = registry.register('ArticleTranslationJobResponse', articleTranslationJobResponseSchema.clone())
+const ArticleTranslationEditRequest = registry.register('ArticleTranslationEditRequest', articleTranslationEditRequestSchema.clone())
+const ArticleTranslationActionResponse = registry.register('ArticleTranslationActionResponse', articleTranslationActionResponseSchema.clone())
+const ArticleTranslationAiConfig = registry.register('ArticleTranslationAiConfig', articleTranslationAiConfigSchema.clone())
+const ArticleTranslationAiConfigUpdate = registry.register('ArticleTranslationAiConfigUpdate', articleTranslationAiConfigUpdateSchema.clone())
 
 registry.registerPath({ method: 'get', path: '/api/blog', tags: ['Blog'], operationId: 'blogPublicList', security: [{}], request: { query: postListQuerySchema.clone() }, responses: { 200: json(PostPublicListResponse, 'Published public articles'), ...errors([400, 401, 500]) } })
 registry.registerPath({ method: 'get', path: '/api/blog/{slug}/metadata', tags: ['Blog'], operationId: 'blogPublicMetadata', security: [{}, { accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ slug: z.string().min(1).max(255) }) }, responses: { 200: json(PostPublicMetadata, 'Published article metadata without body content'), ...errors([401, 404, 500]) } })
@@ -614,6 +630,17 @@ registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/publish', ta
 registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/archive', tags: ['Blog'], operationId: 'blogArchive', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(PostAdminDetail, 'Archived article'), ...errors([400, 401, 403, 404, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-publish', tags: ['Blog'], operationId: 'blogBulkPublish', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Published article count'), ...errors([400, 401, 403, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog/admin/bulk-delete', tags: ['Blog'], operationId: 'blogBulkDelete', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(PostBulkRequest, 'Article IDs') }, responses: { 200: json(PostBulkResponse, 'Deleted article count'), ...errors([400, 401, 403, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/blog/admin/{id}/translations', tags: ['Blog translations'], operationId: 'blogTranslationsAdminGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(ArticleTranslationAdminResponse, 'Translation drafts and published snapshots'), ...errors([400, 401, 403, 404, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/translations/jobs', tags: ['Blog translations'], operationId: 'blogTranslationJobsCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }), body: json(ArticleTranslationJobRequest, 'Locales and explicit provider selection') }, responses: { 200: json(ArticleTranslationJobResponse, 'Persistent translation job IDs'), ...errors([400, 401, 403, 404, 409, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/blog/admin/{id}/translations/{locale}', tags: ['Blog translations'], operationId: 'blogTranslationDraftEdit', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema, locale: z.enum(['zh-TW', 'zh-CN', 'en']) }), body: json(ArticleTranslationEditRequest, 'Manually edited translation draft') }, responses: { 200: json(ArticleTranslationActionResponse, 'Saved translation draft'), ...errors([400, 401, 403, 404, 500]) } })
+for (const [action, operationId, description] of [
+  ['review', 'blogTranslationDraftReview', 'Review the current translation draft'],
+  ['publish', 'blogTranslationPublish', 'Publish a reviewed translation snapshot'],
+  ['unpublish', 'blogTranslationUnpublish', 'Unpublish a translation snapshot'],
+] as const) registry.registerPath({ method: 'post', path: `/api/blog/admin/{id}/translations/{locale}/${action}`, tags: ['Blog translations'], operationId, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema, locale: z.enum(['zh-TW', 'zh-CN', 'en']) }) }, responses: { 200: json(ArticleTranslationActionResponse, description), ...errors([400, 401, 403, 404, 409, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/translations/{locale}/retranslate', tags: ['Blog translations'], operationId: 'blogTranslationRetranslate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema, locale: z.enum(['zh-TW', 'zh-CN', 'en']) }), body: json(articleTranslationJobRequestSchema.pick({ provider: true }).clone(), 'Explicit provider selection') }, responses: { 200: json(ArticleTranslationJobResponse, 'Persistent translation job ID'), ...errors([400, 401, 403, 404, 409, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/admin/article-translations/ai-config', tags: ['Blog translations'], operationId: 'articleTranslationAiConfigGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(ArticleTranslationAiConfig, 'Translation-only AI settings with secret status'), ...errors([401, 403, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/admin/article-translations/ai-config', tags: ['Blog translations'], operationId: 'articleTranslationAiConfigUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(ArticleTranslationAiConfigUpdate, 'Translation-only AI settings') }, responses: { 200: json(ArticleTranslationAiConfig, 'Saved translation-only AI settings'), ...errors([400, 401, 403, 500]) } })
 
 registerAiOpenApi(registry, ApiErrorResponse)
 registerResearchOpenApi(registry, ApiErrorResponse)

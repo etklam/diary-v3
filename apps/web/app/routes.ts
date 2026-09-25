@@ -40,6 +40,7 @@ export default [
   route('admin/etf', 'routes/etf-admin.tsx'),
   route('admin/users', 'routes/admin-users.tsx'),
   route('admin/ai', 'routes/admin-ai.tsx'),
+  route('admin/article-translations', 'routes/admin-article-translations.tsx'),
   route('admin/research', 'routes/admin-research.tsx'),
   route('admin/research/new', 'routes/admin-research-new.tsx'),
   route('admin/research/settings', 'routes/admin-research-settings.tsx'),

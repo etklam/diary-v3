@@ -14,6 +14,7 @@ export const productionManifestFiles = [
   'ops/k8s/production/07-migrate-job.yaml',
   'ops/k8s/production/08-ai-worker.yaml',
   'ops/k8s/production/09-research-worker.yaml',
+  'ops/k8s/production/10-article-translation-worker.yaml',
 ];
 
 type Manifest = { kind?: string; metadata?: { name?: string; namespace?: string }; spec?: unknown };

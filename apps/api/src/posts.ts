@@ -28,10 +28,14 @@ import {
   type ErrorCode,
   type PostStatus,
 } from '@diary/contracts'
-import { posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
+import { articleLocaleSchema, type ArticleLocale } from '@diary/contracts'
+import { articleTranslationAiConfig, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
+import { getCookie } from 'hono/cookie'
 import { resolveArticleReadAccess } from './article-policy.js'
 import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from './research-studio/publication.js'
 import type { ResearchLatestCompletedSession } from './research-studio/service.js'
+import { loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
+import { enqueueArticleTranslationJob } from './article-translations/store.js'
 import type { AppEnv } from './app.js'
 
 const PUBLIC_DEFAULT_LIMIT = 9
@@ -186,6 +190,12 @@ function toPublicListItem(row: {
     updatedAt: row.post.updatedAt.toISOString(),
     access: row.post.access,
     membersOnly: row.post.access === 'MEMBER',
+    sourceLocale: row.post.sourceLocale as ArticleLocale,
+    requestedLocale: row.post.sourceLocale as ArticleLocale,
+    resolvedLocale: row.post.sourceLocale as ArticleLocale,
+    availableLocales: [row.post.sourceLocale as ArticleLocale],
+    isFallback: false,
+    fallbackReason: null,
     author: { id: String(row.author.id), name: row.author.name },
   }
 }
@@ -207,6 +217,11 @@ function toAdminDetail(row: typeof posts.$inferSelect & { author: { id: bigint; 
     content: row.content,
     excerptAuthored: row.excerptAuthored,
     authorId: String(row.authorId),
+    sourceRevision: row.sourceRevision,
+    sourceHash: row.sourceHash,
+    autoTranslateEnabled: row.autoTranslateEnabled,
+    autoTranslateLocales: row.autoTranslateLocales as ArticleLocale[],
+    autoTranslateProvider: row.autoTranslateProvider === 'ai' ? 'ai' : 'edge',
   })
 }
 
@@ -250,6 +265,24 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(and(eq(posts.slug, slug), eq(posts.status, 'PUBLISHED'), isNotNull(posts.publishedAt))).limit(1)
     return row
   }
+  const localePreference = async (c: Context<AppEnv>): Promise<ArticleLocale | null> => {
+    const viewer = c.get('user')
+    if (viewer) {
+      const [account] = await db.select({ locale: users.locale }).from(users).where(eq(users.id, BigInt(viewer.id))).limit(1)
+      const locale = articleLocaleSchema.safeParse(account?.locale)
+      if (locale.success) return locale.data
+    }
+    const cookieLocale = articleLocaleSchema.safeParse(getCookie(c, 'diary-locale'))
+    return cookieLocale.success ? cookieLocale.data : null
+  }
+  const explicitLocale = (value: string | undefined): ArticleLocale | undefined => {
+    if (value === undefined) return undefined
+    const parsed = articleLocaleSchema.safeParse(value)
+    if (!parsed.success) return validationError(parsed.error)
+    return parsed.data
+  }
+  const requestedLocaleForPost = async (c: Context<AppEnv>, post: typeof posts.$inferSelect, explicit?: ArticleLocale) =>
+    explicit ?? await localePreference(c) ?? post.sourceLocale as ArticleLocale
   const uniqueSlug = async (title: string, excludeId?: bigint, connection: Database | ResearchTransaction = db) => {
     const base = slugFromTitle(title)
     const [clash] = await connection.select({ id: posts.id }).from(posts)
@@ -264,6 +297,32 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     await lockResearchMutation(tx)
     const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId))
     if (actor?.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
+  }
+  const queueAutomaticTranslations = async (post: typeof posts.$inferSelect, requestedBy: bigint) => {
+    if (post.status !== 'PUBLISHED' || !post.publishedAt || !post.autoTranslateEnabled || !post.autoTranslateProvider) return
+    const provider = post.autoTranslateProvider
+    if (provider !== 'edge' && provider !== 'ai') return
+    if (provider === 'edge' && post.access !== 'PUBLIC') return
+    const targets = articleLocaleSchema.array().safeParse(post.autoTranslateLocales)
+    if (!targets.success) return
+    const [config] = provider === 'ai'
+      ? await db.select({ revision: articleTranslationAiConfig.revision }).from(articleTranslationAiConfig).where(eq(articleTranslationAiConfig.singleton, 'default')).limit(1)
+      : [undefined]
+    for (const targetLocale of targets.data) {
+      if (targetLocale === post.sourceLocale) continue
+      try {
+        await enqueueArticleTranslationJob(db, {
+          postId: post.id,
+          targetLocale,
+          provider,
+          requestedBy,
+          configRevision: config?.revision ?? null,
+          now: now(),
+        })
+      } catch {
+        // Translation drafts are best-effort after the source article has already been published.
+      }
+    }
   }
   const listWhere = (query: { category?: string; tag?: string; search?: string; dateFrom?: string; dateTo?: string; status?: PostStatus; author?: string }, publicView: boolean) => {
     const clauses = [
@@ -302,6 +361,8 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const parsed = (publicView ? postAdminListQuerySchema.omit({ status: true, author: true }) : postAdminListQuerySchema).safeParse(c.req.query())
     if (!parsed.success) return validationError(parsed.error)
     const query = parsed.data
+    const explicitLang = explicitLocale(query.lang)
+    const preference = publicView && !explicitLang ? await localePreference(c) : null
     const defaultLimit = publicView ? PUBLIC_DEFAULT_LIMIT : ADMIN_DEFAULT_LIMIT
     const limit = query.limit && query.limit >= 1 && query.limit <= MAX_LIMIT ? query.limit : defaultLimit
     const page = query.page
@@ -310,7 +371,23 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
     const [totalRow] = await db.select({ total: count() }).from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where)
     const total = Number(totalRow?.total ?? 0)
-    const response = { data: rows.map(row => publicView ? toPublicListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null } }) : toAdminListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null; email: string } })), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
+    let data: unknown[]
+    if (publicView) {
+      const publicRows = rows as Array<{ post: typeof posts.$inferSelect; author: { id: bigint; name: string | null } }>
+      const accessibleRows = publicRows.filter(row => resolveArticleReadAccess(row.post, c.get('user')) !== 'NOT_FOUND')
+      const translations = await loadArticleTranslations(db, accessibleRows.map(row => row.post.id))
+      data = accessibleRows.map(row => {
+        const requested = explicitLang ?? preference ?? row.post.sourceLocale as ArticleLocale
+        const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
+        return postPublicListResponseSchema.shape.data.element.parse({
+          ...toPublicListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null } }),
+          ...localizedPostFields(row.post, resolution),
+        })
+      })
+    } else {
+      data = rows.map(row => toAdminListItem(row as { post: typeof posts.$inferSelect; author: { id: bigint; name: string | null; email: string } }))
+    }
+    const response = { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
     return c.json(publicView ? postPublicListResponseSchema.parse(response) : postAdminListResponseSchema.parse(response))
   }
 
@@ -339,6 +416,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const latest = await readAdmin(id)
     if (!latest) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    if (status === 'PUBLISHED') await queueAutomaticTranslations(latest.post, actorId)
     return c.json(toAdminDetail({ ...latest.post, author: latest.author }))
   }
   app.post('/api/blog/admin/bulk-publish', async c => {
@@ -352,6 +430,8 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       for (const row of rows) await tx.update(posts).set({ status: 'PUBLISHED', publishedAt: publishedAtFor(row.status, row.publishedAt, 'PUBLISHED', now()), updatedAt: now() }).where(eq(posts.id, row.id))
       return rows.length
     })
+    const publishedRows = await db.select().from(posts).where(and(inArray(posts.id, ids), eq(posts.status, 'PUBLISHED')))
+    for (const post of publishedRows) await queueAutomaticTranslations(post, actorId)
     return c.json(postBulkResponseSchema.parse({ count: result }))
   })
   app.post('/api/blog/admin/bulk-delete', async c => {
@@ -371,7 +451,13 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const decision = resolveArticleReadAccess(row.post, c.get('user'))
     if (decision === 'NOT_FOUND') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(toPublicMetadata({ ...row.post, author: row.author }))
+    const requested = await requestedLocaleForPost(c, row.post, explicitLocale(c.req.query('lang')))
+    const translations = await loadArticleTranslations(db, [row.post.id])
+    const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
+    return c.json(postPublicMetadataSchema.parse({
+      ...toPublicMetadata({ ...row.post, author: row.author }),
+      ...localizedPostFields(row.post, resolution),
+    }))
   })
   app.get('/api/blog/:slug', async c => {
     c.header('Cache-Control', 'no-store')
@@ -380,11 +466,20 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const decision = resolveArticleReadAccess(row.post, c.get('user'))
     if (decision === 'NOT_FOUND') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     if (decision === 'LOCKED') return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    return c.json(toPublicDetail({ ...row.post, author: row.author }, { redactProtectedExcerpt: c.get('user') === undefined }))
+    const requested = await requestedLocaleForPost(c, row.post, explicitLocale(c.req.query('lang')))
+    const translations = await loadArticleTranslations(db, [row.post.id])
+    const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
+    return c.json(postPublicDetailSchema.parse({
+      ...toPublicDetail({ ...row.post, author: row.author }, { redactProtectedExcerpt: c.get('user') === undefined }),
+      ...localizedPostFields(row.post, resolution, { includeContent: true, redactProtectedExcerpt: c.get('user') === undefined }),
+    }))
   })
   app.post('/api/blog', async c => {
     const authorId = admin(c)
     const input = await parseJson(c, postWriteRequestSchema)
+    if (input.autoTranslateEnabled && (input.autoTranslateProvider ?? 'edge') === 'edge' && (input.access ?? 'MEMBER') !== 'PUBLIC') {
+      return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'Automatic Microsoft Edge Translate can only process PUBLIC articles')
+    }
     const timestamp = now()
     const excerptAuthored = typeof input.excerpt === 'string' && input.excerpt.length > 0
     const created = await db.transaction(async tx => {
@@ -401,6 +496,10 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
         tags: input.tags,
         status: input.status,
         access: input.access ?? 'MEMBER',
+        sourceLocale: input.sourceLocale ?? 'zh-TW',
+        autoTranslateEnabled: input.autoTranslateEnabled ?? false,
+        autoTranslateLocales: input.autoTranslateLocales ?? [],
+        autoTranslateProvider: input.autoTranslateEnabled === false ? null : input.autoTranslateProvider ?? (input.autoTranslateEnabled ? 'edge' : null),
         publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -410,6 +509,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       return post
     })
     if (!created) throw new Error('Post insert returned no row')
+    if (created.status === 'PUBLISHED') await queueAutomaticTranslations(created, authorId)
     const row = await readAdmin(created.id)
     if (!row) throw new Error('Post read after insert returned no row')
     return c.json(toAdminDetail({ ...row.post, author: row.author }), 200)
@@ -428,6 +528,13 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       if (input.status === 'PUBLISHED' && !researchContentChanged) await guardResearchPublication(tx, id, { title: input.title, content: input.content })
       const timestamp = now()
       const nextAccess = input.access ?? existing.post.access
+      const nextAutoTranslateEnabled = input.autoTranslateEnabled ?? existing.post.autoTranslateEnabled
+      const nextAutoTranslateProvider = input.autoTranslateEnabled === false
+        ? null
+        : input.autoTranslateProvider ?? (input.autoTranslateEnabled ? existing.post.autoTranslateProvider ?? 'edge' : existing.post.autoTranslateProvider)
+      if (nextAutoTranslateEnabled && nextAutoTranslateProvider === 'edge' && nextAccess !== 'PUBLIC') {
+        return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'Automatic Microsoft Edge Translate can only process PUBLIC articles')
+      }
       const hasExcerptInput = input.excerpt !== undefined
       const echoedDerivedExcerpt = !existing.post.excerptAuthored
         && typeof input.excerpt === 'string'
@@ -454,6 +561,10 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
         tags: input.tags,
         status: nextStatus,
         access: nextAccess,
+        sourceLocale: input.sourceLocale ?? existing.post.sourceLocale,
+        autoTranslateEnabled: nextAutoTranslateEnabled,
+        autoTranslateLocales: input.autoTranslateLocales ?? existing.post.autoTranslateLocales,
+        autoTranslateProvider: nextAutoTranslateProvider,
         publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, nextStatus, timestamp),
         updatedAt: timestamp,
       }).where(eq(posts.id, id)).returning()
@@ -464,6 +575,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
+    if (row.post.status === 'PUBLISHED') await queueAutomaticTranslations(row.post, actorId)
     return c.json(toAdminDetail({ ...row.post, author: row.author }))
   })
   app.delete('/api/blog/:id', async c => {
