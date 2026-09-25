@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AiProviderError, validateBaseUrl, type AiTransport } from '../ai-reports/outbound-policy.js'
+import { AiProviderError, validateHttpsAiBaseUrl, type AiTransport } from '../ai-reports/outbound-policy.js'
 import { TranslationProviderError, type TranslationProvider, type TranslationProviderRequest, type TranslationProviderResult } from './types.js'
 
 const MAX_BLOCKS_PER_REQUEST = 16
@@ -33,7 +33,6 @@ const translationsSchema = z.object({
 export interface AiTranslationProviderConfig {
   enabled: boolean
   baseUrl: string
-  allowedBaseUrls: string[]
   model: string
   apiKey: string
   timeoutMs: number
@@ -58,10 +57,10 @@ function validateConfig(config: AiTranslationProviderConfig): void {
   if (!Number.isInteger(config.maxTokens) || config.maxTokens < 64 || config.maxTokens > 32_000) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   if (!Number.isInteger(config.maxCallsPerJob) || config.maxCallsPerJob < 1 || config.maxCallsPerJob > 64) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   if (!Number.isInteger(config.tokenBudget) || config.tokenBudget < 256 || config.tokenBudget > 1_000_000) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (config.prompt.length > 12_000 || config.allowedBaseUrls.length < 1 || config.allowedBaseUrls.length > 20) {
+  if (config.prompt.length > 20_000) {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
-  try { validateBaseUrl(config.baseUrl, config.allowedBaseUrls) }
+  try { validateHttpsAiBaseUrl(config.baseUrl) }
   catch {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
@@ -163,7 +162,7 @@ async function translateBatch(
         blocks,
       }) },
     ],
-    max_tokens: config.maxTokens,
+    max_completion_tokens: config.maxTokens,
     stream: false,
     response_format: { type: 'json_object' },
   }
@@ -176,7 +175,7 @@ async function translateBatch(
       apiKey: config.apiKey,
       timeoutMs: config.timeoutMs,
       signal,
-      allowedBaseUrls: config.allowedBaseUrls,
+      allowedBaseUrls: [config.baseUrl],
       body,
     })
   } catch (error) {

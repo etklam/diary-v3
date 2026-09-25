@@ -29,7 +29,7 @@ import {
   type PostStatus,
 } from '@diary/contracts'
 import { articleLocaleSchema, type ArticleLocale } from '@diary/contracts'
-import { articleTranslationAiConfig, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
+import { articleTranslationAiProfiles, articleTranslationAiSettings, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
 import { getCookie } from 'hono/cookie'
 import { resolveArticleReadAccess } from './article-policy.js'
 import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from './research-studio/publication.js'
@@ -305,9 +305,15 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     if (provider === 'edge' && post.access !== 'PUBLIC') return
     const targets = articleLocaleSchema.array().safeParse(post.autoTranslateLocales)
     if (!targets.success) return
-    const [config] = provider === 'ai'
-      ? await db.select({ revision: articleTranslationAiConfig.revision }).from(articleTranslationAiConfig).where(eq(articleTranslationAiConfig.singleton, 'default')).limit(1)
-      : [undefined]
+    let aiProfile: typeof articleTranslationAiProfiles.$inferSelect | undefined
+    if (provider === 'ai') {
+      const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
+      if (!settings?.defaultProfileId) return
+      const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
+      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return
+      if (post.access === 'MEMBER' && !profile.allowMemberArticles) return
+      aiProfile = profile
+    }
     for (const targetLocale of targets.data) {
       if (targetLocale === post.sourceLocale) continue
       try {
@@ -316,7 +322,9 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
           targetLocale,
           provider,
           requestedBy,
-          configRevision: config?.revision ?? null,
+          aiProfileId: aiProfile?.id ?? null,
+          aiProfileName: aiProfile?.name ?? null,
+          configRevision: aiProfile?.revision ?? null,
           now: now(),
         })
       } catch {

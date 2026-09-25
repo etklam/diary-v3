@@ -110,8 +110,11 @@ export {
   articleTranslationActionResponseSchema,
   articleTranslationAdminResponseSchema,
   articleTranslationAdminRowSchema,
-  articleTranslationAiConfigSchema,
-  articleTranslationAiConfigUpdateSchema,
+  articleTranslationAiDefaultUpdateSchema,
+  articleTranslationAiProviderSaveSchema,
+  articleTranslationAiProviderSchema,
+  articleTranslationAiProvidersResponseSchema,
+  articleTranslationAiProviderUpdateSchema,
   articleTranslationEditRequestSchema,
   articleTranslationJobRequestSchema,
   articleTranslationJobResponseSchema,
@@ -119,7 +122,7 @@ export {
   translationJobStatusSchema,
   translationProviderSchema,
 } from './article-translation.js'
-export type { ArticleLocale, ArticleTranslationAdminResponse, ArticleTranslationAiConfig, ArticleTranslationEditRequest, ArticleTranslationJobRequest, TranslationProviderName } from './article-translation.js'
+export type { ArticleLocale, ArticleTranslationAdminResponse, ArticleTranslationAiProvider, ArticleTranslationEditRequest, ArticleTranslationJobRequest, TranslationProviderName } from './article-translation.js'
 export {
   researchApproveRequestSchema,
   researchAssetTypeSchema,

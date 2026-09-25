@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { and, asc, eq } from 'drizzle-orm'
 import {
-  articleTranslationAiConfig,
+  articleTranslationAiProfiles,
   articleTranslationJobs,
   articleTranslationRuntime,
   postTranslations,
@@ -38,7 +38,6 @@ export interface ArticleTranslationWorkerOptions {
   signal?: AbortSignal
   aiTransport?: AiTransport
   edgeProviderOptions?: EdgeTranslationProviderOptions
-  allowedAiBaseUrls?: string[]
 }
 
 export type ArticleTranslationWorkerResult =
@@ -256,15 +255,15 @@ async function loadProvider(options: ArticleTranslationWorkerOptions, job: JobRo
     if (runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now) throw new TranslationProviderError('TRANSLATION_PROVIDER_DISABLED')
     return { provider: createEdgeTranslationProvider(options.edgeProviderOptions), promptVersion: null }
   }
-  const [config] = await options.db.select().from(articleTranslationAiConfig).where(eq(articleTranslationAiConfig.singleton, 'default')).limit(1)
-  if (!config?.enabled || !config.baseUrl || !config.model || !config.encryptedApiKey) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (job.configRevision !== null && config.revision !== job.configRevision) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  const allowedBaseUrls = options.allowedAiBaseUrls ?? (process.env.AI_ALLOWED_BASE_URLS ?? 'https://api.deepseek.com').split(',').map(value => value.trim()).filter(Boolean)
+  if (job.aiProfileId === null) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  const [config] = await options.db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, job.aiProfileId)).limit(1)
+  if (!config?.enabled || !config.baseUrl || !config.model || !config.encryptedApiKey || config.revision !== job.configRevision) {
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  }
   return {
     provider: createAiTranslationProvider({
       enabled: config.enabled,
       baseUrl: config.baseUrl,
-      allowedBaseUrls,
       model: config.model,
       apiKey: decryptAiSecret(config.encryptedApiKey, 'article-translation-api-key'),
       timeoutMs: config.timeoutMs,

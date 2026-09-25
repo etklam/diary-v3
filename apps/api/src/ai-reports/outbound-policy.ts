@@ -5,13 +5,18 @@ import { isIP } from 'node:net'
 export class AiProviderError extends Error {
   constructor(public readonly code: string, public readonly retryAfter: number | null = null) { super(code); this.name = 'AiProviderError' }
 }
-export function validateBaseUrl(raw: string, allowlist = (process.env.AI_ALLOWED_BASE_URLS ?? 'https://api.deepseek.com').split(',')): URL {
+export function validateHttpsAiBaseUrl(raw: string): URL {
   let url: URL
   try { url = new URL(raw) } catch { throw new AiProviderError('AI_UNSAFE_ENDPOINT') }
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || isIP(url.hostname.replace(/^\[|\]$/g, '')) || raw.includes('\\')) throw new AiProviderError('AI_UNSAFE_ENDPOINT')
   const normalized = url.href.replace(/\/$/, '')
-  if (!allowlist.some(value => value.trim().replace(/\/$/, '') === normalized)) throw new AiProviderError('AI_UNSAFE_ENDPOINT')
   return new URL(`${normalized}/`)
+}
+export function validateBaseUrl(raw: string, allowlist = (process.env.AI_ALLOWED_BASE_URLS ?? 'https://api.deepseek.com').split(',')): URL {
+  const url = validateHttpsAiBaseUrl(raw)
+  const normalized = url.href.replace(/\/$/, '')
+  if (!allowlist.some(value => value.trim().replace(/\/$/, '') === normalized)) throw new AiProviderError('AI_UNSAFE_ENDPOINT')
+  return url
 }
 export function isPublicAiAddress(address: string): boolean {
   const family = isIP(address)

@@ -40,8 +40,6 @@ spec:
                 secretKeyRef:
                   name: diary-v3-app
                   key: AI_ENCRYPTION_ACTIVE_KEY
-            - name: AI_ALLOWED_BASE_URLS
-              value: https://api.deepseek.com
             - name: ARTICLE_TRANSLATION_WORKER_ID
               value: diary-v3-article-translation-worker
             - name: ARTICLE_TRANSLATION_WORKER_POLL_MS

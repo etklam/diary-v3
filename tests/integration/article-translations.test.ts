@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { desc, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
-import { articleTranslationAiConfig, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts } from '@diary/db'
+import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts } from '@diary/db'
 import type { AiTransport } from '../../apps/api/src/ai-reports/outbound-policy'
 import { runArticleTranslationOnce } from '../../apps/api/src/article-translations/worker'
 import { createApp } from '../../apps/api/src/app'
@@ -25,11 +25,13 @@ beforeAll(async () => {
   previousAllowedAiBaseUrls = process.env.AI_ALLOWED_BASE_URLS
   process.env.AI_ENCRYPTION_ACTIVE_KEY = 'article-translation-test'
   process.env.AI_ENCRYPTION_KEYS = JSON.stringify({ 'article-translation-test': Buffer.alloc(32, 9).toString('base64') })
-  process.env.AI_ALLOWED_BASE_URLS = 'https://api.deepseek.com'
+  process.env.AI_ALLOWED_BASE_URLS = 'https://unrelated.example.test/v1'
   database = await provisionTestDatabase('article_translations')
 })
 beforeEach(async () => {
   await database.pool.query('delete from posts')
+  await database.pool.query("update article_translation_ai_settings set default_profile_id=null, revision=revision+1 where singleton='default'")
+  await database.pool.query('delete from article_translation_ai_profile')
   await database.pool.query("delete from users where email like 'translation-%@example.test'")
   await database.pool.query("update article_translation_runtime set worker_id=null, worker_heartbeat_at=null, active_job_id=null, active_lease_token=null, active_lease_expires_at=null, edge_failure_count=0, edge_disabled_until=null, edge_last_error_code=null, edge_last_failure_at=null where singleton='default'")
   clock = new Date('2026-09-25T12:00:00.000Z')
@@ -86,6 +88,18 @@ function edgeMock(transform: (block: string) => string = block => block) {
 
 async function mutate(browser: BrowserSession, path: string, body: unknown, method = 'POST') {
   return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
+}
+
+async function persistAiProfile(name = 'Synthetic provider', baseUrl = 'https://compatible.example.test/v1', model = 'synthetic-config-test') {
+  const [profile] = await database.db.insert(articleTranslationAiProfiles).values({
+    name, enabled: true, baseUrl, model, encryptedApiKey: 'v1.synthetic-encrypted-value',
+    translationPrompt: 'Preserve source facts and translate only the supplied article content.',
+    revision: 1,
+  }).returning()
+  if (!profile) throw new Error('Synthetic AI provider profile was not created')
+  await database.db.insert(articleTranslationAiSettings).values({ singleton: 'default', defaultProfileId: profile.id })
+    .onConflictDoUpdate({ target: articleTranslationAiSettings.singleton, set: { defaultProfileId: profile.id, revision: 1 } })
+  return profile
 }
 
 it('deduplicates Admin jobs, reviews a draft, publishes it, localizes lists, and falls back honestly', async () => {
@@ -154,17 +168,17 @@ it('queues independent automatic drafts after publishing without publishing mach
   expect(reader).toMatchObject({ requestedLocale: 'en', resolvedLocale: 'zh-TW', isFallback: true, title: post.title })
 })
 
-it('stores translation AI settings encrypted and runs an AI job through a mock transport', async () => {
+it('stores multiple OpenAI-compatible provider profiles encrypted and pins queued jobs to the selected profile', async () => {
   const admin = await login(true)
   const ordinary = await login(false)
-  const path = '/api/admin/article-translations/ai-config'
+  const path = '/api/admin/article-translations/ai-providers'
+  const defaultPath = `${path}/default`
   expect((await ordinary.request(path)).status).toBe(403)
-  const secret = 'synthetic-translation-api-key-never-sent-live'
-  const saved = await mutate(admin, path, {
+  const secretA = 'synthetic-provider-a-key-never-sent-live'
+  const secretB = 'synthetic-provider-b-key-never-sent-live'
+  const values = {
     enabled: true,
-    baseUrl: 'https://api.deepseek.com',
     model: 'synthetic-translation-model',
-    apiKey: secret,
     timeoutMs: 10_000,
     prompt: 'Keep the supplied terms consistent and preserve every financial value exactly as written.',
     promptVersion: 'test-translation-v1',
@@ -172,17 +186,32 @@ it('stores translation AI settings encrypted and runs an AI job through a mock t
     maxCallsPerJob: 4,
     tokenBudgetPerJob: 8_000,
     allowMemberArticles: false,
-  }, 'PUT')
-  expect(saved.status).toBe(200)
-  const safeConfig = await saved.json()
-  expect(safeConfig).toMatchObject({ enabled: true, secretConfigured: true, model: 'synthetic-translation-model' })
-  expect(JSON.stringify(safeConfig)).not.toContain(secret)
-  const [storedConfig] = await database.db.select().from(articleTranslationAiConfig)
-  expect(storedConfig?.encryptedApiKey).not.toBe(secret)
-  expect(storedConfig?.encryptedApiKey).toMatch(/^v1\./)
+  }
+  expect((await mutate(ordinary, path, { ...values, name: 'Unauthorized provider', baseUrl: 'https://provider.example.test/v1', apiKey: secretA })).status).toBe(403)
+  const savedA = await mutate(admin, path, { ...values, name: 'Provider A', baseUrl: 'https://provider-a.example.test/v1', apiKey: secretA })
+  const savedB = await mutate(admin, path, { ...values, name: 'Provider B', baseUrl: 'https://provider-b.example.test/v1', apiKey: secretB })
+  expect(savedA.status).toBe(200)
+  expect(savedB.status).toBe(200)
+  const providerA = await savedA.json()
+  const providerB = await savedB.json()
+  expect(providerA).toMatchObject({ name: 'Provider A', enabled: true, secretConfigured: true, model: 'synthetic-translation-model' })
+  expect(JSON.stringify(providerA)).not.toContain(secretA)
+  const stored = await database.db.select().from(articleTranslationAiProfiles).orderBy(articleTranslationAiProfiles.id)
+  expect(stored).toHaveLength(2)
+  expect(stored[0]?.encryptedApiKey).not.toBe(secretA)
+  expect(stored[0]?.encryptedApiKey).toMatch(/^v1\./)
+  expect(stored[1]?.encryptedApiKey).not.toBe(secretB)
+  expect((await mutate(admin, defaultPath, { providerId: providerA.id }, 'PUT')).status).toBe(200)
 
   const post = await createArticle(admin)
   expect((await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'ai' })).status).toBe(200)
+  const firstJob = (await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(post.id))))[0]!
+  expect(firstJob.aiProfileId).toBe(BigInt(providerA.id))
+  expect(firstJob.providerProfileName).toBe('Provider A')
+  expect((await mutate(admin, defaultPath, { providerId: providerB.id }, 'PUT')).status).toBe(200)
+  expect((await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'ai' })).status).toBe(200)
+  const jobs = await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(post.id))).orderBy(articleTranslationJobs.id)
+  expect(jobs.map(job => job.aiProfileId)).toEqual([BigInt(providerA.id), BigInt(providerB.id)])
   const transport: AiTransport = async request => {
     const body = request.body as { messages: Array<{ role: string; content: string }> }
     const user = JSON.parse(body.messages.find(message => message.role === 'user')!.content) as { blocks: string[] }
@@ -195,7 +224,15 @@ it('stores translation AI settings encrypted and runs an AI job through a mock t
       }),
     }
   }
-  expect((await runArticleTranslationOnce({ db: database.db, now: () => clock, aiTransport: transport })).status).toBe('succeeded')
+  const outbound: string[] = []
+  const recordingTransport: AiTransport = async request => {
+    outbound.push(request.baseUrl)
+    return transport(request)
+  }
+  expect((await runArticleTranslationOnce({ db: database.db, now: () => clock, aiTransport: recordingTransport })).status).toBe('succeeded')
+  expect((await runArticleTranslationOnce({ db: database.db, now: () => clock, aiTransport: recordingTransport })).status).toBe('succeeded')
+  expect(outbound[0]).toBe('https://provider-a.example.test/v1')
+  expect(outbound[1]).toBe('https://provider-b.example.test/v1')
   const [translation] = await database.db.select().from(postTranslations).where(eq(postTranslations.postId, BigInt(post.id)))
   expect(translation).toMatchObject({ locale: 'en', status: 'pending_review', draftProvider: 'ai', draftModel: 'synthetic-translation-model', draftPromptVersion: 'test-translation-v1' })
   expect(translation?.draftContent).toContain('Market review')
@@ -240,10 +277,7 @@ it('deduplicates only jobs for the same source revision, provider, and AI config
   const duplicate = await (await queueEdge()).json()
   expect(duplicate.jobs[0].id).toBe(first.jobs[0].id)
 
-  await database.db.insert(articleTranslationAiConfig).values({
-    singleton: 'default', enabled: true, baseUrl: 'https://api.deepseek.com', model: 'synthetic-config-test',
-    encryptedApiKey: 'synthetic-encrypted-value', translationPrompt: 'Preserve source facts and translate only the supplied article content.', revision: 1,
-  }).onConflictDoUpdate({ target: articleTranslationAiConfig.singleton, set: { enabled: true, baseUrl: 'https://api.deepseek.com', model: 'synthetic-config-test', encryptedApiKey: 'synthetic-encrypted-value', revision: 1 } })
+  await persistAiProfile()
   const aiResponse = await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'ai' })
   const ai = await aiResponse.json()
   expect(ai.jobs[0].id).not.toBe(first.jobs[0].id)
@@ -281,10 +315,7 @@ it('keeps a current reviewable draft visible when a later provider job fails', a
   const edgeMockFetch = edgeMock(block => block.replace('市場觀察', 'Market review').replace('保留立場', 'hold the view'))
   expect((await runArticleTranslationOnce({ db: database.db, now: () => clock, edgeProviderOptions: { fetchImpl: edgeMockFetch } })).status).toBe('succeeded')
 
-  await database.db.insert(articleTranslationAiConfig).values({
-    singleton: 'default', enabled: true, baseUrl: 'https://api.deepseek.com', model: 'synthetic-config-test',
-    encryptedApiKey: 'synthetic-encrypted-value', translationPrompt: 'Preserve source facts and translate only the supplied article content.', revision: 1,
-  }).onConflictDoUpdate({ target: articleTranslationAiConfig.singleton, set: { enabled: true, baseUrl: 'https://api.deepseek.com', model: 'synthetic-config-test', encryptedApiKey: 'synthetic-encrypted-value', revision: 1 } })
+  await persistAiProfile()
   const queued = await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'ai' })
   expect(queued.status).toBe(200)
   const queuedResponse = await queued.json()

@@ -1789,15 +1789,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/article-translations/ai-config": {
+    "/api/admin/article-translations/ai-providers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["articleTranslationAiConfigGet"];
-        put: operations["articleTranslationAiConfigUpdate"];
+        get: operations["articleTranslationAiProvidersGet"];
+        put?: never;
+        post: operations["articleTranslationAiProviderCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/article-translations/ai-providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["articleTranslationAiProviderUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/article-translations/ai-providers/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["articleTranslationAiProviderDefaultUpdate"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3765,6 +3797,7 @@ export interface components {
                     id: string;
                     /** @enum {string} */
                     provider: "edge" | "ai";
+                    providerProfileName: string | null;
                     /** @enum {string} */
                     status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED";
                     progress: number;
@@ -3824,6 +3857,7 @@ export interface components {
                     id: string;
                     /** @enum {string} */
                     provider: "edge" | "ai";
+                    providerProfileName: string | null;
                     /** @enum {string} */
                     status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED";
                     progress: number;
@@ -3832,12 +3866,14 @@ export interface components {
                 } | null;
             };
         };
-        ArticleTranslationAiConfig: {
+        ArticleTranslationAiProvider: {
+            id: string;
+            name: string;
             enabled: boolean;
-            /** Format: uri */
             baseUrl: string;
             model: string;
             secretConfigured: boolean;
+            revision: number;
             timeoutMs: number;
             prompt: string;
             promptVersion: string;
@@ -3846,7 +3882,8 @@ export interface components {
             tokenBudgetPerJob: number;
             allowMemberArticles: boolean;
         };
-        ArticleTranslationAiConfigUpdate: {
+        ArticleTranslationAiProviderSave: {
+            name: string;
             enabled: boolean;
             /** Format: uri */
             baseUrl: string;
@@ -3859,6 +3896,44 @@ export interface components {
             tokenBudgetPerJob: number;
             allowMemberArticles: boolean;
             apiKey?: string;
+        };
+        ArticleTranslationAiProviderUpdate: {
+            name: string;
+            enabled: boolean;
+            /** Format: uri */
+            baseUrl: string;
+            model: string;
+            timeoutMs: number;
+            prompt: string;
+            promptVersion: string;
+            maxTokens: number;
+            maxCallsPerJob: number;
+            tokenBudgetPerJob: number;
+            allowMemberArticles: boolean;
+            apiKey?: string;
+            expectedRevision: number;
+        };
+        ArticleTranslationAiProvidersResponse: {
+            providers: {
+                id: string;
+                name: string;
+                enabled: boolean;
+                baseUrl: string;
+                model: string;
+                secretConfigured: boolean;
+                revision: number;
+                timeoutMs: number;
+                prompt: string;
+                promptVersion: string;
+                maxTokens: number;
+                maxCallsPerJob: number;
+                tokenBudgetPerJob: number;
+                allowMemberArticles: boolean;
+            }[];
+            defaultProviderId: string | null;
+        };
+        ArticleTranslationAiDefaultUpdate: {
+            providerId: string | null;
         };
         AiAnalysisItem: {
             text: string;
@@ -15878,7 +15953,7 @@ export interface operations {
             };
         };
     };
-    articleTranslationAiConfigGet: {
+    articleTranslationAiProvidersGet: {
         parameters: {
             query?: never;
             header?: never;
@@ -15887,13 +15962,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Translation-only AI settings with secret status */
+            /** @description Configured OpenAI-compatible translation providers without API keys */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ArticleTranslationAiConfig"];
+                    "application/json": components["schemas"]["ArticleTranslationAiProvidersResponse"];
                 };
             };
             /** @description HTTP 401 error */
@@ -15925,27 +16000,27 @@ export interface operations {
             };
         };
     };
-    articleTranslationAiConfigUpdate: {
+    articleTranslationAiProviderCreate: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Translation-only AI settings */
+        /** @description OpenAI-compatible Chat Completions provider profile */
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["ArticleTranslationAiConfigUpdate"];
+                "application/json": components["schemas"]["ArticleTranslationAiProviderSave"];
             };
         };
         responses: {
-            /** @description Saved translation-only AI settings */
+            /** @description Created provider profile without API key */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ArticleTranslationAiConfig"];
+                    "application/json": components["schemas"]["ArticleTranslationAiProvider"];
                 };
             };
             /** @description HTTP 400 error */
@@ -15968,6 +16043,175 @@ export interface operations {
             };
             /** @description HTTP 403 error */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationAiProviderUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Update provider profile at the expected revision */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationAiProviderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated provider profile without API key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationAiProvider"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationAiProviderDefaultUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Set or clear the default provider used by new translation jobs */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationAiDefaultUpdate"];
+            };
+        };
+        responses: {
+            /** @description Selected default provider */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationAiProvidersResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

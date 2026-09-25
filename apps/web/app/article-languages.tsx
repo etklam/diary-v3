@@ -31,7 +31,7 @@ const copy = {
     approvedReady: 'Approved · Ready to publish', publishedVersion: 'Published version', current: 'Current', staleHint: 'The original changed. Readers are shown the original until this translation is reviewed and published again.',
     noPreview: 'There is no translation content to preview yet.', editTitle: 'Edit translation draft', titleLabel: 'Title', excerptLabel: 'Excerpt (optional)', contentLabel: 'Content', saveTranslation: 'Save translation draft', cancel: 'Cancel', close: 'Close preview', discardTranslation: 'Discard unsaved translation edits?',
     editing: 'Unsaved translation changes', restored: 'Recovered unsaved translation edits.', saveArticleToTranslate: 'Save the article to enable translation actions.', requestFailed: 'Could not load translations.', actionFailed: 'The translation action could not be completed.', saved: 'Translation draft saved.', jobQueued: 'Translation job queued. It will remain a draft until you review and publish it.', approved: 'Translation approved. Publish it when ready.', publishedOk: 'Translation published.', unpublished: 'Translation unpublished.', confirmUnpublish: 'Unpublish this translation? Readers will fall back to the original.',
-    failedDetail: 'View error', closeError: 'Hide error', status: 'Status', progress: 'Progress', thirdPartyHeading: 'Third-party translation',
+    failedDetail: 'View error', closeError: 'Hide error', status: 'Status', progress: 'Progress', thirdPartyHeading: 'Third-party translation', aiProvider: 'AI provider',
   },
   'zh-TW': {
     title: 'Article Languages / 文章語言', original: '原文語言', targets: '翻譯成', provider: '翻譯服務', settings: 'AI 設定',
@@ -44,7 +44,7 @@ const copy = {
     noPreview: '目前沒有可預覽的翻譯內容。', editTitle: '編輯翻譯草稿', titleLabel: '標題', excerptLabel: '摘要（選填）', contentLabel: '內容', saveTranslation: '保存翻譯草稿', cancel: '取消', close: '關閉預覽', discardTranslation: '放棄未保存的翻譯變更？',
     editing: '翻譯尚有未保存的變更', restored: '已還原未保存的翻譯編輯。', saveArticleToTranslate: '保存文章後即可使用翻譯功能。',
     requestFailed: '無法載入翻譯。', actionFailed: '無法完成這項翻譯操作。', saved: '翻譯草稿已保存。', jobQueued: '翻譯工作已排入佇列。完成後仍會是草稿，需經審核才能發布。', approved: '翻譯已通過審核，可以發布。', publishedOk: '翻譯已發布。', unpublished: '翻譯已取消發布。', confirmUnpublish: '要取消發布這個翻譯嗎？讀者將改為看到原文。',
-    failedDetail: '查看錯誤', closeError: '隱藏錯誤', status: '狀態', progress: '進度', thirdPartyHeading: '第三方翻譯服務',
+    failedDetail: '查看錯誤', closeError: '隱藏錯誤', status: '狀態', progress: '進度', thirdPartyHeading: '第三方翻譯服務', aiProvider: 'AI Provider',
   },
   'zh-CN': {
     title: 'Article Languages / 文章語言', original: '原文语言', targets: '翻译成', provider: '翻译服务', settings: 'AI 设置',
@@ -57,7 +57,7 @@ const copy = {
     noPreview: '目前没有可预览的翻译内容。', editTitle: '编辑翻译草稿', titleLabel: '标题', excerptLabel: '摘要（选填）', contentLabel: '内容', saveTranslation: '保存翻译草稿', cancel: '取消', close: '关闭预览', discardTranslation: '放弃未保存的翻译更改？',
     editing: '翻译尚有未保存的更改', restored: '已恢复未保存的翻译编辑。', saveArticleToTranslate: '保存文章后即可使用翻译功能。',
     requestFailed: '无法加载翻译。', actionFailed: '无法完成这项翻译操作。', saved: '翻译草稿已保存。', jobQueued: '翻译任务已加入队列。完成后仍会是草稿，需经审核才能发布。', approved: '翻译已通过审核，可以发布。', publishedOk: '翻译已发布。', unpublished: '翻译已取消发布。', confirmUnpublish: '要取消发布这个翻译吗？读者将改为看到原文。',
-    failedDetail: '查看错误', closeError: '隐藏错误', status: '状态', progress: '进度', thirdPartyHeading: '第三方翻译服务',
+    failedDetail: '查看错误', closeError: '隐藏错误', status: '状态', progress: '进度', thirdPartyHeading: '第三方翻译服务', aiProvider: 'AI Provider',
   },
 } as const
 
@@ -307,6 +307,7 @@ export function ArticleLanguagesPanel({
       return <article className="article-language-row" key={target}>
         <div className="article-language-row-main"><div className="article-language-name"><strong>{localeName[target]}</strong><span className={`article-language-status status-${status.toLowerCase().replace('_', '-')}`}>{label}</span>{hasPublished && <span className="muted">{c.publishedVersion} v{row?.publishedVersion}{row?.isCurrent ? ` · ${c.current}` : ''}</span>}</div>
           {status === 'STALE' && <p className="muted article-language-stale-note">{c.staleHint}</p>}
+          {row?.latestJob?.provider === 'ai' && row.latestJob.providerProfileName && <p className="muted article-language-stale-note">{c.aiProvider}: {row.latestJob.providerProfileName}</p>}
           {row?.latestJob?.status === 'RUNNING' && <progress aria-label={`${localeName[target]} ${c.progress}`} max={100} value={row.latestJob.progress} />}
         </div>
         <div className="article-language-actions">

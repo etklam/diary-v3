@@ -7351,6 +7351,12 @@
                         "ai"
                       ]
                     },
+                    "providerProfileName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -7381,6 +7387,7 @@
                   "required": [
                     "id",
                     "provider",
+                    "providerProfileName",
                     "status",
                     "progress",
                     "error",
@@ -7700,6 +7707,12 @@
                       "ai"
                     ]
                   },
+                  "providerProfileName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "status": {
                     "type": "string",
                     "enum": [
@@ -7730,6 +7743,7 @@
                 "required": [
                   "id",
                   "provider",
+                  "providerProfileName",
                   "status",
                   "progress",
                   "error",
@@ -7770,24 +7784,36 @@
         ],
         "additionalProperties": false
       },
-      "ArticleTranslationAiConfig": {
+      "ArticleTranslationAiProvider": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 19,
+            "pattern": "^[1-9]\\d*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
           "enabled": {
             "type": "boolean"
           },
           "baseUrl": {
             "type": "string",
-            "maxLength": 500,
-            "format": "uri"
+            "maxLength": 500
           },
           "model": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 200
           },
           "secretConfigured": {
             "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           },
           "timeoutMs": {
             "type": "integer",
@@ -7817,17 +7843,20 @@
           "tokenBudgetPerJob": {
             "type": "integer",
             "minimum": 256,
-            "maximum": 100000
+            "maximum": 256000
           },
           "allowMemberArticles": {
             "type": "boolean"
           }
         },
         "required": [
+          "id",
+          "name",
           "enabled",
           "baseUrl",
           "model",
           "secretConfigured",
+          "revision",
           "timeoutMs",
           "prompt",
           "promptVersion",
@@ -7838,9 +7867,14 @@
         ],
         "additionalProperties": false
       },
-      "ArticleTranslationAiConfigUpdate": {
+      "ArticleTranslationAiProviderSave": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -7882,7 +7916,7 @@
           "tokenBudgetPerJob": {
             "type": "integer",
             "minimum": 256,
-            "maximum": 100000
+            "maximum": 256000
           },
           "allowMemberArticles": {
             "type": "boolean"
@@ -7894,6 +7928,7 @@
           }
         },
         "required": [
+          "name",
           "enabled",
           "baseUrl",
           "model",
@@ -7904,6 +7939,207 @@
           "maxCallsPerJob",
           "tokenBudgetPerJob",
           "allowMemberArticles"
+        ],
+        "additionalProperties": false
+      },
+      "ArticleTranslationAiProviderUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "format": "uri"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 120000
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 50,
+            "maxLength": 20000
+          },
+          "promptVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 32000
+          },
+          "maxCallsPerJob": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "tokenBudgetPerJob": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 256000
+          },
+          "allowMemberArticles": {
+            "type": "boolean"
+          },
+          "apiKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "enabled",
+          "baseUrl",
+          "model",
+          "timeoutMs",
+          "prompt",
+          "promptVersion",
+          "maxTokens",
+          "maxCallsPerJob",
+          "tokenBudgetPerJob",
+          "allowMemberArticles",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "ArticleTranslationAiProvidersResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "baseUrl": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "model": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "secretConfigured": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "timeoutMs": {
+                  "type": "integer",
+                  "minimum": 1000,
+                  "maximum": 120000
+                },
+                "prompt": {
+                  "type": "string",
+                  "minLength": 50,
+                  "maxLength": 20000
+                },
+                "promptVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "maxTokens": {
+                  "type": "integer",
+                  "minimum": 256,
+                  "maximum": 32000
+                },
+                "maxCallsPerJob": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "tokenBudgetPerJob": {
+                  "type": "integer",
+                  "minimum": 256,
+                  "maximum": 256000
+                },
+                "allowMemberArticles": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "enabled",
+                "baseUrl",
+                "model",
+                "secretConfigured",
+                "revision",
+                "timeoutMs",
+                "prompt",
+                "promptVersion",
+                "maxTokens",
+                "maxCallsPerJob",
+                "tokenBudgetPerJob",
+                "allowMemberArticles"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "defaultProviderId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 19,
+            "pattern": "^[1-9]\\d*$"
+          }
+        },
+        "required": [
+          "providers",
+          "defaultProviderId"
+        ],
+        "additionalProperties": false
+      },
+      "ArticleTranslationAiDefaultUpdate": {
+        "type": "object",
+        "properties": {
+          "providerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 19,
+            "pattern": "^[1-9]\\d*$"
+          }
+        },
+        "required": [
+          "providerId"
         ],
         "additionalProperties": false
       },
@@ -37652,12 +37888,12 @@
         }
       }
     },
-    "/api/admin/article-translations/ai-config": {
+    "/api/admin/article-translations/ai-providers": {
       "get": {
         "tags": [
           "Blog translations"
         ],
-        "operationId": "articleTranslationAiConfigGet",
+        "operationId": "articleTranslationAiProvidersGet",
         "security": [
           {
             "accessTokenCookie": []
@@ -37668,11 +37904,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Translation-only AI settings with secret status",
+            "description": "Configured OpenAI-compatible translation providers without API keys",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArticleTranslationAiConfig"
+                  "$ref": "#/components/schemas/ArticleTranslationAiProvidersResponse"
                 }
               }
             }
@@ -37709,11 +37945,11 @@
           }
         }
       },
-      "put": {
+      "post": {
         "tags": [
           "Blog translations"
         ],
-        "operationId": "articleTranslationAiConfigUpdate",
+        "operationId": "articleTranslationAiProviderCreate",
         "security": [
           {
             "accessTokenCookie": []
@@ -37723,22 +37959,22 @@
           }
         ],
         "requestBody": {
-          "description": "Translation-only AI settings",
+          "description": "OpenAI-compatible Chat Completions provider profile",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArticleTranslationAiConfigUpdate"
+                "$ref": "#/components/schemas/ArticleTranslationAiProviderSave"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Saved translation-only AI settings",
+            "description": "Created provider profile without API key",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArticleTranslationAiConfig"
+                  "$ref": "#/components/schemas/ArticleTranslationAiProvider"
                 }
               }
             }
@@ -37765,6 +38001,224 @@
           },
           "403": {
             "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-translations/ai-providers/{id}": {
+      "put": {
+        "tags": [
+          "Blog translations"
+        ],
+        "operationId": "articleTranslationAiProviderUpdate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "Update provider profile at the expected revision",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleTranslationAiProviderUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated provider profile without API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleTranslationAiProvider"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-translations/ai-providers/default": {
+      "put": {
+        "tags": [
+          "Blog translations"
+        ],
+        "operationId": "articleTranslationAiProviderDefaultUpdate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Set or clear the default provider used by new translation jobs",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleTranslationAiDefaultUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Selected default provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleTranslationAiProvidersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
             "content": {
               "application/json": {
                 "schema": {

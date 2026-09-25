@@ -253,6 +253,20 @@
       "when": 1790312283620,
       "tag": "0035_talented_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790317936039,
+      "tag": "0036_lowly_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790318833275,
+      "tag": "0037_article_translation_provider_job_snapshot",
+      "breakpoints": true
     }
   ]
 }

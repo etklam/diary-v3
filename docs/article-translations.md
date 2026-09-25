@@ -14,7 +14,7 @@ In the Admin article editor, choose a source locale, target locales, and a provi
 
 The optional automatic setting enqueues draft jobs after publishing the source article. It never approves or publishes translations. Edge jobs on MEMBER articles fail before an outbound request. AI jobs on MEMBER articles are denied unless the isolated translation AI policy explicitly allows them.
 
-AI settings live at `/admin/article-translations` and use separate database configuration, key encryption, timeout, endpoint allowlist, model, prompt version, and per-job token/call limits. Endpoint hosts must be present in `AI_ALLOWED_BASE_URLS`. The configured base URL uses the existing outbound AI transport's HTTPS validation and DNS-pinned request. AI settings for weekly reports, monthly reports, and Research Studio are not reused or changed.
+AI settings live at `/admin/article-translations`. Admins can save multiple named OpenAI-compatible Chat Completions profiles, each with its own endpoint, model, encrypted API key, and translation policy, then select the default profile for new jobs. Endpoint and API key settings live in the Admin panel; `AI_ALLOWED_BASE_URLS` remains separate for AI reports and Research Studio. Translation endpoints must use HTTPS and resolve only to public addresses; the existing outbound client pins the resolved address and verifies TLS. Profile IDs and revisions are captured when jobs are queued, so changing the default affects new jobs only. Editing a profile invalidates queued work pinned to its previous revision. AI settings for weekly reports, monthly reports, and Research Studio are not reused or changed.
 
 ## Providers and data handling
 
@@ -30,7 +30,7 @@ The request format was last checked on 2026-09-25 against [an observation of the
 
 ### AI Translate
 
-AI requests use the existing outbound HTTPS client and SSRF controls, but a translation-only configuration and encrypted secret reference. A fixed system prompt treats article blocks as data, requires faithful translation, and prohibits summarization, analysis changes, advice, data updates, or changes to numbers, tickers, dates, percentages, citations, and uncertainty. Responses must pass structured schema and Markdown validation. An HTTP 200 response alone is not a successful translation.
+AI profiles use OpenAI-compatible Chat Completions at `{baseUrl}/chat/completions`, Bearer API-key authentication, `max_completion_tokens`, JSON response mode, and the OpenAI `choices[0].message.content` response shape. The configured base URL includes any API version prefix such as `/v1`, but not `/chat/completions`. Profiles that only support the Responses API or do not support JSON mode are not compatible. AI requests use the existing outbound HTTPS client and SSRF controls, but translation-only profile configuration and encrypted secret references. A fixed system prompt treats article blocks as data, requires faithful translation, and prohibits summarization, analysis changes, advice, data updates, or changes to numbers, tickers, dates, percentages, citations, and uncertainty. Responses must pass structured schema and Markdown validation. An HTTP 200 response alone is not a successful translation.
 
 AI requests are not retried after dispatch because a provider outcome could be unknown and could incur another charge. Worker recovery marks such outcomes as failed and does not dispatch the same AI job again. An Admin can explicitly create a new job after reviewing the state.
 
@@ -58,7 +58,7 @@ npm run article-translations:worker -- --once
 
 The worker claims one global PostgreSQL lease, so concurrent replicas do not exceed the configured translation concurrency. It heartbeats the job lease, recovers queued work after restart, retries expired Edge work only within its finite retry limit, and does not automatically redispatch a previously dispatched AI job. There is no Redis, Kafka, broker, or scheduled translation call.
 
-`ops/k8s/production/10-article-translation-worker.yaml` is an optional, zero-replica deployment definition with restricted egress. This task does not apply or scale it in a cluster. If an operator enables it, review the provider domains and NetworkPolicy first; the AI endpoint must also be allowed by `AI_ALLOWED_BASE_URLS`.
+`ops/k8s/production/10-article-translation-worker.yaml` is an optional, zero-replica deployment definition with restricted egress. This task does not apply or scale it in a cluster. If an operator enables it, review the provider domains and NetworkPolicy first. Article translation endpoints are selected in the Admin panel and do not need to be added to `AI_ALLOWED_BASE_URLS`.
 
 ## Verification
 

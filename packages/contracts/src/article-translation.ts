@@ -44,6 +44,7 @@ export const articleTranslationAdminRowSchema = z.object({
   latestJob: z.object({
     id: serializedIdSchema,
     provider: z.enum(['edge', 'ai']),
+    providerProfileName: z.string().nullable(),
     status: translationJobStatusSchema,
     progress: z.number().int().min(0).max(100),
     error: z.string().nullable(),
@@ -80,25 +81,52 @@ export const articleTranslationActionResponseSchema = z.object({
   translation: articleTranslationAdminRowSchema,
 }).strict()
 
-export const articleTranslationAiConfigSchema = z.object({
+export const articleTranslationAiProviderSchema = z.object({
+  id: serializedIdSchema,
+  name: z.string().trim().min(1).max(100),
   enabled: z.boolean(),
-  baseUrl: z.string().url().max(500),
-  model: z.string().trim().min(1).max(200),
+  baseUrl: z.string().max(500),
+  model: z.string().max(200),
   secretConfigured: z.boolean(),
+  revision: z.number().int().positive(),
   timeoutMs: z.number().int().min(1_000).max(120_000),
   prompt: z.string().min(50).max(20_000),
   promptVersion: z.string().trim().min(1).max(40),
   maxTokens: z.number().int().min(256).max(32_000),
   maxCallsPerJob: z.number().int().min(1).max(10),
-  tokenBudgetPerJob: z.number().int().min(256).max(100_000),
+  tokenBudgetPerJob: z.number().int().min(256).max(256_000),
   allowMemberArticles: z.boolean(),
 }).strict()
 
-export const articleTranslationAiConfigUpdateSchema = articleTranslationAiConfigSchema.omit({ secretConfigured: true }).extend({
+export const articleTranslationAiProvidersResponseSchema = z.object({
+  providers: z.array(articleTranslationAiProviderSchema),
+  defaultProviderId: serializedIdSchema.nullable(),
+}).strict()
+
+export const articleTranslationAiProviderSaveSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  enabled: z.boolean(),
+  baseUrl: z.string().url().max(500),
+  model: z.string().trim().min(1).max(200),
+  timeoutMs: z.number().int().min(1_000).max(120_000),
+  prompt: z.string().min(50).max(20_000),
+  promptVersion: z.string().trim().min(1).max(40),
+  maxTokens: z.number().int().min(256).max(32_000),
+  maxCallsPerJob: z.number().int().min(1).max(10),
+  tokenBudgetPerJob: z.number().int().min(256).max(256_000),
+  allowMemberArticles: z.boolean(),
   apiKey: z.string().min(1).max(1_000).optional(),
+}).strict()
+
+export const articleTranslationAiProviderUpdateSchema = articleTranslationAiProviderSaveSchema.extend({
+  expectedRevision: z.number().int().positive(),
+})
+
+export const articleTranslationAiDefaultUpdateSchema = z.object({
+  providerId: serializedIdSchema.nullable(),
 }).strict()
 
 export type ArticleTranslationAdminResponse = z.infer<typeof articleTranslationAdminResponseSchema>
 export type ArticleTranslationJobRequest = z.infer<typeof articleTranslationJobRequestSchema>
 export type ArticleTranslationEditRequest = z.infer<typeof articleTranslationEditRequestSchema>
-export type ArticleTranslationAiConfig = z.infer<typeof articleTranslationAiConfigSchema>
+export type ArticleTranslationAiProvider = z.infer<typeof articleTranslationAiProviderSchema>

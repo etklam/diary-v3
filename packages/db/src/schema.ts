@@ -194,12 +194,53 @@ export const postTranslations = pgTable('post_translation', {
   check('post_translation_source_hash_shapes', sql`(${table.draftSourceHash} is null or ${table.draftSourceHash} ~ '^[a-f0-9]{32}$') and (${table.publishedSourceHash} is null or ${table.publishedSourceHash} ~ '^[a-f0-9]{32}$')`),
 ])
 
+export const articleTranslationAiProfiles = pgTable('article_translation_ai_profile', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name', { length: 100 }).notNull(),
+  enabled: boolean('enabled').notNull().default(false),
+  baseUrl: varchar('base_url', { length: 500 }),
+  model: varchar('model', { length: 200 }),
+  encryptedApiKey: text('encrypted_api_key'),
+  secretKeyVersion: integer('secret_key_version'),
+  timeoutMs: integer('timeout_ms').notNull().default(60_000),
+  translationPrompt: text('translation_prompt').notNull(),
+  promptVersion: varchar('prompt_version', { length: 80 }).notNull().default('article-translation-v1'),
+  maxTokens: integer('max_tokens').notNull().default(8_000),
+  maxCallsPerJob: integer('max_calls_per_job').notNull().default(2),
+  tokenBudgetPerJob: integer('token_budget_per_job').notNull().default(16_000),
+  allowMemberArticles: boolean('allow_member_articles').notNull().default(false),
+  revision: integer('revision').notNull().default(1),
+  updatedBy: bigint('updated_by', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  uniqueIndex('article_translation_ai_profile_name_key').on(sql`lower(${table.name})`),
+  check('article_translation_ai_profile_timeout_bounds', sql`${table.timeoutMs} between 1000 and 300000`),
+  check('article_translation_ai_profile_token_bounds', sql`${table.maxTokens} > 0 and ${table.maxTokens} <= 128000 and ${table.tokenBudgetPerJob} > 0 and ${table.tokenBudgetPerJob} <= 256000`),
+  check('article_translation_ai_profile_calls_bounds', sql`${table.maxCallsPerJob} between 1 and 10`),
+  check('article_translation_ai_profile_revision_positive', sql`${table.revision} > 0`),
+  check('article_translation_ai_profile_base_url_https', sql`${table.baseUrl} is null or ${table.baseUrl} like 'https://%'`),
+  check('article_translation_ai_profile_enabled_complete', sql`not ${table.enabled} or (${table.baseUrl} is not null and ${table.model} is not null and ${table.encryptedApiKey} is not null)`),
+])
+
+export const articleTranslationAiSettings = pgTable('article_translation_ai_settings', {
+  singleton: varchar('singleton', { length: 16 }).primaryKey().default('default'),
+  defaultProfileId: bigint('default_profile_id', { mode: 'bigint' }).references(() => articleTranslationAiProfiles.id, { onDelete: 'restrict' }),
+  revision: integer('revision').notNull().default(1),
+  updatedBy: bigint('updated_by', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  check('article_translation_ai_settings_revision_positive', sql`${table.revision} > 0`),
+])
+
 export const articleTranslationJobs = pgTable('article_translation_job', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   postId: bigint('post_id', { mode: 'bigint' }).notNull().references(() => posts.id, { onDelete: 'cascade' }),
   targetLocale: varchar('target_locale', { length: 5 }).notNull(),
   sourceLocale: varchar('source_locale', { length: 5 }).notNull(),
   provider: articleTranslationProvider('provider').notNull(),
+  providerProfileName: varchar('provider_profile_name', { length: 100 }),
+  aiProfileId: bigint('ai_profile_id', { mode: 'bigint' }).references(() => articleTranslationAiProfiles.id, { onDelete: 'restrict' }),
   sourceRevision: integer('source_revision').notNull(),
   sourceHash: varchar('source_hash', { length: 32 }).notNull(),
   status: articleTranslationJobStatus('status').notNull().default('queued'),
@@ -224,43 +265,18 @@ export const articleTranslationJobs = pgTable('article_translation_job', {
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, table => [
   unique('article_translation_job_post_request_key').on(table.postId, table.requestKey),
-  uniqueIndex('article_translation_job_active_identity_key').on(table.postId, table.targetLocale, table.sourceRevision, table.sourceHash, table.provider, table.configRevision).where(sql`${table.status} in ('queued', 'running')`),
+  uniqueIndex('article_translation_job_active_identity_key').on(table.postId, table.targetLocale, table.sourceRevision, table.sourceHash, table.provider, sql`coalesce(${table.aiProfileId}, 0::bigint)`, table.configRevision).where(sql`${table.status} in ('queued', 'running')`),
   index('article_translation_job_claim_idx').on(table.status, table.queuedAt, table.id),
   index('article_translation_job_post_created_idx').on(table.postId, table.createdAt.desc()),
   check('article_translation_job_locales_valid', sql`${table.targetLocale} in ('zh-TW', 'zh-CN', 'en') and ${table.sourceLocale} in ('zh-TW', 'zh-CN', 'en') and ${table.targetLocale} <> ${table.sourceLocale}`),
   check('article_translation_job_source_revision_positive', sql`${table.sourceRevision} > 0`),
   check('article_translation_job_source_hash_shape', sql`${table.sourceHash} ~ '^[a-f0-9]{32}$'`),
   check('article_translation_job_provider_supported', sql`${table.provider} in ('edge', 'ai')`),
+  check('article_translation_job_ai_profile_consistent', sql`${table.provider} <> 'ai' or ${table.status} not in ('queued', 'running') or (${table.aiProfileId} is not null and ${table.configRevision} > 0)`),
   check('article_translation_job_progress_bounds', sql`${table.progress} between 0 and 100`),
   check('article_translation_job_retry_bounds', sql`${table.retryCount} between 0 and ${table.maxRetries} and ${table.maxRetries} between 0 and 5`),
   check('article_translation_job_lease_consistent', sql`(${table.status} = 'running' and ${table.leaseToken} is not null and ${table.workerId} is not null and ${table.leaseExpiresAt} is not null) or (${table.status} <> 'running' and ${table.leaseToken} is null and ${table.workerId} is null and ${table.leaseExpiresAt} is null)`),
   check('article_translation_job_finished_consistent', sql`(${table.status} in ('queued', 'running') and ${table.finishedAt} is null) or (${table.status} in ('succeeded', 'failed', 'stale', 'cancelled') and ${table.finishedAt} is not null)`),
-])
-
-export const articleTranslationAiConfig = pgTable('article_translation_ai_config', {
-  singleton: varchar('singleton', { length: 16 }).primaryKey().default('default'),
-  enabled: boolean('enabled').notNull().default(false),
-  baseUrl: varchar('base_url', { length: 500 }),
-  model: varchar('model', { length: 200 }),
-  encryptedApiKey: text('encrypted_api_key'),
-  secretKeyVersion: integer('secret_key_version'),
-  timeoutMs: integer('timeout_ms').notNull().default(60_000),
-  translationPrompt: text('translation_prompt').notNull(),
-  promptVersion: varchar('prompt_version', { length: 80 }).notNull().default('article-translation-v1'),
-  maxTokens: integer('max_tokens').notNull().default(8_000),
-  maxCallsPerJob: integer('max_calls_per_job').notNull().default(2),
-  tokenBudgetPerJob: integer('token_budget_per_job').notNull().default(16_000),
-  allowMemberArticles: boolean('allow_member_articles').notNull().default(false),
-  revision: integer('revision').notNull().default(1),
-  updatedBy: bigint('updated_by', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
-  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
-}, table => [
-  check('article_translation_ai_config_timeout_bounds', sql`${table.timeoutMs} between 1000 and 300000`),
-  check('article_translation_ai_config_token_bounds', sql`${table.maxTokens} > 0 and ${table.maxTokens} <= 128000 and ${table.tokenBudgetPerJob} > 0 and ${table.tokenBudgetPerJob} <= 256000`),
-  check('article_translation_ai_config_calls_bounds', sql`${table.maxCallsPerJob} between 1 and 10`),
-  check('article_translation_ai_config_revision_positive', sql`${table.revision} > 0`),
-  check('article_translation_ai_config_base_url_https', sql`${table.baseUrl} is null or ${table.baseUrl} like 'https://%'`),
-  check('article_translation_ai_config_enabled_complete', sql`not ${table.enabled} or (${table.baseUrl} is not null and ${table.model} is not null and ${table.encryptedApiKey} is not null)`),
 ])
 
 export const articleTranslationRuntime = pgTable('article_translation_runtime', {
