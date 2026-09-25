@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { articleTranslationAiDefaultUpdateSchema, articleTranslationAiProviderSaveSchema, articleTranslationAiProviderSchema, articleTranslationAiProvidersResponseSchema, articleTranslationAiProviderUpdateSchema } from '@diary/contracts'
-import { FailureNotice, type Failure } from '../api-error'
+import { FailureNotice, invalidField, type Failure } from '../api-error'
 import type { ShellOutletContext } from '../root'
 import { csrfToken, sessionFetch, signInPath } from '../session'
 import { useUi } from '../ui'
@@ -19,7 +19,7 @@ const copy = {
     defaultTitle: 'Default for new translation jobs', defaultHelp: 'Changing the default affects new jobs only. Queued jobs stay pinned to the provider and revision selected when they were created.', none: 'No default provider', apply: 'Apply provider', applying: 'Applying…', current: 'Current default',
     name: 'Provider name', endpoint: 'OpenAI-compatible HTTPS base URL', endpointHint: 'Use the API base URL, including a version path such as /v1; do not include /chat/completions.', model: 'Model', key: 'API key', keyKeep: 'Leave blank to keep the saved key.', keySaved: 'A key is saved.', keyMissing: 'No key is saved.',
     enabled: 'Enable this provider', timeout: 'Timeout (ms)', maxTokens: 'Maximum output tokens per call', maxCalls: 'Maximum calls per article job', tokenBudget: 'Token budget per job', promptVersion: 'Prompt version', prompt: 'Additional translation guidance', member: 'Allow AI processing of MEMBER articles', memberHint: 'Enable only when this provider and account policy are approved for member-only content.',
-    save: 'Save provider', saving: 'Saving…', cancel: 'Cancel', discard: 'Discard unsaved provider changes?', saved: 'Provider saved.', defaultSaved: 'Default provider updated. No provider call was made.', error: 'The provider could not be saved.', defaultError: 'The default provider could not be updated.',
+    save: 'Save provider', saving: 'Saving…', cancel: 'Cancel', discard: 'Discard unsaved provider changes?', saved: 'Provider saved.', defaultSaved: 'Default provider updated. No provider call was made.', error: 'The provider could not be saved.', defaultError: 'The default provider could not be updated.', conflict: 'The provider was changed elsewhere or the name is already taken. Reload the list and try again.', incomplete: 'Missing endpoint or model',
     empty: 'No AI providers are configured. Add and enable a provider before using AI translation.', noKey: 'API key missing', disabled: 'Disabled', enabledStatus: 'Enabled', notSelected: 'Available',
     compatible: 'Providers must support OpenAI Chat Completions, Bearer API-key authentication, and JSON response mode. The API key is encrypted at rest and never returned.',
     outbound: 'Only HTTPS endpoints resolving to public addresses are accepted. Requests use DNS pinning and TLS hostname verification.',
@@ -33,7 +33,7 @@ const copy = {
     defaultTitle: '新翻譯工作的預設 Provider', defaultHelp: '切換預設只影響新工作；已排入佇列的工作會固定使用建立時選定的 provider 與 revision。', none: '不選擇預設 Provider', apply: '套用 Provider', applying: '正在套用…', current: '目前預設',
     name: 'Provider 名稱', endpoint: 'OpenAI 相容 HTTPS base URL', endpointHint: '請填 API base URL，可包含 /v1 等版本路徑；不要填 /chat/completions。', model: 'Model', key: 'API key', keyKeep: '留白會保留已儲存的密鑰。', keySaved: '已儲存密鑰。', keyMissing: '尚未設定密鑰。',
     enabled: '啟用此 Provider', timeout: '逾時（毫秒）', maxTokens: '每次呼叫的輸出 token 上限', maxCalls: '每篇文章工作最多呼叫次數', tokenBudget: '每個工作 token 預算', promptVersion: 'Prompt 版本', prompt: '額外翻譯指引', member: '允許 AI 處理 MEMBER 文章', memberHint: '只有在確認此 provider 與帳戶政策適合處理會員內容後才啟用。',
-    save: '儲存 Provider', saving: '正在儲存…', cancel: '取消', discard: '放棄未儲存的 Provider 變更？', saved: 'Provider 已儲存。', defaultSaved: '預設 Provider 已更新，沒有呼叫翻譯服務。', error: '無法儲存 Provider。', defaultError: '無法更新預設 Provider。',
+    save: '儲存 Provider', saving: '正在儲存…', cancel: '取消', discard: '放棄未儲存的 Provider 變更？', saved: 'Provider 已儲存。', defaultSaved: '預設 Provider 已更新，沒有呼叫翻譯服務。', error: '無法儲存 Provider。', defaultError: '無法更新預設 Provider。', conflict: 'Provider 已在其他地方被更改，或名稱重複。請重新載入列表後再試。', incomplete: '缺少 endpoint 或 model',
     empty: '尚未設定 AI Provider。新增並啟用後才能使用 AI 翻譯。', noKey: '尚未設定 API key', disabled: '已停用', enabledStatus: '已啟用', notSelected: '可用',
     compatible: 'Provider 必須支援 OpenAI Chat Completions、Bearer API key 驗證及 JSON response mode。API key 會加密儲存且不會回傳。',
     outbound: '只接受解析至公開 IP 的 HTTPS endpoint。請求會使用 DNS pinning 和 TLS 主機名稱驗證。',
@@ -47,7 +47,7 @@ const copy = {
     defaultTitle: '新翻译任务的默认 Provider', defaultHelp: '切换默认值只影响新任务；已进入队列的任务会固定使用创建时选定的 provider 和 revision。', none: '不选择默认 Provider', apply: '应用 Provider', applying: '正在应用…', current: '当前默认',
     name: 'Provider 名称', endpoint: 'OpenAI 兼容 HTTPS base URL', endpointHint: '请填写 API base URL，可包含 /v1 等版本路径；不要填写 /chat/completions。', model: 'Model', key: 'API key', keyKeep: '留空会保留已保存的密钥。', keySaved: '已保存密钥。', keyMissing: '尚未设置密钥。',
     enabled: '启用此 Provider', timeout: '超时（毫秒）', maxTokens: '每次调用的输出 token 上限', maxCalls: '每篇文章任务最多调用次数', tokenBudget: '每个任务 token 预算', promptVersion: 'Prompt 版本', prompt: '额外翻译指引', member: '允许 AI 处理 MEMBER 文章', memberHint: '仅在确认此 provider 和帐户政策适合处理会员内容后启用。',
-    save: '保存 Provider', saving: '正在保存…', cancel: '取消', discard: '放弃未保存的 Provider 更改？', saved: 'Provider 已保存。', defaultSaved: '默认 Provider 已更新，没有调用翻译服务。', error: '无法保存 Provider。', defaultError: '无法更新默认 Provider。',
+    save: '保存 Provider', saving: '正在保存…', cancel: '取消', discard: '放弃未保存的 Provider 更改？', saved: 'Provider 已保存。', defaultSaved: '默认 Provider 已更新，没有调用翻译服务。', error: '无法保存 Provider。', defaultError: '无法更新默认 Provider。', conflict: 'Provider 已在其他地方被更改，或名称重复。请重新加载列表后再试。', incomplete: '缺少 endpoint 或 model',
     empty: '尚未配置 AI Provider。新增并启用后才能使用 AI 翻译。', noKey: '尚未设置 API key', disabled: '已停用', enabledStatus: '已启用', notSelected: '可用',
     compatible: 'Provider 必须支持 OpenAI Chat Completions、Bearer API key 验证及 JSON response mode。API key 会加密保存且不会返回。',
     outbound: '仅接受解析到公开 IP 的 HTTPS endpoint。请求会使用 DNS pinning 和 TLS 主机名验证。',
@@ -137,7 +137,7 @@ export default function AdminArticleTranslations() {
       if (!controller.signal.aborted) setFailure({ message: c.unavailable, fields: [] })
     })
     return () => controller.abort()
-  }, [isAdmin, attempt, c.forbidden, c.unavailable])
+  }, [isAdmin, attempt])
 
   useEffect(() => {
     if (form) formHeading.current?.focus()
@@ -187,7 +187,7 @@ export default function AdminArticleTranslations() {
       })
       const result = articleTranslationAiProviderSchema.safeParse(await readBody(response))
       if (!response.ok || !result.success) {
-        setFailure({ message: response.status === 403 ? c.forbidden : c.error, fields: [] })
+        setFailure({ message: response.status === 403 ? c.forbidden : response.status === 409 ? c.conflict : c.error, fields: [] })
         return
       }
       await loadProviders(undefined, result.data.id)
@@ -208,7 +208,7 @@ export default function AdminArticleTranslations() {
         method: 'PUT', headers: { 'content-type': 'application/json', 'x-csrf-token': csrfToken() ?? '' }, body: JSON.stringify(parsed.data),
       })
       const result = articleTranslationAiProvidersResponseSchema.safeParse(await readBody(response))
-      if (!response.ok || !result.success) { setFailure({ message: response.status === 403 ? c.forbidden : c.defaultError, fields: [] }); return }
+      if (!response.ok || !result.success) { setFailure({ message: response.status === 403 ? c.forbidden : response.status === 409 ? c.conflict : c.defaultError, fields: [] }); return }
       setData(result.data); setDefaultSelection(result.data.defaultProviderId ?? ''); setNotice(c.defaultSaved)
     } catch { setFailure({ message: c.defaultError, fields: [] }) }
     finally { setPending(false) }
@@ -234,7 +234,7 @@ export default function AdminArticleTranslations() {
         <form className="article-translation-default-form" onSubmit={event => void applyDefault(event)}>
           <label>{c.current}<select value={defaultSelection} disabled={pending || dirty} onChange={event => setDefaultSelection(event.target.value)}>
             <option value="">{c.none}</option>
-            {data.providers.map(provider => <option key={provider.id} value={provider.id} disabled={!ready(provider)}>{provider.name} — {provider.model || '—'}{!ready(provider) ? ` · ${provider.enabled ? c.noKey : c.disabled}` : ''}</option>)}
+            {data.providers.map(provider => <option key={provider.id} value={provider.id} disabled={!ready(provider)}>{provider.name} — {provider.model || '—'}{!ready(provider) ? ` · ${provider.enabled ? provider.secretConfigured ? c.incomplete : c.noKey : c.disabled}` : ''}</option>)}
           </select></label>
           <button type="submit" disabled={pending || dirty || defaultSelection === (data.defaultProviderId ?? '')}>{pending ? c.applying : c.apply}</button>
         </form>
@@ -252,18 +252,18 @@ export default function AdminArticleTranslations() {
           </li>)}</ul>}
       </section>
       {form && <form className="article-translation-settings-form" onSubmit={event => void saveProvider(event)} aria-busy={pending}>
-        <div className="article-translation-provider-form-heading"><h2 ref={formHeading} tabIndex={-1}>{creating ? c.add : `${c.edit}: ${editingProvider?.name ?? ''}`}</h2><button type="button" className="secondary" onClick={closeForm} disabled={pending}>{c.cancel}</button></div>
+        <div className="article-translation-provider-form-heading"><h2 ref={formHeading} tabIndex={-1}>{creating ? c.add : `${c.edit}: ${editingProvider?.name ?? form.name}`}</h2><button type="button" className="secondary" onClick={closeForm} disabled={pending}>{c.cancel}</button></div>
         <div className="article-translation-settings-grid">
-          <label>{c.name}<input value={form.name} required maxLength={100} disabled={pending} onChange={event => setForm(value => value && ({ ...value, name: event.target.value }))} /></label>
-          <label>{c.endpoint}<input type="url" value={form.baseUrl} required maxLength={500} placeholder="https://provider.example/v1" disabled={pending} onChange={event => setForm(value => value && ({ ...value, baseUrl: event.target.value }))} /><span className="field-hint">{c.endpointHint}</span></label>
-          <label>{c.model}<input value={form.model} required maxLength={200} disabled={pending} onChange={event => setForm(value => value && ({ ...value, model: event.target.value }))} /></label>
+          <label>{c.name}<input value={form.name} required maxLength={100} disabled={pending} aria-invalid={invalidField(failure, 'name')} onChange={event => setForm(value => value && ({ ...value, name: event.target.value }))} /></label>
+          <label>{c.endpoint}<input type="url" value={form.baseUrl} required maxLength={500} placeholder="https://provider.example/v1" disabled={pending} aria-invalid={invalidField(failure, 'baseUrl')} onChange={event => setForm(value => value && ({ ...value, baseUrl: event.target.value }))} /><span className="field-hint">{c.endpointHint}</span></label>
+          <label>{c.model}<input value={form.model} required maxLength={200} disabled={pending} aria-invalid={invalidField(failure, 'model')} onChange={event => setForm(value => value && ({ ...value, model: event.target.value }))} /></label>
           <label>{c.key}<input type="password" autoComplete="new-password" value={form.apiKey} placeholder={editingProvider?.secretConfigured ? c.keySaved : c.keyMissing} disabled={pending} onChange={event => setForm(value => value && ({ ...value, apiKey: event.target.value }))} /><span className="field-hint">{c.keyKeep}</span></label>
-          <label>{c.timeout}<input type="number" min={1000} max={120000} step={1000} required value={form.timeoutMs} disabled={pending} onChange={event => setForm(value => value && ({ ...value, timeoutMs: event.target.value }))} /></label>
-          <label>{c.maxTokens}<input type="number" min={256} max={32000} required value={form.maxTokens} disabled={pending} onChange={event => setForm(value => value && ({ ...value, maxTokens: event.target.value }))} /></label>
-          <label>{c.maxCalls}<input type="number" min={1} max={10} required value={form.maxCallsPerJob} disabled={pending} onChange={event => setForm(value => value && ({ ...value, maxCallsPerJob: event.target.value }))} /></label>
-          <label>{c.tokenBudget}<input type="number" min={256} max={256000} required value={form.tokenBudgetPerJob} disabled={pending} onChange={event => setForm(value => value && ({ ...value, tokenBudgetPerJob: event.target.value }))} /></label>
-          <label>{c.promptVersion}<input required maxLength={40} value={form.promptVersion} disabled={pending} onChange={event => setForm(value => value && ({ ...value, promptVersion: event.target.value }))} /></label>
-          <label className="article-translation-settings-prompt">{c.prompt}<textarea minLength={50} maxLength={20000} rows={5} required value={form.prompt} disabled={pending} onChange={event => setForm(value => value && ({ ...value, prompt: event.target.value }))} /></label>
+          <label>{c.timeout}<input type="number" min={1000} max={120000} step={1000} required value={form.timeoutMs} disabled={pending} aria-invalid={invalidField(failure, 'timeoutMs')} onChange={event => setForm(value => value && ({ ...value, timeoutMs: event.target.value }))} /></label>
+          <label>{c.maxTokens}<input type="number" min={256} max={32000} required value={form.maxTokens} disabled={pending} aria-invalid={invalidField(failure, 'maxTokens')} onChange={event => setForm(value => value && ({ ...value, maxTokens: event.target.value }))} /></label>
+          <label>{c.maxCalls}<input type="number" min={1} max={10} required value={form.maxCallsPerJob} disabled={pending} aria-invalid={invalidField(failure, 'maxCallsPerJob')} onChange={event => setForm(value => value && ({ ...value, maxCallsPerJob: event.target.value }))} /></label>
+          <label>{c.tokenBudget}<input type="number" min={256} max={256000} required value={form.tokenBudgetPerJob} disabled={pending} aria-invalid={invalidField(failure, 'tokenBudgetPerJob')} onChange={event => setForm(value => value && ({ ...value, tokenBudgetPerJob: event.target.value }))} /></label>
+          <label>{c.promptVersion}<input required maxLength={40} value={form.promptVersion} disabled={pending} aria-invalid={invalidField(failure, 'promptVersion')} onChange={event => setForm(value => value && ({ ...value, promptVersion: event.target.value }))} /></label>
+          <label className="article-translation-settings-prompt">{c.prompt}<textarea minLength={50} maxLength={20000} rows={5} required value={form.prompt} disabled={pending} aria-invalid={invalidField(failure, 'prompt')} onChange={event => setForm(value => value && ({ ...value, prompt: event.target.value }))} /></label>
         </div>
         <label className="article-translation-settings-switch"><input type="checkbox" checked={form.enabled} disabled={pending} onChange={event => setForm(value => value && ({ ...value, enabled: event.target.checked }))} />{c.enabled}</label>
         {editingProvider?.id === data.defaultProviderId && form.enabled && <p className="field-hint">{c.defaultHelp}</p>}
