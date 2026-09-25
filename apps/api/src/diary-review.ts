@@ -1,7 +1,7 @@
 import { structuredReviewInputSchema, type StructuredReviewInput } from '@diary/contracts/review'
 import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import { diaries, type Database } from '@diary/db'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app.js'
@@ -14,6 +14,7 @@ export async function saveDiaryReview(db: Database, id: bigint, userId: bigint, 
       reviewLearning: input.reviewLearning?.trim() || null,
       reviewAdjustment: input.reviewAdjustment?.trim() || null,
       reviewStatus: 'reviewed', reviewedAt: now, updatedAt: now,
+      revision: sql`${diaries.revision} + 1`,
     }).where(and(eq(diaries.id, id), eq(diaries.userId, userId))).returning()
     if (!row) return null
     return projectDiaryReview(tx, userId, row)

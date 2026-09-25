@@ -4,10 +4,11 @@ import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { desc, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
-import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts } from '@diary/db'
+import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts, type Database } from '@diary/db'
 import type { AiTransport } from '../../apps/api/src/ai-reports/outbound-policy'
-import { runArticleTranslationOnce } from '../../apps/api/src/article-translations/worker'
+import { runArticleTranslationOnce, runArticleTranslationWorker } from '../../apps/api/src/article-translations/worker'
 import { createApp } from '../../apps/api/src/app'
+import { encryptAiSecret } from '../../apps/api/src/ai-reports/secrets'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
 
@@ -86,13 +87,50 @@ function edgeMock(transform: (block: string) => string = block => block) {
   return fetchImpl
 }
 
+function wrappedDatabaseError(code: string, secret?: string) {
+  const message = secret ? `Synthetic query failure\nquery: UPDATE post_translations\nparams: ${secret}` : 'Synthetic query failure'
+  const error = new Error(message)
+  Object.assign(error, { cause: { code } })
+  if (secret) error.stack = `DrizzleQueryError: ${message}\n    at syntheticQuery (/tmp/database-fixture.ts:1:1)`
+  return error
+}
+
+function databaseFailingOnTransaction(callNumber: number, error: Error) {
+  let calls = 0
+  const db = new Proxy(database.db, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target)
+      if (property === 'transaction' && typeof value === 'function') {
+        return (...args: unknown[]) => {
+          calls += 1
+          if (calls === callNumber) throw error
+          return Reflect.apply(value, target, args)
+        }
+      }
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  }) as Database
+  return { db, transactionCalls: () => calls }
+}
+
+function databaseFailingOnSelect(error: Error) {
+  const db = new Proxy(database.db, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target)
+      if (property === 'select') return () => { throw error }
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  }) as Database
+  return db
+}
+
 async function mutate(browser: BrowserSession, path: string, body: unknown, method = 'POST') {
   return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
 }
 
 async function persistAiProfile(name = 'Synthetic provider', baseUrl = 'https://compatible.example.test/v1', model = 'synthetic-config-test') {
   const [profile] = await database.db.insert(articleTranslationAiProfiles).values({
-    name, enabled: true, baseUrl, model, encryptedApiKey: 'v1.synthetic-encrypted-value',
+    name, enabled: true, baseUrl, model, encryptedApiKey: encryptAiSecret('synthetic-article-translation-key', 'article-translation-api-key'),
     translationPrompt: 'Preserve source facts and translate only the supplied article content.',
     revision: 1,
   }).returning()
@@ -389,4 +427,188 @@ it('recovers an expired Edge lease after worker restart and marks source edits s
   expect(translation?.status).toBe('stale')
   const staleRequest = await (await admin.request(`/api/blog/${post.slug}?lang=en`)).json()
   expect(staleRequest).toMatchObject({ isFallback: true, fallbackReason: 'translation_stale' })
+})
+
+it('retries a wrapped deadlock during result persistence without repeating the provider request', async () => {
+  const admin = await login(true)
+  const post = await createArticle(admin)
+  await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'edge' })
+  const fetchImpl = edgeMock(block => block.replace('市場觀察', 'Retried market view'))
+  const faulty = databaseFailingOnTransaction(2, wrappedDatabaseError('40P01'))
+
+  const result = await runArticleTranslationOnce({
+    db: faulty.db,
+    now: () => clock,
+    edgeProviderOptions: { fetchImpl, sleep: async () => undefined },
+  })
+
+  expect(result.status).toBe('succeeded')
+  expect(faulty.transactionCalls()).toBe(4)
+  expect(fetchImpl).toHaveBeenCalledTimes(1)
+})
+
+it('keeps the worker loop alive after a wrapped recoverable database error', async () => {
+  const controller = new AbortController()
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+  const faulty = databaseFailingOnTransaction(1, wrappedDatabaseError('57P03'))
+
+  await runArticleTranslationWorker({
+    db: faulty.db,
+    signal: controller.signal,
+    pollMs: 250,
+    logger: { error(message, context) { logs.push({ message, context }); controller.abort() } },
+  })
+
+  expect(faulty.transactionCalls()).toBe(1)
+  expect(logs).toHaveLength(1)
+  expect(logs[0]?.context).toMatchObject({ stage: 'claim_job', errorCode: '57P03' })
+})
+
+it('logs only safe stack frames and never records SQL parameters', async () => {
+  const secret = `SYNTHETIC-ARTICLE-${randomUUID()}`
+  const faulty = databaseFailingOnTransaction(1, wrappedDatabaseError('23505', secret))
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+
+  await expect(runArticleTranslationOnce({
+    db: faulty.db,
+    now: () => clock,
+    logger: { error(message, context) { logs.push({ message, context }) } },
+  })).rejects.toThrow('Synthetic query failure')
+
+  expect(logs).toHaveLength(1)
+  expect(logs[0]?.context).toMatchObject({ stage: 'claim_job', errorCode: '23505' })
+  expect(JSON.stringify(logs[0]?.context)).not.toContain(secret)
+  expect(JSON.stringify(logs[0]?.context)).toContain('syntheticQuery')
+})
+
+it('logs unexpected API failures with request metadata and safe database diagnostics', async () => {
+  const secret = `SYNTHETIC-API-${randomUUID()}`
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+  const app = createApp({
+    db: databaseFailingOnSelect(wrappedDatabaseError('42P01', secret)),
+    now: () => clock,
+    config: { jwtSecret: 'synthetic-article-translations-key-32chars', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    logger: { error(message, context) { logs.push({ message, context }) } },
+  })
+
+  const response = await app.request('http://localhost/api/blog/synthetic-article')
+
+  expect(response.status).toBe(500)
+  expect(logs).toHaveLength(1)
+  expect(logs[0]?.context).toMatchObject({ operation: 'http_request', method: 'GET', path: '/api/blog/synthetic-article', databaseCode: '42P01' })
+  expect(logs[0]?.context.requestId).toEqual(expect.any(String))
+  expect(JSON.stringify(logs[0]?.context)).not.toContain(secret)
+})
+
+it('logs automatic enqueue failures without article content', async () => {
+  const admin = await login(true)
+  const secret = `SYNTHETIC-AUTO-TRANSLATE-${randomUUID()}`
+  const faulty = databaseFailingOnTransaction(2, wrappedDatabaseError('23505', secret))
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+  const app = createApp({
+    db: faulty.db,
+    now: () => clock,
+    config: { jwtSecret: 'synthetic-article-translations-key-32chars', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    logger: { error(message, context) { logs.push({ message, context }) } },
+  })
+  const cookie = [...admin.cookies].map(([key, value]) => `${key}=${value}`).join('; ')
+  const response = await app.request('http://localhost/api/blog', {
+    method: 'POST',
+    headers: { cookie, 'x-csrf-token': admin.cookies.get('csrf-token')!, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: secret,
+      content: `# Synthetic article\n\n${secret}`,
+      category: 'market',
+      status: 'PUBLISHED',
+      access: 'PUBLIC',
+      autoTranslateEnabled: true,
+      autoTranslateLocales: ['en'],
+      autoTranslateProvider: 'edge',
+    }),
+  })
+  const body = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(body.id).toBeDefined()
+  expect(logs).toHaveLength(1)
+  expect(logs[0]?.context).toMatchObject({ operation: 'article_translation_enqueue', stage: 'enqueue', targetLocale: 'en', provider: 'edge' })
+  expect(logs[0]?.context.requestId).toEqual(expect.any(String))
+  expect(logs[0]?.context.postId).toEqual(expect.any(String))
+  expect(JSON.stringify(logs[0]?.context)).not.toContain(secret)
+})
+
+it('treats a replaced lease as stale instead of a provider failure', async () => {
+  const admin = await login(true)
+  const post = await createArticle(admin)
+  await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'edge' })
+  const [job] = await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(post.id)))
+  const replacementToken = 'replacement-lease-token'
+  const fetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+    await database.db.update(articleTranslationJobs).set({ leaseToken: replacementToken, workerId: 'replacement-worker' }).where(eq(articleTranslationJobs.id, job!.id))
+    await database.db.update(articleTranslationRuntime).set({ activeLeaseToken: replacementToken, workerId: 'replacement-worker' }).where(eq(articleTranslationRuntime.singleton, 'default'))
+    const blocks = JSON.parse(String(init?.body)) as string[]
+    return Response.json(blocks.map(block => ({ translations: [{ text: block }] })))
+  })
+  const logs: Array<{ message: string; context: Record<string, unknown> }> = []
+
+  const result = await runArticleTranslationOnce({
+    db: database.db,
+    now: () => clock,
+    edgeProviderOptions: { fetchImpl, sleep: async () => undefined },
+    logger: { error(message, context) { logs.push({ message, context }) } },
+  })
+
+  expect(result.status).toBe('stale')
+  expect(fetchImpl).toHaveBeenCalledTimes(1)
+  expect(logs.some(log => log.context.stage === 'provider_failure')).toBe(false)
+  const [current] = await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.id, job!.id))
+  expect(current).toMatchObject({ status: 'running', leaseToken: replacementToken, workerId: 'replacement-worker' })
+})
+
+it('fences an overlapping worker after an AI lease expires during provider work', async () => {
+  const admin = await login(true)
+  const post = await createArticle(admin)
+  await persistAiProfile()
+  await admin.post(`/api/blog/admin/${post.id}/translations/jobs`, { targetLocales: ['en'], provider: 'ai' })
+  const [job] = await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, BigInt(post.id)))
+  let notifyProviderEntered!: () => void
+  let releaseProvider!: () => void
+  const providerEntered = new Promise<void>(resolve => { notifyProviderEntered = resolve })
+  const providerGate = new Promise<void>(resolve => { releaseProvider = resolve })
+  const transport = vi.fn(async (request: Parameters<AiTransport>[0]) => {
+    notifyProviderEntered()
+    await providerGate
+    const body = request.body as { messages: Array<{ role: string; content: string }> }
+    const user = JSON.parse(body.messages.find(message => message.role === 'user')!.content) as { blocks: string[] }
+    return {
+      status: 200,
+      retryAfter: null,
+      body: JSON.stringify({
+        choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ translations: user.blocks }) } }],
+        usage: { prompt_tokens: 20, completion_tokens: 10 },
+      }),
+    }
+  })
+  const options = { db: database.db, now: () => clock, aiTransport: transport, heartbeatMs: 60_000 }
+  const originalWorker = runArticleTranslationOnce({ ...options, workerId: 'synthetic-original-worker' })
+  try {
+    await Promise.race([
+      providerEntered,
+      originalWorker.then(() => { throw new Error('Worker completed before the provider entered') }),
+    ])
+    const oldTime = new Date(clock.getTime() - 10_000)
+    await database.db.update(articleTranslationJobs).set({ leaseExpiresAt: oldTime, heartbeatAt: oldTime }).where(eq(articleTranslationJobs.id, job!.id))
+    await database.db.update(articleTranslationRuntime).set({ activeLeaseExpiresAt: oldTime, workerHeartbeatAt: oldTime }).where(eq(articleTranslationRuntime.singleton, 'default'))
+    const callsBeforeRecovery = transport.mock.calls.length
+    const recoveryWorker = await runArticleTranslationOnce({ ...options, workerId: 'synthetic-recovery-worker' })
+    const callsAfterRecovery = transport.mock.calls.length
+    const [expired] = await database.db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.id, job!.id))
+    expect(recoveryWorker.status).toBe('idle')
+    expect(callsAfterRecovery).toBe(callsBeforeRecovery)
+    expect(expired).toMatchObject({ status: 'failed', error: 'AI_PROVIDER_OUTCOME_UNKNOWN' })
+  } finally {
+    releaseProvider()
+  }
+
+  expect(await originalWorker).toMatchObject({ status: 'stale', errorCode: 'ARTICLE_TRANSLATION_LEASE_LOST' })
 })

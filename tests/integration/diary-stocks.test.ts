@@ -28,8 +28,13 @@ async function login() {
   await browser.request('/api/auth/me')
   return browser
 }
-function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
-  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
+async function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
+  let payload = body
+  if (method === 'PUT' && typeof body === 'object' && body !== null && !('expectedRevision' in body)) {
+    const current = await browser.request(path)
+    if (current.status === 200) payload = { ...body, expectedRevision: (await current.json()).revision }
+  }
+  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(payload) })
 }
 async function create(browser: BrowserSession, extra = {}) {
   const response = await browser.post('/api/diaries', { title: 'Original decision', content: 'Original Markdown', date: '2026-09-05', thesis: 'Original thesis', risk: 'Original risk', execution: 'Original execution', ...extra })
@@ -129,7 +134,7 @@ it('keeps shared company identities private at the diary link and cascades only 
   const owner = await login(), other = await login()
   const first = await create(owner, { stockSymbols: ['AAPL'] }), second = await create(other, { stockSymbols: ['AAPL'] })
   expect((await other.request(`/api/diaries/${first.id}`)).status).toBe(404)
-  expect((await update(other, `/api/diaries/${first.id}`, { title: 'Forbidden', content: 'Forbidden', stockSymbols: ['PRIVATE'] }, 'PUT')).status).toBe(404)
+  expect((await update(other, `/api/diaries/${first.id}`, { expectedRevision: 1, title: 'Forbidden', content: 'Forbidden', stockSymbols: ['PRIVATE'] }, 'PUT')).status).toBe(404)
   expect((await owner.request(`/api/diaries/${first.id}`, { method: 'DELETE', headers: { 'x-csrf-token': owner.cookies.get('csrf-token')! } })).status).toBe(200)
   expect((await (await other.request(`/api/diaries/${second.id}`)).json()).stockSymbols).toEqual(['AAPL'])
   const links = await database.pool.query('select diary_id from diary_stocks where diary_id = $1', [first.id])

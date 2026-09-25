@@ -410,6 +410,10 @@
             "maxLength": 19,
             "pattern": "^[1-9]\\d*$"
           },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
           "userId": {
             "type": "string",
             "maxLength": 19,
@@ -858,6 +862,7 @@
         },
         "required": [
           "id",
+          "revision",
           "userId",
           "title",
           "content",
@@ -883,6 +888,10 @@
             "maxLength": 19,
             "pattern": "^[1-9]\\d*$"
           },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
           "userId": {
             "type": "string",
             "maxLength": 19,
@@ -1331,6 +1340,7 @@
         },
         "required": [
           "id",
+          "revision",
           "userId",
           "title",
           "content",
@@ -1443,6 +1453,10 @@
             },
             "maxItems": 20
           },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
           "transactions": {
             "type": "array",
             "items": {
@@ -1529,7 +1543,8 @@
         },
         "required": [
           "title",
-          "content"
+          "content",
+          "expectedRevision"
         ],
         "additionalProperties": false
       },
@@ -1579,6 +1594,7 @@
                   "AUTH_RATE_LIMITED",
                   "CSRF_FAILED",
                   "DIARY_NOT_FOUND",
+                  "DIARY_REVISION_CONFLICT",
                   "ACHIEVEMENT_NOT_FOUND",
                   "ALERT_NOT_FOUND",
                   "PRICE_ALERT_NOT_FOUND",
@@ -2135,6 +2151,10 @@
                   "maxLength": 19,
                   "pattern": "^[1-9]\\d*$"
                 },
+                "revision": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
                 "userId": {
                   "type": "string",
                   "maxLength": 19,
@@ -2583,6 +2603,7 @@
               },
               "required": [
                 "id",
+                "revision",
                 "userId",
                 "title",
                 "content",

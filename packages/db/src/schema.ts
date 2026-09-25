@@ -87,6 +87,7 @@ export const refreshTokens = pgTable('refresh_tokens', {
 
 export const diaries = pgTable('diaries', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  revision: integer('revision').default(1).notNull(),
   userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 500 }).notNull(),
   content: text('content').notNull(),

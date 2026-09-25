@@ -28,8 +28,13 @@ async function login() {
   await browser.request('/api/auth/me')
   return browser
 }
-function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
-  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
+async function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
+  let payload = body
+  if (method === 'PUT' && typeof body === 'object' && body !== null && !('expectedRevision' in body)) {
+    const current = await browser.request(path)
+    if (current.status === 200) payload = { ...body, expectedRevision: (await current.json()).revision }
+  }
+  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(payload) })
 }
 const input = { summary: 'Original evidence', sourceType: 'ARTICLE', occurredAt: '2026-09-05T10:00:00Z', idempotencyKey: 'capture-1', sourceTitle: 'Synthetic source', sourceUrl: 'https://example.test/article' }
 async function capture(browser: BrowserSession, symbol = 'AAPL', body: unknown = input) {

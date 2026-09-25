@@ -242,12 +242,14 @@ function toPublicMetadata(row: typeof posts.$inferSelect & { author: { id: bigin
 export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
   db: Database
   now: () => Date
+  logger?: { error(message: string, context: Record<string, unknown>): void }
   latestCompletedSession?: ResearchLatestCompletedSession
   fail: PostFail
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
 }) {
   const { db, now, fail, validationError, parseJson } = dependencies
+  const logger = dependencies.logger ?? console
   const admin = (c: Context<AppEnv>) => {
     c.header('Cache-Control', 'no-store')
     const user = c.get('user')
@@ -298,7 +300,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId))
     if (actor?.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
   }
-  const queueAutomaticTranslations = async (post: typeof posts.$inferSelect, requestedBy: bigint) => {
+  const queueAutomaticTranslations = async (post: typeof posts.$inferSelect, requestedBy: bigint, requestId?: string) => {
     if (post.status !== 'PUBLISHED' || !post.publishedAt || !post.autoTranslateEnabled || !post.autoTranslateProvider) return
     const provider = post.autoTranslateProvider
     if (provider !== 'edge' && provider !== 'ai') return
@@ -327,8 +329,18 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
           configRevision: aiProfile?.revision ?? null,
           now: now(),
         })
-      } catch {
-        // Translation drafts are best-effort after the source article has already been published.
+      } catch (error) {
+        const candidate = error as { code?: unknown }
+        logger.error('Automatic article translation enqueue failed', {
+          operation: 'article_translation_enqueue',
+          stage: 'enqueue',
+          requestId,
+          postId: post.id.toString(),
+          targetLocale,
+          provider,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+          ...(typeof candidate.code === 'string' && /^[A-Z0-9_]{2,16}$/.test(candidate.code) ? { errorCode: candidate.code } : {}),
+        })
       }
     }
   }
@@ -424,7 +436,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const latest = await readAdmin(id)
     if (!latest) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    if (status === 'PUBLISHED') await queueAutomaticTranslations(latest.post, actorId)
+    if (status === 'PUBLISHED') await queueAutomaticTranslations(latest.post, actorId, c.get('requestId'))
     return c.json(toAdminDetail({ ...latest.post, author: latest.author }))
   }
   app.post('/api/blog/admin/bulk-publish', async c => {
@@ -439,7 +451,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       return rows.length
     })
     const publishedRows = await db.select().from(posts).where(and(inArray(posts.id, ids), eq(posts.status, 'PUBLISHED')))
-    for (const post of publishedRows) await queueAutomaticTranslations(post, actorId)
+    for (const post of publishedRows) await queueAutomaticTranslations(post, actorId, c.get('requestId'))
     return c.json(postBulkResponseSchema.parse({ count: result }))
   })
   app.post('/api/blog/admin/bulk-delete', async c => {
@@ -517,7 +529,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       return post
     })
     if (!created) throw new Error('Post insert returned no row')
-    if (created.status === 'PUBLISHED') await queueAutomaticTranslations(created, authorId)
+    if (created.status === 'PUBLISHED') await queueAutomaticTranslations(created, authorId, c.get('requestId'))
     const row = await readAdmin(created.id)
     if (!row) throw new Error('Post read after insert returned no row')
     return c.json(toAdminDetail({ ...row.post, author: row.author }), 200)
@@ -583,7 +595,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     })
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    if (row.post.status === 'PUBLISHED') await queueAutomaticTranslations(row.post, actorId)
+    if (row.post.status === 'PUBLISHED') await queueAutomaticTranslations(row.post, actorId, c.get('requestId'))
     return c.json(toAdminDetail({ ...row.post, author: row.author }))
   })
   app.delete('/api/blog/:id', async c => {

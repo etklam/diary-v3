@@ -29,8 +29,13 @@ async function login() {
   await browser.request('/api/auth/me')
   return browser
 }
-function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
-  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(body) })
+async function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
+  let payload = body
+  if (method === 'PUT' && typeof body === 'object' && body !== null && !('expectedRevision' in body)) {
+    const current = await browser.request(path)
+    if (current.status === 200) payload = { ...body, expectedRevision: (await current.json()).revision }
+  }
+  return browser.request(path, { method, headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! }, body: JSON.stringify(payload) })
 }
 async function create(browser: BrowserSession, extra = {}) {
   const response = await browser.post('/api/diaries', { title: 'Original decision', content: 'Original Markdown', date: '2026-09-05', thesis: 'Original thesis', risk: 'Original risk', execution: 'Original execution', ...extra })

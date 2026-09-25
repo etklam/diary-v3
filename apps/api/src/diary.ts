@@ -61,6 +61,7 @@ export function serializeDiary(
   const statuses = ['draft', 'active', 'closed', 'cancelled'] as const
   return diaryResponseSchema.parse({
     id: row.id.toString(),
+    revision: row.revision,
     userId: row.userId.toString(),
     title: row.title,
     content: row.content,
@@ -130,6 +131,7 @@ export async function createDiary(
           : existing.tags
         const [updated] = await tx.update(diaries).set({
           content,
+          revision: sql`${diaries.revision} + 1`,
           ...summaryExcerptValues(content),
           tags,
           updatedAt: now(),
@@ -210,16 +212,23 @@ export async function updateDiary(
     // Match create/append/delete lock ordering: ledger lock precedes Diary row
     // access whenever the transaction collection will change.
     if (input.transactions !== undefined) await tx.execute(ledgerUserLock(userId))
-    const [existing] = await tx.select({ id: diaries.id }).from(diaries).where(and(
+    const [existing] = await tx.select({ id: diaries.id, revision: diaries.revision }).from(diaries).where(and(
       eq(diaries.id, id), eq(diaries.userId, userId),
     )).limit(1).for('update')
     if (!existing) return undefined
+    if (input.expectedRevision !== existing.revision) {
+      return { conflict: true as const, revision: existing.revision }
+    }
 
     const transactionRows = input.transactions === undefined
       ? await listDiaryTransactions(tx, id, userId)
       : await replaceDiaryTransactions(tx, id, userId, input.transactions)
-    const [diary] = await tx.update(diaries).set(values).where(and(
+    const [diary] = await tx.update(diaries).set({
+      ...values,
+      revision: sql`${diaries.revision} + 1`,
+    }).where(and(
       eq(diaries.id, id), eq(diaries.userId, userId),
+      eq(diaries.revision, input.expectedRevision),
     )).returning()
     if (!diary) throw new Error('Diary update returned no row')
     if (input.stockSymbols !== undefined) await writeDiaryStocks(tx, id, input.stockSymbols, true)

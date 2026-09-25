@@ -33,9 +33,9 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
         union all
         (select d.* from diaries d where d.user_id = ${userId} and d.review_status = 'reviewed' order by d.reviewed_at desc nulls last, d.id desc limit 50)
       ), thesis_candidates as (
+        -- Keep all ACTIVE theses until bucket counts and page slices are applied.
         select t.*, s.symbol from investment_theses t join stocks s on s.id = t.stock_id
         where t.user_id = ${userId} and t.status = 'ACTIVE'
-        order by t.review_due_at asc nulls first, t.updated_at desc, t.id desc limit 100
       ), entries as (
         select case when d.review_status = 'reviewed' then 'completed'
           when d.review_due_at is null and d.review_status = 'pending' then 'unscheduled'

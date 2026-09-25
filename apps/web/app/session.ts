@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { createWebSession } from '@diary/api-client';
 import { clearPrivateServiceWorkerCache } from './pwa-client';
 import { safeCaptureReturnPath } from './capture-context';
-import { serializedIdSchema } from '@diary/contracts';
+import { articleLocaleSchema, serializedIdSchema } from '@diary/contracts';
 
 type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
@@ -40,6 +40,25 @@ export function csrfToken() {
   return typeof document === 'undefined' ? null : document.cookie.split('; ').find(value => value.startsWith('csrf-token='))?.slice(11) ?? null;
 }
 
+function safeArticleReturnPath(candidate: string | null): string | null {
+  const match = candidate?.match(/^\/articles\/([^/?#]+)(?:\?([^#]*))?$/);
+  if (!candidate || !match) return null;
+  try {
+    const url = new URL(candidate, 'https://article-return.invalid');
+    if (url.origin !== 'https://article-return.invalid') return null;
+    const slug = decodeURIComponent(match[1]!);
+    if (!/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return null;
+    if ([...url.searchParams.keys()].some(key => key !== 'lang')) return null;
+    const locales = url.searchParams.getAll('lang');
+    if (locales.length > 1) return null;
+    const locale = locales[0] === undefined ? undefined : articleLocaleSchema.safeParse(locales[0]);
+    if (locale && !locale.success) return null;
+    return `/articles/${encodeURIComponent(slug)}${locale?.success ? `?lang=${locale.data}` : ''}`;
+  } catch {
+    return null;
+  }
+}
+
 export function safeReturnPath(candidate: string | null): string {
   const capturePath = safeCaptureReturnPath(candidate);
   if (capturePath) return capturePath;
@@ -52,14 +71,8 @@ export function safeReturnPath(candidate: string | null): string {
   if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
   const adminPostEdit = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/);
   if (adminPostEdit && serializedIdSchema.safeParse(adminPostEdit[1]).success) return candidate!;
-  // Article readers may be sent to sign-in from a members-only page. Keep the
-  // slug on the same-origin allowlist so authentication can return to it.
-  if (candidate?.startsWith('/articles/')) {
-    try {
-      const slug = decodeURIComponent(candidate.slice('/articles/'.length));
-      if (/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return candidate;
-    } catch { /* Malformed encoding is not a valid article return path. */ }
-  }
+  const articlePath = safeArticleReturnPath(candidate);
+  if (articlePath) return articlePath;
   if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
   // Only known private routes are return destinations; no URL normalization can create an external redirect.
   if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/reviews/ai-reports' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/achievements' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/ai' || candidate === '/admin/article-translations' || candidate === '/admin/research' || candidate === '/admin/research/new' || candidate === '/admin/research/settings' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;

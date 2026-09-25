@@ -20,12 +20,12 @@ import { buildCapturePath, normalizeCaptureContext, type CaptureContext } from '
 import { CaptureNotice } from './capture-notice';
 import { readDraftEnvelope, useDraftLifecycle, writeDraftEnvelope } from './draft-lifecycle';
 import { useRecentTags } from './recent-tags';
-export type DiaryFields={alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
+export type DiaryFields={revision?:number;alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
 
 const writeRecoveryCopy = {
- 'zh-TW': { uncertain:'儲存結果未能確認。伺服器可能已有不同版本；本地內容仍保留。請先載入最新版本，再決定是否繼續編輯。', storageUnavailable:'無法在裝置上保留這次追加的安全標記。請保持此頁開啟並稍後再試。', loadLatest:'載入最新版本' },
- 'zh-CN': { uncertain:'保存结果无法确认。服务器可能已有不同版本；本地内容仍保留。请先加载最新版本，再决定是否继续编辑。', storageUnavailable:'无法在设备上保留这次追加的安全标记。请保持此页打开并稍后重试。', loadLatest:'加载最新版本' },
- en: { uncertain:'The save result could not be confirmed. The server may have a different version; your entries remain here. Load the latest version before editing further.', storageUnavailable:'This append could not be protected on the device. Keep this page open and try again later.', loadLatest:'Load latest version' },
+ 'zh-TW': { uncertain:'儲存結果未能確認。伺服器可能已有不同版本；本地內容仍保留。請先載入最新版本，再決定是否繼續編輯。', revisionConflict:'伺服器版本已更新；你目前的本地內容仍保留。載入伺服器版本前，這篇日記不會再次送出。', storageUnavailable:'無法在裝置上保留這次追加的安全標記。請保持此頁開啟並稍後再試。', loadLatest:'載入最新版本', loadServerVersion:'重新載入伺服器版本' },
+ 'zh-CN': { uncertain:'保存结果无法确认。服务器可能已有不同版本；本地内容仍保留。请先加载最新版本，再决定是否继续编辑。', revisionConflict:'服务器版本已更新；你目前的本地内容仍保留。载入服务器版本前，这篇日记不会再次提交。', storageUnavailable:'无法在设备上保留这次追加的安全标记。请保持此页打开并稍后重试。', loadLatest:'加载最新版本', loadServerVersion:'重新加载服务器版本' },
+ en: { uncertain:'The save result could not be confirmed. The server may have a different version; your entries remain here. Load the latest version before editing further.', revisionConflict:'The server version has changed. Your local entries are still here, and this Diary will not be submitted again until you load the server version.', storageUnavailable:'This append could not be protected on the device. Keep this page open and try again later.', loadLatest:'Load latest version', loadServerVersion:'Reload server version' },
 } as const;
 
 // Only errors whose API contract rejects the write before persistence may
@@ -153,13 +153,14 @@ export function sameEditable(a:EditableState,b:EditableState){
 
 type StoredTransaction = {key?:string;id?:string;type?:string;symbol?:string;quantity?:string;price?:string;tradeDate?:string;instant?:string;notes?:string;strategy?:string;emotion?:string};
 type StoredReminder = {key?:string;message?:string;time?:string;instant?:string;mode?:string};
-type EditorDraft = {form?:{date?:string;title?:string;content?:string;tags?:string[];thesis?:string|null;risk?:string|null;execution?:string|null};stockSymbols?:string;transactions?:StoredTransaction[];reviewTime?:string;reviewInstant?:string;reminders?:StoredReminder[];captureContext?:CaptureContext;uncertainAppend?:boolean};
+type EditorDraft = {baseRevision?:number;form?:{date?:string;title?:string;content?:string;tags?:string[];thesis?:string|null;risk?:string|null;execution?:string|null};stockSymbols?:string;transactions?:StoredTransaction[];reviewTime?:string;reviewInstant?:string;reminders?:StoredReminder[];captureContext?:CaptureContext;uncertainAppend?:boolean};
 
 function readEditorDraft(key:string):EditorDraft|null{
  try{
   const value=readDraftEnvelope<EditorDraft>(key);
   if(!value||typeof value!=='object')return null;
   const draft:EditorDraft={};
+  if(typeof value.baseRevision==='number'&&Number.isInteger(value.baseRevision)&&value.baseRevision>0)draft.baseRevision=value.baseRevision;
   if(value.form&&typeof value.form==='object'){
    const form:EditorDraft['form']={};
    for(const field of ['date','title','content'] as const)if(typeof value.form[field]==='string')form[field]=value.form[field];
@@ -227,6 +228,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  const {t,locale}=useUi();const labels=diaryCopy[locale];const session=useSessionState();const sessionRef=useRef(session);sessionRef.current=session;const navigate=useNavigate();
  const captureRef=useRef(normalizeCaptureContext(captureContext));
  const [reminders,setReminders]=useState(()=>editableFromDiary(initial).reminders);
+ const revisionRef=useRef<number>(initial.revision??1);
  const [form,setForm]=useState(()=>editableFromDiary(initial).form);const [preview,setPreview]=useState(false);const [pending,setPending]=useState(false);const [error,setError]=useState<Failure|null>(null);
  const [saveState,setSaveState]=useState<'idle'|'saving'|'failed'>('idle');const savingRef=useRef(false);
  const [transactions,setTransactions]=useState(()=>editableFromDiary(initial).transactions);const [transactionError,setTransactionError]=useState('');const [stockSymbols,setStockSymbols]=useState(()=>editableFromDiary(initial).stockSymbols);const [reviewTime,setReviewTime]=useState(()=>editableFromDiary(initial).reviewTime);const [reviewInstant,setReviewInstant]=useState(()=>editableFromDiary(initial).reviewInstant);const [recoveryState,setRecoveryState]=useState<'conflict'|'unavailable'|null>(null);const [recoveryDiary,setRecoveryDiary]=useState<DiaryResponse|null>(null);const [dateConflict,setDateConflict]=useState<DiaryResponse|null>(null);
@@ -245,7 +247,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  const [appendUncertain,setAppendUncertain]=useState(false);
  const contentRef=useRef<HTMLTextAreaElement>(null);const caretState=useRef<{start:number;end:number;top:number}|null>(null);const previewSectionRef=useRef<HTMLElement|null>(null);const previewVisited=useRef(false);const incomingKey=useRef(buildCapturePath('new',captureContext,initial.date));
  const [recentTags,rememberTags]=useRecentTags(accountId??'');
- const draftValue={...sources,...(captureRef.current?{captureContext:captureRef.current}:{}),...(appendUncertain?{uncertainAppend:true}: {})};
+ const draftValue={...sources,...(id?{baseRevision:revisionRef.current}:{}),...(captureRef.current?{captureContext:captureRef.current}:{}),...(appendUncertain?{uncertainAppend:true}: {})};
  const {flushDraft,suppressDraft}=useDraftLifecycle({key:draftKey,value:draftValue,dirty,paused:Boolean(restorable)});
  const appendLocked=appendUncertain||Boolean(restorable?.uncertainAppend);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
@@ -260,7 +262,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  useEffect(()=>{if(!appendLocked||dateConflict||!form.date)return;let active=true;void api.GET('/api/diaries/by-date',{params:{query:{date:form.date}}}).then(result=>{if(!active||!result.response.ok)return;const parsed=diaryResponseSchema.safeParse(result.data);if(parsed.success&&parsed.data)setDateConflict(parsed.data);}).catch(()=>{});return()=>{active=false;};},[appendLocked,dateConflict,form.date]);
  function clearDraft(){if(draftKey)suppressDraft();}
  function change(field:Exclude<keyof FormState,'tags'>,value:string){if(field==='date')setDateConflict(null);setForm(current=>({...current,[field]:value}));}
- function restoreDraft(){const draft=restorable!;const merged=mergeDraft(sourcesRef.current,draft,id?sourcesRef.current.stockSymbols:'');const uncertain=Boolean(draft.uncertainAppend);captureRef.current=normalizeCaptureContext(draft.captureContext);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setAppendUncertain(uncertain);setRecoveryState(uncertain?'unavailable':null);setRecoveryDiary(null);setError(uncertain?{message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]}:null);setRestorable(null);}
+ function restoreDraft(){const draft=restorable!;const merged=mergeDraft(sourcesRef.current,draft,id?sourcesRef.current.stockSymbols:'');const uncertain=Boolean(draft.uncertainAppend);const revisionConflict=Boolean(id&&!uncertain&&(draft.baseRevision??1)!==revisionRef.current);if(revisionConflict)revisionRef.current=draft.baseRevision??1;captureRef.current=normalizeCaptureContext(draft.captureContext);setForm(merged.form);setStockSymbols(merged.stockSymbols);setTransactions(merged.transactions);setReviewTime(merged.reviewTime);setReviewInstant(merged.reviewInstant);setReminders(merged.reminders);setAppendUncertain(uncertain);setRecoveryState(uncertain?'unavailable':null);setRecoveryDiary(null);setSaveState(revisionConflict?'failed':'idle');setError(revisionConflict?{message:writeRecoveryCopy[locale].revisionConflict,code:'DIARY_REVISION_CONFLICT',fields:[]}:uncertain?{message:writeRecoveryCopy[locale].uncertain,code:'DIARY_WRITE_UNCERTAIN',fields:[]}:null);setRestorable(null);}
  function discardDraft(){const next=editableFromDiary(initial);captureRef.current=normalizeCaptureContext(captureContext);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);setRecoveryState(null);setRecoveryDiary(null);setDateConflict(null);setAppendUncertain(false);setRestorable(null);clearDraft();}
  function togglePreview(){
   if(!preview){const element=contentRef.current;if(element)caretState.current={start:element.selectionStart,end:element.selectionEnd,top:element.scrollTop};previewVisited.current=true;setPreview(true);}
@@ -312,6 +314,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  }
  function applyLatest(latest:DiaryResponse){
   const next=editableFromResponse(latest);
+  revisionRef.current=latest.revision;
   setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);
   const confirmed=canonicalState(next);baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);setSaveState('idle');setError(null);setAppendUncertain(false);clearDraft();
  }
@@ -326,7 +329,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   // One in-flight write per editor; blocks same-frame double submits that
   // outrun the disabled-button re-render. Server-side date uniqueness is the
   // final duplicate guard.
-  if(savingRef.current||recoveryState)return;
+  if(savingRef.current||recoveryState||error?.code==='DIARY_REVISION_CONFLICT')return;
   setSaveState('failed'); // Client-side validation failures keep the failed status if they return early.
   setTransactionError('');const alerts=reminderInputs(reminders);if(alertsDirty&&(!alerts.every(row=>alertDraftSchema.safeParse(row).success)||alerts.length>50)){setTransactionError(reminderCopy[locale].invalid);return;}const companies=parseCompanyContext(stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const reviewDueAt=reviewTime?resolveLocalTradeInstant(reviewTime,reviewInstant):null;if(reviewTime&&!reviewDueAt){setTransactionError(reviewScheduleCopy[locale].invalid);return;}const parsedTransactions=[];for(const row of transactions){const instant=resolveLocalTradeInstant(row.tradeDate,row.instant);if(!instant){setTransactionError(ledgerCopy[locale].dateInvalid);return;}const parsed=(id?ledgerTransactionUpdateInputSchema:ledgerTransactionInputSchema).safeParse({...((id&&row.id)?{id:row.id}:{}),symbol:row.symbol,type:row.type,quantity:row.quantity,price:row.price,tradeDate:instant,notes:row.notes||null,strategy:row.strategy||null,emotion:row.emotion||null});if(!parsed.success){setTransactionError(ledgerCopy[locale].invalid);return;}parsedTransactions.push(parsed.data);}
   const controls=Array.from(event.currentTarget.elements).filter((element):element is DisableableControl=>'disabled' in element&&!element.disabled&&!(element instanceof HTMLButtonElement&&element.type==='submit'));
@@ -336,12 +339,12 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);setDateConflict(null);
   const body={...form,...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,...(writeTransactions?{transactions:parsedTransactions}:{})};
   const writeRevision=sessionRef.current.revision;
-  const finishConfirmed=(diary:DiaryResponse)=>{if(!liveWrite(writeRevision))return;const confirmed=canonicalState(editableFromResponse(diary));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);if(liveWrite(writeRevision))rememberTags(body.tags??[]);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(returnTo??`/diaries/${diary.id}`,{state:{saved:true,captureContext:captureRef.current}});};
+  const finishConfirmed=(diary:DiaryResponse)=>{if(!liveWrite(writeRevision))return;revisionRef.current=diary.revision;const confirmed=canonicalState(editableFromResponse(diary));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);if(liveWrite(writeRevision))rememberTags(body.tags??[]);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(returnTo??`/diaries/${diary.id}`,{state:{saved:true,captureContext:captureRef.current}});};
   try{
-   const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body}):await api.POST('/api/diaries',{body});
+   const result=id?await api.PUT('/api/diaries/{id}',{params:{path:{id}},body:{...body,expectedRevision:revisionRef.current}}):await api.POST('/api/diaries',{body});
    if(!liveWrite(writeRevision))return;
    if(result.response.ok&&result.data){finishConfirmed(result.data);return;}
-   const failure=apiFailure(result.error,t('failed'));setSaveState('failed');setError(failure);
+   const failure=apiFailure(result.error,t('failed'));setSaveState('failed');setError(failure.code==='DIARY_REVISION_CONFLICT'?{...failure,message:writeRecoveryCopy[locale].revisionConflict}:failure);
    if(failure.code==='DIARY_ALREADY_EXISTS'){
     const conflictDate=form.date;
     const conflict=await readByDate(conflictDate);
@@ -384,7 +387,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   {!quick&&<AlertFields value={reminders} pending={pending} editing={Boolean(id)} onChange={setReminders}/>}
   {transactionError&&<p className="error" role="alert">{transactionError}</p>}
   {invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}
-  <FailureNotice failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:undefined}/>
+  <FailureNotice failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:error?.code==='DIARY_REVISION_CONFLICT'?writeRecoveryCopy[locale].revisionConflict:undefined}/>
   </fieldset>
   {dateConflict&&<section className="editor-conflict" role="region" aria-labelledby="diary-conflict-title">
    <h2 id="diary-conflict-title">{labels.conflictTitle}</h2>
@@ -394,7 +397,8 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
    <div className="actions" role="group" aria-label={labels.conflictTitle}><button type="button" onClick={()=>void appendConflict()} disabled={pending||appendLocked||Boolean(recoveryState)}>{labels.conflictAppend}</button><Link className="inline-link" to={`/diaries/${dateConflict.id}/edit`} onClick={event=>{if(pending){event.preventDefault();return;}if(!flushDraft()){event.preventDefault();setError({message:writeRecoveryCopy[locale].uncertain,code:'SYS_INTERNAL_ERROR',fields:[]});}else dirtyRef.current=false;}}>{labels.conflictEdit}</Link><button type="button" className="secondary" onClick={()=>{setDateConflict(null);if(!appendLocked)setError(null);}}>{labels.conflictCancel}</button></div>
   </section>}
   {(error?.code==='AUTH_TOKEN_INVALID'||error?.code==='AUTH_UNAUTHORIZED')&&<p className="editor-signin"><Link className="button secondary" to={signInPath(id?editorContinuationPath(id,returnTo,focusSchedule):buildCapturePath('new',captureRef.current,form.date))}>{t('login')}</Link></p>}
+  {error?.code==='DIARY_REVISION_CONFLICT'&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadServerVersion}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadServerVersion}</button></div>}
   {recoveryState&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadLatest}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadLatest}</button><button type="button" className="secondary" onClick={discardDraft} disabled={pending}>{labels.discardDraft}</button></div>}
-  <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div>
+  <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||error?.code==='DIARY_REVISION_CONFLICT'||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div>
  </form>;
 }

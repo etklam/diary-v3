@@ -200,7 +200,7 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
       await blocker.query('SELECT id FROM diaries WHERE id = $1 FOR UPDATE', [created.id])
 
       const put = cookieMutation(browser, 'PUT', `/api/diaries/${created.id}`, {
-        title: 'Committed PUT title', content: 'Committed PUT body',
+        expectedRevision: created.revision, title: 'Committed PUT title', content: 'Committed PUT body',
       })
       await waitForLockWaiters(1)
       const append = browser.post('/api/diaries', {

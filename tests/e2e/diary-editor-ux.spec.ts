@@ -74,6 +74,102 @@ test('save status reflects clean, dirty, saving and failed states without fake f
   await expect(page).toHaveURL(new RegExp(`${diaryId}$`));
 });
 
+test('a stale editor keeps its writing, stops resubmitting and can explicitly load the server version', async ({ page }) => {
+  const email = `ux-revision-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Revision conflict diary');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const diaryId = page.url().split('/').at(-1)!;
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  const content = page.getByRole('textbox', { name: 'Content', exact: true });
+  await expect(content).toHaveValue('Initial server body.');
+  await content.fill('Local changes that must remain visible.');
+
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number; title: string; content: string };
+  const concurrent = await page.request.put(`/api/diaries/${diaryId}`, {
+    headers: { 'x-csrf-token': csrf },
+    data: { expectedRevision: loaded.revision, title: 'Updated on another device', content: 'Server changes to preserve.' },
+  });
+  expect(concurrent.status()).toBe(200);
+
+  let fullEditorPuts = 0;
+  await page.route(`**/api/diaries/${diaryId}`, async route => {
+    if (route.request().method() === 'PUT') fullEditorPuts += 1;
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
+  await expect(content).toHaveValue('Local changes that must remain visible.');
+  await expect(page.getByText('The server version has changed.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled();
+  expect(fullEditorPuts).toBe(1);
+
+  await page.getByRole('button', { name: 'Reload server version', exact: true }).click();
+  await expect(content).toHaveValue('Server changes to preserve.');
+  await expect(page.getByTestId('error-code')).toHaveCount(0);
+  await page.unroute(`**/api/diaries/${diaryId}`);
+  await content.fill('Reloaded, then edited safely.');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/diaries/${diaryId}$`));
+  expect(await page.request.get(`/api/diaries/${diaryId}`).then(response => response.json()).then((row: { content: string }) => row.content)).toBe('Reloaded, then edited safely.');
+});
+
+test('a restored local draft keeps its original revision after another device saves', async ({ page }) => {
+  const email = `ux-restored-revision-${randomUUID()}@example.test`;
+  await signInAndOpen(page, email);
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered revision diary');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.');
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+  await expect(page).toHaveURL(/\/diaries\/\d+$/);
+  const diaryId = page.url().split('/').at(-1)!;
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
+  const content = page.getByRole('textbox', { name: 'Content', exact: true });
+  await content.fill('Recovered local writing from the older revision.');
+  const storedDraft = () => page.evaluate(() => {
+    const key = Object.keys(localStorage).find(item => item.startsWith('diary-editor-draft:') && item.endsWith(`:${location.pathname.split('/')[2]}`));
+    return key ? JSON.parse(localStorage.getItem(key) ?? 'null')?.value?.baseRevision ?? null : null;
+  });
+  await expect.poll(storedDraft, { timeout: 5_000 }).toBe(1);
+
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number };
+  const concurrent = await page.request.put(`/api/diaries/${diaryId}`, {
+    headers: { 'x-csrf-token': csrf },
+    data: { expectedRevision: loaded.revision, title: 'Newer server version', content: 'Server body to preserve.' },
+  });
+  expect(concurrent.status()).toBe(200);
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
+  await expect(content).toHaveValue('Recovered local writing from the older revision.');
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
+  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled();
+  expect(await storedDraft()).toBe(1);
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
+  await expect(content).toHaveValue('Recovered local writing from the older revision.');
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
+  expect(await storedDraft()).toBe(1);
+
+  let fullEditorPuts = 0;
+  await page.route(`**/api/diaries/${diaryId}`, async route => {
+    if (route.request().method() === 'PUT') fullEditorPuts += 1;
+    await route.continue();
+  });
+  await page.locator('form').evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  expect(fullEditorPuts).toBe(0);
+
+  await page.getByRole('button', { name: 'Reload server version', exact: true }).click();
+  await expect(content).toHaveValue('Server body to preserve.');
+  await expect(page.getByTestId('error-code')).toHaveCount(0);
+});
+
 test('dirty editors warn before internal navigation; clean editors do not', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signInAndOpen(page, `ux-guard-${randomUUID()}@example.test`);
@@ -413,6 +509,7 @@ test('uncertain text save confirms without overwriting a concurrent transaction 
     const concurrent = await page.request.put(`/api/diaries/${created.id}`, {
       headers: { 'x-csrf-token': csrf },
       data: {
+        expectedRevision: Number(sentBody.expectedRevision) + 1,
         title: String(sentBody.title), content: String(sentBody.content),
         transactions: [{
           id: String(row.id), symbol: String(row.symbol), type: String(row.type), quantity: '3',

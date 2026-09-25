@@ -178,6 +178,26 @@ class ApiError extends Error {
   }
 }
 
+function postgresErrorCode(error: unknown): string | undefined {
+  const seen = new Set<object>()
+  let current = error
+  for (let depth = 0; depth < 6 && current && typeof current === 'object' && !seen.has(current); depth += 1) {
+    seen.add(current)
+    if ('code' in current && typeof (current as { code?: unknown }).code === 'string') {
+      const code = (current as { code: string }).code
+      if (/^[0-9A-Z]{5}$/.test(code)) return code
+    }
+    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
+  }
+  return undefined
+}
+
+function safeStackFrames(error: unknown): string[] | undefined {
+  if (!(error instanceof Error)) return undefined
+  const frames = error.stack?.split('\n').filter(frame => /^\s*at\s/.test(frame)).slice(0, 12).map(frame => frame.trim())
+  return frames?.length ? frames : undefined
+}
+
 function fail(status: number, code: ErrorCode, message: string, details: ErrorDetail[] | null = null): never {
   throw new ApiError(status, code, message, details)
 }
@@ -510,7 +530,7 @@ export function createApp({
   registerPerformanceRoute(app, { db, fail, validationError })
   registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
-  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
+  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, logger, fail, validationError, parseJson })
   registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
   const aiReportService = new AiReportService({ db, now })
@@ -908,6 +928,7 @@ export function createApp({
     try {
       const result = await updateDiary(db, parsedId, BigInt(session.id), input, now())
       if (!result) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
+      if ('conflict' in result && result.conflict) fail(409, 'DIARY_REVISION_CONFLICT', 'Diary changed after it was loaded. Reload the latest version before saving.')
       const planRows = await listLinkedTradePlans(db, BigInt(session.id), [result.diary.id])
       return c.json(serializeDiary(result.diary, true, result.transactions, planRows, result.stockSymbols, result.alerts), 200)
     } catch (error) {
@@ -1004,6 +1025,19 @@ export function createApp({
     const apiError = error instanceof ApiError
       ? error
       : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
+    if (apiError.statusCode >= 500) {
+      const databaseCode = postgresErrorCode(error)
+      const stackFrames = safeStackFrames(error)
+      logger.error('Unhandled API request error', {
+        operation: 'http_request',
+        requestId: c.get('requestId'),
+        method: c.req.method,
+        path: c.req.path,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        ...(databaseCode ? { databaseCode } : {}),
+        ...(stackFrames?.length ? { stackFrames } : {}),
+      })
+    }
     const body = apiErrorResponseSchema.parse({
       statusCode: apiError.statusCode,
       statusMessage: apiError.message,

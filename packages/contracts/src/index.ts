@@ -220,6 +220,7 @@ export const errorCodes = [
   'AUTH_RATE_LIMITED',
   'CSRF_FAILED',
   'DIARY_NOT_FOUND',
+  'DIARY_REVISION_CONFLICT',
   'ACHIEVEMENT_NOT_FOUND',
   'ALERT_NOT_FOUND',
   'PRICE_ALERT_NOT_FOUND',
@@ -489,6 +490,7 @@ export const createDiaryRequestSchema = z.object({
 }).strict()
 export const updateDiaryRequestSchema = z.object({
   ...diaryWriteFields,
+  expectedRevision: z.number().int().positive(),
   transactions: z.array(ledgerTransactionUpdateInputSchema).max(100)
     .superRefine((rows, context) => {
       const seen = new Set<string>()
@@ -505,6 +507,7 @@ export const deleteDiaryResponseSchema = z.object({ success: z.literal(true) }).
 
 export const diaryResponseSchema = z.object({
   id: serializedIdSchema,
+  revision: z.number().int().positive(),
   userId: serializedIdSchema,
   title: z.string(),
   content: z.string().nullable(),

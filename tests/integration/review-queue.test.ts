@@ -179,20 +179,37 @@ it('never leaks another user\'s diary into the queue response', async () => {
   expect(result.today.map((row: {id:string}) => row.id)).toEqual([mine.id])
   expect(JSON.stringify(result)).not.toContain('2026-09-01')
 })
-it('retains the latest 50 completed diaries and the first 100 active thesis candidates', async () => {
+it('retains the completed diary cap and pages the full active thesis set by bucket', async () => {
   const browser = await login()
   const me = await (await browser.request('/api/auth/me')).json(), owner = me.data.id
   const completed = await database.pool.query(`insert into diaries (user_id,date,title,content,review_status,reviewed_at,review_outcome,review_summary)
     select $1, date '2025-01-01' + n, 'Completed ' || n, 'Synthetic', 'reviewed', timestamptz '2026-01-01' + n * interval '1 minute', 'INTACT', 'Private reflection'
     from generate_series(1,51) n returning id,title`, [owner])
-  await database.pool.query(`with symbols as (
-    insert into stocks (symbol) select 'QUEUECAP' || n from generate_series(1,101) n on conflict (symbol) do update set symbol=excluded.symbol returning id,symbol
-  ) insert into investment_theses (user_id,stock_id,status,summary,why_i_own_it,review_due_at)
-    select $1,id,'ACTIVE','Synthetic','Reason',timestamptz '2099-01-01' + substring(symbol from 9)::integer * interval '1 day' from symbols`, [owner])
-  const result = await queue(browser, '?limit=200')
-  expect(result.completed).toHaveLength(50)
-  expect(result.completed.some((item: {id:string}) => item.id === String(completed.rows.find(row => row.title === 'Completed 1').id))).toBe(false)
-  expect(result.upcoming).toHaveLength(100)
-  expect(result.upcoming.at(-1).symbol).toBe('QUEUECAP100')
-  expect(JSON.stringify(result)).not.toContain('Private reflection')
+  const prefix = `QF${randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`
+  const stocks = await database.pool.query(`insert into stocks (symbol)
+    select $1::text || lpad(n::text, 3, '0') from generate_series(1,101) n returning id,symbol`, [prefix])
+  const unscheduledSymbols = Array.from({ length: 100 }, (_, index) => `${prefix}${String(index + 1).padStart(3, '0')}`)
+  const overdueSymbol = `${prefix}101`
+  const theses = await database.pool.query(`insert into investment_theses (user_id,stock_id,status,summary,why_i_own_it,review_due_at)
+    select $1,id,'ACTIVE','Synthetic','Reason',case when symbol=$3 then timestamptz '2026-09-04T10:00:00Z' else null end
+    from stocks where symbol like $2::text || '%' order by symbol returning id::text as id,stock_id`, [owner, prefix, overdueSymbol])
+  expect(theses.rows).toHaveLength(101)
+  const symbolByStockId = new Map(stocks.rows.map(row => [String(row.id), row.symbol]))
+  const overdueThesis = theses.rows.find(row => symbolByStockId.get(String(row.stock_id)) === overdueSymbol)
+  expect(overdueThesis).toBeDefined()
+
+  const first = await queue(browser, '?page=1&limit=50')
+  const second = await queue(browser, '?page=2&limit=50')
+  const expectedCounts = { overdue: 1, today: 0, upcoming: 0, unscheduled: 100, completed: 50 }
+  expect(first.counts).toEqual(expectedCounts)
+  expect(second.counts).toEqual(expectedCounts)
+  expect(first.unscheduled.map((item: {symbol:string}) => item.symbol)).toEqual(unscheduledSymbols.slice(0, 50))
+  expect(second.unscheduled.map((item: {symbol:string}) => item.symbol)).toEqual(unscheduledSymbols.slice(50))
+  expect(first.overdue).toHaveLength(1)
+  expect(first.overdue[0]).toMatchObject({ targetType: 'thesis', id: `thesis:${overdueThesis.id}`, thesisId: overdueThesis.id, symbol: overdueSymbol })
+  expect(second.overdue).toEqual([])
+  expect(first.completed).toHaveLength(50)
+  expect(first.completed.some((item: {id:string}) => item.id === String(completed.rows.find(row => row.title === 'Completed 1').id))).toBe(false)
+  expect(second.completed).toEqual([])
+  expect(JSON.stringify([first, second])).not.toContain('Private reflection')
 })

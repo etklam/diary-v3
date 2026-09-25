@@ -267,6 +267,13 @@
       "when": 1790318833275,
       "tag": "0037_article_translation_provider_job_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790346713901,
+      "tag": "0038_diary_revision",
+      "breakpoints": true
     }
   ]
 }

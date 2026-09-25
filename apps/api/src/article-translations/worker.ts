@@ -20,9 +20,17 @@ const DEFAULT_HEARTBEAT_MS = 5_000
 const MAX_EDGE_CIRCUIT_MS = 60 * 60_000
 const EDGE_CIRCUIT_THRESHOLD = 3
 const EDGE_FAILURE_WINDOW_MS = 30 * 60_000
+const SAFE_PROVIDER_ERROR_CODES = new Set([
+  'TRANSLATION_CONFIGURATION_INVALID', 'TRANSLATION_PROVIDER_DISABLED', 'TRANSLATION_INPUT_TOO_LARGE',
+  'TRANSLATION_PRIVACY_RESTRICTED', 'TRANSLATION_PROVIDER_REJECTED', 'TRANSLATION_PROVIDER_UNAVAILABLE',
+  'TRANSLATION_PROVIDER_TIMEOUT', 'TRANSLATION_RATE_LIMITED', 'TRANSLATION_OUTPUT_INVALID',
+])
+const SAFE_CONNECTION_ERROR_CODES = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED'])
+const RECOVERABLE_DATABASE_ERROR_CODES = new Set(['40P01', '40001', '53300', '55P03', '57P01', '57P02', '57P03'])
 
 type JobRow = typeof articleTranslationJobs.$inferSelect
 type PostRow = typeof posts.$inferSelect
+type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 
 interface ClaimedJob {
   job: JobRow
@@ -38,6 +46,7 @@ export interface ArticleTranslationWorkerOptions {
   signal?: AbortSignal
   aiTransport?: AiTransport
   edgeProviderOptions?: EdgeTranslationProviderOptions
+  logger?: { error(message: string, context: Record<string, unknown>): void }
 }
 
 export type ArticleTranslationWorkerResult =
@@ -48,17 +57,6 @@ function activeLeaseFields(token: string, workerId: string, jobId: bigint, expir
   return { activeJobId: jobId, activeLeaseToken: token, activeLeaseExpiresAt: expiresAt, workerId }
 }
 
-async function clearLease(db: Database, jobId: bigint, token: string, now: Date) {
-  await db.update(articleTranslationRuntime).set({
-    activeJobId: null,
-    activeLeaseToken: null,
-    activeLeaseExpiresAt: null,
-    workerId: null,
-    workerHeartbeatAt: now,
-    updatedAt: now,
-  }).where(and(eq(articleTranslationRuntime.singleton, 'default'), eq(articleTranslationRuntime.activeJobId, jobId), eq(articleTranslationRuntime.activeLeaseToken, token)))
-}
-
 function jobIsCurrent(job: JobRow, post: PostRow): boolean {
   return job.sourceLocale === post.sourceLocale
     && job.sourceRevision === post.sourceRevision
@@ -66,9 +64,108 @@ function jobIsCurrent(job: JobRow, post: PostRow): boolean {
     && job.targetLocale !== post.sourceLocale
 }
 
+function errorCode(error: unknown): string | undefined {
+  const seen = new Set<object>()
+  let current = error
+  for (let depth = 0; depth < 6 && current && typeof current === 'object' && !seen.has(current); depth += 1) {
+    seen.add(current)
+    if ('code' in current && typeof (current as { code?: unknown }).code === 'string') {
+      return (current as { code: string }).code
+    }
+    current = 'cause' in current ? (current as { cause?: unknown }).cause : undefined
+  }
+  return undefined
+}
+
+function isDatabaseError(error: unknown): boolean {
+  const code = errorCode(error)
+  return Boolean(code && (/^[0-9A-Z]{5}$/.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code)))
+}
+
+function isRecoverableDatabaseError(error: unknown): boolean {
+  const code = errorCode(error)
+  return Boolean(code && (code.startsWith('08') || RECOVERABLE_DATABASE_ERROR_CODES.has(code) || SAFE_CONNECTION_ERROR_CODES.has(code)))
+}
+
+function loggedErrorCode(error: unknown, fallback?: string): string | undefined {
+  const code = errorCode(error)
+  if (code && (/^[0-9A-Z]{5}$/.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code) || SAFE_PROVIDER_ERROR_CODES.has(code))) return code
+  return fallback && SAFE_PROVIDER_ERROR_CODES.has(fallback) ? fallback : undefined
+}
+
+function setWorkerStage(error: unknown, stage: string): unknown {
+  if (error instanceof Error) Object.assign(error, { workerStage: stage })
+  return error
+}
+
+function workerStage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('workerStage' in error)) return undefined
+  const stage = (error as { workerStage?: unknown }).workerStage
+  return typeof stage === 'string' ? stage : undefined
+}
+
+async function transactionWithRetry<T>(db: Database, work: (tx: DbTransaction) => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await db.transaction(work)
+    } catch (error) {
+      const code = errorCode(error)
+      if (attempt >= 2 || (code !== '40P01' && code !== '40001')) throw error
+      await new Promise(resolve => setTimeout(resolve, 10 * (attempt + 1)))
+    }
+  }
+}
+
+function logWorkerError(options: ArticleTranslationWorkerOptions, stage: string, error: unknown, claimed?: ClaimedJob, provider?: string, safeCode?: string) {
+  const logger = options.logger ?? console
+  const stackFrames = error instanceof Error ? error.stack?.split('\n').filter(frame => /^\s*at\s/.test(frame)).slice(0, 12).map(frame => frame.trim()) : undefined
+  const code = loggedErrorCode(error, safeCode)
+  logger.error('Article translation worker operation failed', {
+    operation: 'article_translation_worker',
+    stage,
+    workerId: options.workerId ?? `article-translation-${process.pid}`,
+    ...(claimed ? { jobId: claimed.job.id.toString(), provider: claimed.job.provider } : provider ? { provider } : {}),
+    errorName: error instanceof Error ? error.name : 'UnknownError',
+    ...(code ? { errorCode: code } : {}),
+    ...(stackFrames?.length ? { stackFrames } : {}),
+  })
+}
+
+class TranslationLeaseLostError extends Error {}
+
+async function markJobStale(db: Database, claimed: ClaimedJob, now: Date): Promise<void> {
+  await transactionWithRetry(db, async tx => {
+    const [runtime] = await tx.select().from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
+    if (!runtime || runtime.activeJobId !== claimed.job.id || runtime.activeLeaseToken !== claimed.leaseToken) return
+    const [job] = await tx.select().from(articleTranslationJobs)
+      .where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.status, 'running'), eq(articleTranslationJobs.leaseToken, claimed.leaseToken)))
+      .for('update')
+    if (!job) return
+    await tx.update(articleTranslationJobs).set({
+      status: 'stale',
+      error: 'ARTICLE_SOURCE_CHANGED',
+      progress: 100,
+      leaseToken: null,
+      workerId: null,
+      leaseExpiresAt: null,
+      finishedAt: now,
+      updatedAt: now,
+    }).where(eq(articleTranslationJobs.id, job.id))
+    await tx.update(articleTranslationRuntime).set({
+      activeJobId: null,
+      activeLeaseToken: null,
+      activeLeaseExpiresAt: null,
+      workerId: null,
+      workerHeartbeatAt: now,
+      updatedAt: now,
+    }).where(eq(articleTranslationRuntime.singleton, 'default'))
+  })
+}
+
 async function claimNextJob(db: Database, workerId: string, now: Date, leaseMs: number): Promise<ClaimedJob | null> {
   await db.insert(articleTranslationRuntime).values({ singleton: 'default', updatedAt: now }).onConflictDoNothing()
-  return db.transaction(async tx => {
+  return transactionWithRetry(db, async tx => {
     const [runtime] = await tx.select().from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
     if (!runtime) return null
     if (runtime.activeJobId && runtime.activeLeaseToken && runtime.activeLeaseExpiresAt) {
@@ -133,19 +230,22 @@ async function claimNextJob(db: Database, workerId: string, now: Date, leaseMs: 
 }
 
 async function heartbeat(db: Database, claimed: ClaimedJob, workerId: string, now: Date, leaseMs: number): Promise<boolean> {
-  return db.transaction(async tx => {
+  return transactionWithRetry(db, async tx => {
+    const [runtime] = await tx.select().from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
+    if (!runtime || runtime.activeJobId !== claimed.job.id || runtime.activeLeaseToken !== claimed.leaseToken) return false
     const expiresAt = new Date(now.getTime() + leaseMs)
     const [updated] = await tx.update(articleTranslationJobs).set({ heartbeatAt: now, leaseExpiresAt: expiresAt, updatedAt: now })
       .where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.status, 'running'), eq(articleTranslationJobs.leaseToken, claimed.leaseToken)))
       .returning({ id: articleTranslationJobs.id })
     if (!updated) return false
-    const [runtime] = await tx.update(articleTranslationRuntime).set({
+    await tx.update(articleTranslationRuntime).set({
       workerId,
       workerHeartbeatAt: now,
       activeLeaseExpiresAt: expiresAt,
       updatedAt: now,
-    }).where(and(eq(articleTranslationRuntime.singleton, 'default'), eq(articleTranslationRuntime.activeJobId, claimed.job.id), eq(articleTranslationRuntime.activeLeaseToken, claimed.leaseToken))).returning({ activeJobId: articleTranslationRuntime.activeJobId })
-    return Boolean(runtime)
+    }).where(eq(articleTranslationRuntime.singleton, 'default'))
+    return true
   })
 }
 
@@ -164,24 +264,27 @@ function publicProviderError(error: unknown): string {
 
 async function updateEdgeCircuit(db: Database, errorCode: string | null, now: Date) {
   await db.insert(articleTranslationRuntime).values({ singleton: 'default', updatedAt: now }).onConflictDoNothing()
-  const [runtime] = await db.select().from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1)
-  if (!runtime) return
-  if (errorCode === null) {
-    await db.update(articleTranslationRuntime).set({ edgeFailureCount: 0, edgeDisabledUntil: null, edgeLastErrorCode: null, edgeLastFailureAt: null, updatedAt: now }).where(eq(articleTranslationRuntime.singleton, 'default'))
-    return
-  }
-  const inWindow = runtime.edgeLastFailureAt && now.getTime() - runtime.edgeLastFailureAt.getTime() <= EDGE_FAILURE_WINDOW_MS
-  const failureCount = inWindow ? runtime.edgeFailureCount + 1 : 1
-  const circuitDelay = failureCount < EDGE_CIRCUIT_THRESHOLD
-    ? null
-    : Math.min(MAX_EDGE_CIRCUIT_MS, 60_000 * (2 ** Math.min(5, failureCount - EDGE_CIRCUIT_THRESHOLD)))
-  await db.update(articleTranslationRuntime).set({
-    edgeFailureCount: failureCount,
-    edgeDisabledUntil: circuitDelay === null ? runtime.edgeDisabledUntil : new Date(now.getTime() + circuitDelay),
-    edgeLastErrorCode: errorCode,
-    edgeLastFailureAt: now,
-    updatedAt: now,
-  }).where(eq(articleTranslationRuntime.singleton, 'default'))
+  await transactionWithRetry(db, async tx => {
+    const [runtime] = await tx.select().from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
+    if (!runtime) return
+    if (errorCode === null) {
+      await tx.update(articleTranslationRuntime).set({ edgeFailureCount: 0, edgeDisabledUntil: null, edgeLastErrorCode: null, edgeLastFailureAt: null, updatedAt: now }).where(eq(articleTranslationRuntime.singleton, 'default'))
+      return
+    }
+    const inWindow = runtime.edgeLastFailureAt && now.getTime() - runtime.edgeLastFailureAt.getTime() <= EDGE_FAILURE_WINDOW_MS
+    const failureCount = inWindow ? runtime.edgeFailureCount + 1 : 1
+    const circuitDelay = failureCount < EDGE_CIRCUIT_THRESHOLD
+      ? null
+      : Math.min(MAX_EDGE_CIRCUIT_MS, 60_000 * (2 ** Math.min(5, failureCount - EDGE_CIRCUIT_THRESHOLD)))
+    await tx.update(articleTranslationRuntime).set({
+      edgeFailureCount: failureCount,
+      edgeDisabledUntil: circuitDelay === null ? runtime.edgeDisabledUntil : new Date(now.getTime() + circuitDelay),
+      edgeLastErrorCode: errorCode,
+      edgeLastFailureAt: now,
+      updatedAt: now,
+    }).where(eq(articleTranslationRuntime.singleton, 'default'))
+  })
 }
 
 async function completeJob(db: Database, claimed: ClaimedJob, result: {
@@ -193,7 +296,10 @@ async function completeJob(db: Database, claimed: ClaimedJob, result: {
   promptVersion: string | null
   usage: unknown
 }, now: Date): Promise<'succeeded' | 'stale'> {
-  return db.transaction(async tx => {
+  return transactionWithRetry(db, async tx => {
+    const [runtime] = await tx.select().from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
+    if (!runtime || runtime.activeJobId !== claimed.job.id || runtime.activeLeaseToken !== claimed.leaseToken) return 'stale'
     const [job] = await tx.select().from(articleTranslationJobs).where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.status, 'running'), eq(articleTranslationJobs.leaseToken, claimed.leaseToken))).for('update')
     if (!job) return 'stale'
     const [post] = await tx.select().from(posts).where(eq(posts.id, job.postId)).for('update')
@@ -230,7 +336,13 @@ async function completeJob(db: Database, claimed: ClaimedJob, result: {
 }
 
 async function failJob(db: Database, claimed: ClaimedJob, errorCode: string, now: Date): Promise<boolean> {
-  return db.transaction(async tx => {
+  return transactionWithRetry(db, async tx => {
+    const [runtime] = await tx.select().from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default')).for('update')
+    if (!runtime || runtime.activeJobId !== claimed.job.id || runtime.activeLeaseToken !== claimed.leaseToken) return false
+    const [job] = await tx.select({ id: articleTranslationJobs.id }).from(articleTranslationJobs)
+      .where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.status, 'running'), eq(articleTranslationJobs.leaseToken, claimed.leaseToken))).for('update')
+    if (!job) return false
     const [finished] = await tx.update(articleTranslationJobs).set({
       status: 'failed',
       error: errorCode,
@@ -242,7 +354,7 @@ async function failJob(db: Database, claimed: ClaimedJob, errorCode: string, now
     }).where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.status, 'running'), eq(articleTranslationJobs.leaseToken, claimed.leaseToken))).returning({ id: articleTranslationJobs.id })
     if (!finished) return false
     await tx.update(articleTranslationRuntime).set({ activeJobId: null, activeLeaseToken: null, activeLeaseExpiresAt: null, workerId: null, workerHeartbeatAt: now, updatedAt: now })
-      .where(and(eq(articleTranslationRuntime.singleton, 'default'), eq(articleTranslationRuntime.activeJobId, claimed.job.id), eq(articleTranslationRuntime.activeLeaseToken, claimed.leaseToken)))
+      .where(eq(articleTranslationRuntime.singleton, 'default'))
     return true
   })
 }
@@ -280,33 +392,48 @@ async function loadProvider(options: ArticleTranslationWorkerOptions, job: JobRo
 
 async function translateClaimed(options: ArticleTranslationWorkerOptions, claimed: ClaimedJob, now: () => Date, workerId: string, leaseMs: number): Promise<ArticleTranslationWorkerResult> {
   const { db } = options
-  const [post] = await db.select().from(posts).where(eq(posts.id, claimed.job.postId)).limit(1)
+  let post: PostRow | undefined
+  try { [post] = await db.select().from(posts).where(eq(posts.id, claimed.job.postId)).limit(1) }
+  catch (error) { throw setWorkerStage(error, 'load_source_article') }
   if (!post || !jobIsCurrent(claimed.job, post)) {
-    await db.update(articleTranslationJobs).set({ status: 'stale', error: 'ARTICLE_SOURCE_CHANGED', progress: 100, leaseToken: null, workerId: null, leaseExpiresAt: null, finishedAt: now(), updatedAt: now() })
-      .where(and(eq(articleTranslationJobs.id, claimed.job.id), eq(articleTranslationJobs.leaseToken, claimed.leaseToken)))
-    await clearLease(db, claimed.job.id, claimed.leaseToken, now())
+    try { await markJobStale(db, claimed, now()) }
+    catch (error) { throw setWorkerStage(error, 'mark_stale_before_translation') }
     return { status: 'stale', jobId: claimed.job.id }
   }
   const heartbeatAbort = new AbortController()
   const signal = options.signal ? AbortSignal.any([options.signal, heartbeatAbort.signal]) : heartbeatAbort.signal
   const heartbeatMs = options.heartbeatMs ?? DEFAULT_HEARTBEAT_MS
+  let heartbeatError: unknown
+  let leaseLost = false
   const timer = setInterval(() => {
-    void heartbeat(db, claimed, workerId, now(), leaseMs).then(ok => { if (!ok) heartbeatAbort.abort() }).catch(() => heartbeatAbort.abort())
+    void heartbeat(db, claimed, workerId, now(), leaseMs).then(ok => {
+      if (!ok) { leaseLost = true; heartbeatAbort.abort() }
+    }).catch(error => {
+      heartbeatError = setWorkerStage(error, 'heartbeat_database')
+      heartbeatAbort.abort()
+    })
   }, heartbeatMs)
+  let stage = 'provider_configuration'
   try {
     const configured = await loadProvider(options, claimed.job, post)
-    if (!await setProgress(db, claimed, 12, now())) throw new Error('ARTICLE_TRANSLATION_LEASE_LOST')
-    if (!await setProgress(db, claimed, 20, now(), { dispatchedAt: claimed.job.dispatchedAt ?? now() })) throw new Error('ARTICLE_TRANSLATION_LEASE_LOST')
+    stage = 'record_dispatch'
+    if (!await setProgress(db, claimed, 12, now())) throw new TranslationLeaseLostError('ARTICLE_TRANSLATION_LEASE_LOST')
+    if (!await setProgress(db, claimed, 20, now(), { dispatchedAt: claimed.job.dispatchedAt ?? now() })) throw new TranslationLeaseLostError('ARTICLE_TRANSLATION_LEASE_LOST')
     const provider = configured.provider
     const targetLocale = claimed.job.targetLocale as ArticleTranslationLocale
     const sourceLocale = claimed.job.sourceLocale as ArticleTranslationLocale
+    stage = 'provider_request'
     const documents = await translateMarkdownDocuments([
       { key: 'title', markdown: post.title },
       ...(post.excerpt ? [{ key: 'excerpt', markdown: post.excerpt }] : []),
       { key: 'content', markdown: post.content },
     ], { sourceLocale, targetLocale, articleAccess: post.access, signal }, provider)
+    if (heartbeatError) throw heartbeatError
+    if (leaseLost) return { status: 'stale', jobId: claimed.job.id, errorCode: 'ARTICLE_TRANSLATION_LEASE_LOST' }
+    if (options.signal?.aborted) return { status: 'stale', jobId: claimed.job.id, errorCode: 'ARTICLE_TRANSLATION_WORKER_INTERRUPTED' }
     if (signal.aborted) throw new TranslationProviderError('TRANSLATION_PROVIDER_TIMEOUT')
-    await setProgress(db, claimed, 85, now())
+    stage = 'record_progress'
+    if (!await setProgress(db, claimed, 85, now())) throw new TranslationLeaseLostError('ARTICLE_TRANSLATION_LEASE_LOST')
     const payload = {
       title: documents.documents.title ?? post.title,
       excerpt: post.excerpt ? documents.documents.excerpt ?? post.excerpt : null,
@@ -316,19 +443,46 @@ async function translateClaimed(options: ArticleTranslationWorkerOptions, claime
       promptVersion: documents.provider === 'ai' ? configured.promptVersion : null,
       usage: documents.usage,
     }
+    stage = 'persist_result'
     const status = await completeJob(db, claimed, payload, now())
-    if (documents.provider === 'edge') await updateEdgeCircuit(db, null, now())
+    if (status === 'succeeded' && documents.provider === 'edge') {
+      try { await updateEdgeCircuit(db, null, now()) }
+      catch (error) { logWorkerError(options, 'reset_edge_circuit', error, claimed) }
+    }
     return status === 'succeeded' ? { status: 'succeeded', jobId: claimed.job.id } : { status: 'stale', jobId: claimed.job.id }
   } catch (error) {
+    if (heartbeatError) {
+      throw heartbeatError
+    }
+    if (leaseLost || error instanceof TranslationLeaseLostError) {
+      return { status: 'stale', jobId: claimed.job.id, errorCode: 'ARTICLE_TRANSLATION_LEASE_LOST' }
+    }
+    if (options.signal?.aborted) return { status: 'stale', jobId: claimed.job.id, errorCode: 'ARTICLE_TRANSLATION_WORKER_INTERRUPTED' }
+    if (isDatabaseError(error)) {
+      throw setWorkerStage(error, stage)
+    }
     const code = publicProviderError(error)
-    if (claimed.job.provider === 'edge') await updateEdgeCircuit(db, code, now())
-    const finished = await failJob(db, claimed, code, now())
-    return { status: 'failed', jobId: claimed.job.id, errorCode: finished ? code : 'ARTICLE_TRANSLATION_LEASE_LOST' }
+    stage = 'record_provider_failure'
+    let finished: boolean
+    try { finished = await failJob(db, claimed, code, now()) }
+    catch (recordError) { throw setWorkerStage(recordError, stage) }
+    if (!finished) return { status: 'failed', jobId: claimed.job.id, errorCode: 'ARTICLE_TRANSLATION_LEASE_LOST' }
+    if (claimed.job.provider === 'edge') {
+      stage = 'record_edge_provider_failure'
+      try { await updateEdgeCircuit(db, code, now()) }
+      catch (recordError) { logWorkerError(options, stage, recordError, claimed) }
+    }
+    logWorkerError(options, 'provider_failure', error, claimed, undefined, code)
+    return { status: 'failed', jobId: claimed.job.id, errorCode: code }
   } finally {
     clearInterval(timer)
     heartbeatAbort.abort()
-    await db.update(articleTranslationRuntime).set({ workerId, workerHeartbeatAt: now(), updatedAt: now() })
-      .where(and(eq(articleTranslationRuntime.singleton, 'default'), eq(articleTranslationRuntime.activeJobId, claimed.job.id), eq(articleTranslationRuntime.activeLeaseToken, claimed.leaseToken)))
+    try {
+      await db.update(articleTranslationRuntime).set({ workerId, workerHeartbeatAt: now(), updatedAt: now() })
+        .where(and(eq(articleTranslationRuntime.singleton, 'default'), eq(articleTranslationRuntime.activeJobId, claimed.job.id), eq(articleTranslationRuntime.activeLeaseToken, claimed.leaseToken)))
+    } catch (error) {
+      logWorkerError(options, 'cleanup_heartbeat', error, claimed)
+    }
   }
 }
 
@@ -337,16 +491,20 @@ export async function runArticleTranslationOnce(options: ArticleTranslationWorke
   const workerId = options.workerId ?? `article-translation-${process.pid}`
   const leaseMs = options.leaseMs ?? DEFAULT_LEASE_MS
   if (!Number.isInteger(leaseMs) || leaseMs < 5_000 || leaseMs > 300_000) throw new Error('ARTICLE_TRANSLATION_WORKER_CONFIGURATION_INVALID')
-  const claimed = await claimNextJob(options.db, workerId, now(), leaseMs)
+  let claimed: ClaimedJob | null
+  try { claimed = await claimNextJob(options.db, workerId, now(), leaseMs) }
+  catch (error) { logWorkerError(options, 'claim_job', error); throw error }
   if (!claimed) return { status: 'idle' }
-  return translateClaimed(options, claimed, now, workerId, leaseMs)
+  try { return await translateClaimed(options, claimed, now, workerId, leaseMs) }
+  catch (error) { logWorkerError(options, workerStage(error) ?? 'process_job', error, claimed); throw error }
 }
 
 export async function runArticleTranslationWorker(options: ArticleTranslationWorkerOptions & { pollMs?: number }): Promise<void> {
   const pollMs = options.pollMs ?? 1_000
   if (!Number.isInteger(pollMs) || pollMs < 250 || pollMs > 60_000) throw new Error('ARTICLE_TRANSLATION_WORKER_CONFIGURATION_INVALID')
   while (!options.signal?.aborted) {
-    await runArticleTranslationOnce(options)
+    try { await runArticleTranslationOnce(options) }
+    catch (error) { if (!isRecoverableDatabaseError(error)) throw error }
     if (options.signal?.aborted) break
     await new Promise<void>(resolve => {
       const signal = options.signal

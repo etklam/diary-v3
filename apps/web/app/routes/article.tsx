@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { data, Link, useLoaderData, useLocation, useNavigate, useOutletContext, useRevalidator, type ClientLoaderFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, Link, useLoaderData, useNavigate, useOutletContext, useRevalidator, type ClientLoaderFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { postPublicDetailSchema, postPublicMetadataSchema, type PostPublicDetail } from '@diary/contracts/post'
 import { articleLocaleSchema } from '@diary/contracts'
 import { Markdown } from '../markdown'
-import { articleCacheInvalidationEvent, getSessionRevision, isLocallySignedOut, signInPath, useSessionState } from '../session'
+import { articleCacheInvalidationEvent, getSessionRevision, isLocallySignedOut, safeReturnPath, signInPath, useSessionState } from '../session'
 import { useUi } from '../ui'
 import '../trade-plan.css'
 import type { ShellOutletContext } from '../root'
@@ -127,7 +127,6 @@ export default function Article() {
   const loaded = useLoaderData<typeof loader>() as ArticleLoaderData
   const { post } = loaded
   const { locale } = useUi()
-  const location = useLocation()
   const navigate = useNavigate()
   const { viewer } = useOutletContext<ShellOutletContext>()
   const session = useSessionState()
@@ -138,8 +137,8 @@ export default function Article() {
   const categoryLabel = post.category in c ? c[post.category as 'fundamental' | 'technical' | 'market' | 'strategy'] : post.category
   const formatDate = (value: string) => `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))} UTC`
   const articlePath = `/articles/${encodeURIComponent(post.slug)}`
-  const readerPath = `${articlePath}${location.search}`
   const requestedLocale = articleLocaleSchema.parse(post.requestedLocale)
+  const readerPath = safeReturnPath(`${articlePath}?lang=${encodeURIComponent(requestedLocale)}`)
   const fallbackText = post.isFallback
     ? post.fallbackReason === 'translation_stale' ? c.updating : c.fallback(localeNames[requestedLocale], localeNames[post.sourceLocale])
     : null
@@ -200,7 +199,7 @@ export default function Article() {
     {memberLocked && <section className="article-lock" aria-labelledby="article-members-only">
       <h2 id="article-members-only">{c.membersOnly}</h2>
       <p>{c.memberHint}</p>
-      <div className="article-lock-actions"><Link className="button" to={signInPath(articlePath)}>{c.signIn}</Link><Link className="button secondary" to={registerPath}>{c.register}</Link></div>
+      <div className="article-lock-actions"><Link className="button" to={signInPath(readerPath)}>{c.signIn}</Link><Link className="button secondary" to={registerPath}>{c.register}</Link></div>
     </section>}
   </article>
 }

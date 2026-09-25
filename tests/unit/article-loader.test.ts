@@ -104,9 +104,11 @@ it('still loads PUBLIC bodies anonymously after logout', async () => {
   expect(fetcher.mock.calls[1]![1]).toMatchObject({ credentials: 'omit', cache: 'no-store' })
 })
 
-it('only accepts canonical internal article return paths', () => {
-  for (const path of ['/articles/hello-world', '/articles/%E4%B8%AD%E6%96%87']) expect(safeReturnPath(path)).toBe(path)
-  for (const path of ['//outside.test', '/articles/..', '/articles/%2e%2e', '/articles/a%2fb', '/articles/a\\b', '/articles/%00', '/articles/%', '/articles/a?next=https://outside.test']) {
+it('only accepts canonical internal article return paths and one supported locale', () => {
+  for (const path of ['/articles/hello-world', '/articles/%E4%B8%AD%E6%96%87', '/articles/hello-world?lang=en', '/articles/hello-world?lang=zh-TW', '/articles/hello-world?lang=zh-CN', '/articles/%e4%b8%ad%e6%96%87?lang=%65n']) {
+    expect(safeReturnPath(path)).toBe(path.includes('%e4') ? '/articles/%E4%B8%AD%E6%96%87?lang=en' : path)
+  }
+  for (const path of ['//outside.test/articles/hello-world', 'https://outside.test/articles/hello-world', 'https://article-return.invalid/articles/hello-world', '/articles/..', '/articles/%2e%2e', '/articles/a%2fb', '/articles/a%5cb', '/articles/a\\b', '/articles/%00', '/articles/%', '/articles/a?next=https://outside.test', '/articles/a?lang=fr', '/articles/a?lang=en&lang=en', '/articles/a?lang=en&next=outside', '/articles/a?LANG=en', '/articles/a#section']) {
     expect(safeReturnPath(path)).toBe('/diaries/new')
   }
 })
