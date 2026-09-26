@@ -18,6 +18,13 @@ test('public discipline share renders without JavaScript and safely exposes OG m
  } finally { await context.close(); }
 });
 
+test('public discipline share keeps its authored browser title after hydration', async ({ page }) => {
+ const share = createDisciplineShare([{ content: 'A public synthetic principle', order: 0 }], { title: 'Publicly shared title' }, '2026-01-01T00:00:00Z');
+ await page.goto(disciplineShareUrl(share, e2eBaseURL));
+ await expect(page.getByRole('heading', { name: share.title!, exact: true })).toBeVisible();
+ await expect.poll(() => page.title()).toBe(`${share.title} — Trade basic`);
+});
+
 test('file preview imports and exported download roundtrips into public sharing', async ({ page }) => {
  const email = `transfer-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.request.post('/api/auth/register', { data: { email, password } });

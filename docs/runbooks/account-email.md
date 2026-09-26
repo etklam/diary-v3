@@ -8,6 +8,12 @@ unavailable until an Admin enables SMTP. Enabling switches new registrations to
 email verification; existing accounts remain usable without retroactive email
 verification.
 
+When password recovery is unavailable, the sign-in and recovery pages keep a
+recovery entry point and explain the disabled state. To provide direct help,
+set the optional public Web variable `ACCOUNT_RECOVERY_SUPPORT_URL` to an HTTPS
+support page or a `mailto:` address. If it is unset or invalid, users are told
+to contact the site administrator. Do not put credentials in this URL.
+
 The API creates encrypted, durable outbox jobs. A single database dispatch
 fence bounds sending globally and serializes configuration changes with an
 in-flight send. The mail worker runs continuously but idles while SMTP is off.

@@ -1,6 +1,6 @@
 import { ForegroundReminders } from './foreground-reminders';
 import { useEffect, useRef, useState } from 'react';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useMatches, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse } from 'react-router';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useMatches, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse, type MetaFunction } from 'react-router';
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import { BrandMark } from './icons';
@@ -10,6 +10,9 @@ import { QuickEntry } from './quick-entry';
 import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks } from './nav';
 import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
+import { pageTitle } from './page-title';
+
+export const meta: MetaFunction = () => [{ title: 'Trade basic — Investment decision diary' }];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const matches = useMatches() as Array<{ data?: unknown }>;
@@ -82,6 +85,29 @@ function Shell() {
   const previousPath = useRef(location.pathname);
   useEffect(() => { if(previousPath.current!==location.pathname){document.getElementById('main')?.focus();previousPath.current=location.pathname;} },[location.pathname]);
   const { t, locale } = useUi();
+  const loginPath = location.pathname === '/login';
+  const previousAuthentication = useRef(session.authenticated);
+  const signedInOnLoginRoute = useRef(false);
+  useEffect(() => {
+    if (!loginPath) signedInOnLoginRoute.current = false;
+    else if (previousAuthentication.current === false && session.authenticated === true) signedInOnLoginRoute.current = true;
+    previousAuthentication.current = session.authenticated;
+  }, [loginPath, session.authenticated]);
+  useEffect(() => {
+    const main = document.getElementById('main');
+    const updateTitle = () => {
+      const heading = main?.querySelector('h1')?.textContent;
+      document.title = pageTitle(location.pathname, locale, heading);
+    };
+    updateTitle();
+    if (!main) return;
+    const observer = new MutationObserver(updateTitle);
+    observer.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [location.pathname, locale]);
+  useEffect(() => {
+    if (loginPath && session.authenticated === true && !signedInOnLoginRoute.current) navigate('/', { replace: true });
+  }, [loginPath, navigate, session.authenticated]);
   const publicSession = publicSessionCopy[locale];
   const preferences = <PreferencesControls/>;
   const compactPreferences = <PreferencesControls compact/>;
@@ -99,6 +125,10 @@ function Shell() {
     }
     if (session.authenticated === true && viewer?.role === 'USER') navigate('/', { replace: true });
   }, [adminPath, location.pathname, location.search, navigate, session.authenticated, viewer?.role]);
+  if (loginPath && session.authenticated === true) return <>
+    <a className="skip" href="#main">{t('skip')}</a>
+    <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
+  </>;
   if (publicContentPath || (guestPublicPath && session.authenticated !== true)) return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">

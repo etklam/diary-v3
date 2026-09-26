@@ -133,7 +133,6 @@ export function AuthForm({ register = false }: { register?: boolean }) {
       if (!result.response.ok) { setError(apiFailure(result.error, t('failed'))); return }
       if (register) { setDirectDone(true); return }
       markSignedIn()
-      await api.GET('/api/auth/me')
       let destination = '/timeline'
       if (search.has('returnTo')) destination = returnTo
       else {
@@ -179,7 +178,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
               <FailureNotice failure={error} />
               <button disabled={pending || !ready} type="submit">{pending ? t('pending') : emailMode ? text.sendVerification : register ? t('register') : t('login')}</button>
             </form>
-            {!register && capability?.passwordRecoveryAvailable && <p className="form-alternate"><Link to="/forgot-password">{text.forgotPassword}</Link></p>}
+            {!register && <p className="form-alternate"><Link to="/forgot-password">{text.forgotPassword}</Link></p>}
             <p className="form-alternate"><Link to={`${register ? '/login' : '/register'}${returnQuery}`}>{t(register ? 'login' : 'register')}</Link></p>
           </>}
   </section>

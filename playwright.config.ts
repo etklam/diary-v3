@@ -13,6 +13,6 @@ export default defineConfig({
   use: { ...(process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? { channel: 'chrome' } : {}), baseURL: e2eBaseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   webServer: [
     { command: 'node --import tsx scripts/e2e-server.ts', port: 3201, reuseExistingServer: false, timeout: 30_000 },
-    { command: `npm run dev --workspace=@diary/web -- --port ${e2eWebPort}`, port: e2eWebPort, env: { API_ORIGIN: 'http://127.0.0.1:3201' }, reuseExistingServer: false, timeout: 60_000 },
+    { command: `npm run dev --workspace=@diary/web -- --port ${e2eWebPort}`, port: e2eWebPort, env: { API_ORIGIN: 'http://127.0.0.1:3201', ACCOUNT_RECOVERY_SUPPORT_URL: 'https://support.example.test/account-recovery' }, reuseExistingServer: false, timeout: 60_000 },
   ],
 });

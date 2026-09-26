@@ -24,6 +24,8 @@ spec:
               value: 0.0.0.0
             - name: PORT
               value: "3000"
+            - name: ACCOUNT_RECOVERY_SUPPORT_URL
+              value: ""
           ports:
             - name: http
               containerPort: 3000

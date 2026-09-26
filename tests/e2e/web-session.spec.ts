@@ -104,6 +104,27 @@ test('failed login preserves the return context', async ({ page }) => {
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 });
 
+test('login reaches its safe return destination when the post-login viewer lookup cannot connect', async ({ page }) => {
+  const email = `viewer-lookup-${randomUUID()}@example.test`;
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
+
+  const initialViewerLookup = page.waitForResponse(response => response.url().endsWith('/api/auth/me') && response.status() === 401);
+  await page.goto('/login?returnTo=%2Ftools%2Fposition-sizing');
+  await selectLocale(page, 'en');
+  await initialViewerLookup;
+
+  await page.route('**/api/auth/me', route => route.abort());
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  const loginResponse = page.waitForResponse(response => response.url().endsWith('/api/auth/login'));
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  expect((await loginResponse).status()).toBe(200);
+
+  await expect(page).toHaveURL(`${e2eBaseURL}/tools/position-sizing`);
+  await expect(page.getByTestId('position-sizing-capital')).toBeVisible();
+  await expect(page.getByTestId('sign-out')).toBeVisible();
+});
+
 test('external return destinations are rejected', async ({ page }) => {
   const email = `external-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);

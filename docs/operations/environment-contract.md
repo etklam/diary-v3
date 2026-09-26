@@ -6,6 +6,7 @@
 | `JWT_SECRET` | Required secret | At least 32 random bytes. Generate a different value for every environment. |
 | `WEB_ORIGIN` | Environment-specific | Public Web origin used by API origin and cookie checks. Explicitly set it in production and staging. |
 | `API_ORIGIN` | Environment-specific | Internal API origin used by Web SSR for public article, article-detail, and sitemap reads. Use `http://diary-v3-api:3101` in K3s and `http://api:3101` in Compose. |
+| `ACCOUNT_RECOVERY_SUPPORT_URL` | Optional public Web setting | HTTPS support page or `mailto:` address displayed when password recovery email is unavailable. Set it on the Web workload; it is public and must not contain credentials. |
 | `SEC_USER_AGENT` | Optional at startup; required for SEC access | Application name and monitored contact email. Store it in the environment's secret store when SEC requests are enabled. |
 | `NODE_ENV` | Environment-specific | `development`, `test`, or `production`. Production images run as `production`; test harnesses use synthetic fixtures. |
 | `API_HOST`, `API_PORT` | Optional runtime settings | Default to `127.0.0.1`/`3101` outside production; production binds `0.0.0.0:3101`. |

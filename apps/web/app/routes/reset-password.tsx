@@ -1,19 +1,24 @@
 import { authCapabilitiesSchema, passwordResetCompleteRequestSchema } from '@diary/contracts'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLoaderData, useNavigate, useSearchParams } from 'react-router'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { api, useUi } from '../ui'
 import './registration-complete.css'
+import { resolveAccountRecoverySupportUrl } from '../account-recovery-support.server'
+
+export function loader() {
+  return { supportUrl: resolveAccountRecoverySupportUrl(process.env.ACCOUNT_RECOVERY_SUPPORT_URL) }
+}
 
 const copy = {
   'zh-TW': {
-    title: '設定新密碼', intro: '輸入新密碼以恢復帳戶存取。其他現有登入會被登出。', password: '新密碼', confirm: '確認新密碼', hint: '密碼至少 8 個字元，最多 72 個 UTF-8 bytes。', submit: '重設密碼', success: '密碼已更改，其他登入工作階段已登出。請重新登入。', login: '登入', missing: '這個重設連結不完整。請重新申請重設電郵。', invalid: '這個重設連結無效、已使用或已過期。請重新申請重設電郵。', request: '重新申請重設電郵', mismatch: '兩次輸入的密碼不一致。', failed: '暫時無法重設密碼。請檢查輸入後重試。', connection: '暫時無法連線。請稍後再試。', back: '返回登入', unavailable: '電郵密碼復原目前未啟用。請聯絡管理員，或返回登入。', checkingRecovery: '正在確認電郵密碼復原設定…',
+    title: '設定新密碼', intro: '輸入新密碼以恢復帳戶存取。其他現有登入會被登出。', password: '新密碼', confirm: '確認新密碼', hint: '密碼至少 8 個字元，最多 72 個 UTF-8 bytes。', submit: '重設密碼', success: '密碼已更改，其他登入工作階段已登出。請重新登入。', login: '登入', missing: '這個重設連結不完整。請重新申請重設電郵。', invalid: '這個重設連結無效、已使用或已過期。請重新申請重設電郵。', request: '重新申請重設電郵', mismatch: '兩次輸入的密碼不一致。', failed: '暫時無法重設密碼。請檢查輸入後重試。', connection: '暫時無法連線。請稍後再試。', back: '返回登入', unavailable: '電郵密碼復原目前未啟用。請聯絡管理員，或返回登入。', contactSupport: '取得登入協助', checkingRecovery: '正在確認電郵密碼復原設定…',
   },
   'zh-CN': {
-    title: '设置新密码', intro: '输入新密码以恢复账户访问。其他现有登录会被退出。', password: '新密码', confirm: '确认新密码', hint: '密码至少 8 个字符，最多 72 个 UTF-8 bytes。', submit: '重置密码', success: '密码已更改，其他登录会话已退出。请重新登录。', login: '登录', missing: '这个重置链接不完整。请重新申请重置邮件。', invalid: '这个重置链接无效、已使用或已过期。请重新申请重置邮件。', request: '重新申请重置邮件', mismatch: '两次输入的密码不一致。', failed: '暂时无法重置密码。请检查输入后重试。', connection: '暂时无法连接。请稍后重试。', back: '返回登录', unavailable: '邮箱密码恢复目前未启用。请联系管理员，或返回登录。', checkingRecovery: '正在确认邮箱密码恢复设置…',
+    title: '设置新密码', intro: '输入新密码以恢复账户访问。其他现有登录会被退出。', password: '新密码', confirm: '确认新密码', hint: '密码至少 8 个字符，最多 72 个 UTF-8 bytes。', submit: '重置密码', success: '密码已更改，其他登录会话已退出。请重新登录。', login: '登录', missing: '这个重置链接不完整。请重新申请重置邮件。', invalid: '这个重置链接无效、已使用或已过期。请重新申请重置邮件。', request: '重新申请重置邮件', mismatch: '两次输入的密码不一致。', failed: '暂时无法重置密码。请检查输入后重试。', connection: '暂时无法连接。请稍后重试。', back: '返回登录', unavailable: '邮箱密码恢复目前未启用。请联系管理员，或返回登录。', contactSupport: '获取登录帮助', checkingRecovery: '正在确认邮箱密码恢复设置…',
   },
   en: {
-    title: 'Set a new password', intro: 'Enter a new password to restore account access. Other active sessions will be signed out.', password: 'New password', confirm: 'Confirm new password', hint: 'Use at least 8 characters and no more than 72 UTF-8 bytes.', submit: 'Reset password', success: 'Your password changed and other sessions were signed out. Sign in again.', login: 'Sign in', missing: 'This reset link is incomplete. Request a new password reset email.', invalid: 'This reset link is invalid, already used, or expired. Request a new password reset email.', request: 'Request a new reset email', mismatch: 'The passwords do not match.', failed: 'Your password could not be reset. Check your entries and try again.', connection: 'Unable to connect. Please try again later.', back: 'Back to sign in', unavailable: 'Email password recovery is not enabled. Contact an administrator or return to sign in.', checkingRecovery: 'Checking email recovery settings…',
+    title: 'Set a new password', intro: 'Enter a new password to restore account access. Other active sessions will be signed out.', password: 'New password', confirm: 'Confirm new password', hint: 'Use at least 8 characters and no more than 72 UTF-8 bytes.', submit: 'Reset password', success: 'Your password changed and other sessions were signed out. Sign in again.', login: 'Sign in', missing: 'This reset link is incomplete. Request a new password reset email.', invalid: 'This reset link is invalid, already used, or expired. Request a new password reset email.', request: 'Request a new reset email', mismatch: 'The passwords do not match.', failed: 'Your password could not be reset. Check your entries and try again.', connection: 'Unable to connect. Please try again later.', back: 'Back to sign in', unavailable: 'Email password recovery is not enabled. Contact an administrator or return to sign in.', contactSupport: 'Get sign-in help', checkingRecovery: 'Checking email recovery settings…',
   },
 } as const
 
@@ -22,6 +27,7 @@ export function meta() {
 }
 
 export default function ResetPassword() {
+  const { supportUrl } = useLoaderData<typeof loader>()
   const { locale } = useUi()
   const c = copy[locale]
   const navigate = useNavigate()
@@ -75,7 +81,7 @@ export default function ResetPassword() {
         : rejectedLink ? <>
           <FailureNotice failure={failure} />
           {recoveryAvailability === 'checking' ? <p role="status">{c.checkingRecovery}</p>
-            : recoveryAvailability === 'unavailable' ? <p role="status">{c.unavailable}</p>
+            : recoveryAvailability === 'unavailable' ? <><p role="status">{c.unavailable}</p>{supportUrl && <p className="form-alternate"><a href={supportUrl}>{c.contactSupport}</a></p>}</>
               : <p><Link to="/forgot-password">{c.request}</Link></p>}
           <p className="form-alternate"><Link to="/login">{c.back}</Link></p>
         </> : <>

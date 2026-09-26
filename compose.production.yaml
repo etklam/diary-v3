@@ -90,6 +90,7 @@ services:
       target: web
     environment:
       API_ORIGIN: http://api:3101
+      ACCOUNT_RECOVERY_SUPPORT_URL: ${ACCOUNT_RECOVERY_SUPPORT_URL:-}
     depends_on:
       api:
         condition: service_healthy
