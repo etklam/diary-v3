@@ -22,6 +22,8 @@ import {
 } from '@diary/contracts'
 import type { Database } from '@diary/db'
 import type { AppEnv } from '../app.js'
+import { RATE_LIMIT_POLICIES } from '../rate-limit/policies.js'
+import type { RateLimitPolicy } from '../rate-limit/types.js'
 import {
   createResearchStudioService,
   ResearchServiceError,
@@ -38,6 +40,7 @@ export interface ResearchRouteDependencies {
   fail: (status: number, code: ErrorCode, message: string) => never
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
+  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
   transport?: ResearchTransport
   evidenceProvider?: ResearchEvidenceProvider
   latestCompletedSession?: ResearchLatestCompletedSession
@@ -71,7 +74,7 @@ export function registerResearchRoutes(app: Hono<AppEnv>, dependencies: Research
     allowSyntheticEvidence: dependencies.allowSyntheticEvidence,
     officialSourcePolicies: dependencies.officialSourcePolicies,
   })
-  const { fail, validationError, parseJson } = dependencies
+  const { fail, validationError, parseJson, consume } = dependencies
   const admin = (context: Context<AppEnv>) => {
     context.header('Cache-Control', 'no-store')
     const user = context.get('user')
@@ -126,6 +129,7 @@ export function registerResearchRoutes(app: Hono<AppEnv>, dependencies: Research
   app.post('/api/admin/research/runs', async context => {
     const actorId = admin(context)
     const input = await parseJson(context, researchPrepareRequestSchema)
+    await consume(context, RATE_LIMIT_POLICIES.researchPreparation, 'user', actorId.toString())
     return context.json(researchRunDetailSchema.parse(await invoke(context, () => service.prepare(actorId, input))))
   })
 
@@ -139,6 +143,7 @@ export function registerResearchRoutes(app: Hono<AppEnv>, dependencies: Research
     const actorId = admin(context)
     const id = routeId(context.req.param('id'), validationError)
     const input = await parseJson(context, researchGenerateRequestSchema)
+    await consume(context, RATE_LIMIT_POLICIES.researchGeneration, 'user', actorId.toString())
     const result = await invoke(context, () => service.generate(actorId, id, input))
     return context.json(researchGenerateResponseSchema.parse(result), result.reused ? 200 : 202)
   })

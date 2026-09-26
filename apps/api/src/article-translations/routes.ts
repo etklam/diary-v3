@@ -12,6 +12,8 @@ import { currentPublishedTranslation } from './reader.js'
 import { assertMarkdownTranslationPreservesSource } from './markdown.js'
 import { TranslationProviderError } from './types.js'
 import type { AppEnv } from '../app.js'
+import { RATE_LIMIT_POLICIES } from '../rate-limit/policies.js'
+import type { RateLimitPolicy } from '../rate-limit/types.js'
 
 type PostFail = (status: number, code: ErrorCode, message: string, details?: { field?: string; message?: string }[] | null) => never
 
@@ -122,11 +124,12 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
   db: Database
   now: () => Date
   latestCompletedSession?: ResearchLatestCompletedSession
+  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
   fail: PostFail
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
 }) {
-  const { db, now, fail, validationError, parseJson } = dependencies
+  const { db, now, fail, validationError, parseJson, consume } = dependencies
   const admin = (c: Context<AppEnv>) => {
     c.header('Cache-Control', 'no-store')
     const user = c.get('user')
@@ -237,6 +240,7 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const actorId = admin(c)
     const id = postId(c.req.param('id'), validationError)
     const input = await parseJson(c, articleTranslationJobRequestSchema)
+    await consume(c, RATE_LIMIT_POLICIES.articleTranslationQueue, 'user', actorId.toString())
     const post = await readPost(id)
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const jobs = []
@@ -378,6 +382,7 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const id = postId(c.req.param('id'), validationError)
     const targetLocale = locale(c.req.param('locale'), validationError)
     const input = await parseJson(c, articleTranslationJobRequestSchema.pick({ provider: true }))
+    await consume(c, RATE_LIMIT_POLICIES.articleTranslationQueue, 'user', actorId.toString())
     const job = await queueOne({ postId: id, targetLocale, provider: input.provider, actorId })
     return c.json(articleTranslationJobResponseSchema.parse({ jobs: [{ id: job.id.toString(), locale: targetLocale, status: jobStatus(job.status) }] }))
   })

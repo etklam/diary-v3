@@ -13,6 +13,8 @@ import {
 } from '@diary/contracts'
 import type { Database } from '@diary/db'
 import type { AppEnv } from '../app.js'
+import { RATE_LIMIT_POLICIES } from '../rate-limit/policies.js'
+import type { RateLimitPolicy } from '../rate-limit/types.js'
 import { AiReportService, AiReportServiceError } from './report-service.js'
 
 interface AiRouteDependencies {
@@ -21,6 +23,7 @@ interface AiRouteDependencies {
   fail: (status: number, code: ErrorCode, message: string) => never
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
+  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
   service?: AiReportService
 }
 
@@ -44,7 +47,7 @@ function errorStatus(code: string, fallback: number): number {
 
 export function registerAiReportRoutes(app: Hono<AppEnv>, dependencies: AiRouteDependencies) {
   const service = dependencies.service ?? new AiReportService({ db: dependencies.db, now: dependencies.now })
-  const { fail, validationError, parseJson } = dependencies
+  const { fail, validationError, parseJson, consume } = dependencies
 
   const userId = (context: Context<AppEnv>) => {
     context.header('Cache-Control', 'no-store')
@@ -101,6 +104,7 @@ export function registerAiReportRoutes(app: Hono<AppEnv>, dependencies: AiRouteD
     const key = context.req.header('Idempotency-Key')
     if (!key) return fail(400, 'SYS_VALIDATION_ERROR', 'Idempotency-Key is required')
     const input = await parseJson(context, aiReportGenerateRequestSchema)
+    await consume(context, RATE_LIMIT_POLICIES.aiReportGeneration, 'user', id.toString())
     const value = await invoke(context, () => service.generate(id, key, input))
     return context.json(aiReportMutationResponseSchema.parse(value), value.reused ? 200 : 202)
   })
@@ -126,6 +130,7 @@ export function registerAiReportRoutes(app: Hono<AppEnv>, dependencies: AiRouteD
     const key = context.req.header('Idempotency-Key')
     if (!key) return fail(400, 'SYS_VALIDATION_ERROR', 'Idempotency-Key is required')
     const input = await parseJson(context, aiReportGenerateRequestSchema)
+    await consume(context, RATE_LIMIT_POLICIES.aiReportGeneration, 'user', id.toString())
     const value = await invoke(context, () => service.generate(id, key, { ...input, regenerateFromReportId: rawId }))
     return context.json(aiReportMutationResponseSchema.parse(value), value.reused ? 200 : 202)
   })

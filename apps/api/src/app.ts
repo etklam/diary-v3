@@ -20,6 +20,7 @@ import { registerCompanyHubRoute } from './company-hub.js'
 import { registerPostRoutes } from './posts.js'
 import { registerArticleTranslationRoutes } from './article-translations/routes.js'
 import { createHash, randomBytes, randomUUID as nodeRandomUUID, timingSafeEqual } from 'node:crypto'
+import { isIP } from 'node:net'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import {
   apiErrorResponseSchema,
@@ -111,6 +112,8 @@ import { registerAccountEmailPublicRoutes } from './account-email/public-routes.
 import { registerAccountEmailAdminRoutes } from './account-email/admin-routes.js'
 import type { SmtpKeyring } from './account-email/secrets.js'
 import type { SmtpTransportFactory } from './account-email/smtp.js'
+import { createMemoryRateLimitRuntime, RATE_LIMIT_POLICIES, RateLimitStoreUnavailableError, rateLimitKey } from './rate-limit/index.js'
+import type { RateLimitPolicy, RateLimitResult, RateLimitRuntime } from './rate-limit/index.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -144,6 +147,8 @@ export interface AppEnv {
     user: SessionUser
     apiKey: { id: string; userId: string; label: string; scope: 'DIARY_CREATE' | 'AGENT_WRITE' }
     authTransport: AuthTransport
+    rateLimitRetryAfterSeconds: number | undefined
+    rateLimitBackendUnavailable: boolean | undefined
   }
 }
 
@@ -171,6 +176,7 @@ export interface AppDependencies {
   smtpKeyring?: SmtpKeyring
   smtpHostLookup?: (hostname: string) => Promise<string[]>
   smtpAllowedPrivateHosts?: string
+  rateLimiter?: RateLimitRuntime
 }
 
 interface ErrorDetail {
@@ -230,50 +236,16 @@ function databaseId(value: string): bigint | undefined {
   return BigInt(value)
 }
 
+export function resolveClientIp(trustProxy: boolean, forwardedFor: string | undefined, remoteAddress: string | undefined): string {
+  const trusted = trustProxy ? forwardedFor?.split(',').at(-1)?.trim() : undefined
+  if (trusted && isIP(trusted)) return trusted
+  return remoteAddress ?? 'unknown'
+}
+
 function clientIp(c: Context<AppEnv>, trustProxy: boolean): string {
-  if (trustProxy) {
-    const forwarded = c.req.header('x-forwarded-for')
-    const trusted = forwarded?.split(',').at(-1)?.trim()
-    if (trusted) return trusted
-  }
-  return getConnInfo(c).remote.address ?? 'unknown'
-}
-
-export interface InMemoryRateLimiter {
-  consume(key: string, points: number, now: number): void
-  readonly size: number
-}
-
-export function createRateLimiter(options: { windowMs?: number; maxBuckets?: number } = {}): InMemoryRateLimiter {
-  const windowMs = options.windowMs ?? 60_000
-  const maxBuckets = options.maxBuckets ?? 10_000
-  const attempts = new Map<string, number[]>()
-  let nextCleanupAt = 0
-
-  const cleanup = (now: number) => {
-    const cutoff = now - windowMs
-    for (const [key, timestamps] of attempts) {
-      const recent = timestamps.filter((time) => time > cutoff)
-      if (recent.length === 0) attempts.delete(key)
-      else if (recent.length !== timestamps.length) attempts.set(key, recent)
-    }
-    nextCleanupAt = now + windowMs
-  }
-
-  return {
-    consume(key, points, now) {
-      if (now >= nextCleanupAt) cleanup(now)
-      const recent = (attempts.get(key) ?? []).filter((time) => time > now - windowMs)
-      if (recent.length >= points) fail(429, 'AUTH_RATE_LIMITED', 'Too many requests. Please try again later.', [{ message: 'Retry after 60 seconds' }])
-      if (!attempts.has(key) && attempts.size >= maxBuckets) {
-        // Fail closed rather than evicting active buckets and weakening rate limits.
-        fail(429, 'AUTH_RATE_LIMITED', 'Too many requests. Please try again later.', [{ message: 'Retry after 60 seconds' }])
-      }
-      recent.push(now)
-      attempts.set(key, recent)
-    },
-    get size() { return attempts.size },
-  }
+  let remoteAddress: string | undefined
+  try { remoteAddress = getConnInfo(c).remote.address } catch { remoteAddress = undefined }
+  return resolveClientIp(trustProxy, c.req.header('x-forwarded-for'), remoteAddress)
 }
 
 function safeEqual(left: string, right: string): boolean {
@@ -303,9 +275,47 @@ export function createApp({
   smtpKeyring,
   smtpHostLookup,
   smtpAllowedPrivateHosts,
+  rateLimiter: injectedRateLimiter,
 }: AppDependencies) {
-  const rateLimiter = createRateLimiter()
+  const rateLimiter = injectedRateLimiter ?? createMemoryRateLimitRuntime()
   const app = new Hono<AppEnv>()
+  const lastRateLimitLogAt = new Map<string, number>()
+
+  const consumeRateLimit = async (
+    context: Context<AppEnv>,
+    policy: RateLimitPolicy,
+    scope: string,
+    identity: string,
+  ) => {
+    const timestamp = now().getTime()
+    let result: RateLimitResult
+    try {
+      result = await rateLimiter.consume(rateLimitKey(policy.name, scope, identity), {
+        limit: policy.limit,
+        windowMs: policy.windowMs,
+        now: timestamp,
+      })
+    } catch (error) {
+      if (!(error instanceof RateLimitStoreUnavailableError)) throw error
+      context.set('rateLimitBackendUnavailable', true)
+      fail(503, 'SYS_EXTERNAL_SERVICE_ERROR', 'Service temporarily unavailable.')
+    }
+    if (result.allowed) return
+    const retryAfterSeconds = Math.max(1, Math.ceil(result.retryAfterMs / 1000))
+    context.set('rateLimitRetryAfterSeconds', retryAfterSeconds)
+    const logKey = `${policy.name}:${scope}`
+    if (timestamp - (lastRateLimitLogAt.get(logKey) ?? Number.NEGATIVE_INFINITY) >= 60_000) {
+      lastRateLimitLogAt.set(logKey, timestamp)
+      logger.info?.(JSON.stringify({
+        operation: 'rate_limit_rejected',
+        limiter: policy.name,
+        scopeType: scope,
+        requestId: context.get('requestId'),
+        backend: rateLimiter.backend,
+      }))
+    }
+    fail(429, 'AUTH_RATE_LIMITED', 'Too many requests. Please try again later.', [{ message: `Retry after ${retryAfterSeconds} seconds` }])
+  }
 
   const findUserByEmail = async (email: string) => {
     const [user] = await db.select().from(users)
@@ -357,6 +367,8 @@ export function createApp({
   app.get('/readyz', async c => {
     try {
       await db.execute(sql`select 1`)
+      if (rateLimiter.mode === 'redis' && !rateLimiter.ready) return c.json({ status: 'not_ready' }, 503)
+      if (rateLimiter.mode === 'auto' && rateLimiter.degraded) return c.json({ status: 'ready', rateLimit: 'degraded' })
       return c.json({ status: 'ready' })
     } catch {
       return c.json({ status: 'not_ready' }, 503)
@@ -384,6 +396,7 @@ export function createApp({
         if (!credential) fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
         c.set('apiKey', { ...credential, id: String(credential.id), userId: String(credential.userId) })
         c.set('authTransport', 'api-key')
+        await consumeRateLimit(c, RATE_LIMIT_POLICIES.apiKeyRequest, 'api_key', String(credential.id))
       } else {
         c.set('user', await session.authenticateAccess(token))
         c.set('authTransport', 'bearer')
@@ -480,17 +493,15 @@ export function createApp({
   const latestResearchSession = researchLatestCompletedSession ?? createLatestCompletedUsEquitySessionResolver(researchCalendar)
   registerMarketRoutes(app, {
     market,
-    now,
-    consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp),
+    consume: consumeRateLimit,
     clientIp: (c) => clientIp(c, config.trustProxy),
     fail,
     validationError,
   })
   registerSecFilingRoutes(app, {
     service: secFilings ?? createSecEdgarService(config.secUserAgent ?? ''),
-    consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp),
+    consume: consumeRateLimit,
     clientIp: (c) => clientIp(c, config.trustProxy),
-    now,
     fail,
     validationError,
   })
@@ -517,7 +528,7 @@ export function createApp({
   registerReviewQueueRoute(app, { db, now, fail, validationError })
   registerDisciplineOg(app)
   registerAgentStockRoutes(app, { db, now, fail, validationError, parseJson })
-  registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: (key, points, timestamp) => rateLimiter.consume(key, points, timestamp) })
+  registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: consumeRateLimit })
   registerPartnerRoutes(app, { db, now, fail, validationError, parseJson })
   registerDisciplineRoutes(app, { db, now, fail, validationError, parseJson })
   registerAchievementRoutes(app, { db, now, fail, validationError, parseJson })
@@ -526,11 +537,11 @@ export function createApp({
   registerPerformanceRoute(app, { db, fail, validationError })
   registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
   registerCompanyHubRoute(app, { db, now, market, fail, validationError })
-  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, logger, fail, validationError, parseJson })
-  registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson })
+  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, logger, fail, validationError, parseJson, consume: consumeRateLimit, clientIp: c => clientIp(c, config.trustProxy) })
+  registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson, consume: consumeRateLimit })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
   const aiReportService = new AiReportService({ db, now })
-  registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson })
+  registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson, consume: consumeRateLimit })
   registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
   const accountEmailLifecycle = registerAccountEmailPublicRoutes(app, {
     db,
@@ -565,13 +576,14 @@ export function createApp({
     fail,
     validationError,
     parseJson,
+    consume: consumeRateLimit,
   })
 
   app.post('/api/auth/register', async (c) => {
     const ip = clientIp(c, config.trustProxy)
-    rateLimiter.consume(`register:ip:${ip}`, 3, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.registerIp, 'ip', ip)
     const input = await parseJson(c, registerRequestSchema)
-    rateLimiter.consume(`register:email:${input.email.trim().toLowerCase()}`, 3, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.registerAccount, 'account', input.email.trim().toLowerCase())
 
     try {
       const password = await bcrypt.hash(input.password, 10)
@@ -611,9 +623,9 @@ export function createApp({
 
   app.post('/api/auth/login', async (c) => {
     const ip = clientIp(c, config.trustProxy)
-    rateLimiter.consume(`login:ip:${ip}`, 5, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginIp, 'ip', ip)
     const input = await parseJson(c, loginRequestSchema)
-    rateLimiter.consume(`login:email:${input.email.trim().toLowerCase()}`, 5, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginAccount, 'account', input.email.trim().toLowerCase())
     const user = await findUserByEmail(input.email)
     if (!user || !await bcrypt.compare(input.password, user.password)) {
       fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
@@ -634,6 +646,8 @@ export function createApp({
     }
     const refreshToken = getCookie(c, REFRESH_COOKIE)
     if (!refreshToken) fail(401, 'AUTH_NO_REFRESH_TOKEN', 'No refresh token provided')
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshIp, 'ip', clientIp(c, config.trustProxy))
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshToken, 'token', hashRefreshToken(refreshToken).slice(0, 24))
     const refreshed = await session.refreshWebSession(refreshToken)
     setAccessCookie(c, refreshed.accessToken)
     return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
@@ -671,9 +685,9 @@ export function createApp({
 
   app.post('/api/auth/native/login', async (c) => {
     const ip = clientIp(c, config.trustProxy)
-    rateLimiter.consume(`login:ip:${ip}`, 5, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginIp, 'ip', ip)
     const input = await parseJson(c, nativeLoginRequestSchema)
-    rateLimiter.consume(`login:email:${input.email.trim().toLowerCase()}`, 5, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginAccount, 'account', input.email.trim().toLowerCase())
     const user = await findUserByEmail(input.email)
     if (!user || !await bcrypt.compare(input.password, user.password)) {
       fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
@@ -691,9 +705,8 @@ export function createApp({
   app.post('/api/auth/native/refresh', async (c) => {
     const input = await parseJson(c, nativeRefreshRequestSchema)
     const tokenHash = hashRefreshToken(input.refreshToken)
-    const timestamp = now().getTime()
-    rateLimiter.consume(`refresh:ip:${clientIp(c, config.trustProxy)}`, 10, timestamp)
-    rateLimiter.consume(`refresh:token:${tokenHash.slice(0, 24)}`, 10, timestamp)
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshIp, 'ip', clientIp(c, config.trustProxy))
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshToken, 'token', tokenHash.slice(0, 24))
     const outcome = await session.refreshNativeSession(input.refreshToken)
     if (!outcome.ok) {
       if (outcome.reason === 'invalid') fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
@@ -722,9 +735,8 @@ export function createApp({
   app.put('/api/user/password', async (c) => {
     const authenticated = c.get('user')
     if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const timestamp = now().getTime()
-    rateLimiter.consume(`password:ip:${clientIp(c, config.trustProxy)}`, 3, timestamp)
-    rateLimiter.consume(`password:user:${authenticated.id}`, 3, timestamp)
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordIp, 'ip', clientIp(c, config.trustProxy))
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordUser, 'user', authenticated.id)
     const input = await parseJson(c, changePasswordRequestSchema)
     await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword, async (tx, user) => {
       await accountEmailLifecycle.invalidateForPasswordChange(tx, {
@@ -917,7 +929,7 @@ export function createApp({
     const session = c.get('user')
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const input = await parseJson(c, z.object({ symbols: z.array(z.string().max(32)).min(1).max(25) }).strict())
-    rateLimiter.consume(`market:ip:${clientIp(c, config.trustProxy)}`, 60, now().getTime())
+    await consumeRateLimit(c, RATE_LIMIT_POLICIES.marketIp, 'ip', clientIp(c, config.trustProxy))
     const quotes = await batchQuotePrices(market, input.symbols, c.req.raw.signal)
     if (Object.keys(quotes).length === 0) fail(502, 'SYS_EXTERNAL_SERVICE_ERROR', 'Prices unavailable. Please try again later.')
     c.header('Cache-Control', 'no-store')
@@ -957,8 +969,10 @@ export function createApp({
     const apiError = error instanceof ApiError
       ? error
       : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
-    if (apiError.statusCode === 429 && apiError.code === 'AUTH_RATE_LIMITED') c.header('Retry-After', '60')
-    if (apiError.statusCode >= 500) {
+    if (apiError.statusCode === 429 && apiError.code === 'AUTH_RATE_LIMITED') {
+      c.header('Retry-After', String(c.get('rateLimitRetryAfterSeconds') ?? 60))
+    }
+    if (apiError.statusCode >= 500 && !c.get('rateLimitBackendUnavailable')) {
       logger.error('Unhandled API request error', {
         operation: 'http_request',
         requestId: c.get('requestId'),

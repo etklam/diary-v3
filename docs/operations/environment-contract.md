@@ -11,6 +11,8 @@
 | `API_HOST`, `API_PORT` | Optional runtime settings | Default to `127.0.0.1`/`3101` outside production; production binds `0.0.0.0:3101`. |
 | `HOST`, `PORT` | Optional Web server settings | React Router server bind address and port. Production uses `0.0.0.0:3000`. |
 | `TRUST_X_FORWARDED_FOR` | Optional proxy setting | Set to `true` only behind a proxy that overwrites forwarded client addresses. Production Ingress is trusted. |
+| `RATE_LIMIT_BACKEND` | Optional runtime setting | `memory` (default) keeps limits process-local; `auto` uses Redis when available and falls back to bounded memory; `redis` requires Redis at startup and readiness. |
+| `REDIS_URL` | Optional secret | Redis connection URL used only by `auto` or `redis`; required by `redis`. Use `rediss://` when the Redis endpoint requires TLS and never log the URL. |
 | `MARKET_PROVIDER` | Optional provider setting | Defaults to the live provider. Set to `fixture` only in disposable test environments. |
 | `MIGRATIONS_FOLDER` | Optional migration setting | Directory containing the Drizzle migration journal and SQL. Production migration jobs use `/app/packages/db/migrations`. |
 | `SMTP_ENCRYPTION_KEYS` | Optional secret | JSON object mapping SMTP key versions to base64-encoded 32-byte keys. Required before enabling account email. Use the same keyring in API and mail worker; retain old versions for encrypted outbox data and backup recovery. |

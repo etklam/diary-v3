@@ -17,12 +17,13 @@ import { SecProviderError } from './sec-edgar/errors.js'
 import { buildBatchPackage, buildSingleFilingPackage } from './sec-edgar/package.js'
 import { canonicalizeCik, parseAccession } from './sec-edgar/validation.js'
 import type { SecEdgarService } from './sec-edgar/service.js'
+import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
+import type { RateLimitPolicy } from './rate-limit/types.js'
 
 type SecRouteDependencies = {
   service: SecEdgarService
-  consume: (key: string, points: number, timestamp: number) => void
+  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
   clientIp: (context: Context<AppEnv>) => string
-  now: () => Date
   fail: (status: number, code: ErrorCode, message: string, details?: { field?: string; message?: string; value?: unknown }[] | null) => never
   validationError: (error: z.ZodError) => never
 }
@@ -33,10 +34,16 @@ function queryValues(context: Context<AppEnv>, key: string): string[] {
 }
 
 export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRouteDependencies) {
-  const { service, consume, clientIp, now, fail, validationError } = dependencies
-  const limit = (context: Context<AppEnv>, points: number, kind: 'metadata' | 'download' | 'package' | 'batch') => {
+  const { service, consume, clientIp, fail, validationError } = dependencies
+  const policies = {
+    metadata: RATE_LIMIT_POLICIES.secMetadataIp,
+    download: RATE_LIMIT_POLICIES.secDownloadIp,
+    package: RATE_LIMIT_POLICIES.secPackageIp,
+    batch: RATE_LIMIT_POLICIES.secBatchIp,
+  }
+  const limit = async (context: Context<AppEnv>, kind: keyof typeof policies) => {
     context.header('Cache-Control', 'no-store')
-    consume(`sec:${kind}:ip:${clientIp(context)}`, points, now().getTime())
+    await consume(context, policies[kind], 'ip', clientIp(context))
   }
   const parse = <T>(schema: z.ZodType<T>, input: unknown): T => {
     const result = schema.safeParse(input)
@@ -57,7 +64,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   const responseMeta = (result: { stale: boolean; cacheStatus: 'miss' | 'hit' | 'stale'; fetchedAt: string }) => ({ stale: result.stale, cacheStatus: result.cacheStatus, fetchedAt: result.fetchedAt })
 
   app.get('/api/tools/sec-filings/companies', async context => {
-    limit(context, 60, 'metadata')
+    await limit(context, 'metadata')
     try {
       const query = parse(secCompanySearchQuerySchema, context.req.query())
       const result = await service.searchCompanies(query.q, query.limit)
@@ -66,7 +73,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   })
 
   app.get('/api/tools/sec-filings/companies/:cik/filings', async context => {
-    limit(context, 60, 'metadata')
+    await limit(context, 'metadata')
     try {
       const query = parse(secFilingListQuerySchema, context.req.query())
       const forms = query.forms ? query.forms.split(',').map(value => value.trim().toUpperCase()).filter(Boolean) : []
@@ -77,7 +84,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   })
 
   app.get('/api/tools/sec-filings/companies/:cik/filings/:accession', async context => {
-    limit(context, 60, 'metadata')
+    await limit(context, 'metadata')
     try {
       const result = await service.getFilingDetail(context.req.param('cik'), context.req.param('accession'))
       return context.json(secApiResponseSchema(secFilingDetailSchema).parse({ data: result.value, meta: responseMeta(result) }))
@@ -85,7 +92,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   })
 
   app.get('/api/tools/sec-filings/companies/:cik/filings/:accession/documents/:basename', async context => {
-    limit(context, 30, 'download')
+    await limit(context, 'download')
     try {
       const opened = await service.openDocument(context.req.param('cik'), context.req.param('accession'), context.req.param('basename'))
       const body = await (await import('./sec-edgar/download.js')).readResponseBytes(opened.response, (await import('./sec-edgar/download.js')).SEC_LIMITS.documentBytes)
@@ -98,7 +105,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   })
 
   app.get('/api/tools/sec-filings/companies/:cik/filings/:accession/package', async context => {
-    limit(context, 10, 'package')
+    await limit(context, 'package')
     try {
       const includes = queryValues(context, 'include').map(value => parse(secPackageIncludeSchema, value))
       const result = await buildSingleFilingPackage(service, context.req.param('cik'), context.req.param('accession'), includes)
@@ -111,7 +118,7 @@ export function registerSecFilingRoutes(app: Hono<AppEnv>, dependencies: SecRout
   })
 
   app.get('/api/tools/sec-filings/batch', async context => {
-    limit(context, 5, 'batch')
+    await limit(context, 'batch')
     try {
       const raw = context.req.query()
       const accessions = queryValues(context, 'accessions')

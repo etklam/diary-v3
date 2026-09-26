@@ -6,8 +6,10 @@ import { and, desc, eq, isNull } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app.js'
+import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
+import type { RateLimitPolicy } from './rate-limit/types.js'
 export function registerApiKeyRoutes(app: Hono<AppEnv>, dependencies: {
- db: Database; now: () => Date; consume: (key: string, points: number, timestamp: number) => void
+ db: Database; now: () => Date; consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
  fail: (status: number, code: ErrorCode, message: string) => never
  validationError: (error: z.ZodError) => never; parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
 }) {
@@ -21,7 +23,7 @@ export function registerApiKeyRoutes(app: Hono<AppEnv>, dependencies: {
   return c.json({ keys: rows.map(serialize) })
  })
  app.post('/api/api-keys', async c => {
-  const viewer = owner(c); consume(`api-key-create:user:${viewer}`, 60, now().getTime())
+  const viewer = owner(c); await consume(c, RATE_LIMIT_POLICIES.apiKeyCreateUser, 'user', viewer.toString())
   const input = await parseJson(c, createApiKeySchema), rawKey = `dva_${randomBytes(24).toString('hex')}`
   const [row] = await db.insert(apiKeyCredentials).values({ userId: viewer, ...input, keyHash: createHash('sha256').update(rawKey).digest('hex'), keyPrefix: rawKey.slice(0, 12), createdAt: now() }).returning(columns)
   return c.json(apiKeyCreateResponseSchema.parse({ key: serialize(row!), rawKey }))

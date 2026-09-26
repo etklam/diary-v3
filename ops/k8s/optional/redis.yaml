@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diary-v3-redis
+  namespace: diary-v3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diary-v3-redis
+  template:
+    metadata:
+      labels:
+        app: diary-v3-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ec"]
+          args:
+            - exec redis-server --save '' --appendonly no --maxmemory 128mb --maxmemory-policy noeviction --requirepass "$REDIS_PASSWORD"
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-redis
+                  key: REDIS_PASSWORD
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-ec", "REDISCLI_AUTH=\"$REDIS_PASSWORD\" redis-cli ping | grep -qx PONG"]
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-ec", "REDISCLI_AUTH=\"$REDIS_PASSWORD\" redis-cli ping | grep -qx PONG"]
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diary-v3-redis
+  namespace: diary-v3
+spec:
+  type: ClusterIP
+  selector:
+    app: diary-v3-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: diary-v3-redis-ingress
+  namespace: diary-v3
+spec:
+  podSelector:
+    matchLabels:
+      app: diary-v3-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: diary-v3-api
+      ports:
+        - protocol: TCP
+          port: 6379

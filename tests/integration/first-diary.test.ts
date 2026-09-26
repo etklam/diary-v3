@@ -112,6 +112,7 @@ describe('first diary through real HTTP and PostgreSQL', () => {
     }
     const limited = await browser.post('/api/auth/login', { email: `${randomUUID()}@example.test`, password: 'wrong-password' });
     expect(limited.status).toBe(429);
+    expect(limited.headers.get('retry-after')).toBe('60');
     expect((await limited.json()).data.code).toBe('AUTH_RATE_LIMITED');
   });
 

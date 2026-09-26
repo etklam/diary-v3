@@ -156,3 +156,25 @@ installation with SMTP disabled does not need mail keys. See the [account
 email runbook](../../../docs/runbooks/account-email.md) for key rotation,
 retention, network, and recovery steps. CI updates the worker image alongside
 the API and restores or removes the worker if a release rollout fails.
+
+## Optional Redis rate limiting
+
+Redis is not included in the normal release bundle and production remains on
+the API's default `memory` limiter until an operator opts in. The separate
+[`ops/k8s/optional/redis.yaml`](../optional/redis.yaml) manifest runs one
+authenticated, ClusterIP-only Redis Pod and permits ingress only from API Pods.
+It requires an operator-created `diary-v3-redis` Secret containing
+`REDIS_PASSWORD`; no Redis credentials or production Secret changes are
+included here.
+
+For a deliberate enablement, provision that Secret through the environment's
+approved secret manager, review and apply the optional Redis manifest, then
+add an authenticated `REDIS_URL` key and `RATE_LIMIT_BACKEND=auto` to the API
+Deployment through the normal reviewed release process. The Redis URL belongs
+in the existing `diary-v3-app` Secret and must URL-encode special password
+characters. Choose `redis` only when Redis should be a readiness requirement.
+The standard production manifests, secret script and CI release workflow do
+not enable or provision Redis. See the [rate-limiting runbook](../../../docs/runbooks/rate-limiting.md)
+for behavior, local testing, limits and recovery semantics. This is
+application-layer abuse protection and does not replace edge or ingress DDoS
+controls.

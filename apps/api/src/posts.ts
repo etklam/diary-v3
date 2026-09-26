@@ -42,6 +42,8 @@ import type { ResearchLatestCompletedSession } from './research-studio/service.j
 import { loadArticleTranslationSummaries, loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
 import { enqueueArticleTranslationJob } from './article-translations/store.js'
 import type { AppEnv } from './app.js'
+import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
+import type { RateLimitPolicy } from './rate-limit/types.js'
 import { safeErrorContext } from './diagnostics.js'
 
 const PUBLIC_DEFAULT_LIMIT = 9
@@ -330,11 +332,13 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
   now: () => Date
   logger?: { error(message: string, context: Record<string, unknown>): void }
   latestCompletedSession?: ResearchLatestCompletedSession
+  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
+  clientIp: (context: Context<AppEnv>) => string
   fail: PostFail
   validationError: (error: z.ZodError) => never
   parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
 }) {
-  const { db, now, fail, validationError, parseJson } = dependencies
+  const { db, now, fail, validationError, parseJson, consume, clientIp } = dependencies
   const logger = dependencies.logger ?? console
   const admin = (c: Context<AppEnv>) => {
     c.header('Cache-Control', 'no-store')
@@ -483,6 +487,9 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const parsed = (publicView ? postAdminListQuerySchema.omit({ status: true, author: true }) : postAdminListQuerySchema).safeParse(c.req.query())
     if (!parsed.success) return validationError(parsed.error)
     const query = parsed.data
+    if (publicView && query.search?.trim()) {
+      await consume(c, RATE_LIMIT_POLICIES.publicArticleSearchIp, 'ip', clientIp(c))
+    }
     const explicitLang = explicitLocale(query.lang)
     const preference = publicView && !explicitLang ? await localePreference(c) : null
     const defaultLimit = publicView ? PUBLIC_DEFAULT_LIMIT : ADMIN_DEFAULT_LIMIT

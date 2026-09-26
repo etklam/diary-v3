@@ -7,6 +7,7 @@ import { createAuthSessionService } from './auth-session.js'
 import { dismissDiaryAlert } from './alerts.js'
 import { createSocketServer } from './socket-server.js'
 import { createAlertPusher, findUpcomingAlerts } from './alert-pusher.js'
+import { createMemoryRateLimitRuntime } from './rate-limit/index.js'
 /** One HTTP listener and foreground reminder timer per API process. */
 export function createApiRuntime(dependencies: Omit<AppDependencies, 'onAccountRevoked'>) {
   const { db, config } = dependencies
@@ -14,7 +15,8 @@ export function createApiRuntime(dependencies: Omit<AppDependencies, 'onAccountR
     fail: (_status, _code, message) => { throw new Error(message) },
   })
   const marketData = dependencies.marketData ?? createMarketData({ upstream: createYahooUpstream(), now: dependencies.now })
-  const app = createApp({ ...dependencies, marketData, onAccountRevoked: userId => sockets.revokeUser(userId) })
+  const rateLimiter = dependencies.rateLimiter ?? createMemoryRateLimitRuntime()
+  const app = createApp({ ...dependencies, marketData, rateLimiter, onAccountRevoked: userId => sockets.revokeUser(userId) })
   const server = createServer(getRequestListener(app.fetch))
   const sockets = createSocketServer(server, {
     webOrigin: config.webOrigin, production: config.nodeEnv === 'production', authenticate: auth.authenticateSocketAccess,
@@ -55,8 +57,7 @@ export function createApiRuntime(dependencies: Omit<AppDependencies, 'onAccountR
   function close() {
     closing ??= (async () => {
       const stopping = Promise.all([pusher.stop(), priceChecker.stop()])
-      await marketData.close()
-      await stopping
+      await Promise.all([marketData.close(), stopping, rateLimiter.close()])
       await sockets.close()
     })()
     return closing

@@ -4,6 +4,7 @@ import { createApiRuntime } from './runtime.js'
 import { createMarketData } from './market-data/index.js'
 import { createFixtureUpstream } from './market-data/fixture.js'
 import { createYahooUpstream } from './market-data/yahoo.js'
+import { createRateLimitRuntime, parseRateLimitConfig } from './rate-limit/index.js'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -14,6 +15,7 @@ function required(name: string): string {
 const nodeEnv = process.env.NODE_ENV ?? 'development'
 if (!['development', 'test', 'production'].includes(nodeEnv)) throw new Error('NODE_ENV is invalid')
 
+const rateLimitConfig = parseRateLimitConfig(process.env)
 const database = createDatabase(required('DATABASE_URL'))
 const config: ApiConfig = {
   jwtSecret: required('JWT_SECRET'),
@@ -25,7 +27,8 @@ const config: ApiConfig = {
 const marketData = process.env.MARKET_PROVIDER === 'fixture'
   ? createMarketData({ upstream: createFixtureUpstream() })
   : createMarketData({ upstream: createYahooUpstream() })
-const runtime = createApiRuntime({ db: database.db, databasePool: database.pool, config, marketData })
+const rateLimiter = await createRateLimitRuntime(rateLimitConfig, { logger: console })
+const runtime = createApiRuntime({ db: database.db, databasePool: database.pool, config, marketData, rateLimiter })
 const port = Number(process.env.API_PORT ?? 3101)
 const hostname = process.env.API_HOST ?? (nodeEnv === 'production' ? '0.0.0.0' : '127.0.0.1')
 
