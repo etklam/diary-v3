@@ -29,9 +29,9 @@ async function login() {
   await browser.request('/api/auth/me')
   return browser
 }
-async function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH') {
+async function update(browser: BrowserSession, path: string, body: unknown, method = 'PATCH', autoRevision = true) {
   let payload = body
-  if (method === 'PUT' && typeof body === 'object' && body !== null && !('expectedRevision' in body)) {
+  if (autoRevision && method === 'PUT' && typeof body === 'object' && body !== null && !('expectedRevision' in body)) {
     const current = await browser.request(path)
     if (current.status === 200) payload = { ...body, expectedRevision: (await current.json()).revision }
   }
@@ -111,7 +111,9 @@ it('preserves completed reflection when scheduling or append races completion', 
       update(browser, path, { reviewOutcome: 'PARTIAL', reviewLearning: 'Retain this completed reflection.' }),
       append
         ? browser.post('/api/diaries', { date: diary.date, title: 'Append title', content: 'Additional evidence', appendToToday: true, reviewDueAt: null })
-        : update(browser, `/api/diaries/${diary.id}`, { title: diary.title, content: diary.content, reviewDueAt: null }, 'PUT'),
+        // The compatibility /api route intentionally exercises last-writer
+        // semantics here; optimistic conflicts belong to /api/v2 coverage.
+        : update(browser, `/api/diaries/${diary.id}`, { title: diary.title, content: diary.content, reviewDueAt: null }, 'PUT', false),
     ])
     expect(responses.map(response => response.status)).toEqual([200, append ? 201 : 200])
     const result = await (await browser.request(path)).json()

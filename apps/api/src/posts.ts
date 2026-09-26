@@ -570,7 +570,7 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const decision = resolveArticleReadAccess(row.post, c.get('user'), { allowAdminPreview: true })
     if (decision !== 'FULL') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(toAdminDetail(row.post ? { ...row.post, author: row.author } : row as never))
+    return c.json(toAdminDetail({ ...row.post, author: row.author }))
   })
   app.post('/api/blog/admin/:id/publish', c => transition(c, 'PUBLISHED'))
   app.post('/api/blog/admin/:id/archive', c => transition(c, 'ARCHIVED'))

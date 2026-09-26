@@ -43,9 +43,12 @@ SOURCE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PORT}/${SOURCE_DB
 TARGET_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:${PORT}/${TARGET_DB}"
 
 cleanup() {
-  docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  if [[ "$CONTAINER_OWNED" == true ]]; then
+    docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  fi
   rm -rf "$WORK_DIR"
 }
+CONTAINER_OWNED=false
 trap cleanup EXIT
 
 if docker ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER"; then
@@ -76,6 +79,7 @@ docker run -d --name "$CONTAINER" \
   -e "POSTGRES_PASSWORD=$DB_PASSWORD" \
   -e "POSTGRES_DB=$SOURCE_DB" \
   "$IMAGE" >/dev/null
+CONTAINER_OWNED=true
 
 for attempt in $(seq 1 45); do
   if docker exec "$CONTAINER" pg_isready -U "$DB_USER" -d "$SOURCE_DB" >/dev/null 2>&1; then break; fi

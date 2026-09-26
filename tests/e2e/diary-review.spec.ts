@@ -74,6 +74,9 @@ for(const width of [1440,390]){
   await page.getByRole('button',{name:'Save review changes',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('review-draft:')).length)).toBeGreaterThan(0);
   await page.unroute(`**/api/diaries/${id}/review`);
+  // The synthetic 401 models an expired browser session; remove the still-valid
+  // fixture cookies before exercising the sign-in return flow.
+  await context.clearCookies();
   // Whether the inline failure notice or the expiry redirect won the race, the
   // sign-in return flow lands back on this review page.
   await page.goto(`/login?returnTo=${encodeURIComponent(`/diaries/${id}/review`)}`);

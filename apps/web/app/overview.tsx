@@ -39,11 +39,11 @@ type ResourceState<T> = { data: T | null; error: Failure | null; loading: boolea
 
 async function requestResource(name: ResourceName, signal: AbortSignal): Promise<ResourceResult> {
   switch (name) {
-    case 'portfolioOverview': return api.GET('/api/portfolio/overview', { signal }) as unknown as ResourceResult
-    case 'reviews': return api.GET('/api/reviews', { params: { query: { page: 1, limit: 20 } }, signal }) as unknown as ResourceResult
-    case 'recent': return api.GET('/api/diaries/summary', { params: { query: { page: 1, limit: 3, sortBy: 'date-desc' } }, signal }) as unknown as ResourceResult
-    case 'plans': return api.GET('/api/trade-plans', { params: { query: { page: 1, limit: 5, sortBy: 'updatedAt-desc' } }, signal }) as unknown as ResourceResult
-    case 'watchlist': return api.GET('/api/stocks/watchlist', { signal }) as unknown as ResourceResult
+    case 'portfolioOverview': return api.GET('/api/portfolio/overview', { signal })
+    case 'reviews': return api.GET('/api/reviews', { params: { query: { page: 1, limit: 20 } }, signal })
+    case 'recent': return api.GET('/api/diaries/summary', { params: { query: { page: 1, limit: 3, sortBy: 'date-desc' } }, signal })
+    case 'plans': return api.GET('/api/trade-plans', { params: { query: { page: 1, limit: 5, sortBy: 'updatedAt-desc' } }, signal })
+    case 'watchlist': return api.GET('/api/stocks/watchlist', { signal })
   }
 }
 
@@ -71,12 +71,12 @@ function formatInstant(value: string, locale: string, timezone: string | null, u
   return timezone ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(value)) : unavailable
 }
 
-function formatNumber(value: number | null | undefined, locale: string, _unavailable: string) {
+function formatNumber(value: number | null | undefined, locale: string) {
   return formatNeutralValue(locale, value, 2)
 }
 
-function formatPercent(value: number | null | undefined, locale: string, unavailable: string) {
-  const formatted = formatNumber(value, locale, unavailable)
+function formatPercent(value: number | null | undefined, locale: string) {
+  const formatted = formatNumber(value, locale)
   return formatted === '—' ? formatted : `${formatted}%`
 }
 
@@ -92,7 +92,7 @@ function FailureSection({ state, retry, copy, errorId, label }: { state: Resourc
 
 function PortfolioSection({ state, retry, locale, timezone, c }: { state: ResourceState<z.infer<typeof portfolioValuationResponseSchema>>; retry: () => void; locale: string; timezone: string | null; c: OverviewCopy }) {
   return <section className="overview-section overview-side-section" aria-labelledby="overview-portfolio-title"><header className="overview-section-header"><h2 id="overview-portfolio-title"><Icon name="briefcase" />{c.portfolio}</h2><Link to="/stocks">{c.viewAll}</Link></header><FailureSection state={state} retry={retry} copy={c} errorId="overview-portfolio-error" label={tx(c, 'portfolio')} />
-    {state.data && (state.data.valuation.valuationStatus === 'empty' ? <p>{c.emptyPortfolio} <Link to="/diaries/new">{c.firstDiary}</Link></p> : <><p className="overview-meta">{c.quoteSource}</p><dl className="overview-metrics"><div><dt>{c.currentValue}</dt><dd data-testid="overview-current-value">{formatNumber(state.data.valuation.currentMarketValue, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.coverage}</dt><dd data-testid="overview-quote-coverage">{formatPercent(state.data.valuation.quoteCoveragePct, locale, tx(c, 'unavailableValue'))}</dd></div><div><dt>{c.unpriced}</dt><dd data-testid="overview-unpriced-cost">{formatNumber(state.data.valuation.unpricedCostBasis, locale, tx(c, 'unavailableValue'))}</dd></div></dl>{state.data.valuation.concentrationWarning && <p className="overview-partial" role="status">{c.concentration}</p>}<p className="overview-meta">{c.stale}: {state.data.valuation.staleQuoteCount} · {c.asOf}: {state.data.valuation.valuationAsOf ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, tx(c, 'unknown')) : c.unavailableValue}</p></>)}
+    {state.data && (state.data.valuation.valuationStatus === 'empty' ? <p>{c.emptyPortfolio} <Link to="/diaries/new">{c.firstDiary}</Link></p> : <><p className="overview-meta">{c.quoteSource}</p><dl className="overview-metrics"><div><dt>{c.currentValue}</dt><dd data-testid="overview-current-value">{formatNumber(state.data.valuation.currentMarketValue, locale)}</dd></div><div><dt>{c.coverage}</dt><dd data-testid="overview-quote-coverage">{formatPercent(state.data.valuation.quoteCoveragePct, locale)}</dd></div><div><dt>{c.unpriced}</dt><dd data-testid="overview-unpriced-cost">{formatNumber(state.data.valuation.unpricedCostBasis, locale)}</dd></div></dl>{state.data.valuation.concentrationWarning && <p className="overview-partial" role="status">{c.concentration}</p>}<p className="overview-meta">{c.stale}: {state.data.valuation.staleQuoteCount} · {c.asOf}: {state.data.valuation.valuationAsOf ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, tx(c, 'unknown')) : c.unavailableValue}</p></>)}
   </section>
 }
 
@@ -143,7 +143,7 @@ function WorkspaceAttentionSection({ attention, retryAttention, reviews, retryRe
     <FailureSection state={attention} retry={retryAttention} copy={c} errorId="overview-attention-error" label={tx(c, 'attention')} />
     <FailureSection state={reviews} retry={retryReviews} copy={c} errorId="overview-reviews-error" label={tx(c, 'reviewQueue')} />
     {attention.data && !attention.data.coverage.complete && <p className="overview-partial" role="status">{c.attentionPartial}</p>}
-    {rows.length ? <ul className="overview-action-list">{rows.slice(0, 5).map(row => <li key={row.key} data-testid="overview-attention-item" data-overview-priority={row.priority}><div><strong>{rowLabel(row, c)}</strong><span>{row.title}</span>{row.reason === 'position_concentration' && <span>{formatPercent(row.concentrationPct, locale, tx(c, 'unavailable'))}</span>}{row.dueAt && <time dateTime={row.dueAt}>{c.due}: {formatInstant(row.dueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={row.href}>{c.open}</Link></li>)}</ul> : null}
+    {rows.length ? <ul className="overview-action-list">{rows.slice(0, 5).map(row => <li key={row.key} data-testid="overview-attention-item" data-overview-priority={row.priority}><div><strong>{rowLabel(row, c)}</strong><span>{row.title}</span>{row.reason === 'position_concentration' && <span>{formatPercent(row.concentrationPct, locale)}</span>}{row.dueAt && <time dateTime={row.dueAt}>{c.due}: {formatInstant(row.dueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={row.href}>{c.open}</Link></li>)}</ul> : null}
   </section>
 }
 

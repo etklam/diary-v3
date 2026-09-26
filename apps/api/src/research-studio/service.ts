@@ -572,7 +572,7 @@ export class ResearchStudioService {
     return locked
   }
 
-  private assertRuntimeEnabled(runtime: typeof researchRuntimeState.$inferSelect) {
+  private assertRuntimeEnabled(runtime: Pick<typeof researchRuntimeState.$inferSelect, 'featureEnabled'>) {
     if (!runtime.featureEnabled) fail(503, 'RESEARCH_DISABLED', 'Research Studio is disabled')
   }
 
@@ -727,7 +727,7 @@ export class ResearchStudioService {
   async prepare(actorId: bigint, input: { instrumentProfileId?: string; symbol?: string; methodProfileId?: string; asOf?: string; displayTimezone?: string; synthetic: boolean }) {
     if (input.synthetic && !this.allowSyntheticEvidence) fail(403, 'RESEARCH_SYNTHETIC_NOT_ALLOWED', 'Synthetic evidence is disabled for this runtime')
     const runtime = await this.db.select().from(researchRuntimeState).where(eq(researchRuntimeState.singleton, 'default')).limit(1)
-    this.assertRuntimeEnabled(runtime[0] ?? { featureEnabled: false } as never)
+    this.assertRuntimeEnabled(runtime[0] ?? { featureEnabled: false })
     const [requester] = await this.db.select({ role: users.role, timezone: users.timezone }).from(users).where(eq(users.id, actorId)).limit(1)
     if (requester?.role !== 'ADMIN') fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
     const { method, instrument } = await this.readProfile(
@@ -882,7 +882,7 @@ export class ResearchStudioService {
       const rows = await tx.select({ run: researchRuns, method: researchMethodProfiles, instrument: researchInstrumentProfiles }).from(researchRuns).innerJoin(researchMethodProfiles, eq(researchMethodProfiles.id, researchRuns.methodProfileId)).innerJoin(researchInstrumentProfiles, eq(researchInstrumentProfiles.id, researchRuns.instrumentProfileId)).where(eq(researchRuns.id, runId)).limit(1).for('update')
       const current = rows[0]
       if (!current) fail(404, 'RESEARCH_NOT_FOUND', 'Research run not found')
-      this.assertRuntimeEnabled(runtime ?? { featureEnabled: false } as never)
+      this.assertRuntimeEnabled(runtime ?? { featureEnabled: false })
       if (!runtime?.generationEnabled) fail(503, 'RESEARCH_GENERATION_DISABLED', 'Research generation is disabled')
       if (current.method.status !== 'COMPLETE') fail(409, 'RESEARCH_METHOD_INCOMPLETE', 'The imported method bundle is incomplete')
       if (current.run.version !== input.expectedVersion) fail(409, 'RESEARCH_REVISION_CONFLICT', 'Research run changed; reload and retry')

@@ -1,6 +1,7 @@
 import { archiveCik, canonicalizeCik, parseAccession, parseDocumentBasename } from './validation.js'
 import { SecProviderError } from './errors.js'
 import { SecRequestQueue } from './queue.js'
+import { cancelledSecRequest, throwIfAborted, withAbort } from './abort.js'
 
 const ALLOWED_HOSTS = new Set(['www.sec.gov', 'data.sec.gov'])
 const MAX_METADATA_BYTES = 5 * 1024 * 1024
@@ -32,6 +33,62 @@ interface ClientOptions {
   fetchFn?: typeof fetch
   sleep?: (ms: number) => Promise<void>
   minIntervalMs?: number
+  timeoutMs?: number
+  streamTimeoutMs?: number
+}
+
+interface SecResponse {
+  response: Response
+  signal: AbortSignal
+}
+
+function timeoutError(): SecProviderError {
+  return new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request timed out', 503, true)
+}
+
+async function cancelResponseBody(response: Response): Promise<void> {
+  await response.body?.cancel().catch(() => undefined)
+}
+
+function responseWithDeadline(response: Response, signal: AbortSignal, callerSignal?: AbortSignal): Response {
+  if (signal.aborted) {
+    void response.body?.cancel().catch(() => undefined)
+    throw callerSignal?.aborted ? cancelledSecRequest() : timeoutError()
+  }
+  if (!response.body) return response
+  const reader = response.body.getReader()
+  let cleaned = false
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    signal.removeEventListener('abort', onAbort)
+    try { reader.releaseLock() } catch { /* already released */ }
+  }
+  const onAbort = () => { void reader.cancel().catch(() => undefined).finally(cleanup) }
+  signal.addEventListener('abort', onAbort, { once: true })
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await withAbort(reader.read(), signal)
+        if (done) {
+          cleanup()
+          controller.close()
+          return
+        }
+        controller.enqueue(value)
+      } catch (error) {
+        await reader.cancel().catch(() => undefined)
+        cleanup()
+        if (signal.aborted) controller.error(callerSignal?.aborted ? cancelledSecRequest() : timeoutError())
+        else controller.error(error)
+      }
+    },
+    async cancel(reason) {
+      cleanup()
+      await reader.cancel(reason).catch(() => undefined)
+    },
+  })
+  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
 }
 
 export class SecEdgarClient {
@@ -39,6 +96,8 @@ export class SecEdgarClient {
   private readonly sleep: (ms: number) => Promise<void>
   private readonly queue: SecRequestQueue
   private readonly inflight = new Map<string, Promise<unknown>>()
+  private readonly timeoutMs: number
+  private readonly streamTimeoutMs: number
 
   constructor(private readonly options: ClientOptions) {
     if (!options.userAgent.trim() || !options.userAgent.includes('@')) {
@@ -47,28 +106,35 @@ export class SecEdgarClient {
     this.fetchFn = options.fetchFn ?? fetch
     this.sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
     this.queue = new SecRequestQueue({ minIntervalMs: options.minIntervalMs, sleep: this.sleep })
+    this.timeoutMs = options.timeoutMs ?? 15_000
+    this.streamTimeoutMs = options.streamTimeoutMs ?? 60_000
   }
 
-  async getJson<T>(url: string): Promise<T> {
+  async getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
     const existing = this.inflight.get(url) as Promise<T> | undefined
-    if (existing) return existing
-    const request = this.request(url, 'application/json').then(async response => {
+    if (existing) return withAbort(existing, signal)
+    const request = this.request(url, 'application/json', this.timeoutMs).then(async ({ response, signal: deadline }) => {
       const length = Number(response.headers.get('content-length') ?? 0)
-      if (length > MAX_METADATA_BYTES) throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
-      const text = await this.readMetadataText(response)
+      if (length > MAX_METADATA_BYTES) {
+        await cancelResponseBody(response)
+        throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
+      }
+      const text = await this.readMetadataText(response, deadline)
       try { return JSON.parse(text) as T } catch { throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC returned invalid JSON', 502) }
     }).finally(() => this.inflight.delete(url))
     this.inflight.set(url, request)
-    return request
+    void request.catch(() => undefined)
+    return withAbort(request, signal)
   }
 
-  async getText(url: string): Promise<string> {
-    const response = await this.request(url, 'text/html')
-    return this.readMetadataText(response)
+  async getText(url: string, signal?: AbortSignal): Promise<string> {
+    const { response, signal: deadline } = await this.request(url, 'text/html', this.timeoutMs, true, signal)
+    return this.readMetadataText(response, deadline, signal)
   }
 
-  getStream(url: string): Promise<Response> {
-    return this.request(url, '*/*', 60_000, false)
+  async getStream(url: string, signal?: AbortSignal): Promise<Response> {
+    const { response, signal: deadline } = await this.request(url, '*/*', this.streamTimeoutMs, false, signal)
+    return responseWithDeadline(response, deadline, signal)
   }
 
   private assertUrl(url: string): URL {
@@ -83,46 +149,70 @@ export class SecEdgarClient {
     return parsed
   }
 
-  private async request(url: string, accept: string, timeoutMs = 15_000, retry = true): Promise<Response> {
+  private async request(url: string, accept: string, timeoutMs = 15_000, retry = true, callerSignal?: AbortSignal): Promise<SecResponse> {
+    throwIfAborted(callerSignal)
     const expected = this.assertUrl(url)
     const attempts = retry ? 3 : 1
     let lastError: unknown
     for (let attempt = 0; attempt < attempts; attempt++) {
+      throwIfAborted(callerSignal)
+      const timeoutSignal = AbortSignal.timeout(timeoutMs)
+      const signal = callerSignal ? AbortSignal.any([callerSignal, timeoutSignal]) : timeoutSignal
       try {
         // The deadline belongs to the whole response, including body reads. A
         // fetch-only timer otherwise leaves a stalled SEC stream unbounded.
         const response = await this.queue.run(() => this.fetchFn(expected, {
           headers: { 'User-Agent': this.options.userAgent, Accept: accept, 'Accept-Encoding': 'gzip, deflate' },
           redirect: 'manual',
-          signal: AbortSignal.timeout(timeoutMs),
-        }))
+          signal,
+        }), signal)
+        if (signal.aborted) {
+          await cancelResponseBody(response)
+          throw callerSignal?.aborted ? cancelledSecRequest() : timeoutError()
+        }
 
         if (response.status >= 300 && response.status < 400) {
           const location = response.headers.get('location')
-          if (!location) throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC redirect has no location', 502)
+          if (!location) {
+            await cancelResponseBody(response)
+            throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC redirect has no location', 502)
+          }
           const destination = new URL(location, expected)
           if (destination.protocol !== 'https:' || destination.hostname !== expected.hostname || destination.pathname !== expected.pathname) {
+            await cancelResponseBody(response)
             throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC returned an unsafe redirect', 502)
           }
           // Re-enter the queue and request policy for the one allowed
           // same-path redirect. A second redirect is rejected by retry=false.
-          if (!retry) throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC returned too many redirects', 502)
-          return await this.request(destination.href, accept, timeoutMs, false)
+          if (!retry) {
+            await cancelResponseBody(response)
+            throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC returned too many redirects', 502)
+          }
+          await cancelResponseBody(response)
+          return await this.request(destination.href, accept, timeoutMs, false, callerSignal)
         }
-        if (response.ok) return response
-        if (response.status === 404) throw new SecProviderError('SEC_DOCUMENT_NOT_FOUND', 'SEC resource not found', 404)
+        if (response.ok) return { response, signal }
+        if (response.status === 404) {
+          await cancelResponseBody(response)
+          throw new SecProviderError('SEC_DOCUMENT_NOT_FOUND', 'SEC resource not found', 404)
+        }
         const retryableStatus = response.status === 429 || [502, 503, 504].includes(response.status)
-        if (!retryableStatus) throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', `SEC returned HTTP ${response.status}`, 502)
+        if (!retryableStatus) {
+          await cancelResponseBody(response)
+          throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', `SEC returned HTTP ${response.status}`, 502)
+        }
         const delay = this.retryDelay(response.headers.get('retry-after'), attempt)
+        await cancelResponseBody(response)
         lastError = new SecProviderError(response.status === 429 ? 'SEC_UPSTREAM_RATE_LIMITED' : 'SEC_UPSTREAM_UNAVAILABLE', 'SEC is temporarily unavailable', 503, true, Math.ceil(delay / 1000))
-        if (attempt < attempts - 1) await this.sleep(delay)
+        if (attempt < attempts - 1) await withAbort(this.sleep(delay), callerSignal)
       } catch (error) {
+        if (callerSignal?.aborted) throw cancelledSecRequest()
         if (error instanceof SecProviderError && !error.retryable) throw error
-        lastError = error instanceof SecProviderError ? error : new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request failed', 503, true)
-        if (attempt < attempts - 1) await this.sleep(Math.min(30_000, 250 * 2 ** attempt))
+        lastError = error instanceof SecProviderError ? error : signal.aborted ? timeoutError() : new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request failed', 503, true)
+        if (attempt < attempts - 1) await withAbort(this.sleep(Math.min(30_000, 250 * 2 ** attempt)), callerSignal)
       }
     }
-    throw lastError
+    throw lastError ?? new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request failed', 503, true)
   }
 
   private retryDelay(header: string | null, attempt: number): number {
@@ -135,20 +225,28 @@ export class SecEdgarClient {
     return Math.min(30_000, 250 * 2 ** attempt)
   }
 
-  private async readMetadataText(response: Response): Promise<string> {
+  private async readMetadataText(response: Response, signal: AbortSignal, callerSignal?: AbortSignal): Promise<string> {
     if (!response.body) return ''
     const reader = response.body.getReader()
     const chunks: Uint8Array[] = []
     let total = 0
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      total += value.byteLength
-      if (total > MAX_METADATA_BYTES) {
-        await reader.cancel()
-        throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
+    try {
+      while (true) {
+        const { done, value } = await withAbort(reader.read(), signal)
+        if (done) break
+        total += value.byteLength
+        if (total > MAX_METADATA_BYTES) {
+          await reader.cancel()
+          throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
+        }
+        chunks.push(value)
       }
-      chunks.push(value)
+    } catch (error) {
+      await reader.cancel().catch(() => undefined)
+      if (signal.aborted) throw callerSignal?.aborted ? cancelledSecRequest() : timeoutError()
+      throw error
+    } finally {
+      reader.releaseLock()
     }
     return Buffer.concat(chunks.map(chunk => Buffer.from(chunk))).toString('utf8')
   }

@@ -3,6 +3,7 @@ import { unified } from 'unified'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
+import type { Root } from 'mdast'
 import { TranslationProviderError, type ArticleTranslationLocale, type TranslationProvider, type TranslationUsageMetadata } from './types.js'
 
 export interface TranslateMarkdownOptions {
@@ -39,14 +40,15 @@ interface MdNode {
   children?: MdNode[]
   [key: string]: unknown
 }
+type MdRoot = Root & MdNode
 
 const MAX_MARKDOWN_BYTES = 1_000_000
 const MAX_MARKDOWN_UNITS = 1_000
 const MAX_TRANSLATED_BLOCK_BYTES = 32_000
 const markdownProcessor = unified().use(remarkParse).use(remarkGfm).use(remarkStringify)
 
-function parseMarkdown(markdown: string): MdNode {
-  return markdownProcessor.parse(markdown) as unknown as MdNode
+function parseMarkdown(markdown: string): MdRoot {
+  return markdownProcessor.parse(markdown) as MdRoot
 }
 
 function nodeOffset(node: MdNode, edge: 'start' | 'end'): number | null {
@@ -363,7 +365,7 @@ function immutableValues(markdown: string): string[][] {
 export function assertMarkdownTranslationPreservesSource(source: string, candidate: string): void {
   const sourceTree = parseMarkdown(source)
   const candidateTree = parseMarkdown(candidate)
-  markdownProcessor.stringify(candidateTree as never)
+  markdownProcessor.stringify(candidateTree)
   if (structuralSignature(sourceTree) !== structuralSignature(candidateTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   const sourceValues = immutableValues(source)
   const candidateValues = immutableValues(candidate)
@@ -429,7 +431,7 @@ export async function translateMarkdownDocuments(
     replacements.sort((left, right) => right.range.start - left.range.start)
     for (const replacement of replacements) translated = `${translated.slice(0, replacement.range.start)}${replacement.value}${translated.slice(replacement.range.end)}`
     const translatedTree = parseMarkdown(translated)
-    markdownProcessor.stringify(translatedTree as never)
+    markdownProcessor.stringify(translatedTree)
     if (structuralSignature(document.sourceTree) !== structuralSignature(translatedTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
     translatedDocuments[document.key] = translated
   }

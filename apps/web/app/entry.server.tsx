@@ -7,7 +7,15 @@ import { ServerRouter, type EntryContext } from 'react-router';
 const direction = '<!-- THESIS: Keep original decisions and later evidence legible. OWN-WORLD: Cold white, ink green, flat agenda rows, system sans. STORY: Record today, revisit later. FIRST VIEWPORT: 216px navigation, task heading, one writing action; narrow screens stack. FORM: Decision agenda, candidate 4, seed 4587f8b7. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->';
 export const streamTimeout = 5_000;
 
+function applySecurityHeaders(headers: Headers): void {
+  if (!headers.has('Content-Security-Policy')) headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+  if (!headers.has('X-Frame-Options')) headers.set('X-Frame-Options', 'SAMEORIGIN');
+  if (!headers.has('X-Content-Type-Options')) headers.set('X-Content-Type-Options', 'nosniff');
+  if (!headers.has('Referrer-Policy')) headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+}
+
 export default function handleRequest(request: Request, status: number, headers: Headers, context: EntryContext): Promise<Response> | Response {
+  applySecurityHeaders(headers);
   if (request.method === 'HEAD') return new Response(null, { status, headers });
   return new Promise((resolve, reject) => {
     let shellRendered = false;

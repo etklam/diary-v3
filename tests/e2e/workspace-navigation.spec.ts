@@ -90,6 +90,19 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await page.goto('/reviews')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Review queue')
 
+  await page.goto('/')
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  await page.screenshot({ path: 'docs/design/evidence/navigation/user-sidebar-1440.png', fullPage: true })
+
+  await page.setViewportSize({ width: 768, height: 900 })
+  await expect(page.getByTestId('quick-entry')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('desktop workspace navigation marks the active route exactly once', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page, `workspace-desktop-active-${randomUUID()}@example.test`)
+
   for (const [path, active] of [
     ['/diaries/123/edit', 'Diary library'], ['/diaries/123/review', 'Review queue'], ['/reviews/ai-reports', 'AI reports'], ['/timeline', 'Timeline'], ['/calendar', 'Calendar'], ['/partners/compare', 'Timeline'],
     ['/partners', 'Partner management'], ['/stocks/watchlist', 'Watchlist'], ['/stocks/alerts', 'Price reminders'],
@@ -99,13 +112,6 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
     await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText(active)
     await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(1)
   }
-  await page.goto('/')
-  await page.setViewportSize({ width: 1440, height: 1200 })
-  await page.screenshot({ path: 'docs/design/evidence/navigation/user-sidebar-1440.png', fullPage: true })
-
-  await page.setViewportSize({ width: 768, height: 900 })
-  await expect(page.getByTestId('quick-entry')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('mobile bottom navigation keeps diary views and writing reachable without covering content @webkit-critical', async ({ page }) => {
@@ -208,7 +214,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await selectLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
   await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
-  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'Research Studio', 'ETF catalog'])
+  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'Research Studio', 'ETF catalog', 'Mail settings'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
   await page.goto('/admin/blog/123/edit')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')

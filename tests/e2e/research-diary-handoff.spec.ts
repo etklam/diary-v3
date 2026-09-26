@@ -438,6 +438,9 @@ test('central 401 invalidation preserves a contextual Quick draft for re-login',
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill(title)
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(content)
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-quick-draft:')))).toBe(true)
+  // Remove the still-valid fixture cookies so the mocked 401 represents an
+  // expired browser session when the login continuation is exercised.
+  await page.context().clearCookies()
 
   // Make the first write return the same 401 that an invalidated server
   // session returns, then make the shared refresh fail. This avoids relying on
@@ -599,8 +602,8 @@ test('Quick append blocks double submit, retains failed input, and never replays
   await expect(page.getByRole('button', { name: 'Append to date', exact: true })).toBeDisabled()
   expect((await readDiary(page, failed.id)).content).toBe('Failed baseline body')
   await page.unroute('**/api/diaries')
+  await page.goto('/')
   await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-quick-draft:')).forEach(key => localStorage.removeItem(key)))
-  await page.reload()
 
   const uncertain = await createDiary(page, { date: '2026-09-20', title: 'Uncertain baseline', content: 'Uncertain baseline body', stockSymbols: ['AAPL'] })
   await openQuickContext(page, '2026-09-20', false)

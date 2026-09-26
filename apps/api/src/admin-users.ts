@@ -132,8 +132,8 @@ async function selectAdminDiaries(db: Database, limit: number, offset: number, o
     .limit(limit)
     .offset(offset)
   return orderByCreatedAt
-    ? query.orderBy(desc(diaries.createdAt), desc(diaries.id)) as unknown as Promise<AdminDiaryRow[]>
-    : query.orderBy(desc(diaries.date), desc(diaries.id)) as unknown as Promise<AdminDiaryRow[]>
+    ? query.orderBy(desc(diaries.createdAt), desc(diaries.id))
+    : query.orderBy(desc(diaries.date), desc(diaries.id))
 }
 
 export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDependencies) {

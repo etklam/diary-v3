@@ -32,3 +32,20 @@ encryption keyring as the API. It runs while SMTP is disabled and remains idle;
 SMTP being enabled in the Admin Panel is the only application dispatch gate.
 See [the account email runbook](../runbooks/account-email.md) before configuring
 or enabling SMTP.
+
+## Request resource limits
+
+The API accepts at most 8 MiB of serialized request-body bytes. Oversized bodies
+receive HTTP 413 with the canonical `SYS_VALIDATION_ERROR` envelope and request
+ID. This is a byte limit, including JSON encoding overhead, rather than a
+character limit. Declared oversized bodies are rejected early. Routes consume
+streamed bodies through a lazy byte limit, allowing authentication and route
+rate limits to reject requests before reading their payload. API-key revocation
+retains its authentication-time cutoff.
+
+SEC downloads and packages retain the existing 250 MiB document, 500 MiB total
+document and 550 MiB ZIP limits. Resource-heavy responses use private temporary
+files and bounded streams, with two active resource slots per API process.
+Success, cancellation and failures release response resources; the API container
+needs writable temporary storage. The Kubernetes API manifests budget 256 MiB
+of ephemeral-storage requests and a 2 GiB limit for staging and runtime overhead.

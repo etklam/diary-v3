@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 name="${K3S_CONTAINER:-diary-v3-k3s}"
 api_port="${K3S_API_PORT:-16443}"
@@ -13,9 +14,9 @@ if docker ps --format '{{.Names}}' | grep -Fxq "$name"; then
 fi
 docker rm "$name" >/dev/null 2>&1 || true
 docker run -d --privileged --name "$name" \
-  -p "${api_port}:6443" -p "${http_port}:80" -p "${https_port}:443" \
+  -p "127.0.0.1:${api_port}:6443" -p "127.0.0.1:${http_port}:80" -p "127.0.0.1:${https_port}:443" \
   rancher/k3s:v1.31.5-k3s1 server \
-  --write-kubeconfig-mode=644 --tls-san=127.0.0.1
+  --write-kubeconfig-mode=600 --tls-san=127.0.0.1
 
 ready=false
 for attempt in {1..60}; do
@@ -32,9 +33,11 @@ if [[ "$ready" != true ]]; then
 fi
 docker exec "$name" kubectl get node -o wide
 mkdir -p "$(dirname "$kubeconfig_path")"
+if [[ -e "$kubeconfig_path" ]]; then chmod 600 "$kubeconfig_path"; fi
 docker exec "$name" cat /etc/rancher/k3s/k3s.yaml \
   | sed "s#https://127.0.0.1:6443#https://127.0.0.1:${api_port}#" \
   > "$kubeconfig_path"
+chmod 600 "$kubeconfig_path"
 kubectl config --kubeconfig "$kubeconfig_path" rename-context default "$context" >/dev/null
 kubectl config --kubeconfig "$kubeconfig_path" use-context "$context" >/dev/null
 echo "Kubeconfig written to $kubeconfig_path with context $context. Set KUBECONFIG before applying manifests."

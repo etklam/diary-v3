@@ -21,6 +21,20 @@ const csrfFor = async (context: import('@playwright/test').BrowserContext) => {
 test('built artifacts serve public pages and API health', async ({ page, request }) => {
   await expect((await request.get('/healthz')).status()).toBe(200);
   await expect((await request.get('/readyz')).status()).toBe(200);
+  const publicResponse = await request.get('/');
+  expect(publicResponse.headers()).toMatchObject({
+    'content-security-policy': "frame-ancestors 'self'",
+    'x-frame-options': 'SAMEORIGIN',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+  });
+  const headResponse = await request.head('/');
+  expect(headResponse.headers()).toMatchObject({
+    'content-security-policy': "frame-ancestors 'self'",
+    'x-frame-options': 'SAMEORIGIN',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+  });
   await page.goto('/');
   await expect(page.locator('main')).toBeVisible();
   await page.goto('/tools');

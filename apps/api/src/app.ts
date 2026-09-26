@@ -114,6 +114,7 @@ import type { SmtpKeyring } from './account-email/secrets.js'
 import type { SmtpTransportFactory } from './account-email/smtp.js'
 import { createMemoryRateLimitRuntime, RATE_LIMIT_POLICIES, RateLimitStoreUnavailableError, rateLimitKey } from './rate-limit/index.js'
 import type { RateLimitPolicy, RateLimitResult, RateLimitRuntime } from './rate-limit/index.js'
+import { requestBodyLengthLimit, requestBodyLimit, RequestBodyLimitError } from './request-body-limit.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
@@ -214,6 +215,7 @@ async function parseJson<T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T
     return result.data
   } catch (error) {
     if (error instanceof ApiError) throw error
+    if (error instanceof RequestBodyLimitError) throw error
     fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ message: 'Request body must be valid JSON' }])
   }
 }
@@ -363,6 +365,10 @@ export function createApp({
     }
   })
 
+  // Reject declared oversized bodies before authentication; the bounded read
+  // runs after authentication so API-key revocation can observe the request.
+  app.use('/api/*', requestBodyLengthLimit())
+
   app.get('/healthz', c => c.json({ status: 'ok' }))
   app.get('/readyz', async c => {
     try {
@@ -469,6 +475,8 @@ export function createApp({
     if (!cookie || !header || !safeEqual(cookie, header)) fail(403, 'CSRF_FAILED', 'CSRF token validation failed')
     await next()
   })
+
+  app.use('/api/*', requestBodyLimit())
 
   const market = marketData ?? createMarketData({ upstream: createYahooUpstream(), now })
   const researchCalendar = createVerifiedUsEquityCalendarProvider()
@@ -966,7 +974,9 @@ export function createApp({
   })
 
   app.onError((error, c) => {
-    const apiError = error instanceof ApiError
+    const apiError = error instanceof RequestBodyLimitError
+      ? new ApiError(413, 'SYS_VALIDATION_ERROR', error.message)
+      : error instanceof ApiError
       ? error
       : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
     if (apiError.statusCode === 429 && apiError.code === 'AUTH_RATE_LIMITED') {

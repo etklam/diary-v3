@@ -38,6 +38,10 @@ Layout notes:
 
 - The API deployment is a single `Recreate` replica: it owns the one
   process-local Socket.IO and foreground scheduler instance.
+- The API requests 256Mi and caps 2Gi of ephemeral storage. SEC guest package
+  downloads admit two heavy requests, each bounded to one 550Mi ZIP plus one
+  250Mi staged document; the limit leaves room for the process and filesystem
+  overhead without increasing the 768Mi memory limit.
 - The Ingress routes `/api` and `/socket.io` to the API service and everything
   else to the React Router SSR service; `/healthz` and `/readyz` are exposed on
   the same host via the higher-priority `diary-v3-system` Ingress.

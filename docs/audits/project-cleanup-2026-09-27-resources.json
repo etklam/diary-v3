@@ -1,0 +1,97 @@
+{
+  "auditDate": "2026-09-27",
+  "baselineCommit": "6735e2ba0a94eb803281a0af0e9528a7666fd44d",
+  "dependencyAudits": {
+    "root": {
+      "before": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 2,
+        "critical": 0,
+        "total": 2
+      },
+      "after": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "patchedDependency": "js-yaml@4.3.2"
+    },
+    "nativeProof": {
+      "before": {
+        "info": 0,
+        "low": 0,
+        "moderate": 10,
+        "high": 0,
+        "critical": 0,
+        "total": 10
+      },
+      "after": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "patchedDependency": "xcode > uuid@11.1.1"
+    }
+  },
+  "secPackageMeasurement": {
+    "scope": "Separate Node processes; four generated 32 MiB documents, 64 KiB source chunks, stored ZIP output consumed incrementally. No external provider or user data.",
+    "before": {
+      "node": "v26.4.0",
+      "inputDocumentCount": 4,
+      "documentBytes": 33554432,
+      "totalDocumentBytes": 134217728,
+      "outputBytes": 134219017,
+      "elapsedMs": 3495,
+      "maxRssKiB": 710032,
+      "outputSha256": "fd0090effebaa236e75837e9602c99a359e0292ff26311c6e63070b955525eb1"
+    },
+    "after": {
+      "node": "v26.4.0",
+      "inputDocumentCount": 4,
+      "documentBytes": 33554432,
+      "totalDocumentBytes": 134217728,
+      "outputBytes": 134219017,
+      "elapsedMs": 205,
+      "maxRssKiB": 161472,
+      "outputSha256": "cb30d60a5599dbafb9a0949580443d54f1ae2213f2ae915bb408646f7564be94"
+    },
+    "peakRssReductionPercent": 77.26,
+    "limitations": [
+      "Two local before/after comparisons, not an end-to-end network throughput benchmark.",
+      "ZIP hashes differ because manifest createdAt is time-dependent; byte counts match and regression tests verify ZIP entries and CRCs.",
+      "Process RSS does not measure container cgroup usage, filesystem cache, or total API capacity under concurrent workloads."
+    ],
+    "reproductionRunner": "scripts/parity/performance-sec-resources.mjs",
+    "confirmationRun": {
+      "before": {
+        "node": "v26.4.0",
+        "inputDocumentCount": 4,
+        "documentBytes": 33554432,
+        "totalDocumentBytes": 134217728,
+        "outputBytes": 134219017,
+        "elapsedMs": 3464,
+        "maxRssKiB": 686048,
+        "outputSha256": "fcddb84a4f9ab6e76feb46230389521e670d19b74b6784853e380b7104201f5e"
+      },
+      "after": {
+        "node": "v26.4.0",
+        "inputDocumentCount": 4,
+        "documentBytes": 33554432,
+        "totalDocumentBytes": 134217728,
+        "outputBytes": 134219017,
+        "elapsedMs": 223,
+        "maxRssKiB": 159744,
+        "outputSha256": "00f7d04338d2876b41699311e526091961ec60a0274ed7b1413f53b004e6093f"
+      },
+      "peakRssReductionPercent": 76.72
+    }
+  }
+}

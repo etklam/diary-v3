@@ -11,12 +11,13 @@ import type {
 import { SecMemoryCache, type SecCacheResult } from './cache.js'
 import { buildSecUrls, SecEdgarClient } from './client.js'
 import { SecProviderError } from './errors.js'
+import { throwIfAborted, withAbort } from './abort.js'
 import { canonicalizeCik, normalizeTickerQuery, parseAccession, parseDocumentBasename } from './validation.js'
 
 export interface SecClientLike {
-  getJson<T>(url: string): Promise<T>
-  getText(url: string): Promise<string>
-  getStream?(url: string): Promise<Response>
+  getJson<T>(url: string, signal?: AbortSignal): Promise<T>
+  getText(url: string, signal?: AbortSignal): Promise<string>
+  getStream?(url: string, signal?: AbortSignal): Promise<Response>
 }
 
 interface DirectoryPayload { fields?: unknown; data?: unknown }
@@ -39,9 +40,9 @@ export class SecEdgarService {
 
   constructor(private readonly client: SecClientLike) {}
 
-  async searchCompanies(query: string, limit: number): Promise<SecCacheResult<SecCompanySearchResult[]>> {
+  async searchCompanies(query: string, limit: number, signal?: AbortSignal): Promise<SecCacheResult<SecCompanySearchResult[]>> {
     const normalized = normalizeTickerQuery(query)
-    const cached = await this.directoryCache.getOrLoad('directory', async () => this.loadDirectory())
+    const cached = await this.awaitCache(this.directoryCache.getOrLoad('directory', async () => this.loadDirectory()), signal)
     const numeric = /^\d+$/.test(normalized) ? canonicalizeCik(normalized) : null
     const tokens = normalized.split(/\s+/).filter(Boolean)
     const ranked = cached.value.flatMap(company => {
@@ -60,7 +61,8 @@ export class SecEdgarService {
     return { ...cached, value: ranked }
   }
 
-  async listFilings(cikInput: string, input: Partial<SecFilingFilters>): Promise<SecCacheResult<SecFilingPage>> {
+  async listFilings(cikInput: string, input: Partial<SecFilingFilters>, signal?: AbortSignal): Promise<SecCacheResult<SecFilingPage>> {
+    throwIfAborted(signal)
     const cik = canonicalizeCik(cikInput)
     const filters: SecFilingFilters = {
       forms: (input.forms ?? []).map(form => form.trim().toUpperCase()).filter(Boolean),
@@ -72,7 +74,7 @@ export class SecEdgarService {
       periodTo: input.periodTo,
       cursor: input.cursor,
     }
-    const submissions = await this.loadSubmissions(cik)
+    const submissions = await this.loadSubmissions(cik, signal)
     const company = this.companyFromSubmissions(cik, submissions.value)
     const rows = this.normalizeColumns(cik, submissions.value.filings?.recent)
     let stale = submissions.stale
@@ -80,8 +82,9 @@ export class SecEdgarService {
     let fetchedAt = submissions.fetchedAt
 
     for (const file of submissions.value.filings?.files ?? []) {
+      throwIfAborted(signal)
       if (typeof file.name !== 'string') continue
-      const segment = await this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string)))
+      const segment = await this.awaitCache(this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string))), signal)
       rows.push(...this.normalizeColumns(cik, segment.value))
       if (segment.stale) stale = true
       if (segment.cacheStatus === 'miss') cacheStatus = 'miss'
@@ -97,25 +100,28 @@ export class SecEdgarService {
     return { value: { company, filings, nextCursor }, stale, cacheStatus, fetchedAt }
   }
 
-  async getFilingDetail(cikInput: string, accessionInput: string): Promise<SecCacheResult<SecFilingDetail>> {
+  async getFilingDetail(cikInput: string, accessionInput: string, signal?: AbortSignal): Promise<SecCacheResult<SecFilingDetail>> {
+    throwIfAborted(signal)
     const cik = canonicalizeCik(cikInput)
     const accession = parseAccession(accessionInput).accession
-    const listing = await this.listFilings(cik, { limit: 100 })
+    const listing = await this.listFilings(cik, { limit: 100 }, signal)
     let filing = listing.value.filings.find(row => row.accession === accession)
     if (!filing) {
-      const all = await this.allFilings(cik)
+      const all = await this.allFilings(cik, signal)
       filing = all.find(row => row.accession === accession)
     }
     if (!filing) throw new SecProviderError('SEC_FILING_NOT_FOUND', 'SEC filing not found for company', 404)
 
     const key = `${cik}:${accession}`
-    const index = await this.filingIndexCache.getOrLoad(key, async () => {
+    throwIfAborted(signal)
+    const index = await this.awaitCache(this.filingIndexCache.getOrLoad(key, async () => {
       const [json, html] = await Promise.all([
         this.client.getJson<unknown>(buildSecUrls.filingIndexJson(cik, accession)),
         this.client.getText(buildSecUrls.filingIndexHtml(cik, accession)),
       ])
       return { json, html }
-    })
+    }), signal)
+    throwIfAborted(signal)
     const documents = this.buildDocuments(index.value.json, index.value.html, filing)
     if (!documents.some(document => document.isPrimary)) {
       throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Primary filing document is absent from SEC directory', 502)
@@ -128,19 +134,28 @@ export class SecEdgarService {
     }
   }
 
-  async getDocument(cik: string, accession: string, basename: string): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string }> {
+  async getDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string }> {
     const safeBasename = parseDocumentBasename(basename)
-    const detail = await this.getFilingDetail(cik, accession)
+    const detail = await this.getFilingDetail(cik, accession, signal)
+    throwIfAborted(signal)
     const document = detail.value.documents.find(item => item.basename === safeBasename)
     if (!document) throw new SecProviderError('SEC_DOCUMENT_NOT_FOUND', 'SEC filing document not found', 404)
     return { detail: detail.value, document, url: buildSecUrls.document(cik, accession, safeBasename) }
   }
 
-  async openDocument(cik: string, accession: string, basename: string): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; response: Response }> {
+  async openDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; response: Response }> {
+    throwIfAborted(signal)
     if (!this.client.getStream) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC streaming client unavailable', 503, true)
-    const resolved = await this.getDocument(cik, accession, basename)
-    const response = await this.client.getStream(resolved.url)
+    const resolved = await this.getDocument(cik, accession, basename, signal)
+    throwIfAborted(signal)
+    const response = await this.client.getStream(resolved.url, signal)
     return { detail: resolved.detail, document: resolved.document, response }
+  }
+
+  private async awaitCache<T>(promise: Promise<SecCacheResult<T>>, signal?: AbortSignal): Promise<SecCacheResult<T>> {
+    // A caller may leave while the cache fill continues for other callers.
+    void promise.catch(() => undefined)
+    return withAbort(promise, signal)
   }
 
   private async loadDirectory(): Promise<SecCompany[]> {
@@ -171,8 +186,8 @@ export class SecEdgarService {
     return [...companies.values()]
   }
 
-  private loadSubmissions(cik: string) {
-    return this.submissionsCache.getOrLoad(cik, () => this.client.getJson<SubmissionsPayload>(buildSecUrls.submissions(cik)))
+  private loadSubmissions(cik: string, signal?: AbortSignal) {
+    return this.awaitCache(this.submissionsCache.getOrLoad(cik, () => this.client.getJson<SubmissionsPayload>(buildSecUrls.submissions(cik))), signal)
   }
 
   private companyFromSubmissions(cik: string, raw: SubmissionsPayload): SecCompany {
@@ -217,12 +232,13 @@ export class SecEdgarService {
     })
   }
 
-  private async allFilings(cik: string): Promise<SecFilingSummary[]> {
-    const submissions = await this.loadSubmissions(cik)
+  private async allFilings(cik: string, signal?: AbortSignal): Promise<SecFilingSummary[]> {
+    const submissions = await this.loadSubmissions(cik, signal)
     const rows = this.normalizeColumns(cik, submissions.value.filings?.recent)
     for (const file of submissions.value.filings?.files ?? []) {
+      throwIfAborted(signal)
       if (typeof file.name !== 'string') continue
-      const segment = await this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string)))
+      const segment = await this.awaitCache(this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string))), signal)
       rows.push(...this.normalizeColumns(cik, segment.value))
     }
     return rows

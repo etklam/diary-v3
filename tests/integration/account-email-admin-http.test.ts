@@ -314,6 +314,7 @@ it('waits for an in-flight SMTP send before disable returns', async () => {
     }, smtpKeyring),
     status: 'queued',
     maxAttempts: 5,
+    nextAttemptAt: now,
     expiresAt: new Date(now.getTime() + 60_000),
     queuedAt: now,
     createdAt: now,
@@ -333,7 +334,7 @@ it('waits for an in-flight SMTP send before disable returns', async () => {
     lookup: async () => ['8.8.8.8'],
     transportFactory,
   })
-  await started
+  expect(await Promise.race([started.then(() => 'started' as const), workerResult.then(result => result.status)])).toBe('started')
   let disableResolved = false
   const disableResponse = mutate(admin.browser, 'POST', '/api/admin/email-settings/disable', { expectedRevision: revision })
     .then(response => { disableResolved = true; return response })
