@@ -19,6 +19,9 @@ Release path:
 6. CI records the current API, Web, and market CronJob images, applies each new
    digest, waits for API/Web rollout, then checks `/healthz`, `/readyz`, and the
    public home page.
+7. CI updates the single-replica mail worker from the same digest-pinned API
+   image after the API rollout. The worker is safe to run while account SMTP is
+   disabled and is required for queued account mail when SMTP is enabled.
 
 Pre-deploy verification, build, push, migration, or seed failures do not roll
 back application workloads. Once an application workload has been changed, a
@@ -135,3 +138,21 @@ special-use ranges. The application still enforces the exact recipient host
 allowlist and DNS pinning. Verify that the cluster CNI enforces NetworkPolicy
 and that its DNS labels match before enabling; these manifests have not been
 applied to the production cluster by this task.
+
+## Account email worker
+
+`11-mail-worker.yaml` is part of the normal release bundle and runs one replica;
+it does not expose a Service or public port. It is rolled out after the API so
+its code matches the migrated schema. Its egress policy allows PostgreSQL,
+cluster DNS, and public TCP 465, 587, and 2525 while excluding private and
+special-use ranges. The API separately applies SMTP host validation and DNS
+pinning. A private relay needs both an exact `SMTP_ALLOWED_HOSTS` entry and an
+operator-reviewed network-policy/firewall rule.
+
+Before an Admin enables SMTP, add matching `SMTP_ENCRYPTION_KEYS` and
+`SMTP_ENCRYPTION_ACTIVE_KEY` values to the `diary-v3-app` Secret and restart both
+the API and mail-worker Deployment. These secret references are optional so an
+installation with SMTP disabled does not need mail keys. See the [account
+email runbook](../../../docs/runbooks/account-email.md) for key rotation,
+retention, network, and recovery steps. CI updates the worker image alongside
+the API and restores or removes the worker if a release rollout fails.

@@ -1,6 +1,6 @@
 import { createHash, randomUUID as nodeRandomUUID } from 'node:crypto'
 import { MAX_SERIALIZED_ID, nativeTokenPairSchema, serializedIdSchema, type ErrorCode, type NativeTokenPair } from '@diary/contracts'
-import { refreshTokens, users, type Database } from '@diary/db'
+import { refreshTokens, users, type Database, type DatabaseTx } from '@diary/db'
 import bcrypt from 'bcryptjs'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { SignJWT, jwtVerify } from 'jose'
@@ -452,7 +452,12 @@ export function createAuthSessionService({
     return updated.tokenVersion
   })
 
-  const changePassword = async (userId: bigint, currentPassword: string, newPassword: string) => {
+  const changePassword = async (
+    userId: bigint,
+    currentPassword: string,
+    newPassword: string,
+    afterPasswordChanged?: (tx: DatabaseTx, user: { email: string; locale: string }) => Promise<void>,
+  ) => {
     const [candidate] = await db.select({ password: users.password }).from(users)
       .where(eq(users.id, userId)).limit(1)
     if (!candidate) return fail(404, 'USER_NOT_FOUND', 'User not found')
@@ -463,7 +468,7 @@ export function createAuthSessionService({
 
     return db.transaction(async (tx) => {
       await tx.execute(userSessionLock(userId))
-      const [current] = await tx.select({ password: users.password }).from(users)
+      const [current] = await tx.select({ password: users.password, email: users.email, locale: users.locale }).from(users)
         .where(eq(users.id, userId)).limit(1)
       if (!current) return fail(404, 'USER_NOT_FOUND', 'User not found')
       if (current.password !== candidate.password && !await bcrypt.compare(currentPassword, current.password)) {
@@ -475,6 +480,7 @@ export function createAuthSessionService({
         updatedAt: now(),
       }).where(eq(users.id, userId))
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId))
+      await afterPasswordChanged?.(tx, { email: current.email, locale: current.locale })
     })
   }
 

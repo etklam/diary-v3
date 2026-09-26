@@ -20,6 +20,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["authCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/registration/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["authRegistrationRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/registration/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["authRegistrationComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["authPasswordResetRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password-reset/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["authPasswordResetComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["adminEmailSettingsGet"];
+        put: operations["adminEmailSettingsUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email-settings/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adminEmailSettingsTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email-settings/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adminEmailSettingsEnable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email-settings/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adminEmailSettingsDisable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/email-settings/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adminEmailSettingsClear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2755,7 +2915,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -3279,6 +3439,96 @@ export interface components {
                     }[];
                 };
             };
+        };
+        AuthCapabilities: {
+            /** @enum {string} */
+            registrationMode: "direct" | "email";
+            passwordRecoveryAvailable: boolean;
+        };
+        AccountEmailRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            locale: "zh-TW" | "zh-CN" | "en";
+        };
+        RegistrationCompleteRequest: {
+            token: string;
+            name?: string;
+            password: string;
+        };
+        PasswordResetCompleteRequest: {
+            token: string;
+            newPassword: string;
+        };
+        AccountEmailMutationResponse: {
+            /** @enum {boolean} */
+            success: true;
+        };
+        AdminEmailSettingsResponse: {
+            settings: {
+                enabled: boolean;
+                host: string | null;
+                port: number | null;
+                /** @enum {string} */
+                security: "tls" | "starttls" | "none";
+                authEnabled: boolean;
+                username: string | null;
+                passwordConfigured: boolean;
+                fromName: string | null;
+                fromEmail: string | null;
+                replyTo: string | null;
+                revision: number;
+                testedRevision: number | null;
+                /** Format: date-time */
+                lastTestAt: string | null;
+                /** @enum {string|null} */
+                lastTestStatus: "passed" | "failed" | null;
+            };
+            deliveries: {
+                id: string;
+                /** @enum {string} */
+                kind: "registration_verification" | "password_reset" | "password_changed" | "admin_test";
+                recipientMasked: string;
+                /** @enum {string} */
+                status: "queued" | "running" | "sent" | "failed" | "cancelled";
+                attemptCount: number;
+                lastErrorCode: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+        };
+        AdminEmailSettingsUpdate: {
+            expectedRevision: number;
+            host: string | null;
+            port: number | null;
+            /** @enum {string} */
+            security: "tls" | "starttls" | "none";
+            authEnabled: boolean;
+            username: string | null;
+            /** @enum {string} */
+            passwordAction: "retain" | "replace" | "clear";
+            password?: string;
+            fromName: string | null;
+            /** Format: email */
+            fromEmail: string | null;
+            /** Format: email */
+            replyTo: string | null;
+        };
+        AdminEmailTestRequest: {
+            expectedRevision: number;
+            /** Format: email */
+            recipient: string;
+        };
+        AdminEmailTestResponse: {
+            revision: number;
+            /** @enum {string} */
+            status: "passed" | "failed";
+            /** Format: date-time */
+            testedAt: string;
+            errorCode: string | null;
+        };
+        AdminEmailRevisionRequest: {
+            expectedRevision: number;
         };
         DiaryActivityResponse: {
             data: {
@@ -5538,6 +5788,685 @@ export interface operations {
             };
             /** @description HTTP 429 error */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    authCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public registration and password recovery capabilities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthCapabilities"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    authRegistrationRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Request registration verification */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AccountEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Generic registration email request accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEmailMutationResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    authRegistrationComplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Complete email-verified registration */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RegistrationCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Account created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEmailMutationResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    authPasswordResetRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Request password reset */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AccountEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Generic password reset email request accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEmailMutationResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    authPasswordResetComplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Complete password reset */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Password changed and sessions ended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEmailMutationResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SMTP configuration without secrets and recent delivery history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailSettingsResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Save SMTP settings using the expected revision */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved SMTP settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailSettingsResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Test the saved SMTP revision with a fixed message */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailTestRequest"];
+            };
+        };
+        responses: {
+            /** @description SMTP test outcome */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailTestResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsEnable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Apply action at expected settings revision */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description SMTP settings enabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailSettingsResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsDisable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Apply action at expected settings revision */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description SMTP settings disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailSettingsResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminEmailSettingsClear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Apply action at expected settings revision */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminEmailRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description SMTP settings cleard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEmailSettingsResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -67,6 +67,8 @@ describe('production delivery safety', () => {
     expect(workflow).toContain('API_MUTATED=true');
     expect(workflow).toContain('WEB_MUTATED=true');
     expect(workflow).toContain('CRON_MUTATED=true');
+    expect(workflow).toContain('MAIL_WORKER_MUTATED=true');
+    expect(workflow).toContain('MAIL_WORKER_EXISTS_BEFORE');
     expect(workflow.indexOf('DEPLOYMENT_MUTATED=true')).toBeGreaterThan(workflow.indexOf('name: Apply production foundation and run migrations'));
   });
 
@@ -74,6 +76,7 @@ describe('production delivery safety', () => {
     expect(workflow).toContain('API_IMAGE_BEFORE');
     expect(workflow).toContain('WEB_IMAGE_BEFORE');
     expect(workflow).toContain('CRON_IMAGE_BEFORE');
+    expect(workflow).toContain('MAIL_WORKER_IMAGE_BEFORE');
     expect(workflow).toContain('Rollback smoke test');
     expect(workflow).not.toContain('rollout undo');
   });
@@ -84,10 +87,11 @@ describe('production delivery safety', () => {
 
   it('validates every required source manifest', () => {
     expect(() => validateProductionManifests()).not.toThrow();
-    expect(productionManifestFiles).toHaveLength(11);
+    expect(productionManifestFiles).toHaveLength(12);
     expect(productionManifestFiles).toContain('ops/k8s/production/08-ai-worker.yaml');
     expect(productionManifestFiles).toContain('ops/k8s/production/09-research-worker.yaml');
     expect(productionManifestFiles).toContain('ops/k8s/production/10-article-translation-worker.yaml');
+    expect(productionManifestFiles).toContain('ops/k8s/production/11-mail-worker.yaml');
   });
 });
 

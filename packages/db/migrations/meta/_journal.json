@@ -274,6 +274,13 @@
       "when": 1790346713901,
       "tag": "0038_diary_revision",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1790412950388,
+      "tag": "0039_smart_magneto",
+      "breakpoints": true
     }
   ]
 }

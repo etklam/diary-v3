@@ -45,7 +45,7 @@ import {
   type UpdateDiaryRequest,
 } from '@diary/contracts'
 import { recentClosedTradesQuerySchema } from '@diary/contracts/ledger'
-import { apiKeyCredentials, refreshTokens, users, type Database } from '@diary/db'
+import { apiKeyCredentials, mailSettings, refreshTokens, users, type Database } from '@diary/db'
 import { currentUtcDate } from '@diary/domain'
 import bcrypt from 'bcryptjs'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -107,11 +107,19 @@ import { createOpenRouterResearchTransport } from './research-studio/transport.j
 import { TAVILY_SEARCH_POLICY } from './research-studio/source-policy.js'
 import type { OfficialResearchSourceInput } from './research-studio/sources.js'
 import { createPostgresTavilySearchBudget } from './research-studio/search-budget.js'
+import { registerAccountEmailPublicRoutes } from './account-email/public-routes.js'
+import { registerAccountEmailAdminRoutes } from './account-email/admin-routes.js'
+import type { SmtpKeyring } from './account-email/secrets.js'
+import type { SmtpTransportFactory } from './account-email/smtp.js'
 
 const CSRF_COOKIE = 'csrf-token'
 const CSRF_HEADER = 'x-csrf-token'
 const PUBLIC_STATE_PATHS = new Set([
   '/api/auth/register',
+  '/api/auth/registration/request',
+  '/api/auth/registration/complete',
+  '/api/auth/password-reset/request',
+  '/api/auth/password-reset/complete',
   '/api/auth/login',
   '/api/auth/refresh',
   '/api/auth/logout',
@@ -159,6 +167,10 @@ export interface AppDependencies {
   researchLatestCompletedSession?: ResearchLatestCompletedSession
   allowSyntheticEvidence?: boolean
   researchOfficialSources?: readonly OfficialResearchSourceInput[]
+  smtpTransportFactory?: SmtpTransportFactory
+  smtpKeyring?: SmtpKeyring
+  smtpHostLookup?: (hostname: string) => Promise<string[]>
+  smtpAllowedPrivateHosts?: string
 }
 
 interface ErrorDetail {
@@ -287,6 +299,10 @@ export function createApp({
   researchLatestCompletedSession,
   allowSyntheticEvidence = false,
   researchOfficialSources,
+  smtpTransportFactory,
+  smtpKeyring,
+  smtpHostLookup,
+  smtpAllowedPrivateHosts,
 }: AppDependencies) {
   const rateLimiter = createRateLimiter()
   const app = new Hono<AppEnv>()
@@ -516,6 +532,28 @@ export function createApp({
   const aiReportService = new AiReportService({ db, now })
   registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson })
   registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
+  const accountEmailLifecycle = registerAccountEmailPublicRoutes(app, {
+    db,
+    webOrigin: config.webOrigin,
+    now,
+    clientIp: context => clientIp(context, config.trustProxy),
+    fail,
+    parseJson,
+    onAccountRevoked,
+    clearAuthCookies,
+    ...(smtpKeyring ? { keyring: smtpKeyring } : {}),
+  })
+  registerAccountEmailAdminRoutes(app, {
+    db,
+    ...(databasePool ? { pool: databasePool } : {}),
+    now,
+    fail,
+    parseJson,
+    ...(smtpTransportFactory ? { smtpTransportFactory } : {}),
+    ...(smtpKeyring ? { smtpKeyring } : {}),
+    ...(smtpHostLookup ? { smtpHostLookup } : {}),
+    ...(smtpAllowedPrivateHosts !== undefined ? { smtpAllowedPrivateHosts } : {}),
+  })
   registerResearchRoutes(app, {
     db,
     now,
@@ -535,13 +573,22 @@ export function createApp({
     const input = await parseJson(c, registerRequestSchema)
     rateLimiter.consume(`register:email:${input.email.trim().toLowerCase()}`, 3, now().getTime())
 
-    if (await findUserByEmail(input.email)) fail(409, 'USER_EMAIL_EXISTS', `Email ${input.email} already registered`)
     try {
-      const [user] = await db.insert(users).values({
-        email: input.email,
-        password: await bcrypt.hash(input.password, 10),
-        name: input.name,
-      }).returning()
+      const password = await bcrypt.hash(input.password, 10)
+      const user = await db.transaction(async tx => {
+        const [settings] = await tx.select({ enabled: mailSettings.enabled }).from(mailSettings)
+          .where(eq(mailSettings.singleton, 'default')).for('update').limit(1)
+        if (settings?.enabled) fail(409, 'AUTH_EMAIL_VERIFICATION_REQUIRED', 'Verify your email before creating an account')
+        const [existing] = await tx.select({ id: users.id }).from(users)
+          .where(sql`lower(${users.email}) = ${input.email.toLowerCase()}`).limit(1)
+        if (existing) fail(409, 'USER_EMAIL_EXISTS', `Email ${input.email} already registered`)
+        const [created] = await tx.insert(users).values({
+          email: input.email,
+          password,
+          name: input.name,
+        }).returning()
+        return created
+      })
       if (!user) throw new Error('User insert returned no row')
       return c.json(registerResponseSchema.parse({
         success: true,
@@ -679,7 +726,13 @@ export function createApp({
     rateLimiter.consume(`password:ip:${clientIp(c, config.trustProxy)}`, 3, timestamp)
     rateLimiter.consume(`password:user:${authenticated.id}`, 3, timestamp)
     const input = await parseJson(c, changePasswordRequestSchema)
-    await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword)
+    await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword, async (tx, user) => {
+      await accountEmailLifecycle.invalidateForPasswordChange(tx, {
+        id: BigInt(authenticated.id),
+        email: user.email,
+        locale: user.locale,
+      }, now())
+    })
     onAccountRevoked?.(authenticated.id)
     clearAuthCookies(c)
     return c.json(changePasswordResponseSchema.parse({
@@ -904,6 +957,7 @@ export function createApp({
     const apiError = error instanceof ApiError
       ? error
       : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
+    if (apiError.statusCode === 429 && apiError.code === 'AUTH_RATE_LIMITED') c.header('Retry-After', '60')
     if (apiError.statusCode >= 500) {
       logger.error('Unhandled API request error', {
         operation: 'http_request',

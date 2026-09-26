@@ -181,6 +181,7 @@ jobs:
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' delete job diary-v3-migrate --ignore-not-found && kubectl apply -f '$REMOTE_RELEASE_DIR/07-migrate-job.yaml' && kubectl -n '$STAGING_NAMESPACE' wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f '$REMOTE_RELEASE_DIR/06-seed-job.yaml' && kubectl -n '$STAGING_NAMESPACE' wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/02-api.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-api --timeout=300s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/11-mail-worker.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-mail-worker --timeout=300s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/03-web.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-web --timeout=300s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/04-ingress.yaml' && kubectl apply -f '$REMOTE_RELEASE_DIR/05-market-cron.yaml'"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"

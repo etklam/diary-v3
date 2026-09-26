@@ -1,0 +1,212 @@
+.admin-email-page {
+  width: min(100%, 880px);
+  margin: 0 auto;
+  padding: var(--page-block) var(--page-gutter);
+}
+
+.admin-email-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.admin-email-header .lede {
+  margin-bottom: 0;
+}
+
+.admin-email-header > a {
+  flex: 0 0 auto;
+}
+
+.admin-email-notice {
+  margin: var(--space-4) 0 0;
+  color: var(--tint-info-text);
+  font-weight: 600;
+}
+
+.admin-email-section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border);
+}
+
+.admin-email-section > h2,
+.admin-email-section-heading h2 {
+  margin-bottom: var(--space-4);
+}
+
+.admin-email-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.admin-email-section-heading h2 {
+  margin-bottom: 0;
+}
+
+.admin-email-state {
+  padding-top: var(--space-6);
+}
+
+.admin-email-state > p {
+  margin: var(--space-4) 0 0;
+}
+
+.admin-email-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.admin-email-actions p {
+  margin: 0;
+}
+
+.admin-email-section form {
+  gap: var(--space-6);
+}
+
+.admin-email-section fieldset {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-5) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.admin-email-section fieldset:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.admin-email-section legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.admin-email-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(150px, 0.8fr);
+  gap: var(--space-4);
+}
+
+.admin-email-grid label:last-child:nth-child(3) {
+  grid-column: 1 / -1;
+  max-width: calc(50% - var(--space-2));
+}
+
+.admin-email-checkbox,
+.admin-email-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.admin-email-checkbox input,
+.admin-email-radio input {
+  width: 20px;
+  min-height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.admin-email-password-state {
+  margin: 0;
+}
+
+.admin-email-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.admin-email-radio {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-email-consequence {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.admin-email-table-region {
+  max-width: 100%;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+}
+
+.admin-email-table {
+  width: 100%;
+  min-width: 720px;
+  font-size: 0.9375rem;
+}
+
+.admin-email-table th,
+.admin-email-table td {
+  padding: var(--space-3) var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-email-table th[scope="row"] {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-email-table time {
+  white-space: nowrap;
+}
+
+.admin-email-remove {
+  margin-bottom: var(--space-8);
+}
+
+.admin-email-remove button {
+  border-color: var(--negative);
+  color: var(--negative);
+}
+
+@media (max-width: 767px) {
+  .admin-email-header {
+    display: block;
+  }
+
+  .admin-email-header > a {
+    width: 100%;
+    margin-top: var(--space-4);
+  }
+
+  .admin-email-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-email-grid label:last-child:nth-child(3) {
+    max-width: none;
+  }
+
+  .admin-email-actions,
+  .admin-email-actions button,
+  .admin-email-section form > button {
+    width: 100%;
+  }
+
+  .admin-email-actions p {
+    width: 100%;
+  }
+
+  .admin-email-radio-group {
+    display: grid;
+  }
+}

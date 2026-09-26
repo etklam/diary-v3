@@ -1,0 +1,31 @@
+.registration-complete-page {
+  margin-top: var(--page-block);
+}
+
+.registration-complete-success {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.registration-complete-success p {
+  margin-bottom: 0;
+}
+
+.auth-request-complete {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.auth-request-complete p {
+  margin-bottom: 0;
+}
+
+.auth-request-complete button {
+  justify-self: start;
+}
+
+@media (max-width: 767px) {
+  .auth-request-complete button {
+    width: 100%;
+  }
+}

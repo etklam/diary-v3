@@ -205,6 +205,29 @@ export {
   adminUserRoleUpdateRequestSchema,
 } from './admin-users.js'
 export type { AdminDiary, AdminStats, AdminUserListItem } from './admin-users.js'
+export {
+  accountEmailMutationResponseSchema,
+  accountEmailRequestSchema,
+  adminEmailRevisionRequestSchema,
+  adminEmailSettingsResponseSchema,
+  adminEmailSettingsSchema,
+  adminEmailSettingsUpdateSchema,
+  adminEmailTestRequestSchema,
+  adminEmailTestResponseSchema,
+  authCapabilitiesSchema,
+  emailDeliveryHistoryItemSchema,
+  emailDeliveryKindSchema,
+  emailDeliveryStatusSchema,
+  emailSecuritySchema,
+  passwordResetCompleteRequestSchema,
+  registrationCompleteRequestSchema,
+} from './account-email.js'
+export type {
+  AdminEmailSettings,
+  AdminEmailSettingsResponse,
+  EmailDeliveryKind,
+  EmailDeliveryHistoryItem,
+} from './account-email.js'
 
 export const errorCodes = [
   'AUTH_LOGIN_INVALID_CREDENTIALS',
@@ -219,6 +242,10 @@ export const errorCodes = [
   'ETF_ALREADY_IN_WATCHLIST',
   'AUTH_API_KEY_SCOPE_DENIED',
   'AUTH_RATE_LIMITED',
+  'AUTH_EMAIL_SERVICE_DISABLED',
+  'AUTH_EMAIL_VERIFICATION_REQUIRED',
+  'AUTH_EMAIL_TOKEN_INVALID',
+  'AUTH_EMAIL_TOKEN_EXPIRED',
   'CSRF_FAILED',
   'DIARY_NOT_FOUND',
   'DIARY_REVISION_CONFLICT',
@@ -238,6 +265,10 @@ export const errorCodes = [
   'PARTNER_LINK_ALREADY_EXISTS',
   'PARTNER_LINK_PENDING',
   'USER_EMAIL_EXISTS',
+  'ADMIN_EMAIL_CONFIG_CONFLICT',
+  'ADMIN_EMAIL_TEST_REQUIRED',
+  'ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE',
+  'ADMIN_EMAIL_SETTINGS_INVALID',
   'USER_NOT_FOUND',
   'SYS_INTERNAL_ERROR',
   'ROTATION_BATCH_BUSY',

@@ -57,6 +57,24 @@ spec:
                   name: diary-v3-app
                   key: AI_ENCRYPTION_ACTIVE_KEY
                   optional: true
+            - name: SMTP_ENCRYPTION_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: SMTP_ENCRYPTION_KEYS
+                  optional: true
+            - name: SMTP_ENCRYPTION_ACTIVE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: SMTP_ENCRYPTION_ACTIVE_KEY
+                  optional: true
+            - name: SMTP_ALLOWED_HOSTS
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: SMTP_ALLOWED_HOSTS
+                  optional: true
             - name: AI_ALLOWED_BASE_URLS
               value: https://api.deepseek.com
             - name: NODE_ENV

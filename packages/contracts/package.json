@@ -47,6 +47,7 @@
     "./admin-users": "./src/admin-users.ts",
     "./ai-reports": "./src/ai-reports.ts",
     "./admin-ai": "./src/admin-ai.ts",
+    "./account-email": "./src/account-email.ts",
     "./research-studio": "./src/research-studio.ts"
   }
 }

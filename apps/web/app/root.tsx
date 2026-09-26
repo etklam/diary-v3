@@ -88,7 +88,17 @@ function Shell() {
   const mobilePreferences = <PreferencesControls mobile/>;
   const role = viewer?.role ?? null;
   const publicContentPath = location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
-  const guestPublicPath = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/tools' || location.pathname.startsWith('/tools/');
+  const guestPublicPath = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/register/complete' || location.pathname === '/forgot-password' || location.pathname === '/reset-password' || location.pathname === '/tools' || location.pathname.startsWith('/tools/');
+  const adminPath = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  useEffect(() => {
+    if (!adminPath) return;
+    if (session.authenticated === false) {
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
+      return;
+    }
+    if (session.authenticated === true && viewer?.role === 'USER') navigate('/', { replace: true });
+  }, [adminPath, location.pathname, location.search, navigate, session.authenticated, viewer?.role]);
   if (publicContentPath || (guestPublicPath && session.authenticated !== true)) return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <div className="public-shell">
@@ -115,6 +125,14 @@ function Shell() {
         </div>
       </footer>
     </div>
+  </>;
+  if (adminPath && (session.authenticated !== true || viewer === null)) return <>
+    <a className="skip" href="#main">{t('skip')}</a>
+    <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
+  </>;
+  if (adminPath && viewer?.role !== 'ADMIN') return <>
+    <a className="skip" href="#main">{t('skip')}</a>
+    <main id="main" tabIndex={-1}><p role="alert">{locale === 'en' ? 'You do not have permission to manage this area.' : locale === 'zh-CN' ? '你没有权限管理此区域。' : '你沒有權限管理此區域。'}</p><Link className="button secondary" to="/">{t('home')}</Link></main>
   </>;
   return <>
     <a className="skip" href="#main">{t('skip')}</a>

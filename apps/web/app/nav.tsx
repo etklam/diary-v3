@@ -16,13 +16,13 @@ const sectionCopy = {
 
 const workspaceCopy = {
   'zh-TW': {
-    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', achievements: '個人成就', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理', researchStudio: '研究工作室',
+    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', achievements: '個人成就', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理', researchStudio: '研究工作室', adminEmail: '電郵設定',
   },
   'zh-CN': {
-    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', achievements: '个人成就', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理', researchStudio: '研究工作室',
+    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', achievements: '个人成就', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理', researchStudio: '研究工作室', adminEmail: '邮件设置',
   },
   en: {
-    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', achievements: 'Personal achievements', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration', researchStudio: 'Research Studio',
+    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', achievements: 'Personal achievements', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration', researchStudio: 'Research Studio', adminEmail: 'Mail settings',
   },
 } as const
 
@@ -40,7 +40,7 @@ function usePageScrollLock(locked: boolean) {
   }, [locked])
 }
 
-export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'achievements' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminAi' | 'adminResearch' | 'adminEtf' | null
+export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'achievements' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminAi' | 'adminResearch' | 'adminEtf' | 'adminEmail' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
@@ -67,6 +67,7 @@ export function navigationOwner(pathname: string): NavigationOwner {
   if (path === '/admin/ai' || path.startsWith('/admin/ai/')) return 'adminAi'
   if (path === '/admin/research' || path.startsWith('/admin/research/')) return 'adminResearch'
   if (path === '/admin/etf' || path.startsWith('/admin/etf/')) return 'adminEtf'
+  if (path === '/admin/email-settings' || path.startsWith('/admin/email-settings/')) return 'adminEmail'
   return null
 }
 
@@ -120,6 +121,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
       {link('/admin/ai', c.adminAi, 'compass', 'adminAi')}
       {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
+      {link('/admin/email-settings', c.adminEmail, 'settings', 'adminEmail')}
     </div></section>}
   </>
 }

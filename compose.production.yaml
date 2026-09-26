@@ -53,11 +53,33 @@ services:
       API_PORT: 3101
       NODE_ENV: development
       TRUST_X_FORWARDED_FOR: "true"
+      SMTP_ENCRYPTION_KEYS: ${SMTP_ENCRYPTION_KEYS:-}
+      SMTP_ENCRYPTION_ACTIVE_KEY: ${SMTP_ENCRYPTION_ACTIVE_KEY:-}
+      SMTP_ALLOWED_HOSTS: ${SMTP_ALLOWED_HOSTS:-}
     depends_on:
       seed:
         condition: service_completed_successfully
     expose:
       - "3101"
+
+  mail-worker:
+    image: ${API_IMAGE:-diary-v3/api:local}
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://diary:diary_local_production@postgres:5432/diary_v3
+      NODE_ENV: development
+      SMTP_ENCRYPTION_KEYS: ${SMTP_ENCRYPTION_KEYS:-}
+      SMTP_ENCRYPTION_ACTIVE_KEY: ${SMTP_ENCRYPTION_ACTIVE_KEY:-}
+      SMTP_ALLOWED_HOSTS: ${SMTP_ALLOWED_HOSTS:-}
+      MAIL_WORKER_ID: mail-worker-compose
+      MAIL_WORKER_POLL_MS: "1000"
+    command: ["node", "dist/api/mail-worker.js"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
   web:
     image: ${WEB_IMAGE:-diary-v3/web:local}

@@ -89,3 +89,21 @@ it('renders the manual Research Studio worker disabled with keyring secrets and 
   expect(manifests[1]).toMatchObject({ kind: 'NetworkPolicy', spec: { policyTypes: ['Egress'], podSelector: { matchLabels: { app: 'diary-v3-research-worker' } } } });
   expect(manifests[1].spec.egress[2].to[0].ipBlock.except).toContain('169.254.0.0/16');
 });
+
+it('renders the always-on account mail worker with optional keys and restricted SMTP egress', () => {
+  const files = renderReleaseManifests({ target: 'production', apiImage, webImage });
+  const worker = files.find(file => file.fileName === '11-mail-worker.yaml');
+  expect(worker).toBeDefined();
+  const manifests = parseAllDocuments(worker!.contents).map(document => document.toJS());
+  expect(manifests).toHaveLength(2);
+  expect(manifests[0]).toMatchObject({ kind: 'Deployment', spec: { replicas: 1, template: { spec: { containers: [{ name: 'mail-worker', image: apiImage, command: ['node', 'dist/api/mail-worker.js'] }] } } } });
+  expect(manifests[0].spec.template.spec.containers[0]).not.toHaveProperty('ports');
+  expect(worker!.contents).toContain('key: SMTP_ENCRYPTION_KEYS');
+  expect(worker!.contents).toContain('key: SMTP_ENCRYPTION_ACTIVE_KEY');
+  expect(worker!.contents).toContain('port: 465');
+  expect(worker!.contents).toContain('port: 587');
+  expect(worker!.contents).toContain('port: 2525');
+  expect(worker!.contents).not.toContain('CronJob');
+  expect(manifests[1]).toMatchObject({ kind: 'NetworkPolicy', spec: { policyTypes: ['Egress'], podSelector: { matchLabels: { app: 'diary-v3-mail-worker' } } } });
+  expect(manifests[1].spec.egress[2].to[0].ipBlock.except).toContain('169.254.0.0/16');
+});

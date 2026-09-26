@@ -17,6 +17,7 @@ await build({
     'ai-worker': 'apps/api/src/ai-report-worker-cli.ts',
     'research-worker': 'apps/api/src/research-worker-cli.ts',
     'article-translation-worker': 'apps/api/src/article-translation-worker-cli.ts',
+    'mail-worker': 'apps/api/src/account-email-worker-cli.ts',
     'research-retention': 'scripts/research-retention.ts',
     rotation: 'apps/api/src/rotation-cli.ts',
     'market-state': 'apps/api/src/market-state-cli.ts',

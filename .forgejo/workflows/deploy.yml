@@ -212,10 +212,18 @@ jobs:
           API_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.containers[?(@.name==\"api\")].image}'")
           WEB_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-web -o jsonpath='{.spec.template.spec.containers[?(@.name==\"web\")].image}'")
           CRON_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get cronjob/diary-v3-market -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[?(@.name==\"market\")].image}'")
+          MAIL_WORKER_EXISTS_BEFORE=false
+          MAIL_WORKER_IMAGE_BEFORE=''
+          MAIL_WORKER_REPLICAS_BEFORE=''
+          if ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-mail-worker >/dev/null 2>&1"; then
+            MAIL_WORKER_EXISTS_BEFORE=true
+            MAIL_WORKER_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-mail-worker -o jsonpath='{.spec.template.spec.containers[?(@.name==\"mail-worker\")].image}'")
+            MAIL_WORKER_REPLICAS_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-mail-worker -o jsonpath='{.spec.replicas}'")
+          fi
           API_REPLICAS_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-api -o jsonpath='{.spec.replicas}'")
           WEB_REPLICAS_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-web -o jsonpath='{.spec.replicas}'")
           test -n "$API_IMAGE_BEFORE"; test -n "$WEB_IMAGE_BEFORE"; test -n "$CRON_IMAGE_BEFORE"
-          for value in API_IMAGE_BEFORE WEB_IMAGE_BEFORE CRON_IMAGE_BEFORE API_REPLICAS_BEFORE WEB_REPLICAS_BEFORE; do echo "$value=${!value}" >> "$GITHUB_ENV"; done
+          for value in API_IMAGE_BEFORE WEB_IMAGE_BEFORE CRON_IMAGE_BEFORE MAIL_WORKER_EXISTS_BEFORE MAIL_WORKER_IMAGE_BEFORE MAIL_WORKER_REPLICAS_BEFORE API_REPLICAS_BEFORE WEB_REPLICAS_BEFORE; do echo "$value=${!value}" >> "$GITHUB_ENV"; done
 
       - name: Apply production foundation and run migrations
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -241,6 +249,17 @@ jobs:
           scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/02-api.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'DEPLOYMENT_MUTATED=true' >> "$GITHUB_ENV"; echo 'API_MUTATED=true' >> "$GITHUB_ENV"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/02-api.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"
+
+      - name: Deploy account email worker
+        env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
+        run: |
+          set -euo pipefail
+          SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
+          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/11-mail-worker.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          echo 'DEPLOYMENT_MUTATED=true' >> "$GITHUB_ENV"; echo 'MAIL_WORKER_MUTATED=true' >> "$GITHUB_ENV"
+          ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/11-mail-worker.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-mail-worker --timeout=300s"
 
       - name: Deploy Web
         env: { DEPLOY_SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", DEPLOY_KNOWN_HOSTS: "${{ secrets.DEPLOY_KNOWN_HOSTS }}" }
@@ -286,6 +305,13 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           if [ "${CRON_MUTATED:-false}" = true ]; then ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image cronjob/diary-v3-market market='$CRON_IMAGE_BEFORE'"; fi
+          if [ "${MAIL_WORKER_MUTATED:-false}" = true ]; then
+            if [ "$MAIL_WORKER_EXISTS_BEFORE" = true ]; then
+              ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image deployment/diary-v3-mail-worker mail-worker='$MAIL_WORKER_IMAGE_BEFORE' && kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-mail-worker --replicas='$MAIL_WORKER_REPLICAS_BEFORE' && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-mail-worker --timeout=300s"
+            else
+              ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete deployment/diary-v3-mail-worker networkpolicy/diary-v3-mail-worker-egress --ignore-not-found"
+            fi
+          fi
           if [ "${WEB_MUTATED:-false}" = true ]; then ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image deployment/diary-v3-web web='$WEB_IMAGE_BEFORE' && kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-web --replicas='$WEB_REPLICAS_BEFORE' && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"; fi
           if [ "${API_MUTATED:-false}" = true ]; then ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image deployment/diary-v3-api api='$API_IMAGE_BEFORE' && kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-api --replicas='$API_REPLICAS_BEFORE' && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"; fi
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run rollback-smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"

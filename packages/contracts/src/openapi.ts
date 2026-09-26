@@ -1,5 +1,17 @@
 import { registerAiOpenApi } from './ai-openapi.js'
 import { registerResearchOpenApi } from './research-openapi.js'
+import {
+  accountEmailMutationResponseSchema,
+  accountEmailRequestSchema,
+  adminEmailRevisionRequestSchema,
+  adminEmailSettingsResponseSchema,
+  adminEmailSettingsUpdateSchema,
+  adminEmailTestRequestSchema,
+  adminEmailTestResponseSchema,
+  authCapabilitiesSchema,
+  passwordResetCompleteRequestSchema,
+  registrationCompleteRequestSchema,
+} from './account-email.js'
 import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from './rotation-monitor.js'
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from './rotation.js'
 import {marketStateSnapshotQuerySchema, marketStateHistoryQuerySchema, marketStateSnapshotSchema, marketStateHistoryResponseSchema} from './market-state.js'
@@ -151,6 +163,16 @@ const AdminUserRoleResponse = registry.register('AdminUserRoleResponse', adminUs
 const AdminUserDeleteResponse = registry.register('AdminUserDeleteResponse', adminUserDeleteResponseSchema.clone())
 const AdminDiaryListResponse = registry.register('AdminDiaryListResponse', adminDiaryListResponseSchema.clone())
 const AdminStatsResponse = registry.register('AdminStatsResponse', adminStatsResponseSchema.clone())
+const AuthCapabilities = registry.register('AuthCapabilities', authCapabilitiesSchema.clone())
+const AccountEmailRequest = registry.register('AccountEmailRequest', accountEmailRequestSchema.clone())
+const RegistrationCompleteRequest = registry.register('RegistrationCompleteRequest', registrationCompleteRequestSchema.clone())
+const PasswordResetCompleteRequest = registry.register('PasswordResetCompleteRequest', passwordResetCompleteRequestSchema.clone())
+const AccountEmailMutationResponse = registry.register('AccountEmailMutationResponse', accountEmailMutationResponseSchema.clone())
+const AdminEmailSettingsResponse = registry.register('AdminEmailSettingsResponse', adminEmailSettingsResponseSchema.clone())
+const AdminEmailSettingsUpdate = registry.register('AdminEmailSettingsUpdate', adminEmailSettingsUpdateSchema.clone())
+const AdminEmailTestRequest = registry.register('AdminEmailTestRequest', adminEmailTestRequestSchema.clone())
+const AdminEmailTestResponse = registry.register('AdminEmailTestResponse', adminEmailTestResponseSchema.clone())
+const AdminEmailRevisionRequest = registry.register('AdminEmailRevisionRequest', adminEmailRevisionRequestSchema.clone())
 
 
 const DiaryActivityResponse = registry.register('DiaryActivityResponse', diaryActivityResponseSchema.clone())
@@ -182,6 +204,15 @@ registry.registerPath({
   request: { body: { content: { 'application/json': { schema: RegisterRequest } } } },
   responses: { 200: json(RegisterResponse, 'Account created'), ...errors([400, 409, 429, 500]) },
 })
+registry.registerPath({ method: 'get', path: '/api/auth/capabilities', tags: ['Auth'], operationId: 'authCapabilities', responses: { 200: json(AuthCapabilities, 'Public registration and password recovery capabilities'), ...errors([500]) } })
+registry.registerPath({ method: 'post', path: '/api/auth/registration/request', tags: ['Auth'], operationId: 'authRegistrationRequest', request: { body: json(AccountEmailRequest, 'Request registration verification') }, responses: { 200: json(AccountEmailMutationResponse, 'Generic registration email request accepted'), ...errors([400, 401, 429, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/auth/registration/complete', tags: ['Auth'], operationId: 'authRegistrationComplete', request: { body: json(RegistrationCompleteRequest, 'Complete email-verified registration') }, responses: { 200: json(AccountEmailMutationResponse, 'Account created'), ...errors([400, 401, 409, 429, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/auth/password-reset/request', tags: ['Auth'], operationId: 'authPasswordResetRequest', request: { body: json(AccountEmailRequest, 'Request password reset') }, responses: { 200: json(AccountEmailMutationResponse, 'Generic password reset email request accepted'), ...errors([400, 401, 429, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/auth/password-reset/complete', tags: ['Auth'], operationId: 'authPasswordResetComplete', request: { body: json(PasswordResetCompleteRequest, 'Complete password reset') }, responses: { 200: json(AccountEmailMutationResponse, 'Password changed and sessions ended'), ...errors([400, 401, 409, 500]) } })
+registry.registerPath({ method: 'get', path: '/api/admin/email-settings', tags: ['Admin mail'], operationId: 'adminEmailSettingsGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(AdminEmailSettingsResponse, 'SMTP configuration without secrets and recent delivery history'), ...errors([401, 403, 500]) } })
+registry.registerPath({ method: 'put', path: '/api/admin/email-settings', tags: ['Admin mail'], operationId: 'adminEmailSettingsUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(AdminEmailSettingsUpdate, 'Save SMTP settings using the expected revision') }, responses: { 200: json(AdminEmailSettingsResponse, 'Saved SMTP settings'), ...errors([400, 401, 403, 409, 500]) } })
+registry.registerPath({ method: 'post', path: '/api/admin/email-settings/test', tags: ['Admin mail'], operationId: 'adminEmailSettingsTest', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(AdminEmailTestRequest, 'Test the saved SMTP revision with a fixed message') }, responses: { 200: json(AdminEmailTestResponse, 'SMTP test outcome'), ...errors([400, 401, 403, 409, 500]) } })
+for (const action of ['enable', 'disable', 'clear'] as const) registry.registerPath({ method: 'post', path: `/api/admin/email-settings/${action}`, tags: ['Admin mail'], operationId: `adminEmailSettings${action[0]!.toUpperCase()}${action.slice(1)}`, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(AdminEmailRevisionRequest, 'Apply action at expected settings revision') }, responses: { 200: json(AdminEmailSettingsResponse, `SMTP settings ${action}d`), ...errors([400, 401, 403, 409, 500]) } })
 registry.registerPath({
   method: 'post', path: '/api/auth/login', tags: ['Auth'], operationId: 'authLogin',
   request: { body: { content: { 'application/json': { schema: LoginRequest } } } },

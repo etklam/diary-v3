@@ -11,6 +11,7 @@ export { schema }
 export * from './schema.js'
 
 export type Database = NodePgDatabase<typeof schema>
+export type DatabaseTx = Parameters<Parameters<Database['transaction']>[0]>[0]
 
 export function createDatabase(url: string) {
   const pool = new Pool({ connectionString: url })
