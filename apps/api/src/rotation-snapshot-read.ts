@@ -3,6 +3,7 @@ import type { MarketRotationMonitorRow } from '@diary/domain/market-rotation/mon
 import { getUniverseForScope } from '@diary/domain/market-rotation/universe'
 import type { RankScope } from '@diary/domain/market-rotation/types'
 import type { SnapshotDateCoverage, QualifiedDateWindow } from '@diary/domain/market-rotation/qualified-date'
+import type { EnrichedSnapshotInput } from '../../../packages/domain/src/market-rotation/comparison-enrichment.js'
 import { and, eq, inArray } from 'drizzle-orm'
 import { readRotationWindow } from './rotation-queries.js'
 
@@ -17,6 +18,10 @@ function decimal(value: string | null): number | null {
   if (value === null) return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function persistedNumber(value: string | null): number | null {
+  return value === null ? null : Number(value)
 }
 
 function toMonitorRow(
@@ -72,4 +77,73 @@ export async function readRotationScopeSnapshot(
       return entry ? [toMonitorRow(row, entry)] : []
     }),
   }
+}
+
+/** Read the canonical scope's persisted comparison rows for snapshot enrichment. */
+export async function readRotationComparisonSnapshots(
+  db: Database | DbTransaction,
+  scope: RankScope,
+  comparisonDate: string,
+): Promise<EnrichedSnapshotInput[]> {
+  const symbols = getUniverseForScope(scope).map(entry => entry.symbol)
+  const stored = await db.select({
+    symbol: marketRotationSnapshots.symbol,
+    adjustedClose: marketRotationSnapshots.adjustedClose,
+    rsi14: marketRotationSnapshots.rsi14,
+    rsiPercentile: marketRotationSnapshots.rsiPercentile,
+    maScore: marketRotationSnapshots.maScore,
+    maScorePercentile: marketRotationSnapshots.maScorePercentile,
+    distanceFromHighScore: marketRotationSnapshots.distanceFromHighScore,
+    distanceFromHighScorePercentile: marketRotationSnapshots.distanceFromHighScorePercentile,
+    rotationScore: marketRotationSnapshots.rotationScore,
+    rotationRank: marketRotationSnapshots.rotationRank,
+    maStatus: marketRotationSnapshots.maStatus,
+    percentFromHigh: marketRotationSnapshots.percentFromHigh,
+  }).from(marketRotationSnapshots).where(and(
+    eq(marketRotationSnapshots.rankScope, scope),
+    eq(marketRotationSnapshots.date, comparisonDate),
+    inArray(marketRotationSnapshots.symbol, symbols),
+  ))
+
+  return stored.map(row => ({
+    symbol: row.symbol,
+    rankScope: scope,
+    adjustedClose: persistedNumber(row.adjustedClose),
+    rsi14: persistedNumber(row.rsi14),
+    rsiPercentile: persistedNumber(row.rsiPercentile),
+    maScore: row.maScore ?? 0,
+    maScorePercentile: persistedNumber(row.maScorePercentile),
+    distanceFromHighScore: persistedNumber(row.distanceFromHighScore),
+    distanceFromHighScorePercentile: persistedNumber(row.distanceFromHighScorePercentile),
+    rotationScore: persistedNumber(row.rotationScore),
+    rotationRank: row.rotationRank,
+    maStatus: row.maStatus ?? 'unknown',
+    percentFromHigh: persistedNumber(row.percentFromHigh),
+  }))
+}
+
+/** Read persisted prices used to normalize each selected symbol's trend series. */
+export async function readRotationTrendPrices(
+  db: Database | DbTransaction,
+  scope: RankScope,
+  qualifiedDates: string[],
+  symbols: string[],
+): Promise<Map<string, number | null>> {
+  if (qualifiedDates.length === 0 || symbols.length === 0) return new Map()
+
+  const stored = await db.select({
+    symbol: marketRotationSnapshots.symbol,
+    date: marketRotationSnapshots.date,
+    adjustedClose: marketRotationSnapshots.adjustedClose,
+    lastPrice: marketRotationSnapshots.lastPrice,
+  }).from(marketRotationSnapshots).where(and(
+    eq(marketRotationSnapshots.rankScope, scope),
+    inArray(marketRotationSnapshots.date, qualifiedDates),
+    inArray(marketRotationSnapshots.symbol, symbols),
+  ))
+
+  return new Map(stored.map(row => {
+    const value = row.adjustedClose ?? row.lastPrice
+    return [`${row.symbol}:${row.date}`, persistedNumber(value)] as const
+  }))
 }

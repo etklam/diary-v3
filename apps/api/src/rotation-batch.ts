@@ -1,15 +1,15 @@
-import {and,desc,eq,inArray,lte,sql} from 'drizzle-orm';
+import {and,desc,eq,lte,sql} from 'drizzle-orm';
 import type {Pool} from 'pg';
-import {marketDailyPrices,marketRotationSnapshots,marketRotationSnapshotRuns,type Database} from '@diary/db';
+import {marketDailyPrices,marketRotationSnapshotRuns,type Database} from '@diary/db';
 import {getUniverseForScope} from '@diary/domain/market-rotation/universe';
 import type {RankScope} from '@diary/domain/market-rotation/types';
 import {runSnapshotPipeline,type SymbolPrices} from '@diary/domain/market-rotation/pipeline';
 import {pickLatestQualifiedCandidate} from '@diary/domain/market-rotation/qualified-date';
-import type {EnrichedSnapshotInput} from '../../../packages/domain/src/market-rotation/comparison-enrichment.js';
 import type {createMarketData} from './market-data/index.js';
 import {persistRotationPrices} from './rotation-prices.js';
 import {persistRotationSnapshots} from './rotation-snapshots.js';
 import {readRotationWindow} from './rotation-queries.js';
+import {readRotationComparisonSnapshots} from './rotation-snapshot-read.js';
 export class RotationBatchBusy extends Error {constructor(){super('This rotation scope is already updating');}}
 export function completedRotationDate(now:Date){
  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(now);
@@ -42,11 +42,9 @@ export async function runRotationBatch(dependencies:{db:Database;pool:Pick<Pool,
    const candidateDate=candidate?.date.toISOString().slice(0,10);
    const aligned=candidateDate?symbolPrices.filter(row=>row.prices.at(-1)?.date===candidateDate):[];
    const window=candidateDate?await readRotationWindow(db,scope,candidateDate,candidate??undefined):{comparisonDate:null};
-   let comparison:EnrichedSnapshotInput[]=[];
-   if(window.comparisonDate){const date=window.comparisonDate.toISOString().slice(0,10);const rows=await db.select().from(marketRotationSnapshots).where(and(eq(marketRotationSnapshots.rankScope,scope),eq(marketRotationSnapshots.date,date),inArray(marketRotationSnapshots.symbol,symbols)));
-    const number=(value:string|null)=>value===null?null:Number(value);
-    comparison=rows.map(row=>({symbol:row.symbol,rankScope:row.rankScope,adjustedClose:number(row.adjustedClose),rsi14:number(row.rsi14),rsiPercentile:number(row.rsiPercentile),maScore:row.maScore??0,maScorePercentile:number(row.maScorePercentile),distanceFromHighScore:number(row.distanceFromHighScore),distanceFromHighScorePercentile:number(row.distanceFromHighScorePercentile),rotationScore:number(row.rotationScore),rotationRank:row.rotationRank,maStatus:row.maStatus??'unknown',percentFromHigh:number(row.percentFromHigh)}));
-   }
+   const comparison=window.comparisonDate
+    ?await readRotationComparisonSnapshots(db,scope,window.comparisonDate.toISOString().slice(0,10))
+    :[];
    const result=runSnapshotPipeline(aligned,comparison);
    const status=result.latest.length===symbols.length&&candidate?.snapshotCount===symbols.length?'success':'partial';
    const upsertedCount=await db.transaction(async tx=>{

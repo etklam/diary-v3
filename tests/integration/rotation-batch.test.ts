@@ -1,6 +1,7 @@
 import {beforeAll,afterAll,it,expect} from 'vitest';
 import {marketDailyPrices,marketRotationSnapshots,marketRotationSnapshotRuns} from '../../packages/db/src/schema';
 import {runRotationBatch,RotationBatchBusy,completedRotationDate} from '../../apps/api/src/rotation-batch';
+import {getIndexesUniverse} from '../../packages/domain/src/market-rotation/universe';
 import type {DailyMarketPrice} from '../../apps/api/src/market-data/daily-prices';
 import {provisionTestDatabase} from '../support/database';
 let database:Awaited<ReturnType<typeof provisionTestDatabase>>;
@@ -23,6 +24,33 @@ it('persists canonical prices before snapshots, records failure, and excludes ov
  expect(await database.db.select().from(marketRotationSnapshots)).toHaveLength(8);
  const failedRuns=await database.db.select().from(marketRotationSnapshotRuns);expect(failedRuns.filter(row=>row.rankScope==='sectors').map(row=>row.status)).toEqual(['failed']);
 
+});
+it('uses only same-scope persisted comparison prices and values in the batch pipeline',async()=>{
+ const isolated=await provisionTestDatabase('rotation_batch_comparison');
+ try{
+  const indexes=getIndexesUniverse(),comparisonDate='2026-08-02';
+  const history=Array.from({length:11},(_,i)=>indexes.map(({symbol})=>({
+   symbol,date:`2026-08-${String(i+1).padStart(2,'0')}`,rankScope:'indexes',groupType:'index',
+   lastPrice:symbol==='QQQ'?'250.000000':'100.000000',
+   adjustedClose:symbol==='SPY'&&i===1?'50.000000':symbol==='QQQ'&&i===1?null:'100.000000',
+   rsi14:symbol==='SPY'&&i===1?'25.0000':'50.0000',rotationRank:symbol==='SPY'?8:null,
+   rotationScore:'40.0000',signalStatus:'complete',
+  }))).flat();
+  history.push({symbol:'SPY',date:comparisonDate,rankScope:'core',groupType:'core_etf',lastPrice:'600.000000',adjustedClose:'500.000000',rsi14:'5.0000',rotationRank:1,rotationScore:'5.0000',signalStatus:'complete'});
+  await isolated.db.insert(marketRotationSnapshots).values(history);
+
+  const now=()=>new Date('2026-09-05T00:00:00Z');
+  const market={dailyPrices:async(symbol:string)=>({source:'upstream' as const,fetchedAt:now().toISOString(),data:Array.from({length:80},(_,i)=>{
+   const price='100.000000';return {symbol,date:new Date(Date.UTC(2026,5,i+1)).toISOString().slice(0,10),open:price,high:price,low:price,close:price,adjustedClose:price,volume:100n};
+  })})};
+  const result=await runRotationBatch({db:isolated.db,pool:isolated.pool,market,now},'indexes');
+  expect(result).toMatchObject({status:'success',comparisonDate});
+  const snapshots=await isolated.db.select().from(marketRotationSnapshots);
+  const spy=snapshots.find(row=>row.rankScope==='indexes'&&row.symbol==='SPY'&&row.date==='2026-08-19')!;
+  const qqq=snapshots.find(row=>row.rankScope==='indexes'&&row.symbol==='QQQ'&&row.date==='2026-08-19')!;
+  expect(spy).toMatchObject({twoWeekPerformancePct:'100.0000',rsiDelta2W:'75.0000'});
+  expect(qqq.twoWeekPerformancePct).toBeNull();
+ }finally{await isolated.dispose();}
 });
 it('uses New York close boundary across daylight saving and excludes weekends',()=>{
  expect(completedRotationDate(new Date('2026-07-06T19:59:00Z'))('2026-07-06')).toBe(false);expect(completedRotationDate(new Date('2026-07-06T20:00:00Z'))('2026-07-06')).toBe(true);
