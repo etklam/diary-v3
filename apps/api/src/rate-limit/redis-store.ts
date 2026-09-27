@@ -64,9 +64,14 @@ export class RedisRateLimitStore implements RateLimitStore {
     if (!['redis:', 'rediss:'].includes(parsed.protocol) || !parsed.hostname) throw new RateLimitStoreUnavailableError()
 
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    // `connectTimeout` bounds the initial connection. Per-command bounds are
+    // enforced by the `bounded()` wrapper, so the socket itself must stay idle:
+    // a `socketTimeout` here would destroy the connection whenever Redis goes
+    // quiet between requests, and with `reconnectStrategy: false` the client
+    // could then never recover until the next cooldown-gated reconnect.
     const client = createClient({
       url: redisUrl,
-      socket: { connectTimeout: timeoutMs, socketTimeout: timeoutMs, reconnectStrategy: false },
+      socket: { connectTimeout: timeoutMs, reconnectStrategy: false },
     })
     client.on('error', () => {})
     const closeOnTimeout = () => destroyClient(client)
