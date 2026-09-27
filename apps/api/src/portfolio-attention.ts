@@ -1,9 +1,10 @@
 import { type ErrorCode } from '@diary/contracts'
 import { portfolioAttentionQuerySchema, portfolioAttentionResponseSchema } from '@diary/contracts/portfolio-attention'
-import { portfolioOverviewResponseSchema } from '@diary/contracts/portfolio-overview'
+import { portfolioLedgerResponseSchema, portfolioOverviewResponseSchema } from '@diary/contracts/portfolio-overview'
 import { evaluatePortfolioAttention } from '@diary/domain/portfolio-attention'
 import { concentration } from '@diary/domain/portfolio'
-import { getHoldings } from './ledger.js'
+import { readLedgerSnapshot, recentClosedTradesFromSnapshot } from './ledger.js'
+import { readPortfolioExposureFromHoldings } from './portfolio-exposure.js'
 import { investmentTheses, stocks, type Database } from '@diary/db'
 import { eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
@@ -17,7 +18,7 @@ type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 type PortfolioValue = Awaited<ReturnType<typeof valuePortfolio>>
 
 async function readAttentionFacts(tx: DbTransaction, userId: bigint) {
-  const theses = await tx.select({ symbol: stocks.symbol, status: investmentTheses.status, reviewDueAt: investmentTheses.reviewDueAt, lastReviewedAt: investmentTheses.lastReviewedAt, latestOutcome: investmentTheses.latestReviewOutcome })
+  const theses = await tx.select({ symbol: stocks.symbol, status: investmentTheses.status, reviewDueAt: investmentTheses.reviewDueAt, lastReviewedAt: investmentTheses.lastReviewedAt, reviewPending: investmentTheses.reviewPending, latestOutcome: investmentTheses.latestReviewOutcome })
     .from(investmentTheses).innerJoin(stocks, eq(stocks.id, investmentTheses.stockId)).where(eq(investmentTheses.userId, userId))
   // Filter completed rows before the source's 100-candidate limit. Explicit
   // stock contexts use a deterministic symbol order rather than join order.
@@ -95,6 +96,24 @@ export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies
   app.get('/api/portfolio/attention', read)
   app.get('/api/stocks/attention', read)
 
+  app.get('/api/portfolio/ledger', async c => {
+    c.header('Cache-Control', 'no-store')
+    const user = c.get('user')
+    if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    const asOf = now(), requestId = c.get('requestId')
+    const snapshot = await readLedgerSnapshot(db, BigInt(user.id))
+    c.header('X-Portfolio-Ledger-Revision', snapshot.revision)
+    let exposure
+    try { exposure = await readPortfolioExposureFromHoldings(db, snapshot.holdings, asOf.toISOString().slice(0, 10)) }
+    catch (error) { logSectionFailure(logger, requestId, 'exposure', error) }
+    return c.json(portfolioLedgerResponseSchema.parse({
+      holdings: snapshot.holdings,
+      recent: recentClosedTradesFromSnapshot(snapshot, { days: 30, limit: 50 }, asOf),
+      exposure: exposure ? { status: 'ready', data: exposure } : failedSection(requestId),
+      asOf: asOf.toISOString(),
+    }))
+  })
+
   app.get('/api/portfolio/overview', async c => {
     c.header('Cache-Control', 'no-store')
     const user = c.get('user')
@@ -103,6 +122,7 @@ export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies
     let inputs: Awaited<ReturnType<typeof loadPortfolioInputs>>
     try {
       inputs = await loadPortfolioInputs(db, userId)
+      c.header('X-Portfolio-Ledger-Revision', inputs.revision)
     } catch (error) {
       logSectionFailure(logger, requestId, 'snapshot', error)
       const failed = failedSection(requestId)
@@ -132,8 +152,8 @@ export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies
 }
 
 async function loadPortfolioInputs(db: Database, userId: bigint) {
-  return db.transaction(async tx => ({
-    holdings: await getHoldings(tx, userId),
-    facts: await readAttentionFacts(tx, userId),
-  }), { isolationLevel: 'repeatable read', accessMode: 'read only' })
+  return db.transaction(async tx => {
+    const snapshot = await readLedgerSnapshot(tx, userId)
+    return { holdings: snapshot.holdings, revision: snapshot.revision, facts: await readAttentionFacts(tx, userId) }
+  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
 }

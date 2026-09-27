@@ -43,6 +43,7 @@
     "./ai-reports/period": "./src/ai-reports/period.ts",
     "./ai-reports/context": "./src/ai-reports/context.ts",
     "./position-sizing": "./src/position-sizing.ts",
+    "./trade-plan-execution": "./src/trade-plan-execution.ts",
     "./research-studio": "./src/research-studio.ts"
   }
 }

@@ -125,3 +125,33 @@ it('rejects invalid review enums without writes and preserves repeated active sn
   ])
   expect(listed.thesis.latestReviewOutcome).toBe('PARTIAL')
 })
+
+it('protects review and narrow schedule writes against concurrent stale tabs', async () => {
+  const browser = await login(), other = await login(), thesis = await save(browser);
+  const path = '/api/stocks/AAPL/thesis/review-schedule';
+  const payload = { expectedUpdatedAt: thesis.updatedAt, reviewDueAt: '2026-09-07T09:00:00Z' };
+  expect((await update(other, path, payload)).status).toBe(404);
+  const responses = await Promise.all([update(browser, path, payload), update(browser, path, payload)]);
+  expect(responses.map(response => response.status).sort()).toEqual([200,409]);
+  const current = (await (await browser.request('/api/stocks/AAPL/thesis')).json()).thesis;
+  expect(current.summary).toBe(active.summary); expect(current.whyIOwnIt).toBe(active.whyIOwnIt);
+  expect((await update(browser, '/api/stocks/AAPL/thesis', { ...active, expectedUpdatedAt: thesis.updatedAt }, 'PUT')).status).toBe(409);
+  expect((await (await browser.request('/api/stocks/AAPL/thesis')).json()).thesis.reviewDueAt).toBe(new Date(payload.reviewDueAt).toISOString());
+  const reviews = await Promise.all([browser.post('/api/stocks/AAPL/thesis/reviews', { ...reflection, expectedUpdatedAt: current.updatedAt }), browser.post('/api/stocks/AAPL/thesis/reviews', { ...reflection, expectedUpdatedAt: current.updatedAt })]);
+  expect(reviews.map(response => response.status).sort()).toEqual([200,409]);
+  expect((await (await browser.request('/api/stocks/AAPL/thesis')).json()).reviews).toHaveLength(1);
+  const reviewed = (await (await browser.request('/api/stocks/AAPL/thesis')).json()).thesis;
+  expect((await update(browser, path, { expectedUpdatedAt: reviewed.updatedAt, reviewDueAt: '2026-09-01T09:00:00Z' })).status).toBe(200);
+  const reopened = await (await browser.request('/api/stocks/AAPL/thesis')).json();
+  expect(reopened.thesis.lastReviewedAt).toBe(reviewed.lastReviewedAt); expect(reopened.reviews).toHaveLength(1);
+  const queue = await (await browser.request('/api/reviews?target=thesis')).json();
+  expect(queue.overdue.map((row: { thesisId: string }) => row.thesisId)).toContain(reviewed.id);
+  expect(queue.completed).toEqual([]);
+  expect(reopened.thesis.health).toBe('needs_review');
+  const completed = await browser.post('/api/stocks/AAPL/thesis/reviews', { ...reflection, expectedUpdatedAt: reopened.thesis.updatedAt });
+  expect(completed.status).toBe(200);
+  const completedBody = await completed.json(); expect(completedBody.thesis.health).toBe('healthy');
+  const sameInstant = await update(browser, '/api/stocks/AAPL/thesis', { ...active, reviewDueAt: '2026-09-01T09:00:00Z', expectedUpdatedAt: completedBody.thesis.updatedAt }, 'PUT');
+  expect(sameInstant.status).toBe(200); expect((await sameInstant.json()).thesis.health).toBe('healthy');
+  expect((await (await browser.request('/api/reviews?target=thesis')).json()).completed).toHaveLength(1);
+});

@@ -120,3 +120,12 @@
     padding: var(--space-3) 10px;
   }
 }
+
+.holdings-workspace .holdings-table { max-width: 100%; }
+.holdings-workspace .holdings-table table { min-width: 900px; }
+.holdings-workspace .holdings-table td:last-child { min-width: 160px; white-space: normal; }
+.holdings-details { margin-top: var(--space-6); border-top: 1px solid var(--border); }
+.holdings-details > summary { min-height: 44px; padding: var(--space-3) 0; cursor: pointer; font-weight: 600; }
+
+.holdings-scroll-hint { display: none; }
+@media (max-width: 1023px) { .holdings-scroll-hint { display: block; } }

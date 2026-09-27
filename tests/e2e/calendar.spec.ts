@@ -18,6 +18,8 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
   const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
   const timezone = width === 1440 ? 'Asia/Taipei' : 'America/New_York';
   expect((await page.request.put('/api/user/settings', { headers: { 'x-csrf-token': csrf }, data: { timezone, excludeHolidaysInStats: true } })).status()).toBe(200);
+  // Out-of-band fixture writes bypass browser resource invalidation; start a fresh document.
+  await page.reload();
   let weekendDiaryId = '';
   for (const date of ['2026-04-03', '2026-04-04', '2026-04-06']) {
     const response = await page.request.post('/api/diaries', {

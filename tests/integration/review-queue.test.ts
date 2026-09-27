@@ -185,7 +185,7 @@ it('never leaks another user\'s diary into the queue response', async () => {
   expect(result.today.map((row: {id:string}) => row.id)).toEqual([mine.id])
   expect(JSON.stringify(result)).not.toContain('2026-09-01')
 })
-it('retains the completed diary cap and pages the full active thesis set by bucket', async () => {
+it('counts all completed diaries and pages the full active thesis set by bucket', async () => {
   const browser = await login()
   const me = await (await browser.request('/api/auth/me')).json(), owner = me.data.id
   const completed = await database.pool.query(`insert into diaries (user_id,date,title,content,review_status,reviewed_at,review_outcome,review_summary)
@@ -206,7 +206,7 @@ it('retains the completed diary cap and pages the full active thesis set by buck
 
   const first = await queue(browser, '?page=1&limit=50')
   const second = await queue(browser, '?page=2&limit=50')
-  const expectedCounts = { overdue: 1, today: 0, upcoming: 0, unscheduled: 100, completed: 50 }
+  const expectedCounts = { overdue: 1, today: 0, upcoming: 0, unscheduled: 100, completed: 51 }
   expect(first.counts).toEqual(expectedCounts)
   expect(second.counts).toEqual(expectedCounts)
   expect(first.unscheduled.map((item: {symbol:string}) => item.symbol)).toEqual(unscheduledSymbols.slice(0, 50))
@@ -215,7 +215,18 @@ it('retains the completed diary cap and pages the full active thesis set by buck
   expect(first.overdue[0]).toMatchObject({ targetType: 'thesis', id: `thesis:${overdueThesis.id}`, thesisId: overdueThesis.id, symbol: overdueSymbol })
   expect(second.overdue).toEqual([])
   expect(first.completed).toHaveLength(50)
-  expect(first.completed.some((item: {id:string}) => item.id === String(completed.rows.find(row => row.title === 'Completed 1').id))).toBe(false)
-  expect(second.completed).toEqual([])
+  expect(first.completed.some((item: {id:string}) => item.id === String(completed.rows.find(row => row.title === 'Completed 1').id))).toBe(true)
+  expect(second.completed.map((item: { title: string }) => item.title)).toEqual(['Completed 51'])
   expect(JSON.stringify([first, second])).not.toContain('Private reflection')
+})
+
+it('counts and pages completed diaries beyond the former fifty-row candidate cap', async () => {
+  const browser = await login(), account = await (await browser.request('/api/auth/me')).json()
+  await database.pool.query(`insert into diaries(user_id,title,content,date,review_status,reviewed_at,review_outcome)
+    select $1,'Completed '||n,'Synthetic',date '2000-01-01'+n,'reviewed',timestamp '2026-09-01'+n*interval '1 minute','INTACT'
+    from generate_series(1,61)n`, [account.data.id])
+  const first = await queue(browser, '?target=diary&limit=20'), last = await queue(browser, '?target=diary&limit=20&completedPage=4')
+  expect(first.counts.completed).toBe(61); expect(last.counts.completed).toBe(61)
+  expect(first.completed).toHaveLength(20); expect(last.completed).toHaveLength(1)
+  expect(last.completed[0].title).toBe('Completed 61')
 })

@@ -267,3 +267,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+.review-session { padding: var(--space-4) 0; border-bottom: 1px solid var(--border); }
+.review-reschedule { max-width: 100%; }
+.review-reschedule summary, .review-original-disclosure summary { min-height: 44px; padding: var(--space-3) 0; cursor: pointer; }
+.review-reschedule fieldset { min-width: 0; border: 0; padding: 0; }
+@media (max-width: 767px) {
+  .review-footer { position: sticky; bottom: var(--mobile-diary-navigation-space, 76px); background: var(--surface); padding: var(--space-3); z-index: 2; }
+  .diary-review { padding-bottom: var(--space-6); }
+}
+.review-plan-execution { flex-basis: 100%; min-width: 0; }
+.review-plan-execution summary { min-height: 44px; padding: var(--space-3) 0; cursor: pointer; }
+@media (max-height: 500px) and (max-width: 767px) {
+  .review-footer { position: static; }
+}

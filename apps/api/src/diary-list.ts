@@ -2,6 +2,7 @@ import { alerts, diaries, diaryStocks, stocks, transactions, type Database } fro
 import { diarySummarySchema } from '@diary/contracts/diary-summary'
 import type { DiaryListQuery } from '@diary/contracts/diary-list'
 import { diaryExcerpt } from '@diary/domain'
+import { diarySearchSnippet } from './diary-search.js'
 import { and, asc, count, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm'
 import { listDiaryStocks } from './diary-stocks.js'
 import { projectDiaryListRows } from './diary-read.js'
@@ -60,7 +61,7 @@ export async function listDiaries(db: Database, userId: bigint, query: DiaryList
 /** Bounded discovery feed for Library/Timeline/Overview. Content is read only
  * to build the excerpt inside the API process and is never serialized; counts
  * arrive as grouped SQL aggregates instead of full transaction/alert rows. */
-export async function listDiarySummaries(db: Database, userId: bigint, query: DiaryListQuery, now: Date) {
+export async function listDiarySummaries(db: Database, userId: bigint, query: DiaryListQuery, now: Date, includeSearchSnippet = false) {
   const { where, order, direction } = diaryPageFilter(db, userId, query, now)
 
   // Count and page share the same snapshot semantics as the full list.
@@ -68,6 +69,17 @@ export async function listDiarySummaries(db: Database, userId: bigint, query: Di
     const [result] = await tx.select({ total: count() }).from(diaries).where(where)
     const total = result!.total
     const totalPages = Math.ceil(total / query.limit)
+    const searchFields = includeSearchSnippet && query.search ? {
+      contentForSearch: diaries.content,
+      thesisForSearch: diaries.thesis,
+      riskForSearch: diaries.risk,
+      executionForSearch: diaries.execution,
+    } : {
+      contentForSearch: sql<string | null>`null`,
+      thesisForSearch: sql<string | null>`null`,
+      riskForSearch: sql<string | null>`null`,
+      executionForSearch: sql<string | null>`null`,
+    }
     const rows = query.page > totalPages ? [] : await tx.select({
       id: diaries.id,
       date: diaries.date,
@@ -84,6 +96,7 @@ export async function listDiarySummaries(db: Database, userId: bigint, query: Di
       reviewStatus: diaries.reviewStatus,
       reviewDueAt: diaries.reviewDueAt,
       reviewOutcome: diaries.reviewOutcome,
+      ...searchFields,
     }).from(diaries).where(where).orderBy(order, direction(diaries.id))
       .limit(query.limit).offset((query.page - 1) * query.limit)
     const ids = rows.map(row => row.id)
@@ -121,6 +134,15 @@ export async function listDiarySummaries(db: Database, userId: bigint, query: Di
         reviewStatus: row.reviewStatus,
         reviewDueAt: row.reviewDueAt === null ? null : row.reviewDueAt.toISOString(),
         reviewOutcome: row.reviewOutcome,
+        searchSnippet: includeSearchSnippet && query.search ? diarySearchSnippet([
+          { source: 'title', value: row.title },
+          { source: 'content', value: row.contentForSearch },
+          { source: 'thesis', value: row.thesisForSearch },
+          { source: 'risk', value: row.riskForSearch },
+          { source: 'execution', value: row.executionForSearch },
+          { source: 'tag', value: row.tags.join(' ') },
+          { source: 'symbol', value: (stocksByDiary.get(row.id) ?? []).join(' ') },
+        ], query.search) : undefined,
         transactionCount: transactionCounts.get(row.id) ?? 0,
         alertCount: alertCounts.get(row.id) ?? 0,
       })),

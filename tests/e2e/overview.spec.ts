@@ -80,6 +80,7 @@ for (const width of [1440, 390]) test(`Overview composes bounded decision projec
 })
 
 test('Overview keeps other sections readable when attention needs retry', async ({ page, context }) => {
+  await page.clock.install()
   await page.setViewportSize({ width: 1440, height: 900 })
   await signInAndSeed(page, context)
   await page.route('**/api/portfolio/overview', async route => {
@@ -100,12 +101,16 @@ test('Overview keeps other sections readable when attention needs retry', async 
   await attention.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(attention.getByTestId('overview-attention-item').first()).toBeVisible()
 
-  let authMeCalls = 0
+  await page.clock.fastForward(31_000)
+  let failedAccountReads = 0
   await page.route('**/api/auth/me', async route => {
-    if (authMeCalls++ === 0) return route.continue()
+    failedAccountReads += 1
     await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'overview-timezone-retry' } }) })
   })
-  await page.reload()
+  await page.locator('.overview-page').getByRole('link', { name: 'Trade plans', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Trade plans', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Overview', exact: true }).click()
+  await expect.poll(() => failedAccountReads).toBeGreaterThan(0)
   await expect(page.getByText('Account timezone could not load.', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Try again', exact: true })).toBeVisible()
   await page.unroute('**/api/auth/me')

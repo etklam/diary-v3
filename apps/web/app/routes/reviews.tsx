@@ -1,10 +1,12 @@
+import { createReviewSession, reviewBuckets, reviewItemPath } from '../review-session';
+import { workflowCopy } from '../review-workflow-copy';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router';
 import { reviewGroupsResponseSchema, reviewQueueQuerySchema, type ReviewGroups, type ReviewItem } from '@diary/contracts/review-queue';
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { thesisCopy } from '../thesis-copy';
-import { signInPath } from '../session';
+import { signInPath, useSessionState } from '../session';
 import '../trade-plan.css';
 import '../review-queue.css';
 const buckets = ['overdue', 'today', 'upcoming', 'unscheduled', 'completed'] as const;
@@ -37,7 +39,15 @@ export const dueLine = (days: number, c: (typeof copy)[keyof typeof copy], date:
 export default function Reviews() {
   const { locale, t } = useUi(), c = copy[locale], [params, setParams] = useSearchParams();
   const [data, setData] = useState<ReviewGroups | null>(null), [error, setError] = useState<Failure | null>(null), [attempt, retry] = useState(0), [timezone, setTimezone] = useState('UTC'), [loading, setLoading] = useState(true), [loadedQuery, setLoadedQuery] = useState(''), [corrected, setCorrected] = useState(false);
-  const labels = thesisCopy[locale];
+  const labels = thesisCopy[locale], workflow = workflowCopy[locale], navigate = useNavigate(), location = useLocation(), session = useSessionState();
+  const [owner, setOwner] = useState('');
+  function start() {
+    if (!data || loading || loadedQuery !== query || !owner) return;
+    const first = reviewBuckets.flatMap(bucket => data[bucket]).find(item => item.targetType === 'diary' || item.symbol);
+    if (!first) return;
+    try { const id = createReviewSession(owner, query, data); navigate(reviewItemPath(first, id), { state: { queueSearch: query } }); }
+    catch { setError(apiFailure(null, translate.current('failed'))); }
+  }
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: timezone });
   const label = (value: string) => Object.hasOwn(labels, value) ? labels[value as keyof typeof labels] : value;
   const translate = useRef(t); translate.current = t;
@@ -47,14 +57,15 @@ export default function Reviews() {
   const pages = parsed.success ? { overdue: parsed.data.overduePage ?? parsed.data.page, today: parsed.data.todayPage ?? parsed.data.page, upcoming: parsed.data.upcomingPage ?? parsed.data.page, unscheduled: parsed.data.unscheduledPage ?? parsed.data.page, completed: parsed.data.completedPage ?? parsed.data.page } : { overdue: 1, today: 1, upcoming: 1, unscheduled: 1, completed: 1 };
   useEffect(() => {
     const controller = new AbortController(); setError(null); setLoading(true);
+    if (session.authenticated === false) { setData(null); setOwner(''); setLoading(false); return; }
     const raw = new URLSearchParams(query);
     const parsed = reviewQueueQuerySchema.safeParse({ page: raw.get('page') ?? undefined, limit: 20, target: raw.get('target') ?? undefined, overduePage: raw.get('overduePage') ?? undefined, todayPage: raw.get('todayPage') ?? undefined, upcomingPage: raw.get('upcomingPage') ?? undefined, unscheduledPage: raw.get('unscheduledPage') ?? undefined, completedPage: raw.get('completedPage') ?? undefined });
     if (!parsed.success) { setData(null); setError({ message: translate.current('failed'), code: 'SYS_VALIDATION_ERROR', fields: [] }); setLoading(false); return; }
     Promise.all([api.GET('/api/reviews', { params: { query: parsed.data }, signal: controller.signal }), api.GET('/api/auth/me', { signal: controller.signal })]).then(([result, user]) => {
       if (controller.signal.aborted) return;
       const value = reviewGroupsResponseSchema.safeParse(result.data);
-      if (!value.success || !user.response.ok || !user.data) { setError(apiFailure(result.error ?? user.error, translate.current('failed'))); setLoading(false); return; }
-      setData(value.data); setTimezone(user.data.data.timezone); setLoadedQuery(query); setLoading(false);
+      if (!value.success || !user.response.ok || !user.data) { if ([401, 403].includes(result.response.status) || [401, 403].includes(user.response.status)) { setData(null); setOwner(''); } setError(apiFailure(result.error ?? user.error, translate.current('failed'))); setLoading(false); return; }
+      setOwner(user.data.data.id); setData(value.data); setTimezone(user.data.data.timezone); setLoadedQuery(query); setLoading(false);
       const rawPages = { overdue: parsed.data.overduePage ?? parsed.data.page, today: parsed.data.todayPage ?? parsed.data.page, upcoming: parsed.data.upcomingPage ?? parsed.data.page, unscheduled: parsed.data.unscheduledPage ?? parsed.data.page, completed: parsed.data.completedPage ?? parsed.data.page };
       const correctedPages = { ...rawPages };
       let changed = false;
@@ -73,7 +84,7 @@ export default function Reviews() {
       }
     }).catch(() => { if (!controller.signal.aborted) { setError(apiFailure(null, translate.current('connection'))); setLoading(false); } });
     return () => controller.abort();
-  }, [query, attempt]);
+  }, [query, attempt, session.revision, session.authenticated]);
   useEffect(() => {
     if (!data || loading || loadedQuery !== query) return;
     if (focusBucket.current) { bucketHeadings.current[focusBucket.current]?.focus(); focusBucket.current = null; }
@@ -120,5 +131,6 @@ export default function Reviews() {
   const showSecondary = data !== null && priorityBuckets.every(bucket => data.counts[bucket] === 0) && data.unscheduled.length > 0;
   // An empty queue gets the welcome block alone; buckets, counts and paging are all noise there.
   const emptyQueue = data !== null && buckets.every(bucket => data.counts[bucket] === 0);
-  return <section className="plan-page"><h1>{c.title}</h1><p className="lede">{c.hint}</p>{loading && data !== null && <p role="status" aria-live="polite">{bucketCopy[locale].updating}</p>}{corrected && <p role="status" aria-live="polite">{bucketCopy[locale].corrected}</p>}{error && <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/reviews')}>{t('login')}</Link>}<button onClick={() => retry(value => value + 1)}>{t('retry')}</button></>}{!data ? error ? null : <p role="status">{t('loading')}</p> : <><nav className="queue-filter" aria-label={c.filter}>{([['', c.all], ['diary', c.diaries], ['thesis', c.theses]] as const).map(([value, name]) => <Link key={value} to={filterTo(value)} aria-current={(params.get('target') ?? '') === value ? 'true' : undefined} onClick={() => { if ((params.get('target') ?? '') !== value) { focusResults.current = true; setCorrected(false); } }}>{name}</Link>)}</nav>{emptyQueue ? <div className="queue-empty" data-testid="queue-empty"><p>{c.emptyAll}</p><div className="actions"><Link className="button" to="/diaries/new">{t('write')}</Link><Link className="button secondary" to="/diaries">{c.library}</Link></div></div> : <><div className="queue-priorities">{priorityBuckets.map(bucket => <a key={bucket} className={`queue-priority${data.counts[bucket] > 0 ? ` queue-priority-${bucket}` : ''}`} href={`#queue-${bucket}`} data-testid={`queue-count-${bucket}`}><strong>{data.counts[bucket]}</strong> {c[bucket]}</a>)}</div><section className="queue-attention"><h2 ref={resultsHeading} tabIndex={-1}>{t('attention')}</h2>{group('overdue', 'h3')}{group('today', 'h3')}</section>{group('upcoming', 'h2')}<details className="queue-secondary" data-testid="queue-secondary" open={showSecondary || undefined}><summary>{c.more}</summary>{secondaryBuckets.map(bucket => group(bucket, 'h2'))}</details></>}</>}</section>;
+  if(session.authenticated===false)return <Link to={signInPath('/reviews')}>{t('login')}</Link>;
+  return <section className="plan-page"><h1>{c.title}</h1><p className="lede">{c.hint}</p>{location.state?.reviewSessionFinished && <p role="status">{workflow.finish}</p>}{data && reviewBuckets.some(bucket => data.counts[bucket] > 0) && <button disabled={loading || loadedQuery !== query} onClick={start}>{workflow.start}</button>}{loading && data !== null && <p role="status" aria-live="polite">{bucketCopy[locale].updating}</p>}{corrected && <p role="status" aria-live="polite">{bucketCopy[locale].corrected}</p>}{error && <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/reviews')}>{t('login')}</Link>}<button onClick={() => retry(value => value + 1)}>{t('retry')}</button></>}{!data ? error ? null : <p role="status">{t('loading')}</p> : <><nav className="queue-filter" aria-label={c.filter}>{([['', c.all], ['diary', c.diaries], ['thesis', c.theses]] as const).map(([value, name]) => <Link key={value} to={filterTo(value)} aria-current={(params.get('target') ?? '') === value ? 'true' : undefined} onClick={() => { if ((params.get('target') ?? '') !== value) { focusResults.current = true; setCorrected(false); } }}>{name}</Link>)}</nav>{emptyQueue ? <div className="queue-empty" data-testid="queue-empty"><p>{c.emptyAll}</p><div className="actions"><Link className="button" to="/diaries/new">{t('write')}</Link><Link className="button secondary" to="/diaries">{c.library}</Link></div></div> : <><div className="queue-priorities">{priorityBuckets.map(bucket => <a key={bucket} className={`queue-priority${data.counts[bucket] > 0 ? ` queue-priority-${bucket}` : ''}`} href={`#queue-${bucket}`} data-testid={`queue-count-${bucket}`}><strong>{data.counts[bucket]}</strong> {c[bucket]}</a>)}</div><section className="queue-attention"><h2 ref={resultsHeading} tabIndex={-1}>{t('attention')}</h2>{group('overdue', 'h3')}{group('today', 'h3')}</section>{group('upcoming', 'h2')}<details className="queue-secondary" data-testid="queue-secondary" open={showSecondary || undefined}><summary>{c.more}</summary>{secondaryBuckets.map(bucket => group(bucket, 'h2'))}</details></>}</>}</section>;
 }

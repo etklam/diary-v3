@@ -83,7 +83,7 @@ test('library search, symbol filter, review status and sorting narrow results', 
   ]);
 
   await page.goto('/diaries');
-  await expect(page.getByRole('status')).toContainText('7 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('7 diaries');
   await expect(libraryRow(page)).toHaveCount(7);
   // Rows carry the investment context without opening the diary.
   await expect(libraryRow(page).first()).toContainText('NVDA');
@@ -93,29 +93,29 @@ test('library search, symbol filter, review status and sorting narrow results', 
   // Free text reaches the reasoning fields and tags.
   await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('stretched');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('0 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('0 diaries');
   // thesis search
   await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('demand stays intact');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('1 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('1 diaries');
   // tag search
   await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('長期');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('1 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('1 diaries');
   await expect(libraryRow(page).first()).toContainText('投資決策');
 
   // Symbol filter is exact and case-insensitive, and different from text search.
   await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('');
   await page.getByRole('textbox', { name: 'Company symbol', exact: true }).fill('nvda');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('4 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('4 diaries');
   await expect(page.locator('.diary-library-symbol')).toHaveText(['NVDA', 'NVDA', 'NVDA', 'NVDA']);
 
   // Review status filter.
   await page.getByRole('textbox', { name: 'Company symbol', exact: true }).fill('');
   await page.getByRole('combobox', { name: 'Review status', exact: true }).selectOption('pending');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('3 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('3 diaries');
 
   // Date range and sort live behind the advanced disclosure.
   await page.getByTestId('diary-advanced').locator('summary').click();
@@ -123,12 +123,12 @@ test('library search, symbol filter, review status and sorting narrow results', 
   await page.getByLabel('Through date', { exact: true }).fill('2026-08-31');
   await page.getByRole('combobox', { name: 'Sort diaries', exact: true }).selectOption('title-asc');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('2 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('2 diaries');
   await expect(libraryRow(page).first()).toContainText('August thesis review');
 
   // Clear filters restores everything.
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('7 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('7 diaries');
 });
 
 test('filter changes reset the page and Back preserves the filtered context', async ({ page }) => {
@@ -153,7 +153,7 @@ test('filter changes reset the page and Back preserves the filtered context', as
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(page).not.toHaveURL(/page=2/);
   await expect(libraryRow(page)).toHaveCount(1);
-  await expect(page.getByRole('status')).toContainText('1 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('1 diaries');
 
   // Pagination keeps the active filter.
   await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('Entry');
@@ -264,7 +264,7 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
 
   const started = Date.now();
   await page.goto('/diaries');
-  await expect(page.getByRole('status')).toContainText('120 diaries');
+  await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('120 diaries');
   const firstLoad = Date.now() - started;
   expect(listRequests.length).toBeLessThanOrEqual(2); // one per load; dev StrictMode may double-fire
 
@@ -285,7 +285,7 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
       await page.getByRole('searchbox', { name: 'Search title or content', exact: true }).fill('規模測試');
       await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
     },
-    async () => { await expect(page.getByRole('status')).toContainText('40 diaries'); },
+    async () => { await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('40 diaries'); },
   );
   await expectSingleRequest(
     async () => {
@@ -293,14 +293,14 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
       await page.getByRole('textbox', { name: 'Company symbol', exact: true }).fill('MSFT');
       await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
     },
-    async () => { await expect(page.getByRole('status')).toContainText('4 diaries'); },
+    async () => { await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('4 diaries'); },
   );
   await expectSingleRequest(
     async () => {
       await page.getByRole('textbox', { name: 'Company symbol', exact: true }).fill('');
       await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
     },
-    async () => { await expect(page.getByRole('status')).toContainText('120 diaries'); },
+    async () => { await expect(page.locator('.diary-library p.muted[role="status"]')).toContainText('120 diaries'); },
   );
   await expectSingleRequest(
     async () => { await page.getByRole('button', { name: 'Next page', exact: true }).click(); },

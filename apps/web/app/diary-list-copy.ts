@@ -7,7 +7,7 @@ export const diaryListCopy = {
     moreFilters: 'More filters', activeFilters: 'filters active', context: 'Investment context', trades: 'trades',
     apply: 'Apply filters', reset: 'Clear filters', results: 'Matching diaries', empty: 'No diaries match these filters.',
     first: 'Your diary library is empty.', start: 'Write your first diary', previous: 'Previous page', next: 'Next page',
-    page: 'Page', of: 'of', total: 'diaries', invalid: 'Check the filters and try again.', tags: 'Tags',
+    page: 'Page', of: 'of', total: 'diaries', invalid: 'Check the filters and try again.', tags: 'Tags', refreshing: 'Updating the library…', refreshingQuery: 'Updating results for the selected filters…',
   },
   'zh-TW': {
     title: '日記資料庫', intro: '透過文字、日期或複盤狀態，找回當時記錄的判斷。',
@@ -17,7 +17,7 @@ export const diaryListCopy = {
     moreFilters: '更多篩選', activeFilters: '項篩選生效中', context: '投資脈絡', trades: '筆交易',
     apply: '套用篩選', reset: '清除篩選', results: '符合條件的日記', empty: '沒有符合這些條件的日記。',
     first: '日記資料庫還未有記錄。', start: '寫第一篇日記', previous: '上一頁', next: '下一頁',
-    page: '第', of: '／', total: '篇日記', invalid: '請檢查篩選條件後再試。', tags: '標籤',
+    page: '第', of: '／', total: '篇日記', invalid: '請檢查篩選條件後再試。', tags: '標籤', refreshing: '正在更新日記資料庫…', refreshingQuery: '正在按目前篩選條件更新結果…',
   },
   'zh-CN': {
     title: '日记资料库', intro: '通过文字、日期或复盘状态，找回当时记录的判断。',
@@ -27,6 +27,6 @@ export const diaryListCopy = {
     moreFilters: '更多筛选', activeFilters: '项筛选生效中', context: '投资脉络', trades: '笔交易',
     apply: '应用筛选', reset: '清除筛选', results: '符合条件的日记', empty: '没有符合这些条件的日记。',
     first: '日记资料库还没有记录。', start: '写第一篇日记', previous: '上一页', next: '下一页',
-    page: '第', of: '／', total: '篇日记', invalid: '请检查筛选条件后重试。', tags: '标签',
+    page: '第', of: '／', total: '篇日记', invalid: '请检查筛选条件后重试。', tags: '标签', refreshing: '正在更新日记资料库…', refreshingQuery: '正在按当前筛选条件更新结果…',
   },
 }

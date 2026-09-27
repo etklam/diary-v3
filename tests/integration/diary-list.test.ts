@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { diaries, diaryStocks, stocks } from '@diary/db'
 import { authUserResponseSchema } from '@diary/contracts'
 import { diaryListResponseSchema } from '../../packages/contracts/src/diary-list'
+import { diarySummarySchema } from '@diary/contracts/diary-summary'
 import { createApp } from '../../apps/api/src/app'
 import { provisionTestDatabase } from '../support/database'
 import { BrowserSession } from '../support/browser-session'
@@ -143,4 +144,23 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
     expect((await page(a.browser, 'symbol=NOPE')).data).toEqual([])
     expect((await page(a.browser, 'symbol=NOPE')).pagination.total).toBe(0)
   })
+})
+
+it('keeps legacy strict summaries unchanged and bounds opt-in late search matches', async () => {
+  const { browser, userId } = await owner()
+  const query = 'q'.repeat(500)
+  await database.db.insert(diaries).values({ userId, date: '2026-02-01', title: 'Synthetic snippet', content: 'prefix '.repeat(100) + query + '🙂'.repeat(100) })
+  const path = `/api/diaries/summary?${new URLSearchParams({ search: query })}`
+  const legacy = await (await browser.request(path)).json()
+  expect(legacy.data).toHaveLength(1)
+  expect(diarySummarySchema.omit({ searchSnippet: true }).strict().safeParse(legacy.data[0]).success).toBe(true)
+  expect(legacy.data[0]).not.toHaveProperty('searchSnippet')
+  const response = await browser.request(path, { headers: { 'x-diary-search-snippet': '1' } })
+  expect(response.status).toBe(200)
+  const result = diarySummarySchema.parse((await response.json()).data[0])
+  expect(result.searchSnippet?.source).toBe('content')
+  expect(result.searchSnippet?.text.slice(result.searchSnippet.matchStart, result.searchSnippet.matchEnd)).toBe(query)
+  expect(result.searchSnippet!.text.length).toBeLessThanOrEqual(502)
+  const unfiltered = await (await browser.request('/api/diaries/summary', { headers: { 'x-diary-search-snippet': '1' } })).json()
+  expect(unfiltered.data[0]).not.toHaveProperty('searchSnippet')
 })

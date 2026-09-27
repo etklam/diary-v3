@@ -387,7 +387,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   {!quick&&<AlertFields value={reminders} pending={pending} editing={Boolean(id)} onChange={setReminders}/>}
   {transactionError&&<p className="error" role="alert">{transactionError}</p>}
   {invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}
-  <FailureNotice failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:error?.code==='DIARY_REVISION_CONFLICT'?writeRecoveryCopy[locale].revisionConflict:undefined}/>
+  <FailureNotice focusField failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:error?.code==='DIARY_REVISION_CONFLICT'?writeRecoveryCopy[locale].revisionConflict:undefined}/>
   </fieldset>
   {dateConflict&&<section className="editor-conflict" role="region" aria-labelledby="diary-conflict-title">
    <h2 id="diary-conflict-title">{labels.conflictTitle}</h2>

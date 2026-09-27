@@ -1800,6 +1800,7 @@
                   "WATCHLIST_ITEM_NOT_FOUND",
                   "INVESTMENT_THESIS_NOT_FOUND",
                   "INVESTMENT_THESIS_NOT_ACTIVE",
+                  "INVESTMENT_THESIS_REVISION_CONFLICT",
                   "STOCK_NOTE_NOT_FOUND",
                   "STOCK_NOTE_ACCESS_DENIED",
                   "PARTNER_LINK_ACCESS_DENIED",
@@ -2936,6 +2937,45 @@
                 "alertCount": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "searchSnippet": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "title",
+                        "content",
+                        "thesis",
+                        "risk",
+                        "execution",
+                        "tag",
+                        "symbol"
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 502
+                    },
+                    "matchStart": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "matchEnd": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "text",
+                    "matchStart",
+                    "matchEnd"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -2988,6 +3028,192 @@
         "required": [
           "data",
           "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "DiarySavedView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 19,
+            "pattern": "^[1-9]\\d*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "symbol": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20
+              },
+              "dateFrom": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "dateTo": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "reviewStatus": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "pending",
+                  "reviewed"
+                ]
+              },
+              "sortBy": {
+                "type": "string",
+                "enum": [
+                  "date-desc",
+                  "date-asc",
+                  "title-asc",
+                  "title-desc"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "query",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "DiarySavedViewListResponse": {
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "version": {
+                  "type": "number",
+                  "enum": [
+                    1
+                  ]
+                },
+                "query": {
+                  "type": "object",
+                  "properties": {
+                    "search": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "symbol": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    },
+                    "dateFrom": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "dateTo": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "reviewStatus": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "pending",
+                        "reviewed"
+                      ]
+                    },
+                    "sortBy": {
+                      "type": "string",
+                      "enum": [
+                        "date-desc",
+                        "date-asc",
+                        "title-asc",
+                        "title-desc"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "version",
+                "query",
+                "createdAt",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "views"
+        ],
+        "additionalProperties": false
+      },
+      "DiarySavedViewDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
         ],
         "additionalProperties": false
       },
@@ -6109,6 +6335,874 @@
         ],
         "additionalProperties": false
       },
+      "TradePlanExecutionComparison": {
+        "type": "object",
+        "properties": {
+          "baseline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 19,
+                "pattern": "^[1-9]\\d*$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "confirmedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "planUpdatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "snapshot": {
+                "type": "object",
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "setupType": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "entryPrice": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "entryZoneLow": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "entryZoneHigh": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "stopLoss": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "targetPrice": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "maxPositionSize": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^\\d+(?:\\.\\d+)?$"
+                  },
+                  "maxPositionSizeUnit": {
+                    "type": "string",
+                    "enum": [
+                      "unknown"
+                    ]
+                  },
+                  "invalidationCondition": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "symbol",
+                  "setupType",
+                  "entryPrice",
+                  "entryZoneLow",
+                  "entryZoneHigh",
+                  "stopLoss",
+                  "targetPrice",
+                  "maxPositionSize",
+                  "maxPositionSizeUnit",
+                  "invalidationCondition"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "confirmedAt",
+              "planUpdatedAt",
+              "snapshot"
+            ],
+            "additionalProperties": false
+          },
+          "baselineHistory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "confirmedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "planUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "snapshot": {
+                  "type": "object",
+                  "properties": {
+                    "symbol": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    },
+                    "setupType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "entryPrice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "entryZoneLow": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "entryZoneHigh": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "stopLoss": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "targetPrice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "maxPositionSize": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "maxPositionSizeUnit": {
+                      "type": "string",
+                      "enum": [
+                        "unknown"
+                      ]
+                    },
+                    "invalidationCondition": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "symbol",
+                    "setupType",
+                    "entryPrice",
+                    "entryZoneLow",
+                    "entryZoneHigh",
+                    "stopLoss",
+                    "targetPrice",
+                    "maxPositionSize",
+                    "maxPositionSizeUnit",
+                    "invalidationCondition"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "confirmedAt",
+                "planUpdatedAt",
+                "snapshot"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 20
+          },
+          "planSnapshot": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "symbol": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              "setupType": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "entryPrice": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "entryZoneLow": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "entryZoneHigh": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "stopLoss": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "targetPrice": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "maxPositionSize": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^\\d+(?:\\.\\d+)?$"
+              },
+              "maxPositionSizeUnit": {
+                "type": "string",
+                "enum": [
+                  "unknown"
+                ]
+              },
+              "invalidationCondition": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "symbol",
+              "setupType",
+              "entryPrice",
+              "entryZoneLow",
+              "entryZoneHigh",
+              "stopLoss",
+              "targetPrice",
+              "maxPositionSize",
+              "maxPositionSizeUnit",
+              "invalidationCondition"
+            ],
+            "additionalProperties": false
+          },
+          "executionRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "baselineStatus": {
+            "type": "string",
+            "enum": [
+              "unconfirmed",
+              "current",
+              "outdated"
+            ]
+          },
+          "comparisonTiming": {
+            "type": "string",
+            "enum": [
+              "pre_execution",
+              "retrospective",
+              "unknown"
+            ]
+          },
+          "selectedTransactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "relationId": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "transactionId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "diaryId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "symbol": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "BUY",
+                    "SELL"
+                  ]
+                },
+                "quantity": {
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?$"
+                },
+                "price": {
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?$"
+                },
+                "tradeDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "selectionStatus": {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "changed",
+                    "missing"
+                  ]
+                },
+                "snapshot": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "diaryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "symbol": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "BUY",
+                        "SELL"
+                      ]
+                    },
+                    "quantity": {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "price": {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "tradeDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "diaryId",
+                    "symbol",
+                    "type",
+                    "quantity",
+                    "price",
+                    "tradeDate"
+                  ],
+                  "additionalProperties": false
+                },
+                "current": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "diaryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "symbol": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "BUY",
+                        "SELL"
+                      ]
+                    },
+                    "quantity": {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "price": {
+                      "type": "string",
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "tradeDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "diaryId",
+                    "symbol",
+                    "type",
+                    "quantity",
+                    "price",
+                    "tradeDate"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "relationId",
+                "id",
+                "transactionId",
+                "diaryId",
+                "symbol",
+                "type",
+                "quantity",
+                "price",
+                "tradeDate",
+                "selectionStatus",
+                "snapshot",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 100
+          },
+          "invalidatedSelectionCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "deviationReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "comparisonStatus": {
+            "type": "string",
+            "enum": [
+              "unconfirmed",
+              "ready",
+              "unavailable",
+              "outdated",
+              "conflict"
+            ]
+          },
+          "buyQuantity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d+(?:\\.\\d+)?$"
+          },
+          "averageExecutionPrice": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d+(?:\\.\\d+)?$"
+          },
+          "entryPriceDelta": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^-?\\d+(?:\\.\\d+)?$"
+          },
+          "entryPriceDeltaPercent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^-?\\d+(?:\\.\\d+)?$"
+          },
+          "entryZoneRelation": {
+            "type": "string",
+            "enum": [
+              "inside",
+              "below",
+              "above",
+              "unavailable"
+            ]
+          },
+          "maxPositionSizeUnit": {
+            "type": "string",
+            "enum": [
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "baseline",
+          "baselineHistory",
+          "planSnapshot",
+          "executionRevision",
+          "baselineStatus",
+          "comparisonTiming",
+          "selectedTransactions",
+          "invalidatedSelectionCount",
+          "deviationReason",
+          "comparisonStatus",
+          "buyQuantity",
+          "averageExecutionPrice",
+          "entryPriceDelta",
+          "entryPriceDeltaPercent",
+          "entryZoneRelation",
+          "maxPositionSizeUnit"
+        ],
+        "additionalProperties": false
+      },
+      "TradePlanExecutionCandidatesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "diaryId": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "symbol": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "BUY",
+                    "SELL"
+                  ]
+                },
+                "quantity": {
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?$"
+                },
+                "price": {
+                  "type": "string",
+                  "pattern": "^\\d+(?:\\.\\d+)?$"
+                },
+                "tradeDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "linkedPlanId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "symbol",
+                "type",
+                "quantity",
+                "price",
+                "tradeDate",
+                "linkedPlanId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "page",
+              "limit",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "TradePlanExecutionBaselineHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "confirmedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "planUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "snapshot": {
+                  "type": "object",
+                  "properties": {
+                    "symbol": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    },
+                    "setupType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "entryPrice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "entryZoneLow": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "entryZoneHigh": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "stopLoss": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "targetPrice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "maxPositionSize": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d+(?:\\.\\d+)?$"
+                    },
+                    "maxPositionSizeUnit": {
+                      "type": "string",
+                      "enum": [
+                        "unknown"
+                      ]
+                    },
+                    "invalidationCondition": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "symbol",
+                    "setupType",
+                    "entryPrice",
+                    "entryZoneLow",
+                    "entryZoneHigh",
+                    "stopLoss",
+                    "targetPrice",
+                    "maxPositionSize",
+                    "maxPositionSizeUnit",
+                    "invalidationCondition"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "confirmedAt",
+                "planUpdatedAt",
+                "snapshot"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "page",
+              "limit",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
       "PortfolioValuationResponse": {
         "type": "object",
         "properties": {
@@ -6391,6 +7485,10 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "pinned": {
+                  "type": "boolean",
+                  "default": false
+                },
                 "updatedAt": {
                   "type": "string",
                   "format": "date-time"
@@ -6517,6 +7615,10 @@
             "type": "integer",
             "minimum": 0
           },
+          "pinned": {
+            "type": "boolean",
+            "default": false
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6534,6 +7636,45 @@
           "symbol",
           "sortOrder",
           "status"
+        ],
+        "additionalProperties": false
+      },
+      "StockWatchlistReorderResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "sortOrder"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "success",
+          "items"
         ],
         "additionalProperties": false
       },
@@ -18766,6 +19907,14 @@
             "required": false,
             "name": "reviewStatus",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-diary-search-snippet",
+            "in": "header"
           }
         ],
         "responses": {
@@ -18791,6 +19940,410 @@
           },
           "401": {
             "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/saved-views": {
+      "get": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diarySavedViewsList",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner saved diary views",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiarySavedViewListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diarySavedViewCreate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Create a named diary view",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "query": {
+                    "type": "object",
+                    "properties": {
+                      "search": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "dateFrom": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      "dateTo": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      "reviewStatus": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "pending",
+                          "reviewed"
+                        ]
+                      },
+                      "sortBy": {
+                        "type": "string",
+                        "enum": [
+                          "date-desc",
+                          "date-asc",
+                          "title-asc",
+                          "title-desc"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "name",
+                  "query"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created owner saved diary view",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiarySavedView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/saved-views/{id}": {
+      "patch": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diarySavedViewUpdate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "Rename or update a saved diary view",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "query": {
+                    "type": "object",
+                    "properties": {
+                      "search": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "dateFrom": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      "dateTo": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                      },
+                      "reviewStatus": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "pending",
+                          "reviewed"
+                        ]
+                      },
+                      "sortBy": {
+                        "type": "string",
+                        "enum": [
+                          "date-desc",
+                          "date-asc",
+                          "title-asc",
+                          "title-desc"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated owner saved diary view",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiarySavedView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diarySavedViewDelete",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted owner saved diary view",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiarySavedViewDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -20180,6 +21733,571 @@
         }
       }
     },
+    "/api/trade-plans/{id}/execution": {
+      "get": {
+        "tags": [
+          "Trade Plans"
+        ],
+        "operationId": "tradePlanExecutionGet",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner plan execution comparison",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePlanExecutionComparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Trade Plans"
+        ],
+        "operationId": "tradePlanExecutionUpdate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transactionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "maxItems": 100
+                  },
+                  "removeRelationIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 19,
+                      "pattern": "^[1-9]\\d*$"
+                    },
+                    "maxItems": 100
+                  },
+                  "deviationReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2000
+                  },
+                  "baselineVersion": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "expectedExecutionRevision": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "transactionIds",
+                  "baselineVersion",
+                  "expectedExecutionRevision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated owner plan execution selection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePlanExecutionComparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trade-plans/{id}/execution-baseline": {
+      "post": {
+        "tags": [
+          "Trade Plans"
+        ],
+        "operationId": "tradePlanExecutionBaselineCreate",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedPlanUpdatedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "expectedBaselineVersion": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "expectedExecutionRevision": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "expectedPlanUpdatedAt",
+                  "expectedBaselineVersion",
+                  "expectedExecutionRevision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed owner plan execution baseline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePlanExecutionComparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trade-plans/{id}/execution-candidates": {
+      "get": {
+        "tags": [
+          "Trade Plans"
+        ],
+        "operationId": "tradePlanExecutionCandidatesList",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner execution candidates for a plan symbol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePlanExecutionCandidatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trade-plans/{id}/execution-baselines": {
+      "get": {
+        "tags": [
+          "Trade Plans"
+        ],
+        "operationId": "tradePlanExecutionBaselineHistoryList",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner immutable plan execution baseline history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradePlanExecutionBaselineHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stocks/portfolio": {
       "get": {
         "tags": [
@@ -20357,6 +22475,16 @@
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-watchlist-features",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "First 100 active owner items ordered by sortOrder and ID",
@@ -20403,6 +22531,16 @@
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-watchlist-features",
+            "in": "header"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -20414,6 +22552,14 @@
                     "minLength": 1,
                     "maxLength": 32,
                     "pattern": "^[A-Za-z0-9.]+$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "pinned": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -20502,6 +22648,14 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-watchlist-features",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -20521,6 +22675,9 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 10000
+                  },
+                  "pinned": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -20661,6 +22818,103 @@
           },
           "403": {
             "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/watchlist/reorder": {
+      "post": {
+        "tags": [
+          "Stocks"
+        ],
+        "operationId": "stockWatchlistReorder",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Move one owner item within its pinned group",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "maxLength": 19,
+                    "pattern": "^[1-9]\\d*$"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "up",
+                      "down"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "direction"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated owner watchlist order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockWatchlistReorderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {
@@ -22359,6 +24613,13 @@
                       "ACTIVE",
                       "ARCHIVED"
                     ]
+                  },
+                  "expectedUpdatedAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
                   }
                 },
                 "additionalProperties": false
@@ -22610,6 +24871,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "expectedUpdatedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
                   "outcome": {
                     "type": "string",
                     "enum": [
@@ -25974,6 +28239,448 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/portfolio/ledger": {
+      "get": {
+        "tags": [
+          "Stocks"
+        ],
+        "operationId": "portfolioLedgerGet",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner ledger holdings, exposure and recent trades from one replay without provider requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "holdings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "symbol": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 20
+                          },
+                          "quantity": {
+                            "type": "string",
+                            "pattern": "^\\d+(?:\\.\\d+)?$"
+                          },
+                          "avgCost": {
+                            "type": "string",
+                            "pattern": "^\\d+(?:\\.\\d+)?$"
+                          },
+                          "totalCost": {
+                            "type": "string",
+                            "pattern": "^\\d+(?:\\.\\d+)?$"
+                          }
+                        },
+                        "required": [
+                          "symbol",
+                          "quantity",
+                          "avgCost",
+                          "totalCost"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "exposure": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "ready"
+                              ]
+                            },
+                            "data": {
+                              "type": "object",
+                              "properties": {
+                                "exposure": {
+                                  "type": "object",
+                                  "properties": {
+                                    "highBetaPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "coreIndexPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "megaCapPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "singleStockPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "defensivePct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "cashProxyPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "unknownPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "largestTheme": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "enum": [
+                                        "core_index",
+                                        "high_beta",
+                                        "mega_cap",
+                                        "single_stock",
+                                        "defensive",
+                                        "cash_proxy",
+                                        "unknown",
+                                        null
+                                      ]
+                                    },
+                                    "concentrationWarning": {
+                                      "type": "boolean"
+                                    },
+                                    "totalValue": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "skippedCount": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    }
+                                  },
+                                  "required": [
+                                    "highBetaPct",
+                                    "coreIndexPct",
+                                    "megaCapPct",
+                                    "singleStockPct",
+                                    "defensivePct",
+                                    "cashProxyPct",
+                                    "unknownPct",
+                                    "largestTheme",
+                                    "concentrationWarning",
+                                    "totalValue",
+                                    "skippedCount"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "gaps": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "bucket": {
+                                        "type": "string",
+                                        "enum": [
+                                          "highBeta",
+                                          "coreIndex",
+                                          "cash"
+                                        ]
+                                      },
+                                      "currentPct": {
+                                        "type": "number",
+                                        "minimum": 0
+                                      },
+                                      "targetPct": {
+                                        "type": "number",
+                                        "minimum": 0
+                                      },
+                                      "gapPct": {
+                                        "type": "number"
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "underweight",
+                                          "balanced",
+                                          "overweight"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "bucket",
+                                      "currentPct",
+                                      "targetPct",
+                                      "gapPct",
+                                      "status"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "maxItems": 3
+                                },
+                                "suggestedAllocation": {
+                                  "type": "object",
+                                  "properties": {
+                                    "highBetaTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "coreIndexTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "cashTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    }
+                                  },
+                                  "required": [
+                                    "highBetaTargetPct",
+                                    "coreIndexTargetPct",
+                                    "cashTargetPct"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "betaAllocation": {
+                                  "type": "object",
+                                  "properties": {
+                                    "highBetaTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "coreIndexTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "cashTargetPct": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "suggestedMode": {
+                                      "type": "string",
+                                      "enum": [
+                                        "aggressive",
+                                        "balanced",
+                                        "defensive",
+                                        "capital_preservation",
+                                        "unknown"
+                                      ]
+                                    },
+                                    "suggestedBetaLevel": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "explanation": {
+                                      "type": "string"
+                                    },
+                                    "warnings": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "highBetaTargetPct",
+                                    "coreIndexTargetPct",
+                                    "cashTargetPct",
+                                    "suggestedMode",
+                                    "suggestedBetaLevel",
+                                    "explanation",
+                                    "warnings"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "marketState": {
+                                  "type": "string",
+                                  "enum": [
+                                    "risk_on",
+                                    "neutral",
+                                    "defensive",
+                                    "risk_off",
+                                    "unknown"
+                                  ]
+                                },
+                                "lastUpdated": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "marketStateAsOfDate": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                                },
+                                "summaryAsOfDate": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                                }
+                              },
+                              "required": [
+                                "exposure",
+                                "gaps",
+                                "suggestedAllocation",
+                                "betaAllocation",
+                                "marketState",
+                                "lastUpdated",
+                                "marketStateAsOfDate",
+                                "summaryAsOfDate"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "data"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "failed"
+                              ]
+                            },
+                            "error": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "enum": [
+                                    "SYS_INTERNAL_ERROR"
+                                  ]
+                                },
+                                "requestId": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "requestId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "error"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "recent": {
+                      "type": "object",
+                      "properties": {
+                        "trades": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 20
+                              },
+                              "sellDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "sellQuantity": {
+                                "type": "string",
+                                "pattern": "^\\d+(?:\\.\\d+)?$"
+                              },
+                              "realizedPnL": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "realizedPnLPct": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "sellDate",
+                              "sellQuantity",
+                              "realizedPnL",
+                              "realizedPnLPct"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 100
+                        }
+                      },
+                      "required": [
+                        "trades"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "holdings",
+                    "exposure",
+                    "recent",
+                    "asOf"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -46257,6 +48964,1503 @@
           },
           "503": {
             "description": "HTTP 503 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/{id}/review-workflow": {
+      "get": {
+        "tags": [
+          "Review"
+        ],
+        "operationId": "diaryReviewWorkflowGet",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versioned owner review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "review": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "content": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "thesis": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "risk": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "execution": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewDueAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewStatus": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "pending",
+                            "reviewed"
+                          ]
+                        },
+                        "reviewedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewOutcome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "INTACT",
+                            "PARTIAL",
+                            "INVALIDATED",
+                            "UNCLEAR",
+                            null
+                          ]
+                        },
+                        "reviewSummary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewLearning": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewAdjustment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "transactions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "BUY",
+                                  "SELL"
+                                ]
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "price": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "tradeDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "strategy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "emotion": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "type",
+                              "quantity",
+                              "price",
+                              "tradeDate",
+                              "notes",
+                              "strategy",
+                              "emotion"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "tradePlans": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "setupType": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "entryPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneLow": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneHigh": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "stopLoss": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "targetPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "maxPositionSize": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "invalidationCondition": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "draft",
+                                  "active",
+                                  "closed",
+                                  "cancelled"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "setupType",
+                              "entryPrice",
+                              "entryZoneLow",
+                              "entryZoneHigh",
+                              "stopLoss",
+                              "targetPrice",
+                              "maxPositionSize",
+                              "invalidationCondition",
+                              "notes",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "date",
+                        "content",
+                        "tags",
+                        "thesis",
+                        "risk",
+                        "execution",
+                        "reviewDueAt",
+                        "reviewStatus",
+                        "reviewedAt",
+                        "reviewOutcome",
+                        "reviewSummary",
+                        "reviewLearning",
+                        "reviewAdjustment",
+                        "transactions",
+                        "tradePlans"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "review",
+                    "revision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Review"
+        ],
+        "operationId": "diaryReviewWorkflowSave",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "review": {
+                    "type": "object",
+                    "properties": {
+                      "reviewOutcome": {
+                        "type": "string",
+                        "enum": [
+                          "INTACT",
+                          "PARTIAL",
+                          "INVALIDATED",
+                          "UNCLEAR"
+                        ]
+                      },
+                      "reviewSummary": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 10000
+                      },
+                      "reviewLearning": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 10000
+                      },
+                      "reviewAdjustment": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 10000
+                      }
+                    },
+                    "required": [
+                      "reviewOutcome"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "review",
+                  "expectedRevision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed review and new revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "review": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "content": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "thesis": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "risk": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "execution": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewDueAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewStatus": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "pending",
+                            "reviewed"
+                          ]
+                        },
+                        "reviewedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewOutcome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "INTACT",
+                            "PARTIAL",
+                            "INVALIDATED",
+                            "UNCLEAR",
+                            null
+                          ]
+                        },
+                        "reviewSummary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewLearning": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewAdjustment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "transactions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "BUY",
+                                  "SELL"
+                                ]
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "price": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "tradeDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "strategy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "emotion": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "type",
+                              "quantity",
+                              "price",
+                              "tradeDate",
+                              "notes",
+                              "strategy",
+                              "emotion"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "tradePlans": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "setupType": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "entryPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneLow": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneHigh": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "stopLoss": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "targetPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "maxPositionSize": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "invalidationCondition": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "draft",
+                                  "active",
+                                  "closed",
+                                  "cancelled"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "setupType",
+                              "entryPrice",
+                              "entryZoneLow",
+                              "entryZoneHigh",
+                              "stopLoss",
+                              "targetPrice",
+                              "maxPositionSize",
+                              "invalidationCondition",
+                              "notes",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "date",
+                        "content",
+                        "tags",
+                        "thesis",
+                        "risk",
+                        "execution",
+                        "reviewDueAt",
+                        "reviewStatus",
+                        "reviewedAt",
+                        "reviewOutcome",
+                        "reviewSummary",
+                        "reviewLearning",
+                        "reviewAdjustment",
+                        "transactions",
+                        "tradePlans"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "review",
+                    "revision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/{id}/review-schedule": {
+      "patch": {
+        "tags": [
+          "Review"
+        ],
+        "operationId": "diaryReviewSchedule",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reviewDueAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "reviewDueAt",
+                  "expectedRevision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schedule-only update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "review": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "content": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "thesis": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "risk": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "execution": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewDueAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewStatus": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "pending",
+                            "reviewed"
+                          ]
+                        },
+                        "reviewedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "reviewOutcome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "INTACT",
+                            "PARTIAL",
+                            "INVALIDATED",
+                            "UNCLEAR",
+                            null
+                          ]
+                        },
+                        "reviewSummary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewLearning": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewAdjustment": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "transactions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "BUY",
+                                  "SELL"
+                                ]
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "price": {
+                                "type": "string",
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "tradeDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "strategy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "emotion": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "type",
+                              "quantity",
+                              "price",
+                              "tradeDate",
+                              "notes",
+                              "strategy",
+                              "emotion"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "tradePlans": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "maxLength": 19,
+                                "pattern": "^[1-9]\\d*$"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "setupType": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "entryPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneLow": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "entryZoneHigh": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "stopLoss": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "targetPrice": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "maxPositionSize": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?\\d+(?:\\.\\d+)?$"
+                              },
+                              "invalidationCondition": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "notes": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "draft",
+                                  "active",
+                                  "closed",
+                                  "cancelled"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "symbol",
+                              "setupType",
+                              "entryPrice",
+                              "entryZoneLow",
+                              "entryZoneHigh",
+                              "stopLoss",
+                              "targetPrice",
+                              "maxPositionSize",
+                              "invalidationCondition",
+                              "notes",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "date",
+                        "content",
+                        "tags",
+                        "thesis",
+                        "risk",
+                        "execution",
+                        "reviewDueAt",
+                        "reviewStatus",
+                        "reviewedAt",
+                        "reviewOutcome",
+                        "reviewSummary",
+                        "reviewLearning",
+                        "reviewAdjustment",
+                        "transactions",
+                        "tradePlans"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "review",
+                    "revision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stocks/{symbol}/thesis/review-schedule": {
+      "patch": {
+        "tags": [
+          "Review"
+        ],
+        "operationId": "thesisReviewSchedule",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9.]+$"
+            },
+            "required": true,
+            "name": "symbol",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reviewDueAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "expectedUpdatedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "reviewDueAt",
+                  "expectedUpdatedAt"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schedule-only update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "thesis": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "stockId": {
+                          "type": "string",
+                          "maxLength": 19,
+                          "pattern": "^[1-9]\\d*$"
+                        },
+                        "symbol": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 32,
+                          "pattern": "^[A-Za-z0-9.]+$"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "ACTIVE",
+                            "ARCHIVED"
+                          ]
+                        },
+                        "health": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "healthy",
+                            "needs_review",
+                            "invalidated",
+                            "archived"
+                          ]
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "whyIOwnIt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "growthDrivers": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "risks": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "invalidationConditions": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "expectedHoldingPeriod": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reviewDueAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "lastReviewedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "latestReviewOutcome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "INTACT",
+                            "PARTIAL",
+                            "INVALIDATED",
+                            "UNCLEAR",
+                            null
+                          ]
+                        },
+                        "activatedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "archivedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "stockId",
+                        "symbol",
+                        "status",
+                        "health",
+                        "summary",
+                        "whyIOwnIt",
+                        "growthDrivers",
+                        "risks",
+                        "invalidationConditions",
+                        "expectedHoldingPeriod",
+                        "reviewDueAt",
+                        "lastReviewedAt",
+                        "latestReviewOutcome",
+                        "activatedAt",
+                        "archivedAt",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "thesis"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
             "content": {
               "application/json": {
                 "schema": {

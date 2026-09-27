@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import {
   holdingsResponseSchema,
   ledgerTransactionResponseSchema,
@@ -179,7 +180,7 @@ export function listDiaryTransactions(db: Database | DbTransaction, diaryId: big
 }
 
 export async function getHoldings(db: Database | DbTransaction, userId: bigint) {
-  return holdingsResponseSchema.parse(replayRows(await readUserLedger(db, userId)).holdings)
+  return holdingsResponseSchema.parse((await readLedgerSnapshot(db, userId)).holdings)
 }
 export const getBuyHoldings = getHoldings
 
@@ -189,8 +190,18 @@ export async function getRecentClosedTrades(
   query: RecentClosedTradesQuery,
   now: Date,
 ) {
+  return recentClosedTradesFromSnapshot(await readLedgerSnapshot(db, userId), query, now)
+}
+
+export async function readLedgerSnapshot(db: Database | DbTransaction, userId: bigint) {
+  const rows = await readUserLedger(db, userId)
+  const revision = createHash('sha256').update(JSON.stringify(rows, (_key, value) => typeof value === 'bigint' ? String(value) : value)).digest('hex')
+  return { ...replayRows(rows), revision }
+}
+
+export function recentClosedTradesFromSnapshot(snapshot: Awaited<ReturnType<typeof readLedgerSnapshot>>, query: RecentClosedTradesQuery, now: Date) {
   const cutoff = new Date(now.getTime() - query.days * 86_400_000)
-  const { closedTrades } = replayRows(await readUserLedger(db, userId))
+  const { closedTrades } = snapshot
   const trades = closedTrades.filter(trade => trade.sellDate >= cutoff)
     .sort((left, right) => {
       const dateDifference = right.sellDate.getTime() - left.sellDate.getTime()

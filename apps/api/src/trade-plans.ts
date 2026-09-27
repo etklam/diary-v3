@@ -16,6 +16,7 @@ import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import type { AppEnv } from './app.js'
+import { registerTradePlanExecutionRoutes } from './trade-plan-execution.js'
 
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 type TradePlanRow = typeof tradePlans.$inferSelect
@@ -209,6 +210,8 @@ export function registerTradePlanRoutes(app: Hono<AppEnv>, dependencies: {
     if (!deleted) fail(404, 'TRADE_PLAN_NOT_FOUND', `Trade plan ${id} not found`)
     return context.json(deleteTradePlanResponseSchema.parse({ success: true }))
   })
+
+  registerTradePlanExecutionRoutes(app, dependencies)
 }
 
 function writeValues(input: TradePlanInput | TradePlanUpdate) {

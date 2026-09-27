@@ -258,6 +258,7 @@ export const errorCodes = [
   'WATCHLIST_ITEM_NOT_FOUND',
   'INVESTMENT_THESIS_NOT_FOUND',
   'INVESTMENT_THESIS_NOT_ACTIVE',
+  'INVESTMENT_THESIS_REVISION_CONFLICT',
   'STOCK_NOTE_NOT_FOUND',
   'STOCK_NOTE_ACCESS_DENIED',
   'PARTNER_LINK_ACCESS_DENIED',
@@ -594,3 +595,15 @@ export type UpdateDiaryRequest = z.infer<typeof updateDiaryRequestSchema>
 export type UpdateDiaryV2Request = z.infer<typeof updateDiaryV2RequestSchema>
 export type DiaryResponse = z.infer<typeof diaryResponseSchema>
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>
+
+export {
+  DIARY_SAVED_VIEW_MAX,
+  DIARY_SAVED_VIEW_VERSION,
+  diarySavedViewQuerySchema,
+  diarySavedViewCreateRequestSchema,
+  diarySavedViewUpdateRequestSchema,
+  diarySavedViewSchema,
+  diarySavedViewListResponseSchema,
+  diarySavedViewDeleteResponseSchema,
+} from './diary-saved-view.js'
+export type { DiarySavedView, DiarySavedViewQuery } from './diary-saved-view.js'

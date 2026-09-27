@@ -8,6 +8,18 @@
   flex: 0 0 auto;
 }
 
+.watch-page,
+.watch-page .card,
+.watch-page .watch-toolbar,
+.watch-page .watch-toolbar label,
+.watch-page .watch-list-head,
+.watch-page .watch-list-head h2,
+.watch-page .watch-list-head-actions,
+.watch-page .watch-actions {
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Summary strip: three real counts derived from the watchlist payload. */
 .watch-stats {
   display: grid;
@@ -15,6 +27,11 @@
   gap: var(--space-5);
   margin-bottom: var(--space-6);
   padding: var(--space-5) var(--space-6);
+}
+
+.watch-stats .stat-label,
+.watch-stats .stat-value {
+  overflow-wrap: anywhere;
 }
 
 /* Quick add: input and CTA share one row on desktop, stack on phones. */
@@ -46,7 +63,64 @@
 
 .watch-list-head {
   align-items: end;
+  flex-wrap: wrap;
   margin-bottom: var(--space-2);
+}
+
+.watch-list-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.watch-list-head-actions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.watch-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+}
+
+.watch-toolbar input,
+.watch-toolbar select {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.watch-refreshing {
+  margin: 0;
+  color: var(--tint-info-text);
+  font-size: 0.875rem;
+}
+
+.watch-refresh-error,
+.watch-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.watch-undo {
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--tint-neutral);
+}
+
+.watch-undo .error {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .watch-sort {
@@ -81,7 +155,7 @@
 
 .watch-page .plan-list li.watch-row {
   display: grid;
-  grid-template-columns: minmax(140px, 220px) auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(140px, 220px) auto minmax(0, 1fr) minmax(260px, auto);
   align-items: center;
   gap: var(--space-3) var(--space-5);
   padding: var(--space-4) var(--space-6);
@@ -137,6 +211,20 @@
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.55;
+}
+
+.watch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.watch-actions .button,
+.watch-actions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .watch-order {
@@ -248,7 +336,8 @@
 
   .watch-meta,
   .watch-summary,
-  .watch-order {
+  .watch-actions,
+  .watch-row > [role="alert"] {
     grid-column: 1 / -1;
   }
 
@@ -258,5 +347,28 @@
 
   .watch-add-row button {
     flex: 1 1 auto;
+  }
+
+  .watch-toolbar {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .watch-list-head {
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .watch-list-head-actions {
+    justify-content: flex-start;
+  }
+
+  .watch-actions {
+    justify-content: flex-start;
+  }
+
+  .watch-actions .button,
+  .watch-actions button {
+    min-height: 44px;
   }
 }

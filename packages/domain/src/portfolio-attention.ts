@@ -37,6 +37,7 @@ export interface AttentionThesis {
   status?: string | null
   reviewDueAt?: Date | string | null
   lastReviewedAt?: Date | string | null
+  reviewPending?: boolean
   latestOutcome?: string | null
 }
 
@@ -96,18 +97,18 @@ function isOpenThesis(thesis: AttentionThesis): boolean {
 /**
  * Single-source overdue rule for thesis reviews: a thesis is overdue when its
  * due date has passed the baseline instant AND no review was recorded at or
- * after that due date. Completing an overdue review sets lastReviewedAt
+ * after that due date, or the user explicitly reopened its schedule. Completing an overdue review sets lastReviewedAt
  * without advancing reviewDueAt, so the review dashboard and the Timeline
  * attention engine must both clear the overdue signal through this predicate.
  */
 export function isThesisReviewOverdue(
-  thesis: Pick<AttentionThesis, 'reviewDueAt' | 'lastReviewedAt'>,
+  thesis: Pick<AttentionThesis, 'reviewDueAt' | 'lastReviewedAt' | 'reviewPending'>,
   baseline: Date,
 ): boolean {
   const dueAt = parseDate(thesis.reviewDueAt)
   if (!dueAt || dueAt.getTime() >= baseline.getTime()) return false
   const lastReviewedAt = parseDate(thesis.lastReviewedAt)
-  return !lastReviewedAt || lastReviewedAt.getTime() < dueAt.getTime()
+  return thesis.reviewPending === true || !lastReviewedAt || lastReviewedAt.getTime() < dueAt.getTime()
 }
 
 function addItem(

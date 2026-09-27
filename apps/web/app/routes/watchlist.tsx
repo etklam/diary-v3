@@ -1,43 +1,42 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
-import { stockWatchlistCreateRequestSchema, stockWatchlistResponseSchema, type StockWatchlistItem } from '@diary/contracts/watchlist';
-import { api, useUi } from '../ui';
-import { Icon } from '../icons';
-import { apiFailure, FailureNotice, type Failure } from '../api-error';
-import { signInPath } from '../session';
-import '../trade-plan.css';
-import '../watchlist.css';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
+import { stockWatchlistCreateRequestSchema, stockWatchlistDeleteResponseSchema, stockWatchlistMutationResponseSchema, stockWatchlistReorderResponseSchema, stockWatchlistResponseSchema, type StockWatchlistItem } from '@diary/contracts/watchlist'
+import { api, useUi } from '../ui'
+import { apiFailure, FailureNotice, type Failure } from '../api-error'
+import { getSessionRevision, signInPath, useSessionState } from '../session'
+import { watchlistCopy, type WatchlistCopy } from '../watchlist-copy'
+import '../trade-plan.css'
+import '../watchlist.css'
 
-const copy = {
-  en: { title: 'Watchlist', hint: 'Keep companies close while you develop your investment view.', holdings: 'View holdings', tracked: 'Companies', researched: 'With research', unresearched: 'Not yet researched', addTitle: 'Quick add', placeholder: 'e.g. AAPL, MSFT, 2330', symbol: 'Stock symbol', add: 'Add company', listTitle: 'Watchlist', sortLabel: 'Sort by', sortOrder: 'Custom order', byResearch: 'Latest research', bySymbol: 'Symbol', order: 'Sort order', save: 'Save order', records: 'Research records', latest: 'Latest research', none: 'No research records yet.', more: 'More actions', viewResearch: 'View research', editOrder: 'Edit order', remove: 'Remove', empty: 'No companies yet. Add a symbol to start your research.', saved: 'Watchlist updated.', limit: 'Showing up to 100 companies, ordered by sort order. Add a removed symbol again to restore it.', invalid: 'Use 1–32 letters, numbers or dots.' },
-  'zh-TW': { title: '關注清單', hint: '追蹤公司，逐步建立你的投資判斷。', holdings: '查看持倉', tracked: '關注公司', researched: '有研究記錄', unresearched: '尚未研究', addTitle: '快速加入關注標的', placeholder: '例如：AAPL、MSFT、2330', symbol: '股票代號', add: '加入公司', listTitle: '關注清單', sortLabel: '排序方式', sortOrder: '自訂排序', byResearch: '最近研究', bySymbol: '代號', order: '排序值', save: '儲存排序', records: '研究記錄', latest: '最近研究', none: '尚未有研究記錄。', more: '更多動作', viewResearch: '查看研究', editOrder: '編輯排序', remove: '移除', empty: '尚未關注公司。加入股票代號，開始研究。', saved: '已更新關注清單。', limit: '依排序值顯示最多 100 間公司。再次加入已移除的代號即可恢復。', invalid: '請輸入 1–32 個英文字母、數字或句點。' },
-  'zh-CN': { title: '关注清单', hint: '追踪公司，逐步建立你的投资判断。', holdings: '查看持仓', tracked: '关注公司', researched: '有研究记录', unresearched: '尚未研究', addTitle: '快速加入关注标的', placeholder: '例如：AAPL、MSFT、2330', symbol: '股票代码', add: '加入公司', listTitle: '关注清单', sortLabel: '排序方式', sortOrder: '自定义排序', byResearch: '最近研究', bySymbol: '代码', order: '排序值', save: '保存排序', records: '研究记录', latest: '最近研究', none: '尚未有研究记录。', more: '更多操作', viewResearch: '查看研究', editOrder: '编辑排序', remove: '移除', empty: '尚未关注公司。加入股票代码，开始研究。', saved: '已更新关注清单。', limit: '按排序值显示最多 100 间公司。再次加入已移除的代号即可恢复。', invalid: '请输入 1–32 个英文字母、数字或句点。' },
-};
+type SortMode = 'order' | 'research' | 'symbol'
+type FilterMode = 'all' | 'researched' | 'unresearched'
+type PendingAction = 'move-up' | 'move-down' | 'pin' | 'remove'
+type ReorderApi = typeof api & { POST: (path: '/api/stocks/watchlist/reorder', options: { body: { id: string; direction: 'up' | 'down' }; signal?: AbortSignal }) => Promise<{ data?: unknown; error?: unknown; response: Response }> }
+const watchlistManagementHeaders = { 'x-watchlist-features': 'management-v1' } as const
 
-type WatchlistCopy = (typeof copy)[keyof typeof copy];
-type SortMode = 'order' | 'research' | 'symbol';
+function compareCustom(a: StockWatchlistItem, b: StockWatchlistItem) {
+  return Number(b.pinned) - Number(a.pinned) || a.sortOrder - b.sortOrder || a.id.localeCompare(b.id)
+}
 
-/** One compact row: identity, research state, latest note, order control, overflow menu. */
-function WatchlistRow({ item, locale, c, busy, onSave, onRemove }: { item: StockWatchlistItem; locale: string; c: WatchlistCopy; busy: boolean; onSave: (value: number) => void; onRemove: () => void }) {
-  const [open, setOpen] = useState(false), [dirty, setDirty] = useState(false);
-  const menu = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null), order = useRef<HTMLInputElement>(null);
-  const company = `/stocks/${encodeURIComponent(item.stock.symbol)}`;
-  // Plain disclosure region: Escape and outside presses close it, Escape returns focus.
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: Event) => {
-      if (event.type === 'keydown') {
-        if ((event as KeyboardEvent).key !== 'Escape') return;
-        trigger.current?.focus();
-      } else if (menu.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-    document.addEventListener('keydown', close);
-    document.addEventListener('pointerdown', close);
-    return () => { document.removeEventListener('keydown', close); document.removeEventListener('pointerdown', close); };
-  }, [open]);
-  const occurredAt = item.latestRecord?.occurredAt;
-  const save = () => onSave(Number(order.current?.value));
+function WatchlistRow({ item, locale, c, sort, index, visibleItems, filteredView, pending, rowError, onMove, onPin, onRemove }: {
+  item: StockWatchlistItem
+  locale: string
+  c: WatchlistCopy
+  sort: SortMode
+  index: number
+  visibleItems: StockWatchlistItem[]
+  filteredView: boolean
+  pending?: PendingAction
+  rowError?: Failure
+  onMove: (direction: 'up' | 'down') => void
+  onPin: () => void
+  onRemove: () => void
+}) {
+  const canMoveUp = !filteredView && sort === 'order' && index > 0 && visibleItems[index - 1]?.pinned === item.pinned
+  const canMoveDown = !filteredView && sort === 'order' && index < visibleItems.length - 1 && visibleItems[index + 1]?.pinned === item.pinned
+  const occurredAt = item.latestRecord?.occurredAt
+  const disabled = pending !== undefined
+  const company = `/stocks/${encodeURIComponent(item.stock.symbol)}`
   return <li className="watch-row" data-testid={`watch-${item.stock.symbol}`}>
     <div className="watch-identity">
       <h3><Link to={company}>{item.stock.symbol}</Link></h3>
@@ -46,87 +45,322 @@ function WatchlistRow({ item, locale, c, busy, onSave, onRemove }: { item: Stock
     <p className="watch-meta">
       {item.recordCount > 0 ? <><span className="watch-count">{c.records}: {item.recordCount}</span>{occurredAt && <> · <time dateTime={occurredAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(occurredAt))}</time></>}</> : c.none}
     </p>
-    {item.latestRecord && <p className="watch-summary"><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</p>}
-    <div className="watch-order">
-      <input ref={order} className="watch-order-input" type="number" min={0} max={10000} step={1} aria-label={c.order} defaultValue={item.sortOrder} disabled={busy}
-        onChange={event => setDirty(event.target.value !== String(item.sortOrder))}
-        onKeyDown={event => { if (event.key === 'Enter' && dirty) { event.preventDefault(); save(); } }}/>
-      {dirty && <button className="secondary button-compact" disabled={busy} onClick={save}>{c.save}</button>}
+    <p className="watch-summary">{item.latestRecord ? <><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</> : c.none}</p>
+    <div className="watch-actions" aria-label={`${c.more}: ${item.stock.symbol}`}>
+      <Link className="button secondary button-compact" to={company}>{c.viewResearch}</Link>
+      <button type="button" className="secondary button-compact" disabled={disabled || !canMoveUp} onClick={() => onMove('up')} title={filteredView ? c.customHint : undefined}>{c.moveUp}</button>
+      <button type="button" className="secondary button-compact" disabled={disabled || !canMoveDown} onClick={() => onMove('down')} title={filteredView ? c.customHint : undefined}>{c.moveDown}</button>
+      <button type="button" className="secondary button-compact" disabled={disabled} onClick={onPin}>{item.pinned ? c.unpinned : c.pinned}</button>
+      <button type="button" className="secondary button-compact" disabled={disabled} onClick={onRemove}>{c.remove}</button>
     </div>
-    <div ref={menu} className="watch-menu">
-      <button ref={trigger} type="button" className="watch-menu-trigger" aria-label={c.more} aria-expanded={open} aria-controls={`watch-menu-${item.id}`} onClick={() => setOpen(value => !value)}><Icon name="more" /></button>
-      {open && <ul className="watch-menu-list" id={`watch-menu-${item.id}`}>
-        <li><Link to={company} onClick={() => setOpen(false)}>{c.viewResearch}</Link></li>
-        <li><button type="button" onClick={() => { setOpen(false); order.current?.focus(); order.current?.select(); }}>{c.editOrder}</button></li>
-        <li><button type="button" disabled={busy} onClick={onRemove}>{c.remove}</button></li>
-      </ul>}
-    </div>
-  </li>;
+    {rowError && <FailureNotice failure={rowError} id={`watch-error-${item.id}`} messageOverride={c.updateFailed} />}
+  </li>
 }
 
 export default function Watchlist() {
-  const { locale, t } = useUi(), c = copy[locale];
-  const [items, setItems] = useState<StockWatchlistItem[] | null>(null), [attempt, retry] = useState(0);
-  const [symbol, setSymbol] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<Failure | null>(null), [saved, setSaved] = useState(false);
-  const [sort, setSort] = useState<SortMode>('order');
-  const translate = useRef(t); translate.current = t;
-  const mutation = useRef<AbortController | null>(null);
-  useEffect(() => () => mutation.current?.abort(), []);
-  useEffect(() => {
-    const controller = new AbortController(); setItems(null); setError(null);
-    api.GET('/api/stocks/watchlist', { signal: controller.signal }).then(result => {
-      if (controller.signal.aborted) return;
-      const parsed = stockWatchlistResponseSchema.safeParse(result.data);
-      if (parsed.success) setItems(parsed.data.items); else setError(apiFailure(result.error, translate.current('failed')));
-    }).catch(() => { if (!controller.signal.aborted) setError(apiFailure(null, translate.current('connection'))); });
-    return () => controller.abort();
-  }, [attempt]);
-  async function change(action: (signal: AbortSignal) => Promise<{ error?: unknown; response: Response }>, clearSymbol = false) {
-    if (mutation.current) return;
-    const controller = new AbortController(); mutation.current = controller; setBusy(true); setError(null); setSaved(false);
-    try {
-      const result = await action(controller.signal);
-      if (controller.signal.aborted) return;
-      if (!result.response.ok) { setError(apiFailure(result.error, t('failed'))); return; }
-      if (clearSymbol) setSymbol(''); setSaved(true); retry(value => value + 1);
-    } catch { if (!controller.signal.aborted) setError(apiFailure(null, t('connection'))); }
-    finally { if (!controller.signal.aborted) { mutation.current = null; setBusy(false); } }
+  const { locale, t } = useUi()
+  const session = useSessionState()
+  const c = watchlistCopy[locale]
+  const [items, setItems] = useState<StockWatchlistItem[] | null>(null)
+  const [attempt, retry] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [refreshError, setRefreshError] = useState<Failure | null>(null)
+  const [writeError, setWriteError] = useState<Failure | null>(null)
+  const [rowErrors, setRowErrors] = useState<Record<string, Failure | undefined>>({})
+  const [pending, setPending] = useState<Record<string, PendingAction | undefined>>({})
+  const [symbol, setSymbol] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [sort, setSort] = useState<SortMode>('order')
+  const [filter, setFilter] = useState<FilterMode>('all')
+  const [search, setSearch] = useState('')
+  const [undo, setUndo] = useState<StockWatchlistItem | null>(null)
+  const [undoPending, setUndoPending] = useState(false)
+  const [undoError, setUndoError] = useState<Failure | null>(null)
+  const [itemsSessionRevision, setItemsSessionRevision] = useState<number | null>(null)
+  const translate = useRef(t)
+  translate.current = t
+  const mutationControllers = useRef(new Map<string, AbortController>())
+  const orderMutationQueue = useRef(Promise.resolve())
+  const privateEpoch = useRef(0)
+  const confirmedWriteRevision = useRef(0)
+  useEffect(() => () => { for (const controller of mutationControllers.current.values()) controller.abort() }, [])
+
+  function clearPrivateResults() {
+    privateEpoch.current += 1
+    for (const controller of mutationControllers.current.values()) controller.abort()
+    mutationControllers.current.clear()
+    setItems(null)
+    setItemsSessionRevision(null)
+    setRowErrors({})
+    setWriteError(null)
+    setSaved(false)
+    setPending({})
+    setUndoPending(false)
+    setUndo(null)
+    setUndoError(null)
   }
-  const saveOrder = (item: StockWatchlistItem, value: number) => {
-    if (!Number.isSafeInteger(value) || value < 0 || value > 10000) return;
-    void change(signal => api.PATCH('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, body: { sortOrder: value }, signal }));
-  };
-  const removeItem = (item: StockWatchlistItem) => void change(signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }));
-  // 'Custom order' is the server order; the other views re-sort the same items client-side.
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const requestEpoch = privateEpoch.current
+    const requestSessionRevision = session.revision
+    const requestWriteRevision = confirmedWriteRevision.current
+    setLoading(true)
+    setRefreshError(null)
+    if (session.authenticated === false) {
+      clearPrivateResults()
+      setRefreshError({ message: t('failed'), code: 'AUTH_UNAUTHORIZED', fields: [] })
+      setLoading(false)
+      return () => controller.abort()
+    }
+    api.GET('/api/stocks/watchlist', { headers: watchlistManagementHeaders, signal: controller.signal }).then(result => {
+      if (controller.signal.aborted || requestEpoch !== privateEpoch.current) return
+      if (requestWriteRevision !== confirmedWriteRevision.current) return
+      const parsed = stockWatchlistResponseSchema.safeParse(result.data)
+      if (result.response.status === 401 || result.response.status === 403) {
+        clearPrivateResults()
+        setRefreshError(apiFailure(result.error, translate.current('failed')))
+        setLoading(false)
+      } else if (requestSessionRevision !== getSessionRevision()) {
+        return
+      } else if (result.response.ok && parsed.success) {
+        setItems(parsed.data.items)
+        setItemsSessionRevision(requestSessionRevision)
+      }
+      else setRefreshError(apiFailure(result.error, translate.current('failed')))
+    }).catch(() => { if (!controller.signal.aborted) setRefreshError(apiFailure(null, translate.current('connection'))) })
+      .finally(() => { if (!controller.signal.aborted && requestEpoch === privateEpoch.current && requestSessionRevision === getSessionRevision()) setLoading(false) })
+    return () => controller.abort()
+  }, [attempt, session.authenticated, session.revision])
+
+  function markPending(id: string, action: PendingAction | undefined) {
+    setPending(previous => ({ ...previous, [id]: action }))
+    if (!action) mutationControllers.current.delete(id)
+  }
+
+  async function reconcile(item: StockWatchlistItem, action: PendingAction) {
+    const requestEpoch = privateEpoch.current
+    const requestSessionRevision = session.revision
+    const requestWriteRevision = confirmedWriteRevision.current
+    try {
+      const result = await api.GET('/api/stocks/watchlist', { headers: watchlistManagementHeaders })
+      if (requestEpoch !== privateEpoch.current || requestSessionRevision !== getSessionRevision() || requestWriteRevision !== confirmedWriteRevision.current) return
+      const parsed = stockWatchlistResponseSchema.safeParse(result.data)
+      if (result.response.status === 401 || result.response.status === 403) {
+        clearPrivateResults()
+        setRefreshError(apiFailure(result.error, c.refreshFailed))
+        return
+      }
+      if (!result.response.ok || !parsed.success) {
+        setRefreshError(apiFailure(result.error, c.refreshFailed))
+        return
+      }
+      setItems(parsed.data.items)
+      setItemsSessionRevision(requestSessionRevision)
+      if (action === 'remove') {
+        const stillWatching = parsed.data.items.some(row => row.id === item.id || row.stock.symbol === item.stock.symbol)
+        setUndo(current => current?.id === item.id && stillWatching ? null : current)
+        if (!stillWatching) setUndo(item)
+      }
+    } catch {
+      setRefreshError(apiFailure(null, c.refreshFailed))
+    }
+  }
+
+  async function rowMutation(item: StockWatchlistItem, action: PendingAction, request: (signal: AbortSignal) => Promise<{ data?: unknown; error?: unknown; response: Response }>) {
+    if (pending[item.id] || mutationControllers.current.has(item.id)) return
+    const requestEpoch = privateEpoch.current
+    const requestSessionRevision = session.revision
+    if (requestSessionRevision !== getSessionRevision()) return
+    const controller = new AbortController()
+    mutationControllers.current.set(item.id, controller)
+    markPending(item.id, action)
+    setRowErrors(previous => ({ ...previous, [item.id]: undefined }))
+    let requiresReconcile = false
+    const isCurrent = () => !controller.signal.aborted && requestEpoch === privateEpoch.current && requestSessionRevision === getSessionRevision()
+    try {
+      const result = await request(controller.signal)
+      if (!isCurrent()) return
+      if (!result.response.ok) {
+        setRowErrors(previous => ({ ...previous, [item.id]: apiFailure(result.error, c.updateFailed) }))
+        if (result.response.status === 401 || result.response.status === 403) clearPrivateResults()
+        if (result.response.status >= 500 || result.response.status === 404 || result.response.status === 409) {
+          requiresReconcile = true
+          markPending(item.id, action)
+          await reconcile(item, action).finally(() => markPending(item.id, undefined))
+        }
+        return
+      }
+      if (action === 'remove') {
+        const deleted = stockWatchlistDeleteResponseSchema.safeParse(result.data)
+        if (!deleted.success) {
+          requiresReconcile = true
+          setRowErrors(previous => ({ ...previous, [item.id]: { message: c.updateFailed, code: 'SYS_VALIDATION_ERROR', fields: [] } }))
+          markPending(item.id, action)
+          await reconcile(item, action).finally(() => markPending(item.id, undefined))
+          return
+        }
+        confirmedWriteRevision.current += 1
+        setItems(previous => previous ? previous.filter(row => row.id !== item.id) : previous)
+        setUndo(item)
+        setUndoError(null)
+      } else if (action === 'move-up' || action === 'move-down') {
+        const reordered = stockWatchlistReorderResponseSchema.safeParse(result.data)
+        if (reordered.success) {
+          confirmedWriteRevision.current += 1
+          setItems(previous => previous ? previous.map(row => ({ ...row, sortOrder: reordered.data.items.find(change => change.id === row.id)?.sortOrder ?? row.sortOrder })).sort(compareCustom) : previous)
+        }
+        else {
+          requiresReconcile = true
+          setRowErrors(previous => ({ ...previous, [item.id]: { message: c.updateFailed, code: 'SYS_VALIDATION_ERROR', fields: [] } }))
+          markPending(item.id, action)
+          await reconcile(item, action).finally(() => markPending(item.id, undefined))
+          return
+        }
+      } else {
+        const mutation = stockWatchlistMutationResponseSchema.safeParse(result.data)
+        if (mutation.success) {
+          confirmedWriteRevision.current += 1
+          setItems(previous => previous ? previous.map(row => row.id === item.id ? { ...row, sortOrder: mutation.data.sortOrder, pinned: mutation.data.pinned, status: mutation.data.status, updatedAt: mutation.data.updatedAt ?? row.updatedAt } : row).sort(compareCustom) : previous)
+        }
+        else {
+          requiresReconcile = true
+          setRowErrors(previous => ({ ...previous, [item.id]: { message: c.updateFailed, code: 'SYS_VALIDATION_ERROR', fields: [] } }))
+          markPending(item.id, action)
+          void reconcile(item, action).finally(() => markPending(item.id, undefined))
+          return
+        }
+      }
+      setSaved(true)
+    } catch {
+      if (!controller.signal.aborted) {
+        requiresReconcile = true
+        setRowErrors(previous => ({ ...previous, [item.id]: apiFailure(null, c.updateFailed) }))
+        markPending(item.id, action)
+        await reconcile(item, action).finally(() => markPending(item.id, undefined))
+      }
+    } finally {
+      if (isCurrent()) {
+        if (mutationControllers.current.get(item.id) === controller) mutationControllers.current.delete(item.id)
+        if (!requiresReconcile) markPending(item.id, undefined)
+      }
+    }
+  }
+
+  function move(item: StockWatchlistItem, direction: 'up' | 'down') {
+    const reorderApi = api as ReorderApi
+    const action: PendingAction = direction === 'up' ? 'move-up' : 'move-down'
+    const queuedEpoch = privateEpoch.current
+    const queuedSessionRevision = session.revision
+    const run = orderMutationQueue.current.then(() => {
+      if (queuedEpoch !== privateEpoch.current || queuedSessionRevision !== getSessionRevision()) return
+      return rowMutation(item, action, signal => reorderApi.POST('/api/stocks/watchlist/reorder', { body: { id: item.id, direction }, signal }))
+    })
+    orderMutationQueue.current = run.catch(() => undefined)
+  }
+
+  function pin(item: StockWatchlistItem) {
+    void rowMutation(item, 'pin', signal => api.PATCH('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, headers: watchlistManagementHeaders, body: { pinned: !item.pinned }, signal }))
+  }
+
+  async function add(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const parsed = stockWatchlistCreateRequestSchema.safeParse({ symbol })
+    if (!parsed.success) { setWriteError({ message: c.invalid, code: 'SYS_VALIDATION_ERROR', fields: [] }); return }
+    setAdding(true); setWriteError(null); setSaved(false)
+    const controller = new AbortController()
+    const requestEpoch = privateEpoch.current
+    const requestSessionRevision = session.revision
+    try {
+      const result = await api.POST('/api/stocks/watchlist', { headers: watchlistManagementHeaders, body: parsed.data, signal: controller.signal })
+      if (controller.signal.aborted || requestEpoch !== privateEpoch.current || requestSessionRevision !== getSessionRevision()) return
+      if (!result.response.ok) { if (result.response.status === 401 || result.response.status === 403) clearPrivateResults(); setWriteError(apiFailure(result.error, t('failed'))); return }
+      confirmedWriteRevision.current += 1
+      setSymbol(''); setSaved(true); retry(value => value + 1)
+    } catch { if (!controller.signal.aborted && requestEpoch === privateEpoch.current && requestSessionRevision === getSessionRevision()) setWriteError(apiFailure(null, t('connection'))) }
+    finally { setAdding(false) }
+  }
+
+  async function restore() {
+    if (!undo || undoPending) return
+    const item = undo
+    const controller = new AbortController()
+    const requestEpoch = privateEpoch.current
+    const requestSessionRevision = session.revision
+    setUndoPending(true); setUndoError(null)
+    try {
+      const result = await api.POST('/api/stocks/watchlist', { headers: watchlistManagementHeaders, body: { symbol: item.stock.symbol, sortOrder: item.sortOrder, pinned: item.pinned }, signal: controller.signal })
+      if (controller.signal.aborted || requestEpoch !== privateEpoch.current || requestSessionRevision !== getSessionRevision()) return
+      const mutation = stockWatchlistMutationResponseSchema.safeParse(result.data)
+      if (!result.response.ok || !mutation.success) {
+        if (result.response.status === 401 || result.response.status === 403) clearPrivateResults()
+        setUndoError(apiFailure(result.error, c.updateFailed))
+        if (result.response.ok || result.response.status >= 500 || result.response.status === 404 || result.response.status === 409) await reconcile(item, 'remove')
+        return
+      }
+      const restored = { ...item, id: mutation.data.id, sortOrder: mutation.data.sortOrder, pinned: mutation.data.pinned, status: mutation.data.status, updatedAt: mutation.data.updatedAt ?? item.updatedAt }
+      confirmedWriteRevision.current += 1
+      setItems(previous => {
+        const current = previous ?? []
+        return current.some(row => row.id === restored.id)
+          ? current.map(row => row.id === restored.id ? restored : row).sort(compareCustom)
+          : [...current, restored].sort(compareCustom)
+      })
+      setUndo(null); setSaved(true)
+    } catch {
+      // A lost response is reconciled by the next read; do not blindly submit a second restore.
+      if (!controller.signal.aborted && requestEpoch === privateEpoch.current && requestSessionRevision === getSessionRevision()) {
+        setUndoError(apiFailure(null, c.updateFailed)); retry(value => value + 1)
+      }
+    } finally { setUndoPending(false) }
+  }
+
+  const sessionItems = session.authenticated === true && itemsSessionRevision === session.revision ? items : null
+  const sessionUndo = sessionItems ? undo : null
+
+  useEffect(() => {
+    if (sessionUndo && sessionItems?.some(item => item.id === sessionUndo.id || item.stock.symbol === sessionUndo.stock.symbol)) setUndo(current => current?.stock.symbol === sessionUndo.stock.symbol ? null : current)
+  }, [sessionItems, sessionUndo])
+
   const ordered = useMemo(() => {
-    if (!items || sort === 'order') return items;
-    const list = [...items];
-    if (sort === 'symbol') return list.sort((a, b) => a.stock.symbol.localeCompare(b.stock.symbol));
-    return list.sort((a, b) => (b.latestRecord?.occurredAt ?? '').localeCompare(a.latestRecord?.occurredAt ?? '') || a.sortOrder - b.sortOrder);
-  }, [items, sort]);
-  const researched = items?.filter(item => item.recordCount > 0).length ?? 0;
+    const list = [...(sessionItems ?? [])]
+    if (sort === 'symbol') return list.sort((a, b) => a.stock.symbol.localeCompare(b.stock.symbol) || a.id.localeCompare(b.id))
+    if (sort === 'research') return list.sort((a, b) => (b.latestRecord?.occurredAt ?? '').localeCompare(a.latestRecord?.occurredAt ?? '') || a.stock.symbol.localeCompare(b.stock.symbol) || a.id.localeCompare(b.id))
+    return list.sort(compareCustom)
+  }, [sessionItems, sort])
+  const visible = ordered.filter(item => {
+    const needle = search.trim().toLocaleLowerCase()
+    const matchesSearch = !needle || item.stock.symbol.toLocaleLowerCase().includes(needle) || (item.stock.name ?? '').toLocaleLowerCase().includes(needle)
+    const matchesFilter = filter === 'all' || (filter === 'researched' ? item.recordCount > 0 : item.recordCount === 0)
+    return matchesSearch && matchesFilter
+  })
+  const researched = sessionItems?.filter(item => item.recordCount > 0).length ?? 0
+  const filteredView = search.trim() !== '' || filter !== 'all'
   return <section className="plan-page watch-page">
     <header className="plan-header watch-header"><div><h1>{c.title}</h1><p className="lede">{c.hint}</p></div><Link className="button secondary" to="/stocks">{c.holdings}</Link></header>
-    {items && <div className="card watch-stats">
-      <div className="stat"><span className="stat-label">{c.tracked}</span><p className="stat-value">{items.length}</p></div>
+    {sessionItems && <div className="card watch-stats">
+      <div className="stat"><span className="stat-label">{c.tracked}</span><p className="stat-value">{sessionItems.length}</p></div>
       <div className="stat"><span className="stat-label">{c.researched}</span><p className="stat-value">{researched}</p></div>
-      <div className="stat"><span className="stat-label">{c.unresearched}</span><p className="stat-value">{items.length - researched}</p></div>
+      <div className="stat"><span className="stat-label">{c.unresearched}</span><p className="stat-value">{sessionItems.length - researched}</p></div>
     </div>}
-    <form className="watch-add card" onSubmit={event => {
-      event.preventDefault(); const parsed = stockWatchlistCreateRequestSchema.safeParse({ symbol });
-      if (!parsed.success) { setError({ message: c.invalid, code: 'SYS_VALIDATION_ERROR', fields: [] }); return; }
-      void change(signal => api.POST('/api/stocks/watchlist', { body: parsed.data, signal }), true);
-    }}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><button disabled={busy}>{busy ? t('pending') : c.add}</button></div></form>
+    <form className="watch-add card" onSubmit={add}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><button disabled={adding}>{adding ? t('pending') : c.add}</button></div></form>
     {saved && <p role="status">{c.saved}</p>}
-    {error && <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" onClick={() => retry(value => value + 1)} disabled={busy}>{t('retry')}</button></>}
-    {!items ? !error && <p role="status">{t('loading')}</p> : <>
-      <div className="section-head watch-list-head">
-        <h2>{c.listTitle} ({items.length})</h2>
-        <label className="watch-sort">{c.sortLabel}<select value={sort} onChange={event => setSort(event.target.value as SortMode)}><option value="order">{c.sortOrder}</option><option value="research">{c.byResearch}</option><option value="symbol">{c.bySymbol}</option></select></label>
+    {writeError && <><FailureNotice failure={writeError}/>{writeError.code?.startsWith('AUTH_') && <Link to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}</>}
+    {!sessionItems && loading && <p role="status">{t('loading')}</p>}
+    {!sessionItems && !loading && refreshError && <><FailureNotice failure={refreshError}/>{refreshError.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" onClick={() => retry(value => value + 1)}>{t('retry')}</button></>}
+    {sessionItems && <>
+      {!loading && refreshError && <div className="watch-refresh-error"><FailureNotice failure={refreshError}/>{refreshError.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" className="secondary" onClick={() => retry(value => value + 1)}>{t('retry')}</button></div>}
+      {sessionUndo && <div className="watch-undo" role="status" aria-live="polite"><span>{c.removed} {sessionUndo.stock.symbol}</span><button type="button" className="secondary" disabled={undoPending} onClick={() => void restore()}>{undoPending ? t('pending') : c.undo}</button>{undoError && <span className="error">{undoError.message}</span>}</div>}
+      <div className="section-head watch-list-head"><h2>{c.listTitle} ({visible.length}{visible.length !== sessionItems.length ? ` / ${sessionItems.length}` : ''})</h2><div className="watch-list-head-actions">{loading && <span className="watch-refreshing" role="status" aria-live="polite">{c.refreshing}</span>}<button type="button" className="secondary" disabled={loading} onClick={() => retry(value => value + 1)}>{loading ? t('pending') : c.refresh}</button></div></div>
+      <div className="watch-toolbar card">
+        <label>{c.search}<input type="search" value={search} onChange={event => setSearch(event.target.value)} maxLength={100}/></label>
+        <label>{c.filterLabel}<select value={filter} onChange={event => setFilter(event.target.value as FilterMode)}><option value="all">{c.all}</option><option value="researched">{c.hasResearch}</option><option value="unresearched">{c.noResearch}</option></select></label>
+        <label>{c.sortLabel}<select value={sort} onChange={event => setSort(event.target.value as SortMode)}><option value="order">{c.sortOrder}</option><option value="research">{c.byResearch}</option><option value="symbol">{c.bySymbol}</option></select></label>
       </div>
-      <p className="watch-limit muted">{c.limit}</p>
-      {!items.length ? <div className="empty-state"><p>{c.empty}</p></div>
-        : <div className="watch-list card"><ul className="plan-list">{ordered!.map(item => <WatchlistRow key={item.id} item={item} locale={locale} c={c} busy={busy} onSave={value => saveOrder(item, value)} onRemove={() => removeItem(item)}/>)}</ul></div>}
+      <p className="watch-limit muted">{sort === 'order' ? c.customHint : c.limit}</p>
+      {!visible.length ? <div className="empty-state"><p>{c.empty}</p></div>
+        : <div className="watch-list card"><ul className="plan-list">{visible.map((item, index) => <WatchlistRow key={item.id} item={item} locale={locale} c={c} sort={sort} index={index} visibleItems={visible} filteredView={filteredView} pending={pending[item.id]} rowError={rowErrors[item.id]} onMove={direction => move(item, direction)} onPin={() => pin(item)} onRemove={() => void rowMutation(item, 'remove', signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }))}/>)}</ul></div>}
     </>}
-  </section>;
+  </section>
 }

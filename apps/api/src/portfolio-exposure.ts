@@ -9,7 +9,11 @@ const FALLBACK_ALLOCATION = { highBetaTargetPct: 0, coreIndexTargetPct: 50, cash
 const NO_MARKET_DATA_EXPLANATION = 'Market regime unclear. No market regime data available. Showing current exposure only.'
 
 export async function readPortfolioExposure(db: Database, userId: bigint, asOfDate: string) {
-  const holdings = (await getHoldings(db, userId)).map(row => ({ symbol: row.symbol, quantity: Number(row.quantity), avgCost: Number(row.avgCost), totalCost: Number(row.totalCost) }))
+  return readPortfolioExposureFromHoldings(db, await getHoldings(db, userId), asOfDate)
+}
+
+export async function readPortfolioExposureFromHoldings(db: Database, rows: Awaited<ReturnType<typeof getHoldings>>, asOfDate: string) {
+  const holdings = rows.map(row => ({ symbol: row.symbol, quantity: Number(row.quantity), avgCost: Number(row.avgCost), totalCost: Number(row.totalCost) }))
   const exposure = computePortfolioExposure(holdings)
   let suggestedAllocation: SuggestedAllocation = FALLBACK_ALLOCATION
   let betaAllocation: BetaAllocationResult = {

@@ -33,3 +33,16 @@ export const diaryReviewResponseSchema = z.object({
   transactions: z.array(reviewTransactionSchema), tradePlans: z.array(reviewTradePlanSchema),
 }).strict()
 export type StructuredReviewInput = z.infer<typeof structuredReviewInputSchema>
+
+export const diaryReviewWorkflowResponseSchema = z.object({
+  review: diaryReviewResponseSchema,
+  revision: z.number().int().min(1),
+}).strict()
+export const diaryReviewWorkflowInputSchema = z.object({
+  review: structuredReviewInputSchema,
+  expectedRevision: z.number().int().min(1),
+}).strict()
+export const diaryReviewScheduleInputSchema = z.object({
+  reviewDueAt: utcInstantSchema.nullable(),
+  expectedRevision: z.number().int().min(1),
+}).strict()

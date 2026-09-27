@@ -36,9 +36,7 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
           (date_trunc('day', ${timestamp}::timestamptz at time zone timezone) + interval '1 day') at time zone timezone as finish
         from users where id = ${userId}
       ), diary_candidates as (
-        select d.* from diaries d where d.user_id = ${userId} and d.review_status <> 'reviewed'
-        union all
-        (select d.* from diaries d where d.user_id = ${userId} and d.review_status = 'reviewed' order by d.reviewed_at desc nulls last, d.id desc limit 50)
+        select d.* from diaries d where d.user_id = ${userId}
       ), thesis_candidates as (
         -- Keep all ACTIVE theses until bucket counts and page slices are applied.
         select t.*, s.symbol from investment_theses t join stocks s on s.id = t.stock_id
@@ -56,7 +54,7 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
             'reviewedAt',d.reviewed_at,'reviewOutcome',d.review_outcome) as item
         from diary_candidates d cross join context x
         union all
-        select case when coalesce(r.reviewed_at,t.last_reviewed_at) is not null and
+        select case when not t.review_pending and coalesce(r.reviewed_at,t.last_reviewed_at) is not null and
             (t.review_due_at is null or coalesce(r.reviewed_at,t.last_reviewed_at) >= t.review_due_at) then 'completed'
           when t.review_due_at is null then 'unscheduled'
           when t.review_due_at < x.start then 'overdue'
@@ -66,7 +64,7 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
           jsonb_build_object('targetType','thesis','id','thesis:'||t.id::text,'thesisId',t.id::text,
             'title',t.symbol||' Investment Thesis','date',coalesce(r.reviewed_at,t.review_due_at,${timestamp}::timestamptz),
             'thesis',t.summary,'risk',null,'reviewDueAt',t.review_due_at,
-            'reviewStatus',case when coalesce(r.reviewed_at,t.last_reviewed_at) is not null and
+            'reviewStatus',case when not t.review_pending and coalesce(r.reviewed_at,t.last_reviewed_at) is not null and
               (t.review_due_at is null or coalesce(r.reviewed_at,t.last_reviewed_at) >= t.review_due_at) then 'reviewed'
               when t.review_due_at is not null then 'pending' else 'none' end,
             'reviewedAt',coalesce(r.reviewed_at,t.last_reviewed_at),'reviewOutcome',r.outcome,

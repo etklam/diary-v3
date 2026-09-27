@@ -125,6 +125,20 @@ export const diaries = pgTable('diaries', {
   index('diaries_user_created_idx').on(table.userId, table.createdAt.desc()),
 ])
 
+export const diarySavedViews = pgTable('diary_saved_views', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 80 }).notNull(),
+  // Query format version; edits do not increment this schema marker.
+  version: integer('version').default(1).notNull(),
+  query: jsonb('query').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  uniqueIndex('diary_saved_views_user_name_key').on(table.userId, sql`lower(${table.name})`),
+  index('diary_saved_views_user_updated_idx').on(table.userId, table.updatedAt.desc(), table.id.desc()),
+])
+
 export const posts = pgTable('posts', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   authorId: bigint('author_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -636,6 +650,75 @@ export const tradePlans = pgTable('trade_plans', {
   index('trade_plans_diary_id_idx').on(table.diaryId),
 ])
 
+/** A user-confirmed immutable snapshot used by Plan vs actual execution. */
+export const tradePlanExecutionBaselines = pgTable('trade_plan_execution_baselines', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  tradePlanId: bigint('trade_plan_id', { mode: 'bigint' }).notNull()
+    .references(() => tradePlans.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull(),
+  planUpdatedAt: timestamp('plan_updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  symbol: varchar('symbol', { length: 32 }).notNull(),
+  setupType: varchar('setup_type', { length: 100 }),
+  entryPrice: numeric('entry_price', { precision: 18, scale: 6 }),
+  entryZoneLow: numeric('entry_zone_low', { precision: 18, scale: 6 }),
+  entryZoneHigh: numeric('entry_zone_high', { precision: 18, scale: 6 }),
+  stopLoss: numeric('stop_loss', { precision: 18, scale: 6 }),
+  targetPrice: numeric('target_price', { precision: 18, scale: 6 }),
+  maxPositionSize: numeric('max_position_size', { precision: 18, scale: 2 }),
+  maxPositionSizeUnit: varchar('max_position_size_unit', { length: 16 }).notNull().default('unknown'),
+  invalidationCondition: text('invalidation_condition'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('trade_plan_execution_baseline_plan_version_key').on(table.tradePlanId, table.version),
+  index('trade_plan_execution_baseline_owner_plan_idx').on(table.userId, table.tradePlanId, table.version.desc()),
+  check('trade_plan_execution_baseline_version_positive', sql`${table.version} > 0`),
+  check('trade_plan_execution_baseline_unit_unknown', sql`${table.maxPositionSizeUnit} = 'unknown'`),
+])
+
+/** Current manually confirmed comparison state for a Trade Plan. */
+export const tradePlanExecutions = pgTable('trade_plan_executions', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  tradePlanId: bigint('trade_plan_id', { mode: 'bigint' }).notNull()
+    .references(() => tradePlans.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  baselineId: bigint('baseline_id', { mode: 'bigint' }).notNull()
+    .references(() => tradePlanExecutionBaselines.id, { onDelete: 'restrict' }),
+  revision: integer('revision').notNull().default(1),
+  deviationReason: text('deviation_reason'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('trade_plan_execution_plan_key').on(table.tradePlanId),
+  index('trade_plan_execution_owner_idx').on(table.userId, table.tradePlanId),
+  check('trade_plan_execution_revision_positive', sql`${table.revision} > 0`),
+])
+
+/** Whole-transaction links; a transaction can belong to at most one plan. */
+export const tradePlanExecutionTransactions = pgTable('trade_plan_execution_transactions', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  executionId: bigint('execution_id', { mode: 'bigint' }).notNull()
+    .references(() => tradePlanExecutions.id, { onDelete: 'cascade' }),
+  transactionId: bigint('transaction_id', { mode: 'bigint' })
+    .references(() => transactions.id, { onDelete: 'set null' }),
+  // Keep immutable identity so a deleted transaction remains actionable in the comparison UI.
+  snapshotTransactionId: bigint('snapshot_transaction_id', { mode: 'bigint' }).notNull(),
+  snapshotDiaryId: bigint('snapshot_diary_id', { mode: 'bigint' }).notNull(),
+  snapshotSymbol: varchar('snapshot_symbol', { length: 20 }).notNull(),
+  snapshotType: transactionType('snapshot_type').notNull(),
+  snapshotQuantity: numeric('snapshot_quantity', { precision: 15, scale: 4 }).notNull(),
+  snapshotPrice: numeric('snapshot_price', { precision: 15, scale: 4 }).notNull(),
+  snapshotTradeDate: timestamp('snapshot_trade_date', { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('trade_plan_execution_transaction_key').on(table.executionId, table.snapshotSymbol, table.snapshotTradeDate, table.id),
+  uniqueIndex('trade_plan_execution_transaction_once_key').on(table.transactionId).where(sql`${table.transactionId} is not null`),
+  index('trade_plan_execution_transaction_execution_idx').on(table.executionId, table.id),
+])
+
 export const stocks = pgTable('stocks', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   symbol: varchar('symbol', { length: 32 }).notNull().unique(),
@@ -662,13 +745,14 @@ export const stockWatchlists = pgTable('stock_watchlists', {
   userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   stockId: bigint('stock_id', { mode: 'bigint' }).notNull().references(() => stocks.id, { onDelete: 'cascade' }),
   status: stockWatchStatus('status').default('WATCHING').notNull(),
+  pinned: boolean('pinned').default(false).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 }, table => [
   unique('stock_watchlists_user_stock_key').on(table.userId, table.stockId),
   check('stock_watchlists_sort_nonnegative', sql`${table.sortOrder} >= 0`),
-  index('stock_watchlists_user_status_sort_idx').on(table.userId, table.status, table.sortOrder, table.id),
+  index('stock_watchlists_user_status_sort_idx').on(table.userId, table.status, table.pinned, table.sortOrder, table.id),
 ])
 
 export const stockTimelineSourceType = pgEnum('stock_timeline_source_type', [
@@ -734,6 +818,7 @@ export const investmentTheses = pgTable('investment_theses', {
   risks: text('risks'),
   invalidationConditions: text('invalidation_conditions'),
   expectedHoldingPeriod: varchar('expected_holding_period', { length: 255 }),
+  reviewPending: boolean('review_pending').default(false).notNull(),
   reviewDueAt: timestamp('review_due_at', { withTimezone: true, mode: 'date' }),
   lastReviewedAt: timestamp('last_reviewed_at', { withTimezone: true, mode: 'date' }),
   latestReviewOutcome: thesisReviewOutcome('latest_review_outcome'),

@@ -1,6 +1,6 @@
 import { type ErrorCode } from '@diary/contracts'
 import { stockSymbolSchema } from '@diary/contracts/watchlist'
-import { completeThesisReviewRequestSchema, currentInvestmentThesisSchema, investmentThesisResponseSchema, saveInvestmentThesisRequestSchema, thesisReviewListParamsSchema, thesisReviewRecordSchema, thesisReviewResponseSchema } from '@diary/contracts/investment-thesis'
+import { thesisScheduleInputSchema, completeThesisReviewRequestSchema, currentInvestmentThesisSchema, investmentThesisResponseSchema, saveInvestmentThesisRequestSchema, thesisReviewListParamsSchema, thesisReviewRecordSchema, thesisReviewResponseSchema } from '@diary/contracts/investment-thesis'
 import { deriveInvestmentThesisHealth, replaceInvestmentThesis } from '@diary/domain/investment-thesis'
 import { investmentTheses, thesisReviews, stocks, type Database } from '@diary/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
@@ -12,7 +12,9 @@ type Thesis = typeof investmentTheses.$inferSelect
 type Review = typeof thesisReviews.$inferSelect
 const iso = (date: Date | null) => date?.toISOString() ?? null
 export function serializeThesis(thesis: Thesis, symbol: string, now: Date) {
-  return currentInvestmentThesisSchema.parse({ ...thesis,
+  return currentInvestmentThesisSchema.parse({
+    status: thesis.status, summary: thesis.summary, whyIOwnIt: thesis.whyIOwnIt, growthDrivers: thesis.growthDrivers, risks: thesis.risks,
+    invalidationConditions: thesis.invalidationConditions, expectedHoldingPeriod: thesis.expectedHoldingPeriod, latestReviewOutcome: thesis.latestReviewOutcome,
     id: String(thesis.id), userId: String(thesis.userId), stockId: String(thesis.stockId), symbol,
     reviewDueAt: iso(thesis.reviewDueAt), lastReviewedAt: iso(thesis.lastReviewedAt), activatedAt: iso(thesis.activatedAt), archivedAt: iso(thesis.archivedAt),
     createdAt: thesis.createdAt.toISOString(), updatedAt: thesis.updatedAt.toISOString(),
@@ -60,11 +62,28 @@ export function registerInvestmentThesisRoutes(app: Hono<AppEnv>, dependencies: 
       const [stock] = await tx.select().from(stocks).where(eq(stocks.symbol, symbol))
       if (!stock) throw new Error('Canonical stock unavailable')
       const [existing] = await tx.select().from(investmentTheses).where(and(eq(investmentTheses.userId, userId), eq(investmentTheses.stockId, stock.id))).for('update')
+      if (input.expectedUpdatedAt !== undefined && (existing?.updatedAt.toISOString() ?? null) !== input.expectedUpdatedAt) return fail(409, 'INVESTMENT_THESIS_REVISION_CONFLICT', 'Thesis changed; reload before saving')
       const timestamp = now(), replaced = replaceInvestmentThesis(input, iso(existing?.activatedAt ?? null), timestamp)
-      const values = { ...replaced, reviewDueAt: replaced.reviewDueAt ? new Date(replaced.reviewDueAt) : null, activatedAt: replaced.activatedAt ? new Date(replaced.activatedAt) : null, archivedAt: replaced.archivedAt ? new Date(replaced.archivedAt) : null, updatedAt: timestamp }
+      const values = { ...replaced, reviewPending: (replaced.reviewDueAt ? Date.parse(replaced.reviewDueAt) : null) === (existing?.reviewDueAt?.getTime() ?? null) ? existing?.reviewPending ?? false : replaced.reviewDueAt !== null, reviewDueAt: replaced.reviewDueAt ? new Date(replaced.reviewDueAt) : null, activatedAt: replaced.activatedAt ? new Date(replaced.activatedAt) : null, archivedAt: replaced.archivedAt ? new Date(replaced.archivedAt) : null, updatedAt: new Date(Math.max(timestamp.getTime(), (existing?.updatedAt.getTime() ?? -1) + 1)) }
       const [thesis] = await tx.insert(investmentTheses).values({ userId, stockId: stock.id, ...values, createdAt: timestamp })
         .onConflictDoUpdate({ target: [investmentTheses.userId, investmentTheses.stockId], set: values }).returning()
       if (!thesis) throw new Error('Thesis insert returned no row')
+      return serializeThesis(thesis, symbol, timestamp)
+    })
+    return c.json({ thesis: result })
+  })
+  app.patch('/api/stocks/:symbol/thesis/review-schedule', async c => {
+    const userId = owner(c), symbol = symbolParam(c), input = await parseJson(c, thesisScheduleInputSchema)
+    const result = await db.transaction(async tx => {
+      await tx.execute(lock(userId, symbol))
+      const [row] = await tx.select({ thesis: investmentTheses }).from(investmentTheses).innerJoin(stocks, eq(stocks.id, investmentTheses.stockId))
+        .where(and(eq(investmentTheses.userId, userId), eq(stocks.symbol, symbol))).for('update', { of: investmentTheses })
+      if (!row) return fail(404, 'INVESTMENT_THESIS_NOT_FOUND', 'Thesis not found')
+      if (row.thesis.updatedAt.toISOString() !== input.expectedUpdatedAt) return fail(409, 'INVESTMENT_THESIS_REVISION_CONFLICT', 'Thesis changed; reload before saving')
+      const timestamp = new Date(Math.max(now().getTime(), row.thesis.updatedAt.getTime() + 1))
+      const [thesis] = await tx.update(investmentTheses).set({ reviewDueAt: input.reviewDueAt ? new Date(input.reviewDueAt) : null, reviewPending: input.reviewDueAt !== null, updatedAt: timestamp })
+        .where(and(eq(investmentTheses.id, row.thesis.id), eq(investmentTheses.userId, userId))).returning()
+      if (!thesis) throw new Error('Thesis schedule update returned no row')
       return serializeThesis(thesis, symbol, timestamp)
     })
     return c.json({ thesis: result })
@@ -77,6 +96,7 @@ export function registerInvestmentThesisRoutes(app: Hono<AppEnv>, dependencies: 
         .where(and(eq(investmentTheses.userId, userId), eq(stocks.symbol, symbol))).for('update', { of: investmentTheses })
       if (!row) return fail(404, 'INVESTMENT_THESIS_NOT_FOUND', `Investment Thesis for ${symbol} not found`)
       const current = row.thesis
+      if (input.expectedUpdatedAt && current.updatedAt.toISOString() !== input.expectedUpdatedAt) return fail(409, 'INVESTMENT_THESIS_REVISION_CONFLICT', 'Thesis changed; reload before saving')
       if (current.status !== 'ACTIVE') return fail(409, 'INVESTMENT_THESIS_NOT_ACTIVE', 'Investment Thesis is not active')
       const timestamp = now(), clean = (value: string | null | undefined) => value?.trim() || null
       const [review] = await tx.insert(thesisReviews).values({ thesisId: current.id, userId, reviewedAt: timestamp, createdAt: timestamp,
@@ -84,7 +104,7 @@ export function registerInvestmentThesisRoutes(app: Hono<AppEnv>, dependencies: 
         snapshotStatus: current.status, snapshotSummary: current.summary, snapshotWhyIOwnIt: current.whyIOwnIt, snapshotGrowthDrivers: current.growthDrivers, snapshotRisks: current.risks,
         snapshotInvalidationConditions: current.invalidationConditions, snapshotExpectedHoldingPeriod: current.expectedHoldingPeriod, snapshotReviewDueAt: current.reviewDueAt,
       }).returning()
-      const [thesis] = await tx.update(investmentTheses).set({ lastReviewedAt: timestamp, latestReviewOutcome: input.outcome, updatedAt: timestamp }).where(eq(investmentTheses.id, current.id)).returning()
+      const [thesis] = await tx.update(investmentTheses).set({ reviewPending: false, lastReviewedAt: timestamp, latestReviewOutcome: input.outcome, updatedAt: new Date(Math.max(timestamp.getTime(), current.updatedAt.getTime() + 1)) }).where(eq(investmentTheses.id, current.id)).returning()
       if (!review || !thesis) throw new Error('Thesis review write returned no row')
       return { thesis: serializeThesis(thesis, symbol, timestamp), review: serializeThesisReview(review) }
     })

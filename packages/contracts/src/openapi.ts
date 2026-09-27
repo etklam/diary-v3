@@ -29,15 +29,15 @@ import { createPriceAlertRequestSchema, updatePriceAlertRequestSchema, priceAler
 import { alertCreateRequestWireOpenApiSchema, alertListResponseSchema, alertResponseSchema } from './alerts.js'
 import { performanceQuerySchema, performanceResponseSchema } from './performance.js'
 import { portfolioAttentionQuerySchema, portfolioAttentionResponseSchema } from './portfolio-attention.js'
-import { portfolioOverviewResponseSchema } from './portfolio-overview.js'
+import { portfolioLedgerResponseSchema, portfolioOverviewResponseSchema } from './portfolio-overview.js'
 import { portfolioExposureResponseSchema } from './portfolio-exposure.js'
 import { companyHubResponseSchema } from './company-hub.js'
 import { reviewGroupsResponseSchema, reviewQueueQuerySchema } from './review-queue.js'
-import { saveInvestmentThesisRequestSchema, completeThesisReviewRequestSchema, investmentThesisResponseSchema, investmentThesisMutationResponseSchema, thesisReviewResponseSchema, thesisReviewListParamsSchema } from './investment-thesis.js'
+import { thesisScheduleInputSchema, saveInvestmentThesisRequestSchema, completeThesisReviewRequestSchema, investmentThesisResponseSchema, investmentThesisMutationResponseSchema, thesisReviewResponseSchema, thesisReviewListParamsSchema } from './investment-thesis.js'
 import { stockNoteCreateRequestSchema, stockNoteUpdateRequestSchema, stockNoteListParamsSchema, stockNoteListResponseSchema, stockNoteResponseSchema } from './stock-note.js'
 import { webEvidenceRequestSchema, stockTimelineQuerySchema, stockTimelineRecordSchema, stockTimelineListResponseSchema, stockSymbolTimelineResponseSchema } from './evidence.js'
 import { stockSymbolSchema } from './watchlist.js'
-import { stockWatchlistCreateRequestSchema, stockWatchlistUpdateRequestSchema, stockWatchlistMutationResponseSchema, stockWatchlistResponseSchema } from './watchlist.js'
+import { stockWatchlistCreateRequestSchema, stockWatchlistUpdateRequestSchema, stockWatchlistMutationResponseSchema, stockWatchlistResponseSchema, stockWatchlistReorderRequestSchema, stockWatchlistReorderResponseSchema, stockWatchlistDeleteResponseSchema } from './watchlist.js'
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV31,
@@ -48,11 +48,13 @@ import { updateUserSettingsSchema, userSettingsResponseSchema } from './settings
 import { marketSymbolSchema, marketQuoteSchema, marketHistoricalSchema, marketRangeSchema, spxSessionSummarySchema } from './market.js'
 import { holdingsResponseSchema, recentClosedTradesResponseSchema } from './ledger.js'
 import { diaryListQuerySchema, diaryListResponseSchema } from './diary-list.js'
+import { diarySavedViewCreateRequestSchema, diarySavedViewDeleteResponseSchema, diarySavedViewListResponseSchema, diarySavedViewUpdateRequestSchema, diarySavedViewSchema } from './diary-saved-view.js'
 import { diarySummaryListResponseSchema } from './diary-summary.js'
 import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-activity.js'
 import { holidayResponseSchema } from './calendar.js'
-import { diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
+import { diaryReviewWorkflowResponseSchema, diaryReviewWorkflowInputSchema, diaryReviewScheduleInputSchema, diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
 import { tradePlanInputSchema, tradePlanUpdateSchema, tradePlanListQuerySchema, tradePlanResponseSchema, tradePlanListResponseSchema, deleteTradePlanResponseSchema } from './trade-plan.js'
+import { tradePlanExecutionBaselineCreateSchema, tradePlanExecutionBaselineHistoryQuerySchema, tradePlanExecutionBaselineHistoryResponseSchema, tradePlanExecutionCandidatesQuerySchema, tradePlanExecutionCandidatesResponseSchema, tradePlanExecutionComparisonSchema, tradePlanExecutionUpdateSchema } from './trade-plan-execution.js'
 import {
   secApiResponseSchema,
   secBatchQuerySchema,
@@ -150,6 +152,10 @@ const MarketQuote = registry.register('MarketQuote', marketQuoteSchema.clone())
 const MarketHistorical = registry.register('MarketHistorical', marketHistoricalSchema.clone())
 const DiaryListResponse = registry.register('DiaryListResponse', diaryListResponseSchema.clone())
 const DiarySummaryListResponse = registry.register('DiarySummaryListResponse', diarySummaryListResponseSchema.clone())
+const DiarySearchSnippetHeaders = z.object({ 'x-diary-search-snippet': z.string().optional() }).strict()
+const DiarySavedView = registry.register('DiarySavedView', diarySavedViewSchema.clone())
+const DiarySavedViewListResponse = registry.register('DiarySavedViewListResponse', diarySavedViewListResponseSchema.clone())
+const DiarySavedViewDeleteResponse = registry.register('DiarySavedViewDeleteResponse', diarySavedViewDeleteResponseSchema.clone())
 const SpxSessionSummary = registry.register('SpxSessionSummary', spxSessionSummarySchema.clone())
 const HoldingsResponse = registry.register('HoldingsResponse', holdingsResponseSchema.clone())
 const RecentClosedTradesResponse = registry.register('RecentClosedTradesResponse', recentClosedTradesResponseSchema.clone())
@@ -321,8 +327,30 @@ registry.registerPath({
   method: 'get', path: '/api/diaries/summary', tags: ['Diaries'], operationId: 'diariesSummaryList',
   description: 'Bounded discovery feed: server-generated excerpt, display-bounded tags and symbols, plus transaction/alert counts. Full content, graphs and private Review text never appear.',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
-  request: { query: diaryListQuerySchema.clone() },
+  request: { query: diaryListQuerySchema.clone(), headers: DiarySearchSnippetHeaders },
   responses: { 200: json(DiarySummaryListResponse, 'Owner-scoped bounded diary summary page'), ...errors([400, 401, 500]) },
+})
+registry.registerPath({
+  method: 'get', path: '/api/diaries/saved-views', tags: ['Diaries'], operationId: 'diarySavedViewsList',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  responses: { 200: json(DiarySavedViewListResponse, 'Owner saved diary views'), ...errors([401, 500]) },
+})
+registry.registerPath({
+  method: 'post', path: '/api/diaries/saved-views', tags: ['Diaries'], operationId: 'diarySavedViewCreate',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { body: json(diarySavedViewCreateRequestSchema.clone(), 'Create a named diary view') },
+  responses: { 201: json(DiarySavedView, 'Created owner saved diary view'), ...errors([400, 401, 409, 500]) },
+})
+registry.registerPath({
+  method: 'patch', path: '/api/diaries/saved-views/{id}', tags: ['Diaries'], operationId: 'diarySavedViewUpdate',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }), body: json(diarySavedViewUpdateRequestSchema.clone(), 'Rename or update a saved diary view') },
+  responses: { 200: json(DiarySavedView, 'Updated owner saved diary view'), ...errors([400, 401, 404, 409, 500]) },
+})
+registry.registerPath({
+  method: 'delete', path: '/api/diaries/saved-views/{id}', tags: ['Diaries'], operationId: 'diarySavedViewDelete',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) },
+  responses: { 200: json(DiarySavedViewDeleteResponse, 'Deleted owner saved diary view'), ...errors([400, 401, 404, 500]) },
 })
 
 registry.registerPath({
@@ -407,6 +435,9 @@ const TradePlanUpdate = registry.register('TradePlanUpdate', tradePlanUpdateSche
 const TradePlanResponse = registry.register('TradePlanResponse', tradePlanResponseSchema.clone())
 const TradePlanListResponse = registry.register('TradePlanListResponse', tradePlanListResponseSchema.clone())
 const DeleteTradePlanResponse = registry.register('DeleteTradePlanResponse', deleteTradePlanResponseSchema.clone())
+const TradePlanExecutionComparison = registry.register('TradePlanExecutionComparison', tradePlanExecutionComparisonSchema.clone())
+const TradePlanExecutionCandidatesResponse = registry.register('TradePlanExecutionCandidatesResponse', tradePlanExecutionCandidatesResponseSchema.clone())
+const TradePlanExecutionBaselineHistoryResponse = registry.register('TradePlanExecutionBaselineHistoryResponse', tradePlanExecutionBaselineHistoryResponseSchema.clone())
 registry.registerPath({
   method: 'get', path: '/api/trade-plans', tags: ['Trade Plans'], operationId: 'tradePlansList',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
@@ -435,6 +466,36 @@ registry.registerPath({
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) },
   responses: { 200: json(DeleteTradePlanResponse, 'Trade plan deleted'), ...errors([400, 401, 403, 404, 500]) },
 })
+registry.registerPath({
+  method: 'get', path: '/api/trade-plans/{id}/execution', tags: ['Trade Plans'], operationId: 'tradePlanExecutionGet',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }) },
+  responses: { 200: json(TradePlanExecutionComparison, 'Owner plan execution comparison'), ...errors([400, 401, 404, 500]) },
+})
+registry.registerPath({
+  method: 'post', path: '/api/trade-plans/{id}/execution-baseline', tags: ['Trade Plans'], operationId: 'tradePlanExecutionBaselineCreate',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: tradePlanExecutionBaselineCreateSchema.clone() } } } },
+  responses: { 200: json(TradePlanExecutionComparison, 'Confirmed owner plan execution baseline'), ...errors([400, 401, 403, 404, 409, 500]) },
+})
+registry.registerPath({
+  method: 'put', path: '/api/trade-plans/{id}/execution', tags: ['Trade Plans'], operationId: 'tradePlanExecutionUpdate',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: tradePlanExecutionUpdateSchema.clone() } } } },
+  responses: { 200: json(TradePlanExecutionComparison, 'Updated owner plan execution selection'), ...errors([400, 401, 403, 404, 409, 500]) },
+})
+registry.registerPath({
+  method: 'get', path: '/api/trade-plans/{id}/execution-candidates', tags: ['Trade Plans'], operationId: 'tradePlanExecutionCandidatesList',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }), query: tradePlanExecutionCandidatesQuerySchema.clone() },
+  responses: { 200: json(TradePlanExecutionCandidatesResponse, 'Owner execution candidates for a plan symbol'), ...errors([400, 401, 404, 500]) },
+})
+registry.registerPath({
+  method: 'get', path: '/api/trade-plans/{id}/execution-baselines', tags: ['Trade Plans'], operationId: 'tradePlanExecutionBaselineHistoryList',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { params: z.object({ id: serializedIdSchema }), query: tradePlanExecutionBaselineHistoryQuerySchema.clone() },
+  responses: { 200: json(TradePlanExecutionBaselineHistoryResponse, 'Owner immutable plan execution baseline history'), ...errors([400, 401, 404, 500]) },
+})
 const PortfolioValuationResponse = registry.register('PortfolioValuationResponse', portfolioValuationResponseSchema.clone())
 registry.registerPath({
   method: 'get', path: '/api/stocks/portfolio', tags: ['Stocks'], operationId: 'portfolioValuationGet',
@@ -449,27 +510,36 @@ registry.registerPath({
 })
 const WatchlistResponse = registry.register('StockWatchlistResponse', stockWatchlistResponseSchema.clone())
 const WatchlistMutation = registry.register('StockWatchlistMutation', stockWatchlistMutationResponseSchema.clone())
+const WatchlistReorderResponse = registry.register('StockWatchlistReorderResponse', stockWatchlistReorderResponseSchema.clone())
+const WatchlistManagementHeaders = z.object({ 'x-watchlist-features': z.string().optional() }).strict()
 registry.registerPath({
   method: 'get', path: '/api/stocks/watchlist', tags: ['Stocks'], operationId: 'stockWatchlistList',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { headers: WatchlistManagementHeaders },
   responses: { 200: json(WatchlistResponse, 'First 100 active owner items ordered by sortOrder and ID'), ...errors([401, 500]) },
 })
 registry.registerPath({
   method: 'post', path: '/api/stocks/watchlist', tags: ['Stocks'], operationId: 'stockWatchlistUpsert',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
-  request: { body: { content: { 'application/json': { schema: stockWatchlistCreateRequestSchema.clone() } } } },
+  request: { headers: WatchlistManagementHeaders, body: { content: { 'application/json': { schema: stockWatchlistCreateRequestSchema.clone() } } } },
   responses: { 200: json(WatchlistMutation, 'Created or restored owner item'), ...errors([400, 401, 403, 500]) },
 })
 registry.registerPath({
   method: 'patch', path: '/api/stocks/watchlist/{id}', tags: ['Stocks'], operationId: 'stockWatchlistUpdate',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
-  request: { params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: stockWatchlistUpdateRequestSchema.clone() } } } },
+  request: { headers: WatchlistManagementHeaders, params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: stockWatchlistUpdateRequestSchema.clone() } } } },
   responses: { 200: json(WatchlistMutation, 'Updated owner item'), ...errors([400, 401, 403, 404, 500]) },
+})
+registry.registerPath({
+  method: 'post', path: '/api/stocks/watchlist/reorder', tags: ['Stocks'], operationId: 'stockWatchlistReorder',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { body: json(stockWatchlistReorderRequestSchema.clone(), 'Move one owner item within its pinned group') },
+  responses: { 200: json(WatchlistReorderResponse, 'Updated owner watchlist order'), ...errors([400, 401, 404, 500]) },
 })
 registry.registerPath({
   method: 'delete', path: '/api/stocks/watchlist/{id}', tags: ['Stocks'], operationId: 'stockWatchlistArchive',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) },
-  responses: { 200: json(z.object({ success: z.literal(true) }).strict(), 'Archived owner item'), ...errors([400, 401, 403, 404, 500]) },
+  responses: { 200: json(stockWatchlistDeleteResponseSchema.clone(), 'Archived owner item'), ...errors([400, 401, 403, 404, 500]) },
 })
 const EvidenceRecord = registry.register('EvidenceRecord', stockTimelineRecordSchema.clone())
 registry.registerPath({
@@ -547,6 +617,7 @@ registry.registerPath({ method: 'get', path: '/api/stocks/exposure', tags: ['Sto
 
 for (const [path, operationId] of [['/api/portfolio/attention', 'portfolioAttentionGet'], ['/api/stocks/attention', 'stocksAttentionGet']]) registry.registerPath({ method: 'get', path: path!, tags: ['Stocks'], operationId: operationId!, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: portfolioAttentionQuerySchema.clone() }, responses: { 200: json(portfolioAttentionResponseSchema.clone(), 'Prioritized owner attention items, maximum 50'), ...errors([400, 401, 500]) } })
 
+registry.registerPath({ method: 'get', path: '/api/portfolio/ledger', tags: ['Stocks'], operationId: 'portfolioLedgerGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(portfolioLedgerResponseSchema.clone(), 'Owner ledger holdings, exposure and recent trades from one replay without provider requests'), ...errors([401, 500]) } })
 registry.registerPath({ method: 'get', path: '/api/portfolio/overview', tags: ['Stocks'], operationId: 'portfolioOverviewGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(portfolioOverviewResponseSchema.clone(), 'Owner-scoped Overview valuation and attention sections from one ledger snapshot'), ...errors([401, 500]) } })
 
 registry.registerPath({ method: 'get', path: '/api/stats/performance', tags: ['Stocks'], operationId: 'performanceGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { query: performanceQuerySchema.clone() }, responses: { 200: json(performanceResponseSchema.clone(), 'Owner strategy and realized-trade performance'), ...errors([400, 401, 500]) } })
@@ -697,3 +768,8 @@ registry.registerPath({ method: 'put', path: '/api/admin/article-translations/ai
 
 registerAiOpenApi(registry, ApiErrorResponse)
 registerResearchOpenApi(registry, ApiErrorResponse)
+
+registry.registerPath({ method: 'get', path: '/api/diaries/{id}/review-workflow', tags: ['Review'], operationId: 'diaryReviewWorkflowGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) }, responses: { 200: json(diaryReviewWorkflowResponseSchema.clone(), 'Versioned owner review'), ...errors([401, 404, 500]) } })
+registry.registerPath({ method: 'patch', path: '/api/diaries/{id}/review-workflow', tags: ['Review'], operationId: 'diaryReviewWorkflowSave', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: diaryReviewWorkflowInputSchema.clone() } } } }, responses: { 200: json(diaryReviewWorkflowResponseSchema.clone(), 'Confirmed review and new revision'), ...errors([400, 401, 404, 409, 500]) } })
+registry.registerPath({ method: 'patch', path: '/api/diaries/{id}/review-schedule', tags: ['Review'], operationId: 'diaryReviewSchedule', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }), body: { content: { 'application/json': { schema: diaryReviewScheduleInputSchema.clone() } } } }, responses: { 200: json(diaryReviewWorkflowResponseSchema.clone(), 'Schedule-only update'), ...errors([400, 401, 404, 409, 500]) } })
+registry.registerPath({ method: 'patch', path: '/api/stocks/{symbol}/thesis/review-schedule', tags: ['Review'], operationId: 'thesisReviewSchedule', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ symbol: stockSymbolSchema }), body: { content: { 'application/json': { schema: thesisScheduleInputSchema.clone() } } } }, responses: { 200: json(investmentThesisMutationResponseSchema.clone(), 'Schedule-only update'), ...errors([400, 401, 404, 409, 500]) } })

@@ -423,6 +423,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diaries/saved-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diarySavedViewsList"];
+        put?: never;
+        post: operations["diarySavedViewCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diaries/saved-views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["diarySavedViewDelete"];
+        options?: never;
+        head?: never;
+        patch: operations["diarySavedViewUpdate"];
+        trace?: never;
+    };
     "/api/diaries/activity": {
         parameters: {
             query?: never;
@@ -603,6 +635,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trade-plans/{id}/execution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tradePlanExecutionGet"];
+        put: operations["tradePlanExecutionUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trade-plans/{id}/execution-baseline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["tradePlanExecutionBaselineCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trade-plans/{id}/execution-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tradePlanExecutionCandidatesList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trade-plans/{id}/execution-baselines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tradePlanExecutionBaselineHistoryList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stocks/portfolio": {
         parameters: {
             query?: never;
@@ -665,6 +761,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["stockWatchlistUpdate"];
+        trace?: never;
+    };
+    "/api/stocks/watchlist/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stockWatchlistReorder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/stocks/{symbol}/evidence": {
@@ -851,6 +963,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["stocksAttentionGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolio/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["portfolioLedgerGet"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2575,6 +2703,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/diaries/{id}/review-workflow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diaryReviewWorkflowGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["diaryReviewWorkflowSave"];
+        trace?: never;
+    };
+    "/api/diaries/{id}/review-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["diaryReviewSchedule"];
+        trace?: never;
+    };
+    "/api/stocks/{symbol}/thesis/review-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["thesisReviewSchedule"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2915,7 +3091,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "INVESTMENT_THESIS_REVISION_CONFLICT" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -3131,6 +3307,13 @@ export interface components {
                 reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
                 transactionCount: number;
                 alertCount: number;
+                searchSnippet?: {
+                    /** @enum {string} */
+                    source: "title" | "content" | "thesis" | "risk" | "execution" | "tag" | "symbol";
+                    text: string;
+                    matchStart: number;
+                    matchEnd: number;
+                } | null;
             }[];
             pagination: {
                 page: number;
@@ -3138,6 +3321,52 @@ export interface components {
                 total: number;
                 totalPages: number;
             };
+        };
+        DiarySavedView: {
+            id: string;
+            name: string;
+            /** @enum {number} */
+            version: 1;
+            query: {
+                search?: string;
+                symbol?: string;
+                dateFrom?: string;
+                dateTo?: string;
+                /** @enum {string} */
+                reviewStatus?: "none" | "pending" | "reviewed";
+                /** @enum {string} */
+                sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
+            };
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DiarySavedViewListResponse: {
+            views: {
+                id: string;
+                name: string;
+                /** @enum {number} */
+                version: 1;
+                query: {
+                    search?: string;
+                    symbol?: string;
+                    dateFrom?: string;
+                    dateTo?: string;
+                    /** @enum {string} */
+                    reviewStatus?: "none" | "pending" | "reviewed";
+                    /** @enum {string} */
+                    sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
+                };
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+        };
+        DiarySavedViewDeleteResponse: {
+            /** @enum {boolean} */
+            success: true;
         };
         SpxSessionSummary: {
             /** @enum {string} */
@@ -3718,6 +3947,166 @@ export interface components {
             /** @enum {boolean} */
             success: true;
         };
+        TradePlanExecutionComparison: {
+            baseline: {
+                id: string;
+                version: number;
+                /** Format: date-time */
+                confirmedAt: string;
+                /** Format: date-time */
+                planUpdatedAt: string;
+                snapshot: {
+                    symbol: string;
+                    setupType: string | null;
+                    entryPrice: string | null;
+                    entryZoneLow: string | null;
+                    entryZoneHigh: string | null;
+                    stopLoss: string | null;
+                    targetPrice: string | null;
+                    maxPositionSize: string | null;
+                    /** @enum {string} */
+                    maxPositionSizeUnit: "unknown";
+                    invalidationCondition: string | null;
+                };
+            } | null;
+            baselineHistory: {
+                id: string;
+                version: number;
+                /** Format: date-time */
+                confirmedAt: string;
+                /** Format: date-time */
+                planUpdatedAt: string;
+                snapshot: {
+                    symbol: string;
+                    setupType: string | null;
+                    entryPrice: string | null;
+                    entryZoneLow: string | null;
+                    entryZoneHigh: string | null;
+                    stopLoss: string | null;
+                    targetPrice: string | null;
+                    maxPositionSize: string | null;
+                    /** @enum {string} */
+                    maxPositionSizeUnit: "unknown";
+                    invalidationCondition: string | null;
+                };
+            }[];
+            planSnapshot: {
+                symbol: string;
+                setupType: string | null;
+                entryPrice: string | null;
+                entryZoneLow: string | null;
+                entryZoneHigh: string | null;
+                stopLoss: string | null;
+                targetPrice: string | null;
+                maxPositionSize: string | null;
+                /** @enum {string} */
+                maxPositionSizeUnit: "unknown";
+                invalidationCondition: string | null;
+            } | null;
+            executionRevision: number | null;
+            /** @enum {string} */
+            baselineStatus: "unconfirmed" | "current" | "outdated";
+            /** @enum {string} */
+            comparisonTiming: "pre_execution" | "retrospective" | "unknown";
+            selectedTransactions: {
+                relationId: string;
+                id: string;
+                transactionId: string | null;
+                diaryId: string | null;
+                symbol: string;
+                /** @enum {string} */
+                type: "BUY" | "SELL";
+                quantity: string;
+                price: string;
+                /** Format: date-time */
+                tradeDate: string;
+                /** @enum {string} */
+                selectionStatus: "current" | "changed" | "missing";
+                snapshot: {
+                    id: string | null;
+                    diaryId: string | null;
+                    symbol: string;
+                    /** @enum {string} */
+                    type: "BUY" | "SELL";
+                    quantity: string;
+                    price: string;
+                    /** Format: date-time */
+                    tradeDate: string;
+                };
+                current: {
+                    id: string;
+                    diaryId: string | null;
+                    symbol: string;
+                    /** @enum {string} */
+                    type: "BUY" | "SELL";
+                    quantity: string;
+                    price: string;
+                    /** Format: date-time */
+                    tradeDate: string;
+                } | null;
+            }[];
+            invalidatedSelectionCount: number;
+            deviationReason: string | null;
+            /** @enum {string} */
+            comparisonStatus: "unconfirmed" | "ready" | "unavailable" | "outdated" | "conflict";
+            buyQuantity: string | null;
+            averageExecutionPrice: string | null;
+            entryPriceDelta: string | null;
+            entryPriceDeltaPercent: string | null;
+            /** @enum {string} */
+            entryZoneRelation: "inside" | "below" | "above" | "unavailable";
+            /** @enum {string} */
+            maxPositionSizeUnit: "unknown";
+        };
+        TradePlanExecutionCandidatesResponse: {
+            data: {
+                id: string;
+                diaryId: string;
+                symbol: string;
+                /** @enum {string} */
+                type: "BUY" | "SELL";
+                quantity: string;
+                price: string;
+                /** Format: date-time */
+                tradeDate: string;
+                linkedPlanId: string | null;
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
+        TradePlanExecutionBaselineHistoryResponse: {
+            data: {
+                id: string;
+                version: number;
+                /** Format: date-time */
+                confirmedAt: string;
+                /** Format: date-time */
+                planUpdatedAt: string;
+                snapshot: {
+                    symbol: string;
+                    setupType: string | null;
+                    entryPrice: string | null;
+                    entryZoneLow: string | null;
+                    entryZoneHigh: string | null;
+                    stopLoss: string | null;
+                    targetPrice: string | null;
+                    maxPositionSize: string | null;
+                    /** @enum {string} */
+                    maxPositionSizeUnit: "unknown";
+                    invalidationCondition: string | null;
+                };
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
         PortfolioValuationResponse: {
             holdings: {
                 symbol: string;
@@ -3774,6 +4163,8 @@ export interface components {
                 /** @enum {string} */
                 status: "WATCHING" | "ARCHIVED";
                 sortOrder: number;
+                /** @default false */
+                pinned: boolean;
                 /** Format: date-time */
                 updatedAt: string;
                 stock: {
@@ -3797,10 +4188,20 @@ export interface components {
             id: string;
             symbol: string;
             sortOrder: number;
+            /** @default false */
+            pinned: boolean;
             /** @enum {string} */
             status: "WATCHING" | "ARCHIVED";
             /** Format: date-time */
             updatedAt?: string;
+        };
+        StockWatchlistReorderResponse: {
+            /** @enum {boolean} */
+            success: true;
+            items: {
+                id: string;
+                sortOrder: number;
+            }[];
         };
         EvidenceRecord: {
             id: string;
@@ -7542,7 +7943,9 @@ export interface operations {
                 dateTo?: string;
                 reviewStatus?: "none" | "pending" | "reviewed";
             };
-            header?: never;
+            header?: {
+                "x-diary-search-snippet"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7568,6 +7971,259 @@ export interface operations {
             };
             /** @description HTTP 401 error */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diarySavedViewsList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner saved diary views */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiarySavedViewListResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diarySavedViewCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Create a named diary view */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name: string;
+                    query: {
+                        search?: string;
+                        symbol?: string;
+                        dateFrom?: string;
+                        dateTo?: string;
+                        /** @enum {string} */
+                        reviewStatus?: "none" | "pending" | "reviewed";
+                        /** @enum {string} */
+                        sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Created owner saved diary view */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiarySavedView"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diarySavedViewDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted owner saved diary view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiarySavedViewDeleteResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diarySavedViewUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Rename or update a saved diary view */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    query?: {
+                        search?: string;
+                        symbol?: string;
+                        dateFrom?: string;
+                        dateTo?: string;
+                        /** @enum {string} */
+                        reviewStatus?: "none" | "pending" | "reviewed";
+                        /** @enum {string} */
+                        sortBy?: "date-desc" | "date-asc" | "title-asc" | "title-desc";
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Updated owner saved diary view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiarySavedView"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8485,6 +9141,357 @@ export interface operations {
             };
         };
     };
+    tradePlanExecutionGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner plan execution comparison */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradePlanExecutionComparison"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    tradePlanExecutionUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    transactionIds: string[];
+                    removeRelationIds?: string[];
+                    deviationReason?: string | null;
+                    baselineVersion: number;
+                    expectedExecutionRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated owner plan execution selection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradePlanExecutionComparison"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    tradePlanExecutionBaselineCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date-time */
+                    expectedPlanUpdatedAt: string;
+                    expectedBaselineVersion: number | null;
+                    expectedExecutionRevision: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Confirmed owner plan execution baseline */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradePlanExecutionComparison"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    tradePlanExecutionCandidatesList: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner execution candidates for a plan symbol */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradePlanExecutionCandidatesResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    tradePlanExecutionBaselineHistoryList: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner immutable plan execution baseline history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradePlanExecutionBaselineHistoryResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     portfolioValuationGet: {
         parameters: {
             query?: never;
@@ -8608,7 +9615,9 @@ export interface operations {
     stockWatchlistList: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-watchlist-features"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8646,7 +9655,9 @@ export interface operations {
     stockWatchlistUpsert: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-watchlist-features"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8654,6 +9665,8 @@ export interface operations {
             content: {
                 "application/json": {
                     symbol: string;
+                    sortOrder?: number;
+                    pinned?: boolean;
                 };
             };
         };
@@ -8778,7 +9791,9 @@ export interface operations {
     stockWatchlistUpdate: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-watchlist-features"?: string;
+            };
             path: {
                 id: string;
             };
@@ -8790,6 +9805,7 @@ export interface operations {
                     /** @enum {string} */
                     status?: "WATCHING" | "ARCHIVED";
                     sortOrder?: number;
+                    pinned?: boolean;
                 };
             };
         };
@@ -8823,6 +9839,71 @@ export interface operations {
             };
             /** @description HTTP 403 error */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    stockWatchlistReorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Move one owner item within its pinned group */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    id: string;
+                    /** @enum {string} */
+                    direction: "up" | "down";
+                };
+            };
+        };
+        responses: {
+            /** @description Updated owner watchlist order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockWatchlistReorderResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9514,6 +10595,8 @@ export interface operations {
                     reviewDueAt?: string | null;
                     /** @enum {string} */
                     status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+                    /** Format: date-time */
+                    expectedUpdatedAt?: string | null;
                 };
             };
         };
@@ -9608,6 +10691,8 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
+                    /** Format: date-time */
+                    expectedUpdatedAt?: string;
                     /** @enum {string} */
                     outcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR";
                     /** @enum {string} */
@@ -10456,6 +11541,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    portfolioLedgerGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner ledger holdings, exposure and recent trades from one replay without provider requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holdings: {
+                            symbol: string;
+                            quantity: string;
+                            avgCost: string;
+                            totalCost: string;
+                        }[];
+                        exposure: {
+                            /** @enum {string} */
+                            status: "ready";
+                            data: {
+                                exposure: {
+                                    highBetaPct: number;
+                                    coreIndexPct: number;
+                                    megaCapPct: number;
+                                    singleStockPct: number;
+                                    defensivePct: number;
+                                    cashProxyPct: number;
+                                    unknownPct: number;
+                                    /** @enum {string|null} */
+                                    largestTheme: "core_index" | "high_beta" | "mega_cap" | "single_stock" | "defensive" | "cash_proxy" | "unknown" | null;
+                                    concentrationWarning: boolean;
+                                    totalValue: number;
+                                    skippedCount: number;
+                                };
+                                gaps: {
+                                    /** @enum {string} */
+                                    bucket: "highBeta" | "coreIndex" | "cash";
+                                    currentPct: number;
+                                    targetPct: number;
+                                    gapPct: number;
+                                    /** @enum {string} */
+                                    status: "underweight" | "balanced" | "overweight";
+                                }[];
+                                suggestedAllocation: {
+                                    highBetaTargetPct: number;
+                                    coreIndexTargetPct: number;
+                                    cashTargetPct: number;
+                                };
+                                betaAllocation: {
+                                    highBetaTargetPct: number;
+                                    coreIndexTargetPct: number;
+                                    cashTargetPct: number;
+                                    /** @enum {string} */
+                                    suggestedMode: "aggressive" | "balanced" | "defensive" | "capital_preservation" | "unknown";
+                                    suggestedBetaLevel: number | null;
+                                    explanation: string;
+                                    warnings: string[];
+                                };
+                                /** @enum {string} */
+                                marketState: "risk_on" | "neutral" | "defensive" | "risk_off" | "unknown";
+                                /** Format: date-time */
+                                lastUpdated: string | null;
+                                marketStateAsOfDate: string | null;
+                                summaryAsOfDate: string | null;
+                            };
+                        } | {
+                            /** @enum {string} */
+                            status: "failed";
+                            error: {
+                                /** @enum {string} */
+                                code: "SYS_INTERNAL_ERROR";
+                                requestId: string;
+                            };
+                        };
+                        recent: {
+                            trades: {
+                                id: string;
+                                symbol: string;
+                                /** Format: date-time */
+                                sellDate: string;
+                                sellQuantity: string;
+                                realizedPnL: string;
+                                realizedPnLPct: string;
+                            }[];
+                        };
+                        /** Format: date-time */
+                        asOf: string;
+                    };
                 };
             };
             /** @description HTTP 401 error */
@@ -21814,6 +23015,470 @@ export interface operations {
             };
             /** @description HTTP 503 error */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diaryReviewWorkflowGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versioned owner review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: {
+                            id: string;
+                            title: string;
+                            date: string;
+                            content: string | null;
+                            tags: string[];
+                            thesis: string | null;
+                            risk: string | null;
+                            execution: string | null;
+                            /** Format: date-time */
+                            reviewDueAt: string | null;
+                            /** @enum {string} */
+                            reviewStatus: "none" | "pending" | "reviewed";
+                            /** Format: date-time */
+                            reviewedAt: string | null;
+                            /** @enum {string|null} */
+                            reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            reviewSummary: string | null;
+                            reviewLearning: string | null;
+                            reviewAdjustment: string | null;
+                            transactions: {
+                                id: string;
+                                symbol: string;
+                                /** @enum {string} */
+                                type: "BUY" | "SELL";
+                                quantity: string;
+                                price: string;
+                                /** Format: date-time */
+                                tradeDate: string;
+                                notes: string | null;
+                                strategy: string | null;
+                                emotion: string | null;
+                            }[];
+                            tradePlans: {
+                                id: string;
+                                symbol: string;
+                                setupType: string | null;
+                                entryPrice: string | null;
+                                entryZoneLow: string | null;
+                                entryZoneHigh: string | null;
+                                stopLoss: string | null;
+                                targetPrice: string | null;
+                                maxPositionSize: string | null;
+                                invalidationCondition: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "draft" | "active" | "closed" | "cancelled";
+                            }[];
+                        };
+                        revision: number;
+                    };
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diaryReviewWorkflowSave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    review: {
+                        /** @enum {string} */
+                        reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR";
+                        reviewSummary?: string | null;
+                        reviewLearning?: string | null;
+                        reviewAdjustment?: string | null;
+                    };
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Confirmed review and new revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: {
+                            id: string;
+                            title: string;
+                            date: string;
+                            content: string | null;
+                            tags: string[];
+                            thesis: string | null;
+                            risk: string | null;
+                            execution: string | null;
+                            /** Format: date-time */
+                            reviewDueAt: string | null;
+                            /** @enum {string} */
+                            reviewStatus: "none" | "pending" | "reviewed";
+                            /** Format: date-time */
+                            reviewedAt: string | null;
+                            /** @enum {string|null} */
+                            reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            reviewSummary: string | null;
+                            reviewLearning: string | null;
+                            reviewAdjustment: string | null;
+                            transactions: {
+                                id: string;
+                                symbol: string;
+                                /** @enum {string} */
+                                type: "BUY" | "SELL";
+                                quantity: string;
+                                price: string;
+                                /** Format: date-time */
+                                tradeDate: string;
+                                notes: string | null;
+                                strategy: string | null;
+                                emotion: string | null;
+                            }[];
+                            tradePlans: {
+                                id: string;
+                                symbol: string;
+                                setupType: string | null;
+                                entryPrice: string | null;
+                                entryZoneLow: string | null;
+                                entryZoneHigh: string | null;
+                                stopLoss: string | null;
+                                targetPrice: string | null;
+                                maxPositionSize: string | null;
+                                invalidationCondition: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "draft" | "active" | "closed" | "cancelled";
+                            }[];
+                        };
+                        revision: number;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diaryReviewSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date-time */
+                    reviewDueAt: string | null;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Schedule-only update */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: {
+                            id: string;
+                            title: string;
+                            date: string;
+                            content: string | null;
+                            tags: string[];
+                            thesis: string | null;
+                            risk: string | null;
+                            execution: string | null;
+                            /** Format: date-time */
+                            reviewDueAt: string | null;
+                            /** @enum {string} */
+                            reviewStatus: "none" | "pending" | "reviewed";
+                            /** Format: date-time */
+                            reviewedAt: string | null;
+                            /** @enum {string|null} */
+                            reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            reviewSummary: string | null;
+                            reviewLearning: string | null;
+                            reviewAdjustment: string | null;
+                            transactions: {
+                                id: string;
+                                symbol: string;
+                                /** @enum {string} */
+                                type: "BUY" | "SELL";
+                                quantity: string;
+                                price: string;
+                                /** Format: date-time */
+                                tradeDate: string;
+                                notes: string | null;
+                                strategy: string | null;
+                                emotion: string | null;
+                            }[];
+                            tradePlans: {
+                                id: string;
+                                symbol: string;
+                                setupType: string | null;
+                                entryPrice: string | null;
+                                entryZoneLow: string | null;
+                                entryZoneHigh: string | null;
+                                stopLoss: string | null;
+                                targetPrice: string | null;
+                                maxPositionSize: string | null;
+                                invalidationCondition: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "draft" | "active" | "closed" | "cancelled";
+                            }[];
+                        };
+                        revision: number;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    thesisReviewSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                symbol: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date-time */
+                    reviewDueAt: string | null;
+                    /** Format: date-time */
+                    expectedUpdatedAt: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Schedule-only update */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        thesis: {
+                            id: string;
+                            userId: string;
+                            stockId: string;
+                            symbol: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+                            /** @enum {string} */
+                            health: "draft" | "healthy" | "needs_review" | "invalidated" | "archived";
+                            summary: string | null;
+                            whyIOwnIt: string | null;
+                            growthDrivers: string | null;
+                            risks: string | null;
+                            invalidationConditions: string | null;
+                            expectedHoldingPeriod: string | null;
+                            /** Format: date-time */
+                            reviewDueAt: string | null;
+                            /** Format: date-time */
+                            lastReviewedAt: string | null;
+                            /** @enum {string|null} */
+                            latestReviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                            /** Format: date-time */
+                            activatedAt: string | null;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

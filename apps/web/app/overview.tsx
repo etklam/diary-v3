@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { z } from 'zod'
 import { authUserResponseSchema } from '@diary/contracts'
@@ -186,9 +186,10 @@ export default function Overview() {
   const [plans, retryPlans] = useResource('plans', tradePlanListResponseSchema, session.revision, tx(c, 'failed'))
   const [watchlist, retryWatchlist] = useResource('watchlist', stockWatchlistResponseSchema, session.revision, tx(c, 'failed'))
 
+  const timezoneRevision = useRef(session.revision)
   useEffect(() => {
     const controller = new AbortController()
-    setTimezone(null)
+    if (timezoneRevision.current !== session.revision) { setTimezone(null); timezoneRevision.current = session.revision }
     setTimezoneError(false)
     api.GET('/api/auth/me', { signal: controller.signal }).then(result => {
       if (controller.signal.aborted) return
@@ -196,7 +197,7 @@ export default function Overview() {
       if (result.response.ok && parsed.success) {
         setTimezone(parsed.data.data.timezone)
         setTimezoneError(false)
-      } else setTimezoneError(true)
+      } else { if ([401, 403].includes(result.response.status)) setTimezone(null); setTimezoneError(true) }
     }).catch(() => {
       if (!controller.signal.aborted) setTimezoneError(true)
     })
@@ -208,5 +209,5 @@ export default function Overview() {
   const firstUse = allResourcesReady && isOverviewFirstUse({ attention: attention.data!, reviews: reviews.data!, recent: recent.data!, valuation: valuation.data!, plans: plans.data!, watchlist: watchlist.data! })
   const showPortfolio = valuation.loading || Boolean(valuation.error) || Boolean(valuation.data && valuation.data.valuation.valuationStatus !== 'empty')
   const showWatchlist = watchlist.loading || Boolean(watchlist.error) || Boolean(watchlist.data?.items.length)
-  return <section className="overview-page" aria-labelledby="overview-title"><header className="overview-header"><div><div className="overview-date-row"><p className="overview-date" role="status">{accountDate ?? (timezoneError ? c.timezoneFailed : c.timezoneLoading)}</p>{timezoneError && <button type="button" className="secondary overview-retry" onClick={() => setTimezoneAttempt(value => value + 1)}>{c.retry}</button>}</div><h1 id="overview-title">{c.title}</h1><p className="lede">{c.hint}</p></div>{!firstUse && <Link className="button" to="/diaries/quick"><Icon name="zap" />{c.quick}</Link>}</header>{firstUse ? <FirstUseSection c={c} /> : <><WorkspaceAttentionSection attention={attention} retryAttention={retryAttention} reviews={reviews} retryReviews={retryReviews} timezone={timezone} locale={locale} c={c}/><WorkspaceRecentSection state={recent} retry={retryRecent} c={c}/><div className="overview-context-grid">{showPortfolio && <PortfolioSection state={valuation} retry={retryValuation} locale={locale} timezone={timezone} c={c}/>} {showWatchlist && <WatchlistSection state={watchlist} retry={retryWatchlist} c={c}/>}</div><DestinationsSection c={c} plans={plans} retryPlans={retryPlans}/></>}</section>
+  return <section className="overview-page" aria-labelledby="overview-title"><header className="overview-header"><div><div className="overview-date-row"><p className="overview-date" role="status">{accountDate ?? (timezoneError ? c.timezoneFailed : c.timezoneLoading)}</p>{timezoneError && accountDate && <span role="status">{c.timezoneFailed}</span>}{timezoneError && <button type="button" className="secondary overview-retry" onClick={() => setTimezoneAttempt(value => value + 1)}>{c.retry}</button>}</div><h1 id="overview-title">{c.title}</h1><p className="lede">{c.hint}</p></div>{!firstUse && <Link className="button" to="/diaries/quick"><Icon name="zap" />{c.quick}</Link>}</header>{firstUse ? <FirstUseSection c={c} /> : <><WorkspaceAttentionSection attention={attention} retryAttention={retryAttention} reviews={reviews} retryReviews={retryReviews} timezone={timezone} locale={locale} c={c}/><WorkspaceRecentSection state={recent} retry={retryRecent} c={c}/><div className="overview-context-grid">{showPortfolio && <PortfolioSection state={valuation} retry={retryValuation} locale={locale} timezone={timezone} c={c}/>} {showWatchlist && <WatchlistSection state={watchlist} retry={retryWatchlist} c={c}/>}</div><DestinationsSection c={c} plans={plans} retryPlans={retryPlans}/></>}</section>
 }

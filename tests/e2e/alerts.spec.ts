@@ -9,6 +9,8 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
   await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
   expect((await page.request.put('/api/user/settings', { headers, data: { timezone: 'America/New_York' } })).status()).toBe(200);
+  // Out-of-band fixture writes bypass browser resource invalidation; start a fresh document.
+  await page.reload();
   const response = await page.request.post('/api/diaries', { headers, data: { title: 'Demand decision', date: '2026-03-02', content: 'Private decision body', alerts: [
     { message: 'Recheck demand', triggerAt: '2026-03-07T12:00:00Z', recurringMode: 'WEEK' },
     { message: 'A separate reminder with enough detail to wrap naturally on a narrow screen', triggerAt: '2020-01-01T09:00:00Z' },

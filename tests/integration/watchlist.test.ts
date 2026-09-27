@@ -3,6 +3,7 @@ import { once } from 'node:events'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { beforeAll, afterAll, beforeEach, afterEach, it, expect } from 'vitest'
+import { stockWatchlistItemSchema, stockWatchlistMutationResponseSchema } from '@diary/contracts/watchlist'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
 import { provisionTestDatabase } from '../support/database'
@@ -37,7 +38,7 @@ async function add(browser: BrowserSession, symbol: string) {
   return response.json()
 }
 async function list(browser: BrowserSession) {
-  const response = await browser.request('/api/stocks/watchlist')
+  const response = await browser.request('/api/stocks/watchlist', { headers: { 'x-watchlist-features': 'management-v1' } })
   expect(response.status).toBe(200)
   expect(response.headers.get('cache-control')).toBe('no-store')
   return (await response.json()).items
@@ -57,6 +58,17 @@ it('reuses canonical diary stocks and restores duplicates without changing ident
   expect((await list(browser)).map((item: { id: string }) => item.id)).toEqual([second.id])
   expect(await add(browser, 'aapl')).toMatchObject({ id: first.id, sortOrder: 7, status: 'WATCHING' })
   expect((await list(browser))[1]).toMatchObject({ stock: { symbol: 'AAPL', name: null }, recordCount: 0, latestRecord: null })
+})
+
+it('restores an archived item implicitly without duplicating active order keys', async () => {
+  const browser = await login()
+  const first = await add(browser, 'AAPL'), second = await add(browser, 'MSFT')
+  expect((await update(browser, `/api/stocks/watchlist/${first.id}`, {}, 'DELETE')).status).toBe(200)
+  expect((await list(browser)).map((item: { sortOrder: number }) => item.sortOrder)).toEqual([0])
+  expect(await add(browser, 'AAPL')).toMatchObject({ id: first.id, sortOrder: 0, status: 'WATCHING' })
+  const items = await list(browser)
+  expect(items.map((item: { id: string }) => item.id)).toEqual([first.id, second.id])
+  expect(items.map((item: { sortOrder: number }) => item.sortOrder)).toEqual([0, 1])
 })
 
 it('serializes concurrent creates and gives duplicates one owner row', async () => {
@@ -97,8 +109,46 @@ it('returns the first 100 watching entries with deterministic ID ties and keeps 
   for (let i = 0; i < 102; i++) items.push(await add(browser, `SYM${i}`))
   expect((await list(browser)).map((item: { id: string }) => item.id)).toEqual(items.slice(0, 100).map(item => item.id))
   expect((await update(browser, `/api/stocks/watchlist/${items[101].id}`, { sortOrder: 0 })).status).toBe(200)
-  expect((await list(browser)).slice(0, 3).map((item: { id: string }) => item.id)).toEqual([items[0].id, items[101].id, items[1].id])
+  // Explicit legacy sortOrder writes now shift following rows to keep order keys unique.
+  expect((await list(browser)).slice(0, 3).map((item: { id: string }) => item.id)).toEqual([items[101].id, items[0].id, items[1].id])
   expect((await update(browser, `/api/stocks/watchlist/${items[0].id}`, { status: 'ARCHIVED' })).status).toBe(200)
   expect((await list(browser))[0].id).toBe(items[101].id)
   expect((await database.pool.query('select status from stock_watchlists where id = $1', [items[0].id])).rows[0].status).toBe('ARCHIVED')
+})
+
+it('moves items atomically within their pinned group and keeps owner isolation', async () => {
+  const owner = await login(), other = await login()
+  const first = await add(owner, 'AAPL'), second = await add(owner, 'MSFT'), third = await add(owner, 'NVDA')
+  expect((await update(owner, `/api/stocks/watchlist/${third.id}`, { pinned: true })).status).toBe(200)
+  expect((await list(owner)).map((item: { stock: { symbol: string }; pinned: boolean }) => `${item.stock.symbol}:${item.pinned}`)).toEqual(['NVDA:true', 'AAPL:false', 'MSFT:false'])
+  const move = await owner.request('/api/stocks/watchlist/reorder', {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': owner.cookies.get('csrf-token')! },
+    body: JSON.stringify({ id: second.id, direction: 'up' }),
+  })
+  expect(move.status).toBe(200)
+  expect((await list(owner)).map((item: { stock: { symbol: string } }) => item.stock.symbol)).toEqual(['NVDA', 'MSFT', 'AAPL'])
+  const otherMove = await other.request('/api/stocks/watchlist/reorder', {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': other.cookies.get('csrf-token')! },
+    body: JSON.stringify({ id: first.id, direction: 'down' }),
+  })
+  expect(otherMove.status).toBe(404)
+  expect((await otherMove.json()).data.code).toBe('WATCHLIST_ITEM_NOT_FOUND')
+})
+
+it('omits management fields for released strict clients unless explicitly requested', async () => {
+  const browser = await login()
+  const legacyMutation = stockWatchlistMutationResponseSchema.omit({ pinned: true }).strict()
+  const legacyItem = stockWatchlistItemSchema.omit({ pinned: true }).strict()
+  const created = await add(browser, 'AAPL')
+  expect(legacyMutation.safeParse(created).success).toBe(true)
+  expect(created).not.toHaveProperty('pinned')
+  const updated = await update(browser, `/api/stocks/watchlist/${created.id}`, { pinned: true })
+  expect(updated.status).toBe(200)
+  expect(legacyMutation.safeParse(await updated.json()).success).toBe(true)
+  const oldList = await (await browser.request('/api/stocks/watchlist')).json()
+  expect(legacyItem.safeParse(oldList.items[0]).success).toBe(true)
+  expect(oldList.items[0]).not.toHaveProperty('pinned')
+  expect((await list(browser))[0].pinned).toBe(true)
+  const optedMutation = await browser.post('/api/stocks/watchlist', { symbol: 'AAPL' }, true, { 'x-watchlist-features': 'management-v1' })
+  expect((await optedMutation.json()).pinned).toBe(true)
 })

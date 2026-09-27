@@ -55,15 +55,19 @@ type DraftLifecycleOptions<T> = {
   value: T;
   dirty: boolean;
   paused: boolean;
+  /** Reports whether a scheduled or cleanup persistence actually reached storage. */
+  onPersist?: (persisted: boolean) => void;
 };
 
 /**
  * Shares storage ordering only. Each form still owns its payload, dirty rules,
  * restore merge, and save reconciliation.
  */
-export function useDraftLifecycle<T>({ key, value, dirty, paused }: DraftLifecycleOptions<T>) {
+export function useDraftLifecycle<T>({ key, value, dirty, paused, onPersist }: DraftLifecycleOptions<T>) {
   const snapshotsRef = useRef(new Map<string, DraftSnapshot<T>>());
   const suppressedRef = useRef(new Set<string>());
+  const onPersistRef = useRef(onPersist);
+  useEffect(() => { onPersistRef.current = onPersist; }, [onPersist]);
 
   // Keep only committed renders here. Rendering can be abandoned in concurrent
   // mode, so mutating the map during render could bind another account's value
@@ -80,7 +84,8 @@ export function useDraftLifecycle<T>({ key, value, dirty, paused }: DraftLifecyc
     const capturedKey = key;
     const capturedValue = value;
     const timer = window.setTimeout(() => {
-      flushCapturedDraft({ key: capturedKey, value: capturedValue, dirty: true, paused: false }, suppressedRef.current);
+      const persisted = flushCapturedDraft({ key: capturedKey, value: capturedValue, dirty: true, paused: false }, suppressedRef.current);
+      onPersistRef.current?.(persisted);
     }, DRAFT_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [key, paused, dirty, value]);
@@ -95,13 +100,18 @@ export function useDraftLifecycle<T>({ key, value, dirty, paused }: DraftLifecyc
       }
       const snapshot = snapshotsRef.current.get(currentKey);
       snapshotsRef.current.delete(currentKey);
-      if (snapshot) flushCapturedDraft(snapshot, suppressedRef.current);
+      if (snapshot) {
+        const persisted = flushCapturedDraft(snapshot, suppressedRef.current);
+        onPersistRef.current?.(persisted);
+      }
     };
   }, [key]);
 
   const flushDraft = useCallback(() => {
     if (!key || paused || !dirty || wasExplicitSignOut()) return false;
-    return flushCapturedDraft({ key, value, dirty, paused }, suppressedRef.current);
+    const persisted = flushCapturedDraft({ key, value, dirty, paused }, suppressedRef.current);
+    onPersistRef.current?.(persisted);
+    return persisted;
   }, [key, paused, dirty, value]);
 
   const suppressDraft = useCallback(() => {

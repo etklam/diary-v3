@@ -9,6 +9,8 @@ async function signIn(page: import('@playwright/test').Page, email: string) {
   await selectLocale(page, 'en')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email)
+  await expect(page.getByLabel('Password', { exact: true })).toHaveValue(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/timeline$/)
   await selectLocale(page, 'en')

@@ -25,8 +25,8 @@
 }
 
 /* Writing surface: the Markdown area is the primary control and keeps the
-   reading measure. Viewport-relative floors avoid fixed pixel heights; no
-   sticky action bars, so an open keyboard never covers the controls. */
+   reading measure. Viewport-relative floors avoid fixed pixel heights; the
+   mobile action area becomes static when available viewport height is short. */
 .editor-content {
   max-width: 72ch;
   min-height: clamp(360px, 55dvh, 720px);
@@ -208,4 +208,17 @@
   margin-bottom: 0;
   padding: 0;
   list-style: none;
+}
+
+@media (max-width: 767px) {
+  .editor:not(.quick-dialog .editor) > form > .editor-footer {
+    position: sticky;
+    bottom: var(--mobile-diary-navigation-space, 76px);
+    background: var(--surface);
+    padding-block: var(--space-3);
+    z-index: 2;
+  }
+}
+@media (max-height: 500px) and (max-width: 767px) {
+  .editor:not(.quick-dialog .editor) > form > .editor-footer { position: static; }
 }

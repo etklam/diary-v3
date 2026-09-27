@@ -425,9 +425,8 @@ test('built artifacts keep a trade plan linked to its diary without creating tra
   // whole suite, so this case authenticates through its own synthetic client.
   expect((await page.context().request.post('/api/auth/register', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
   expect((await page.context().request.post('/api/auth/login', { headers: freshClient(), data: { email, password } })).status()).toBe(200);
-  // The linked-diary options load once when the form mounts, so the diary
-  // must already exist before the page opens. POST logins never set the
-  // CSRF cookie; the bounded helper GET establishes it first.
+  // Seed the evidence before opening the lazy summary picker. POST logins
+  // never set the CSRF cookie; the bounded helper GET establishes it first.
   const headers = await csrfFor(page.context());
   const created = await page.context().request.post('/api/diaries', { headers, data: { date: '2026-09-14', title: 'Plan evidence diary', content: 'Original reasoning for the plan.' } });
   expect(created.status()).toBe(201);
@@ -441,7 +440,10 @@ test('built artifacts keep a trade plan linked to its diary without creating tra
   await page.getByRole('textbox', { name: 'Setup', exact: true }).fill('Release plan lifecycle');
   await page.getByRole('textbox', { name: 'Entry price', exact: true }).fill('101.25');
   await page.getByRole('textbox', { name: 'Stop loss', exact: true }).fill('95');
-  await page.getByRole('combobox', { name: /Linked diary|關聯日記|关联日记/, exact: true }).selectOption(diary.id);
+  await page.getByRole('button', { name: 'Choose a diary', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Link a diary', exact: true });
+  await expect(picker).toContainText('Plan evidence diary');
+  await picker.getByRole('button', { name: 'Select', exact: true }).click();
   await page.getByRole('button', { name: /Save trade plan|儲存交易計劃|保存交易计划/, exact: true }).click();
   await expect(page).toHaveURL(/\/trade-plans\/\d+$/);
   const planId = page.url().split('/').at(-1)!;

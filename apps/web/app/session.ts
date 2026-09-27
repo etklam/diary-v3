@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { createAccountResource } from './account-resource';
 import { createWebSession } from '@diary/api-client';
 import { clearPrivateServiceWorkerCache } from './pwa-client';
 import { safeCaptureReturnPath } from './capture-context';
@@ -15,6 +16,8 @@ let explicitSignOut = false;
 export function wasExplicitSignOut() { return explicitSignOut; }
 export function isLocallySignedOut() { return locallySignedOut; }
 export function getSessionRevision() { return state.revision; }
+const accountResource = createAccountResource(getSessionRevision);
+export function invalidateAccountResource() { accountResource.invalidate(); }
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | undefined;
 let listening = false;
@@ -60,6 +63,7 @@ function safeArticleReturnPath(candidate: string | null): string | null {
 }
 
 export function safeReturnPath(candidate: string | null): string {
+  if (candidate && /^\/(?:diaries\/[1-9]\d*\/review|stocks\/[A-Za-z0-9.]{1,32}\/thesis)\?reviewSession=[a-f0-9-]{36}$/.test(candidate)) return candidate;
   const capturePath = safeCaptureReturnPath(candidate);
   if (capturePath) return capturePath;
   // Partner comparison returns keep the allowlisted selection and limit only.
@@ -106,11 +110,12 @@ export function defaultWorkspacePath(page: string | null | undefined) {
 // (two tabs would echo the logout forever). A 401 expiry passes neither and
 // keeps the drafts so the writing survives re-login.
 export function clearPrivateSession(broadcast = false, clearDrafts = false) {
+  accountResource.invalidate();
   webSession.invalidate();
   clearPrivateServiceWorkerCache();
   if(typeof localStorage!=='undefined'){try{for(const key of Object.keys(localStorage)){if((broadcast||clearDrafts)&&(key.startsWith('diary-quick-draft:')||key.startsWith('diary-quick-reminder:')))localStorage.removeItem(key);
-   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('post-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('diary-capture-return:')||key.startsWith('diary-recent-tags:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
-  if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
+   if((broadcast||clearDrafts)&&(key.startsWith('diary-editor-draft:')||key.startsWith('post-editor-draft:')||key.startsWith('review-draft:')||key.startsWith('trade-plan-draft:')||key.startsWith('diary-capture-return:')||key.startsWith('diary-recent-tags:')))localStorage.removeItem(key);}}catch{/* Private in-memory state is still cleared. */}}
+  if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:')||key.startsWith('review-session:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;
   publish({ authenticated: false, revision: state.revision + 1 });
@@ -128,6 +133,7 @@ function startListening() {
   if (typeof BroadcastChannel !== 'undefined') {
     channel = new BroadcastChannel('diary-web-session');
     channel.onmessage = event => {
+      if (event.data?.type === 'account-settings') accountResource.invalidate();
       if (event.data?.type === 'logout') { explicitSignOut = true; clearPrivateSession(false, true); }
       if (event.data?.type === 'logout-complete') discardArticleDocument();
     };
@@ -135,17 +141,19 @@ function startListening() {
   window.addEventListener('storage', event => {
     if (event.key !== eventKey || !event.newValue) return;
     try {
-      if (JSON.parse(event.newValue).type === 'logout-complete') discardArticleDocument();
+      if (JSON.parse(event.newValue).type === 'account-settings') accountResource.invalidate();
+      else if (JSON.parse(event.newValue).type === 'logout-complete') discardArticleDocument();
       else { explicitSignOut = true; clearPrivateSession(false, true); }
     } catch { /* Ignore malformed cross-tab events. */ }
   });
 }
 function subscribe(listener: () => void) { startListening(); listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function useSessionState() { return useSyncExternalStore(subscribe, () => state, () => initial); }
-export function markSignedIn() {
+export function markSignedIn(newSession = false) {
   locallySignedOut = false;
   explicitSignOut = false;
-  if (state.authenticated === true) return;
+  if (newSession) accountResource.invalidate();
+  if (state.authenticated === true && !newSession) return;
   publish({ ...state, authenticated: true, revision: state.revision + 1 });
 }
 
@@ -162,11 +170,11 @@ export function invalidateArticleCache() {
 export const webSession = createWebSession({ baseUrl: typeof window === 'undefined' ? 'http://localhost' : window.location.origin });
 // Local session invalidation has no server request ID; provide the recovery code only.
 function invalidatedSessionResponse() { return Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }); }
-export const sessionFetch: typeof fetch = async (input, init) => {
+const fetchSession: typeof fetch = async (input, init) => {
   const url = input instanceof Request ? input.url : String(input);
   const pathname = new URL(url, 'http://local.invalid').pathname;
   // A remounted private surface must not refill from cookies while logout is in flight.
-  const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname.startsWith('/api/achievements') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention'
+  const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname.startsWith('/api/achievements') || pathname === '/api/auth/me' || pathname.startsWith('/api/portfolio/')
     || pathname.startsWith('/api/blog/admin')
     || /^\/api\/(?:ai|diaries|v2\/diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews)(?:\/|$)/.test(pathname)
     || /^\/api\/stocks\/(?:holdings|portfolio|exposure|attention|prices|watchlist|timeline|alerts)(?:\/|$)/.test(pathname);
@@ -185,6 +193,32 @@ export const sessionFetch: typeof fetch = async (input, init) => {
     const error = await response.clone().json().catch(() => null);
     // A wrong current password is a form error, not a revoked browser session.
     if(error?.data?.code !== 'AUTH_LOGIN_INVALID_CREDENTIALS') clearPrivateSession();
+  }
+  return response;
+};
+
+
+export const sessionFetch: typeof fetch = async (input, init) => {
+  const pathname = new URL(input instanceof Request ? input.url : String(input), 'http://local.invalid').pathname;
+  const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  if (typeof window !== 'undefined' && pathname === '/api/auth/me' && method === 'GET') {
+    return accountResource.read(signal => fetchSession(input, { ...init, signal }), init?.signal ?? (input instanceof Request ? input.signal : undefined));
+  }
+  const settingsWrite = pathname === '/api/user/settings' && method === 'PUT'
+    ? new Request(input instanceof Request ? input.clone() : new URL(String(input), typeof window === 'undefined' ? 'http://local.invalid' : window.location.origin), init).json().catch(() => null) : null;
+  const response = await fetchSession(input, init);
+  if (response.ok && pathname === '/api/auth/login' && method === 'POST') markSignedIn(true);
+  if (response.ok && pathname === '/api/user/settings' && method === 'PUT') {
+    // Locale-only changes do not invalidate the account timezone snapshot.
+    const body: unknown = await settingsWrite;
+    if (!body || typeof body !== 'object' || 'timezone' in body) {
+      accountResource.invalidate();
+      if (typeof window !== 'undefined') {
+        const event = { type: 'account-settings', nonce: `${Date.now()}-${Math.random()}` };
+        if (channel) channel.postMessage(event);
+        else { try { localStorage.setItem(eventKey, JSON.stringify(event)); } catch { /* Device storage may be unavailable. */ } }
+      }
+    }
   }
   return response;
 };

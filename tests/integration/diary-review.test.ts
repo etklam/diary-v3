@@ -121,3 +121,20 @@ it('preserves completed reflection when scheduling or append races completion', 
     if (append) expect(result.content).toContain('Additional evidence')
   }
 })
+
+it('versioned workflow prevents stale writes and reschedules only schedule fields', async () => {
+  const browser = await login(), stranger = await login(), diary = await create(browser);
+  const path = `/api/diaries/${diary.id}/review-workflow`, schedule = `/api/diaries/${diary.id}/review-schedule`;
+  expect((await stranger.request(path)).status).toBe(404);
+  const initial = await (await browser.request(path)).json();
+  const write = { expectedRevision: initial.revision, review: { reviewOutcome: 'INTACT', reviewSummary: 'Confirmed reflection' } };
+  const results = await Promise.all([update(browser, path, write), update(browser, path, write)]);
+  expect(results.map(result => result.status).sort()).toEqual([200, 409]);
+  const completed = await (await browser.request(path)).json();
+  const changed = await update(browser, schedule, { expectedRevision: completed.revision, reviewDueAt: '2026-09-06T09:00:00Z' });
+  expect(changed.status).toBe(200);
+  expect(await changed.json()).toMatchObject({ review: { title: diary.title, content: diary.content, reviewSummary: 'Confirmed reflection', reviewStatus: 'pending', reviewDueAt: '2026-09-06T09:00:00.000Z' }, revision: completed.revision + 1 });
+  expect((await update(browser, schedule, { expectedRevision: completed.revision, reviewDueAt: null })).status).toBe(409);
+  expect((await update(stranger, schedule, { expectedRevision: completed.revision + 1, reviewDueAt: null })).status).toBe(404);
+  expect((await update(browser, schedule, { expectedRevision: completed.revision + 1, reviewDueAt: null, title: 'Unauthorized field' })).status).toBe(400);
+});

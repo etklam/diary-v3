@@ -3,7 +3,9 @@ import { once } from 'node:events'
 import type { AddressInfo } from 'node:net'
 import { serve } from '@hono/node-server'
 import { tradePlanListResponseSchema, tradePlanResponseSchema } from '@diary/contracts/trade-plan'
-import { tradePlans } from '@diary/db'
+import { tradePlanExecutionComparisonSchema } from '@diary/contracts/trade-plan-execution'
+import { tradePlans, transactions } from '@diary/db'
+import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { createApp } from '../../apps/api/src/app'
 import { BrowserSession } from '../support/browser-session'
@@ -154,4 +156,131 @@ it('filters, paginates and sorts plans deterministically, then unlinks on Diary 
   expect(unlinked).toMatchObject({ diaryId: null, diary: null })
   expect((await mutate(browser, `/api/trade-plans/${first.id}`, 'DELETE')).status).toBe(200)
   expect((await browser.request(`/api/trade-plans/${first.id}`)).status).toBe(404)
+})
+
+async function writeExecution(browser: BrowserSession, path: string, method: 'POST' | 'PUT', body: unknown) {
+  return browser.request(path, {
+    method,
+    headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! },
+    body: JSON.stringify(body),
+  })
+}
+
+it('compares manually linked transactions with an immutable baseline and protects concurrent edits', async () => {
+  const browser = await login()
+  const diary = await createDiary(browser, '2026-09-05')
+  const created = await browser.post('/api/diaries', {
+    title: 'Execution evidence', content: 'Synthetic fills', date: '2026-09-06',
+    transactions: [
+      { symbol: 'AAPL', type: 'BUY', quantity: '10', price: '100', tradeDate: '2026-09-06T09:00:00Z' },
+      { symbol: 'AAPL', type: 'BUY', quantity: '5', price: '110', tradeDate: '2026-09-06T10:00:00Z' },
+      { symbol: 'AAPL', type: 'SELL', quantity: '2', price: '120', tradeDate: '2026-09-06T11:00:00Z' },
+    ],
+  })
+  expect(created.status).toBe(201)
+  const evidenceDiary = await created.json()
+  const transactions = evidenceDiary.transactions as Array<{ id: string; type: string }>
+  const plan = await (await browser.post('/api/trade-plans', {
+    diaryId: diary.id, symbol: 'AAPL', entryPrice: '100', entryZoneLow: '100', entryZoneHigh: '105', maxPositionSize: '20',
+  })).json()
+
+  clock = new Date('2026-09-10T12:00:00Z')
+  const baselineResponse = await writeExecution(browser, `/api/trade-plans/${plan.id}/execution-baseline`, 'POST', { expectedPlanUpdatedAt: plan.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null })
+  expect(baselineResponse.status).toBe(200)
+  const baseline = tradePlanExecutionComparisonSchema.parse(await baselineResponse.json())
+  expect(baseline).toMatchObject({ baseline: { version: 1, snapshot: { maxPositionSizeUnit: 'unknown' } }, executionRevision: 1, comparisonStatus: 'unavailable' })
+
+  const selectedIds = transactions.filter(row => row.type === 'BUY').map(row => row.id)
+  const linkedResponse = await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: selectedIds, expectedExecutionRevision: baseline.executionRevision, baselineVersion: baseline.baseline?.version, deviationReason: 'Synthetic test fill',
+  })
+  expect(linkedResponse.status).toBe(200)
+  const linked = tradePlanExecutionComparisonSchema.parse(await linkedResponse.json())
+  expect(linked).toMatchObject({ comparisonStatus: 'ready', comparisonTiming: 'retrospective', executionRevision: 2, buyQuantity: '15', averageExecutionPrice: '103.333333', entryPriceDelta: '3.333333', entryZoneRelation: 'inside' })
+  expect(linked.selectedTransactions).toHaveLength(2)
+
+  expect(linked.selectedTransactions.every(transaction => transaction.snapshot && transaction.current)).toBe(true)
+
+  const stale = await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [], expectedExecutionRevision: baseline.executionRevision, baselineVersion: baseline.baseline?.version,
+  })
+  expect(stale.status).toBe(409)
+  const current = tradePlanExecutionComparisonSchema.parse(await (await browser.request(`/api/trade-plans/${plan.id}/execution`)).json())
+  expect(current.executionRevision).toBe(2)
+})
+
+it('keeps baseline history and immutable selected snapshots through changed and deleted fills', async () => {
+  const browser = await login()
+  const evidence = await (await browser.post('/api/diaries', {
+    title: 'Immutable execution evidence', content: 'Synthetic fill', date: '2026-09-01',
+    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-09-01T09:00:00Z' }],
+  })).json()
+  const transactionId = evidence.transactions[0].id as string
+  const plan = await (await browser.post('/api/trade-plans', { symbol: 'AAPL', entryPrice: '100' })).json()
+
+  clock = new Date('2026-09-02T12:00:00Z')
+  const first = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution-baseline`, 'POST', {
+    expectedPlanUpdatedAt: plan.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null,
+  })).json())
+  expect(first.baselineHistory).toHaveLength(1)
+  expect((await writeExecution(browser, `/api/trade-plans/${plan.id}/execution-baseline`, 'POST', {
+    expectedPlanUpdatedAt: plan.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null,
+  })).status).toBe(409)
+
+  clock = new Date('2026-09-03T12:00:00Z')
+  const changedPlan = await mutate(browser, `/api/trade-plans/${plan.id}`, 'PUT', { entryPrice: '101' })
+  expect(changedPlan.status).toBe(200)
+  const latestPlan = await changedPlan.json()
+  const second = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution-baseline`, 'POST', {
+    expectedPlanUpdatedAt: latestPlan.updatedAt, expectedBaselineVersion: 1, expectedExecutionRevision: 1,
+  })).json())
+  expect(second.baseline?.version).toBe(2)
+  expect(second.baselineHistory.map(item => item.version)).toEqual([2, 1])
+
+  const linked = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [transactionId], baselineVersion: 2, expectedExecutionRevision: second.executionRevision,
+  })).json())
+  const relationId = linked.selectedTransactions[0]!.relationId
+  await database.db.update(transactions).set({ price: '102' }).where(eq(transactions.id, BigInt(transactionId)))
+  const changed = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [transactionId], baselineVersion: 2, expectedExecutionRevision: linked.executionRevision, deviationReason: 'Changed fill',
+  })).json())
+  expect(changed.selectedTransactions[0]).toMatchObject({ selectionStatus: 'changed', snapshot: { price: '100' }, current: { price: '102' } })
+  expect((await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [transactionId], removeRelationIds: [relationId], baselineVersion: 2, expectedExecutionRevision: changed.executionRevision,
+  })).status).toBe(409)
+
+  await database.db.delete(transactions).where(eq(transactions.id, BigInt(transactionId)))
+  const missing = tradePlanExecutionComparisonSchema.parse(await (await browser.request(`/api/trade-plans/${plan.id}/execution`)).json())
+  expect(missing).toMatchObject({ comparisonTiming: 'retrospective', invalidatedSelectionCount: 1, comparisonStatus: 'conflict' })
+  expect(missing.selectedTransactions[0]).toMatchObject({ relationId, transactionId: null, selectionStatus: 'missing', snapshot: { id: transactionId, price: '100' } })
+  const stillMissing = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [], baselineVersion: 2, expectedExecutionRevision: missing.executionRevision, deviationReason: 'Keep missing evidence',
+  })).json())
+  expect(stillMissing.selectedTransactions[0]?.selectionStatus).toBe('missing')
+  const removed = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${plan.id}/execution`, 'PUT', {
+    transactionIds: [], removeRelationIds: [relationId], baselineVersion: 2, expectedExecutionRevision: stillMissing.executionRevision,
+  })).json())
+  expect(removed.selectedTransactions).toHaveLength(0)
+})
+
+it('keeps same-owner transaction links exclusive and rejects cross-symbol selection', async () => {
+  const browser = await login()
+  const diary = await createDiary(browser, '2026-09-07')
+  const created = await browser.post('/api/diaries', {
+    title: 'Exclusive fills', content: 'Synthetic fills', date: '2026-09-08',
+    transactions: [{ symbol: 'MSFT', type: 'BUY', quantity: '1', price: '20', tradeDate: '2026-09-08T09:00:00Z' }],
+  })
+  const evidence = await created.json()
+  const transactionId = evidence.transactions[0].id as string
+  const first = await (await browser.post('/api/trade-plans', { diaryId: diary.id, symbol: 'MSFT', entryPrice: '20' })).json()
+  const second = await (await browser.post('/api/trade-plans', { symbol: 'MSFT', entryPrice: '20' })).json()
+  const firstBaseline = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${first.id}/execution-baseline`, 'POST', { expectedPlanUpdatedAt: first.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null })).json())
+  const firstLinked = await writeExecution(browser, `/api/trade-plans/${first.id}/execution`, 'PUT', { transactionIds: [transactionId], expectedExecutionRevision: firstBaseline.executionRevision, baselineVersion: 1 })
+  expect(firstLinked.status).toBe(200)
+  const secondBaseline = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${second.id}/execution-baseline`, 'POST', { expectedPlanUpdatedAt: second.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null })).json())
+  expect((await writeExecution(browser, `/api/trade-plans/${second.id}/execution`, 'PUT', { transactionIds: [transactionId], expectedExecutionRevision: secondBaseline.executionRevision, baselineVersion: 1 })).status).toBe(409)
+  const wrongSymbol = await (await browser.post('/api/trade-plans', { symbol: 'AAPL' })).json()
+  const wrongBaseline = tradePlanExecutionComparisonSchema.parse(await (await writeExecution(browser, `/api/trade-plans/${wrongSymbol.id}/execution-baseline`, 'POST', { expectedPlanUpdatedAt: wrongSymbol.updatedAt, expectedBaselineVersion: null, expectedExecutionRevision: null })).json())
+  expect((await writeExecution(browser, `/api/trade-plans/${wrongSymbol.id}/execution`, 'PUT', { transactionIds: [transactionId], expectedExecutionRevision: wrongBaseline.executionRevision, baselineVersion: 1 })).status).toBe(409)
 })

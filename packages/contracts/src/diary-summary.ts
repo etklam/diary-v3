@@ -18,6 +18,16 @@ export const diarySummarySchema = z.object({
   reviewOutcome: z.enum(['INTACT', 'PARTIAL', 'INVALIDATED', 'UNCLEAR']).nullable(),
   transactionCount: z.number().int().nonnegative(),
   alertCount: z.number().int().nonnegative(),
+  searchSnippet: z.object({
+    source: z.enum(['title', 'content', 'thesis', 'risk', 'execution', 'tag', 'symbol']),
+    // Search is capped at 500 input code units; a bounded context may add at
+    // most one ellipsis on each side of a long match.
+    text: z.string().max(502),
+    matchStart: z.number().int().min(0),
+    matchEnd: z.number().int().min(0),
+  }).strict().superRefine((snippet, context) => {
+    if (snippet.matchStart >= snippet.matchEnd || snippet.matchEnd > snippet.text.length) context.addIssue({ code: 'custom', message: 'Search match offsets must be inside the snippet' })
+  }).nullable().optional(),
 }).strict()
 
 export const diarySummaryListResponseSchema = z.object({

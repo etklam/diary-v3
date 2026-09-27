@@ -1,14 +1,17 @@
 import { saveInvestmentThesisRequestSchema, type InvestmentThesisHealth, type InvestmentThesisStatus, type ThesisReviewOutcome } from '@diary/contracts/investment-thesis'
+import { isThesisReviewOverdue } from './portfolio-attention.js'
 
 export function deriveInvestmentThesisHealth(thesis: {
   status: InvestmentThesisStatus
   latestReviewOutcome: ThesisReviewOutcome | null
   reviewDueAt: string | null
+  lastReviewedAt?: Date | string | null
+  reviewPending?: boolean
 }, asOf: Date): InvestmentThesisHealth {
   if (thesis.status === 'ARCHIVED') return 'archived'
   if (thesis.status === 'DRAFT') return 'draft'
   if (thesis.latestReviewOutcome === 'INVALIDATED') return 'invalidated'
-  if (thesis.reviewDueAt && new Date(thesis.reviewDueAt).getTime() < asOf.getTime()) return 'needs_review'
+  if (isThesisReviewOverdue(thesis, asOf)) return 'needs_review'
   return 'healthy'
 }
 

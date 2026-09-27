@@ -13,6 +13,8 @@ test('diary detail review section answers due state and next action',async({page
  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
  const headers={'x-csrf-token':(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
  expect((await page.request.put('/api/user/settings',{headers,data:{timezone:'Asia/Taipei'}})).status()).toBe(200);
+  // Out-of-band fixture writes bypass browser resource invalidation; start a fresh document.
+  await page.reload();
  await page.getByLabel('Diary date',{exact:true}).fill('2026-09-07');await page.getByRole('textbox',{name:'Title',exact:true}).fill('Detail review section');await page.getByRole('textbox',{name:'Content',exact:true}).fill('Thesis needs a later check.');
  await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const id=page.url().split('/').at(-1)!;
  // Not scheduled: neutral text plus a CTA into the editor.

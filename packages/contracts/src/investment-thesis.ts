@@ -32,6 +32,7 @@ export const investmentThesisDraftSchema = z.object({
  */
 export const saveInvestmentThesisRequestSchema = investmentThesisDraftSchema.extend({
   status: investmentThesisStatusSchema.optional(),
+  expectedUpdatedAt: utcInstantSchema.nullable().optional(),
 }).strict().superRefine((value, context) => {
   if (value.status !== 'ACTIVE') return
   if (!value.summary?.trim()) {
@@ -43,6 +44,7 @@ export const saveInvestmentThesisRequestSchema = investmentThesisDraftSchema.ext
 })
 
 export const completeThesisReviewRequestSchema = z.object({
+  expectedUpdatedAt: utcInstantSchema.optional(),
   outcome: thesisReviewOutcomeSchema,
   portfolioDecision: thesisPortfolioDecisionSchema,
   whatImproved: optionalText(20_000),
@@ -138,3 +140,8 @@ export type ThesisReviewRecord = z.infer<typeof thesisReviewRecordSchema>
 export type InvestmentThesisResponse = z.infer<typeof investmentThesisResponseSchema>
 export type InvestmentThesisMutationResponse = z.infer<typeof investmentThesisMutationResponseSchema>
 export type ThesisReviewResponse = z.infer<typeof thesisReviewResponseSchema>
+
+export const thesisScheduleInputSchema = z.object({
+  reviewDueAt: utcInstantSchema.nullable(),
+  expectedUpdatedAt: utcInstantSchema,
+}).strict()

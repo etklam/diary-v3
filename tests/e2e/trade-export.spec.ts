@@ -15,7 +15,7 @@ for (const width of [1440, 390]) test(`Closed-trade CSV download at ${width}px`,
     { symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-01T10:00:00Z' },
     { symbol: 'AAPL', type: 'SELL', quantity: '1', price: '110.125', tradeDate: '2026-09-01T11:00:00Z' },
   ] } })).status()).toBe(201);
-  await page.goto('/stocks'); await page.getByLabel('Symbol (optional)', { exact: true }).fill('aapl');
+  await page.goto('/stocks'); await page.getByText('Risk, exposure and realized trades', { exact: true }).click(); await page.getByLabel('Symbol (optional)', { exact: true }).fill('aapl');
   const downloading = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download CSV', exact: true }).click();
   const download = await downloading; expect(download.suggestedFilename()).toMatch(/^trades-AAPL-\d{4}-\d{2}-\d{2}\.csv$/);
   expect(await readFile((await download.path())!, 'utf8')).toBe('symbol,sellDate,sellQuantity,sellPrice,avgCostBasis,realizedPnL,realizedPnLPct\nAAPL,2026-09-01,1,110.125,100,10.13,10.13');

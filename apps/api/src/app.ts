@@ -80,6 +80,7 @@ import { registerInvestmentThesisRoutes } from './investment-thesis.js'
 import { registerStockNoteRoutes } from './stock-notes.js'
 import { registerEvidenceRoutes } from './evidence.js'
 import { registerWatchlistRoutes } from './watchlist.js'
+import { registerDiarySavedViewRoutes } from './diary-saved-views.js'
 import { listLinkedTradePlans, registerTradePlanRoutes } from './trade-plans.js'
 import { DiaryStockLimitError } from './diary-stocks.js'
 import { valuePortfolio, batchQuotePrices } from './portfolio.js'
@@ -528,6 +529,7 @@ export function createApp({
   registerEtfAdminRoutes(app, { db, now, market, fail, validationError, parseJson })
   registerHolidayRoutes(app, { holidays: holidays ?? createNagerHolidayProvider(), fail, validationError })
   registerDiaryReviewRoutes(app, { db, now, fail, validationError, parseJson })
+  registerDiarySavedViewRoutes(app, { db, now, fail, validationError, parseJson })
   registerTradePlanRoutes(app, { db, now, fail, validationError, parseJson })
   registerWatchlistRoutes(app, { db, now, fail, validationError, parseJson })
   registerEvidenceRoutes(app, { db, now, fail, validationError, parseJson })
@@ -852,7 +854,8 @@ export function createApp({
     if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     const query = diaryListQuerySchema.safeParse(c.req.query())
     if (!query.success) validationError(query.error)
-    return c.json(diarySummaryListResponseSchema.parse(await listDiarySummaries(db, BigInt(session.id), query.data, now())))
+    const includeSearchSnippet = c.req.header('x-diary-search-snippet') === '1'
+    return c.json(diarySummaryListResponseSchema.parse(await listDiarySummaries(db, BigInt(session.id), query.data, now(), includeSearchSnippet)))
   })
 
   app.get('/api/diaries/:id', async (c) => {

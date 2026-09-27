@@ -13,17 +13,31 @@ export const stockWatchlistMutationResponseSchema = z.object({
   id: serializedIdSchema,
   symbol: stockSymbolSchema,
   sortOrder: z.number().int().nonnegative(),
+  // Optional on input so clients can parse legacy servers that predate pinning;
+  // default keeps the new runtime type boolean for ordering and controls.
+  pinned: z.boolean().optional().default(false),
   status: stockWatchStatusSchema,
   updatedAt: utcInstantSchema.optional(),
 }).strict()
 
-export const stockWatchlistCreateRequestSchema = z.object({ symbol: stockSymbolSchema }).strict()
+export const stockWatchlistCreateRequestSchema = z.object({
+  symbol: stockSymbolSchema,
+  /** Used only by an explicit undo; ordinary additions use the next position. */
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+  pinned: z.boolean().optional(),
+}).strict()
 export const stockWatchlistUpdateRequestSchema = z.object({
   status: stockWatchStatusSchema.optional(),
   sortOrder: z.number().int().min(0).max(10_000).optional(),
-}).strict().refine(value => value.status !== undefined || value.sortOrder !== undefined, {
-  message: 'status or sortOrder is required',
+  pinned: z.boolean().optional(),
+}).strict().refine(value => value.status !== undefined || value.sortOrder !== undefined || value.pinned !== undefined, {
+  message: 'status, sortOrder or pinned is required',
 })
+
+export const stockWatchlistReorderRequestSchema = z.object({
+  id: serializedIdSchema,
+  direction: z.enum(['up', 'down']),
+}).strict()
 
 export const stockWatchlistLatestRecordSchema = z.object({
   id: serializedIdSchema,
@@ -38,6 +52,8 @@ export const stockWatchlistItemSchema = z.object({
   id: serializedIdSchema,
   status: stockWatchStatusSchema,
   sortOrder: z.number().int().nonnegative(),
+  // Optional on input so clients can parse legacy watchlist payloads.
+  pinned: z.boolean().optional().default(false),
   updatedAt: utcInstantSchema,
   stock: z.object({ symbol: stockSymbolSchema, name: z.string().nullable() }).strict(),
   recordCount: z.number().int().nonnegative(),
@@ -45,6 +61,12 @@ export const stockWatchlistItemSchema = z.object({
 }).strict()
 
 export const STOCK_WATCHLIST_MAX_ITEMS = 100
+export const stockWatchlistReorderResponseSchema = z.object({
+  success: z.literal(true),
+  items: z.array(z.object({ id: serializedIdSchema, sortOrder: z.number().int().nonnegative() }).strict()).max(STOCK_WATCHLIST_MAX_ITEMS),
+}).strict()
+export const stockWatchlistDeleteResponseSchema = z.object({ success: z.literal(true) }).strict()
+
 export const stockWatchlistResponseSchema = z.object({
   items: z.array(stockWatchlistItemSchema).max(STOCK_WATCHLIST_MAX_ITEMS),
 }).strict()

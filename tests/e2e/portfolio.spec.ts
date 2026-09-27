@@ -18,6 +18,18 @@ const focusedPortfolioFixture = {
  },
  quoteErrors: [], marketState: 'REGULAR',
 };
+const focusedLedgerFixture = {
+ holdings: focusedPortfolioFixture.holdings.map(({ symbol, quantity, avgCost, totalCost }) => ({
+  symbol, quantity: String(quantity), avgCost: String(avgCost), totalCost: String(totalCost),
+ })),
+ exposure: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-exposure' } },
+ recent: { trades: [] },
+ asOf: '2026-09-05T12:00:00.000Z',
+};
+const focusedOverviewFixture = {
+ valuation: { status: 'ready', data: focusedPortfolioFixture },
+ attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-attention' } },
+};
 
 for(const width of [1440,390])test(`Portfolio complete and incomplete valuation at ${width}px`,async({page,context})=>{
  await page.setViewportSize({width,height:900});const email=`portfolio-${randomUUID()}@example.test`,password='synthetic-portfolio-password';
@@ -27,9 +39,9 @@ for(const width of [1440,390])test(`Portfolio complete and incomplete valuation 
  await page.goto('/stocks');await expect(page.getByTestId('valuation-status')).toHaveText('No open positions');
  const missing=await buy('UNKNOWN','2026-09-01');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Quotes unavailable');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('—');await expect(page.getByTestId('valuation-unpricedCostBasis')).toHaveText('200');
  const priced=await buy('AAPL','2026-09-02');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('220');await expect(page.getByTestId('valuation-unrealizedAmount')).toHaveText('+20.00');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('50%');
- await expect(page.getByRole('table',{name:'Portfolio valuation',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'})).toContainText('—');
+ await expect(page.getByRole('table',{name:'Holdings',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'})).toContainText('—');
  if(width===390)await selectTheme(page, 'dark');await page.screenshot({path:`.impeccable/review/portfolio-${width}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.route('**/api/stocks/portfolio',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'portfolio-retry'}})}));await page.reload();await expect(page.getByTestId('request-id')).toHaveText('portfolio-retry');await page.unroute('**/api/stocks/portfolio');await page.locator('.portfolio-valuation').getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');
+ await page.route('**/api/portfolio/overview',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'portfolio-retry'}})}));await page.reload();await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-retry');await page.unroute('**/api/portfolio/overview');await page.locator('.portfolio-valuation').getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');
  await page.request.delete(`/api/diaries/${missing.id}`,{headers});await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('100%');
  for(const [locale,title]of [['zh-TW','持倉估值'],['zh-CN','持仓估值'],['en','Portfolio valuation']]as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();}
  await page.request.delete(`/api/diaries/${priced.id}`,{headers});await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('No open positions');
@@ -44,13 +56,14 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
  await selectLocale(page, 'en');
 
- await page.route('**/api/stocks/portfolio', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedPortfolioFixture) }));
+ await page.route('**/api/portfolio/ledger', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedLedgerFixture) }));
+ await page.route('**/api/portfolio/overview', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedOverviewFixture) }));
  await page.goto('/stocks');
  await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
  await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('123,456,850,743.83');
  await expect(page.getByTestId('valuation-unrealizedPct')).toHaveText('+12,400.01%');
  await expect(page.getByText('Quotes older than 72 hours: 1', { exact: true })).toBeVisible();
- const table = page.getByRole('table', { name: 'Portfolio valuation', exact: true });
+ const table = page.getByRole('table', { name: 'Holdings', exact: true });
  await expect(table).toBeVisible();
  await expect(table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' })).toContainText('12.35');
  await expect(table.getByRole('row')).toHaveCount(3);
@@ -64,7 +77,7 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
   const tableScroller = table.locator('xpath=..');
   const scrollMetrics = await tableScroller.evaluate(element => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
   expect(scrollMetrics.scrollWidth).toBeGreaterThanOrEqual(scrollMetrics.clientWidth);
-  const largeValue = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' }).getByRole('cell').nth(1);
+  const largeValue = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' }).getByRole('cell').nth(4);
   await largeValue.scrollIntoViewIfNeeded();
   expect(await largeValue.evaluate(element => {
    const scroller = element.closest('.holdings-table')!.getBoundingClientRect();
@@ -84,16 +97,16 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  let retryEnabled = false;
  let retryFailures = 0;
  let retrySuccesses = 0;
- await page.unroute('**/api/stocks/portfolio');
- await page.route('**/api/stocks/portfolio', route => {
+ await page.unroute('**/api/portfolio/overview');
+ await page.route('**/api/portfolio/overview', route => {
   if (!retryEnabled) {
    retryFailures += 1;
    return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-keyboard-retry' } }) });
   }
   retrySuccesses += 1;
-  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedPortfolioFixture) });
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedOverviewFixture) });
  });
- await page.reload(); await expect(page.getByTestId('request-id')).toHaveText('portfolio-keyboard-retry');
+ await page.reload(); await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-keyboard-retry');
  const retry = page.locator('.portfolio-valuation').getByRole('button', { name: 'Try again', exact: true });
  await retry.focus(); await expect(retry).toBeFocused();
  expect(retryFailures).toBeGreaterThan(0);
@@ -102,5 +115,6 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
  await expect(page.getByText('Quotes older than 72 hours: 1', { exact: true })).toBeVisible();
  expect(retrySuccesses).toBeGreaterThan(0);
- await page.unroute('**/api/stocks/portfolio');
+ await page.unroute('**/api/portfolio/overview');
+ await page.unroute('**/api/portfolio/ledger');
 });

@@ -17,7 +17,7 @@ export function apiFailure(error: unknown, fallback: string): Failure {
   if (failure.code==='USER_EMAIL_EXISTS') failure.fields.push('email');
   return failure;
 }
-export function FailureNotice({ failure, id = 'form-error', messageOverride }: { failure: Failure | null; id?: string; messageOverride?: string }) {
+export function FailureNotice({ failure, id = 'form-error', messageOverride, focusField = false }: { failure: Failure | null; id?: string; messageOverride?: string; focusField?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const {locale} = useUi();
   const index=locale==='zh-TW'?0:locale==='zh-CN'?1:2;
@@ -32,6 +32,7 @@ export function FailureNotice({ failure, id = 'form-error', messageOverride }: {
     AUTH_FORBIDDEN:['你沒有權限執行這項操作。請使用具備權限的帳戶，或返回可用功能。','你没有权限执行此操作。请使用具备权限的账户，或返回可用功能。','You do not have permission to do this. Use an authorized account or return to an available area.'],
     AUTH_RATE_LIMITED:['嘗試次數過多。請稍後再試。','尝试次数过多。请稍后重试。','Too many attempts. Please try again later.'],
     CSRF_FAILED:['安全驗證已失效。請重新載入後再試。','安全验证已失效。请重新加载后重试。','The security check expired. Reload and try again.'],
+    INVESTMENT_THESIS_REVISION_CONFLICT:['這個論點已在其他地方修改，請重新載入再儲存。','这个论点已在其他地方修改，请重新加载再保存。','This thesis changed elsewhere. Reload before saving again.'],
     DIARY_ALREADY_EXISTS:['這個日期已有日記。請選擇其他日期。','这个日期已有日记。请选择其他日期。','A diary already exists for this date. Choose another date.'],
     USER_EMAIL_EXISTS:['這個電郵已註冊。請登入或使用其他電郵。','这个邮箱已注册。请登录或使用其他邮箱。','This email is already registered. Sign in or use another email.'],
     ADMIN_EMAIL_CONFIG_CONFLICT:['設定已被另一位管理員更改。請重新載入最新設定後再試。','设置已被另一位管理员更改。请重新加载最新设置后重试。','The settings changed under another administrator. Reload the latest settings and try again.'],
@@ -59,7 +60,11 @@ export function FailureNotice({ failure, id = 'form-error', messageOverride }: {
     SYS_VALIDATION_ERROR:['部分欄位不正確。請檢查標示的欄位後再試。','部分字段不正确。请检查标记的字段后重试。','Some fields are invalid. Check the marked fields and try again.'],
     SYS_INTERNAL_ERROR:['服務暫時無法完成操作。內容仍然保留，請重試。','服务暂时无法完成操作。内容仍然保留，请重试。','The service could not complete this action. Your entries are preserved. Try again.'],
   };
-  useEffect(() => { if (failure) ref.current?.focus(); }, [failure]);
+  useEffect(() => {
+    if (!failure) return;
+    const field = focusField ? ref.current?.closest('form')?.querySelector<HTMLElement>('[aria-invalid="true"]') : null;
+    (field ?? ref.current)?.focus();
+  }, [failure, focusField]);
   return failure ? <div ref={ref} id={id} className="error" role="alert" tabIndex={-1} data-testid="api-error"><p>{messageOverride ?? ((failure.code&&messages[failure.code]?.[index])||failure.message)}</p>{failure.code && <p><code data-testid="error-code">{failure.code}</code></p>}{failure.requestId && <p>Request ID: <code data-testid="request-id">{failure.requestId}</code></p>}</div> : null;
 }
 export function invalidField(failure: Failure | null, field: string) {

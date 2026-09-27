@@ -18,6 +18,8 @@ export * from './quick-snippets';
 export { deriveQuickTitle, mergeQuickTemplate } from './quick-composer';
 export { mergeTimelineEntries,groupTimelineEntries,projectTimelineEntry,diaryExcerpt } from './timeline';
 export { calculatePositionSizing, positionSizingStrategies, validatePositionSizingRatios } from './position-sizing';
+export { calculateTradePlanExecution } from './trade-plan-execution';
+export type { TradePlanExecutionCalculation, TradePlanExecutionSnapshot, TradePlanExecutionTransaction } from './trade-plan-execution';
 export type {
   PositionSizingBatch,
   PositionSizingInput,

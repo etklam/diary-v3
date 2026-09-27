@@ -1,3 +1,5 @@
+import { holdingsResponseSchema, recentClosedTradesResponseSchema } from './ledger.js'
+import { portfolioExposureResponseSchema } from './portfolio-exposure.js'
 import { z } from 'zod'
 import { portfolioAttentionResponseSchema } from './portfolio-attention.js'
 import { portfolioValuationResponseSchema } from './portfolio.js'
@@ -24,3 +26,12 @@ export type PortfolioOverviewSection<T> =
   | { status: 'ready'; data: T }
   | { status: 'failed'; error: PortfolioOverviewError }
 export type PortfolioOverviewResponse = z.infer<typeof portfolioOverviewResponseSchema>
+
+
+export const portfolioLedgerResponseSchema = z.object({
+  holdings: holdingsResponseSchema,
+  exposure: portfolioOverviewSectionSchema(portfolioExposureResponseSchema),
+  recent: recentClosedTradesResponseSchema,
+  asOf: z.iso.datetime(),
+}).strict()
+export type PortfolioLedgerResponse = z.infer<typeof portfolioLedgerResponseSchema>
