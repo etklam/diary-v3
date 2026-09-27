@@ -1,5 +1,7 @@
 # Price alert percent and moving-average conditions
 
+Implementation status reviewed 2026-09-27: ticket 34 is accepted. The [checker](../../apps/api/src/price-alert-checker.ts), [integration coverage](../../tests/integration/price-alert-checker.test.ts), and [browser coverage](../../tests/e2e/price-alerts.spec.ts) implement the decision below; see [core acceptance](../parity/final-release-report.md) and the [later audit](../audits/project-cleanup-2026-09-27.md) for dated verification. The original pending status is retained as decision history.
+
 Status: direction accepted by Astra under the user's autonomous implementation authorization, 2026-09-06. Implementation and acceptance remain pending in ticket 34.
 
 PRD user story 58 requires price-above, price-below, percentage-change and moving-average conditions. The frozen contract names all four, but the checker only evaluates the first two. Restoring the missing conditions is an intentional correction of unfinished legacy behavior, not a claim that the old checker supported them. The earlier proposed defaults received no answer; the following are explicit project decisions under the user's authorization to resolve routine implementation choices while away.

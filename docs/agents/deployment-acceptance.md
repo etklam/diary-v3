@@ -1,5 +1,7 @@
 # Deployment and restore acceptance direction
 
+Historical ticket 59–60 acceptance direction. Its packaging gaps and tool-availability observations describe the initial review. Current commands and all ten packaged entrypoints are documented in [architecture](../architecture.md), [K3s operations](../../ops/k8s/README.md), and [production operations](../../ops/k8s/production/README.md). Completed exercises are recorded separately in the [deployment](../operations/deployment-59-smoke.md) and [restore](../operations/restore-60-smoke.md) reports. This direction does not describe the current advisory CI policy; see [CI/CD notes](../operations/ci-cd-notes.md).
+
 Astra direction for tickets 59–60. Follow PLAN.md, PRODUCT.md and the immutable PRD. This document defines evidence; it does not assert deployment is complete.
 
 ## Runtime and image boundaries

@@ -12,4 +12,4 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
-Edit the right-hand column to match whatever vocabulary you actually use.
+Execution may additionally use `in-progress`, `blocked`, and `done`; these are execution states, not replacements for the five triage roles. A ready issue still needs its blockers resolved. Record completion only when acceptance criteria have runnable evidence, and preserve the evidence date and scope. See [issue-tracker conventions](issue-tracker.md) for the existing core/follow-up field formats.

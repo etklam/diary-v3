@@ -6,6 +6,20 @@ separate staging tree, emits ESM and declarations for every public export, and
 packs versioned tarballs under `dist/native-packages/artifacts` without editing
 the source package manifests.
 
+## Current artifact controls (2026-09-27)
+
+The packer accepts `--out-dir <path>` for an explicit staging root and records
+whether the source tree was dirty. It embeds the source commit, source-tree
+hash, packer hash, OpenAPI hash and build metadata in each `PROVENANCE.json`,
+and versions development artifacts from those inputs. The verifier accepts
+`--packages-dir <path>` to validate an existing set; without it, the verifier
+builds a temporary set before installing a fresh offline consumer. The output
+is a local development artifact and is not a native release package.
+
+The [2026-09-27 project cleanup audit](../audits/project-cleanup-2026-09-27.md)
+records the current dependency and package-boundary evidence. It does not
+claim an iOS/Android binary or simulator/device runtime.
+
 Each staged version contains the source commit and a package source hash. The
 staged API client and domain manifests pin the exact staged contracts version.
 The contracts artifact declares its direct OpenAPI runtime dependency, which is

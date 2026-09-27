@@ -7,6 +7,14 @@ or change production. Use only
 disposable staging accounts and synthetic records. Never copy production data,
 real diary text, portfolio details, credentials, or tokens into staging.
 
+The deployment is the manual `.forgejo/workflows/staging.yml` workflow. Supply
+the full source SHA, the matching digest references from the successful
+production workflow, and the isolated staging hostname. The workflow uses the
+`diary-v3-staging` namespace, pauses its market CronJob, and runs this checklist
+after the API, mail worker, Web, and Ingress become ready. It requires staging
+SSH credentials and existing staging Secrets; it does not provision production
+Secrets.
+
 ## Before testing
 
 Prepare separate synthetic staging identities for an ordinary user, a linked

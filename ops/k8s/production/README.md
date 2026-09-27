@@ -6,22 +6,40 @@ tags in these files to digest-pinned `git.913555.xyz/etklam/diary-v3-api` /
 
 Release path:
 
-1. Forgejo must pass lint, typecheck, unit, contract, PostgreSQL integration,
-   manifest, production build, and built-artifact browser acceptance gates.
-2. Images are pushed and resolved to immutable digests. CI validates the final
-   rendered manifests before any remote mutation.
-3. `00-namespace.yaml` (parent dir) and `01-postgres.yaml` are reconciled.
-4. `ops/k3s/deploy-production-secrets.sh` creates the `diary-v3-db` and
-   `diary-v3-app` Secrets (never committed). Existing Secrets are retained.
-5. CI runs the standalone migrate Job, then the idempotent system seed Job.
-   Migrations must remain backward-compatible with the running application;
-   destructive migrations require an explicit release safety review.
-6. CI records the current API, Web, and market CronJob images, applies each new
-   digest, waits for API/Web rollout, then checks `/healthz`, `/readyz`, and the
-   public home page.
-7. CI updates the single-replica mail worker from the same digest-pinned API
-   image after the API rollout. The worker is safe to run while account SMTP is
-   disabled and is required for queued account mail when SMTP is enabled.
+1. A push to `main` starts `.forgejo/workflows/deploy.yml` on the `hk` runner.
+   Blocking checks include tracked-secret scanning, lint, typecheck, unit tests,
+   contracts, source-manifest validation, PostgreSQL backup/restore smoke, and
+   the production build. API integration, full Chromium, WebKit critical path,
+   and release artifact acceptance are currently advisory
+   (`continue-on-error: true`); their failures remain visible but do not stop
+   the later deploy steps.
+2. CI builds the API and Web images, verifies the tested image IDs are unchanged,
+   pushes them, resolves immutable digests, and validates rendered manifests
+   before any remote mutation.
+3. The one-off `ops/k3s/deploy-production-secrets.sh` script provisions
+   `diary-v3-db` and `diary-v3-app` when those Secrets do not exist. CI does not
+   run this script or rotate secrets; it assumes the required Secrets already
+   exist. The script requires `DB_PASSWORD`, a 32-byte-or-longer `JWT_SECRET`,
+   and `SEC_USER_AGENT`, and retains complete existing Secrets.
+4. CI reconciles `00-namespace.yaml` and `01-postgres.yaml`, then runs the
+   standalone migrate Job (`node dist/api/migrate.js`) and idempotent system
+   seed Job (`node dist/api/seed-system.js`). Migrations must remain
+   backward-compatible with the running application; destructive migrations
+   require an explicit release safety review.
+5. CI records the current API, Web, market CronJob, and mail-worker images and
+   replica counts. It applies the new API digest, waits for rollout, applies the
+   same API digest to the one-replica mail worker, then applies Web, Ingress, and
+   market CronJob. The smoke path checks API `/healthz`, `/readyz`, the TLS
+   certificate, and public `/` and `/articles`.
+6. If a post-mutation step fails, CI restores only workloads that it changed to
+   their recorded images and replica counts, waits for rollout, and repeats the
+   smoke checks. Optional AI, Research Studio, and article-translation workers
+   are not part of this automatic deploy or rollback set.
+
+The package declares Node `>=22.22.0`; Forgejo uses Node `22.22.0` for source
+checks, while the Dockerfile builds and runs the release images on Node 24 and
+bundles the API for `node24`. The checked-in image tags are placeholders and
+must never be applied directly; use the renderer's digest output.
 
 Pre-deploy verification, build, push, migration, or seed failures do not roll
 back application workloads. Once an application workload has been changed, a
@@ -34,14 +52,28 @@ uncertain, stop the release, inspect the migration ledger and schema, and choose
 a compatible application image manually. Database restoration is a separate,
 explicit operation documented in `docs/operations/restore-60-smoke.md`.
 
+## Staging workflow
+
+`.forgejo/workflows/staging.yml` is a manual workflow. It requires the full
+source SHA from the successful production build, the matching immutable API and
+Web digests, and a non-production HTTPS hostname. It validates the existing
+staging namespace and Secrets, renders the production-shaped manifests into the
+`diary-v3-staging` namespace, pauses the market CronJob, and runs
+`scripts/staging-smoke.sh`. It does not accept the production hostname and does
+not use the production SSH credentials.
+
 Layout notes:
 
 - The API deployment is a single `Recreate` replica: it owns the one
   process-local Socket.IO and foreground scheduler instance.
-- The API requests 256Mi and caps 2Gi of ephemeral storage. SEC guest package
+- The API requests 100m CPU, 256Mi memory, and 256Mi ephemeral storage; limits
+  are 1000m CPU, 768Mi memory, and 2Gi ephemeral storage. SEC guest package
   downloads admit two heavy requests, each bounded to one 550Mi ZIP plus one
-  250Mi staged document; the limit leaves room for the process and filesystem
-  overhead without increasing the 768Mi memory limit.
+  250Mi staged document; the ephemeral limit leaves room for process and
+  filesystem overhead.
+- The Web deployment requests 50m CPU and 128Mi memory and limits memory at
+  512Mi. The always-on mail worker requests 50m CPU/128Mi memory and limits
+  memory at 384Mi; it has a 120-second termination grace period.
 - The Ingress routes `/api` and `/socket.io` to the API service and everything
   else to the React Router SSR service; `/healthz` and `/readyz` are exposed on
   the same host via the higher-priority `diary-v3-system` Ingress.
@@ -118,12 +150,12 @@ public or external asset URLs. Do not put confidential assets at public URLs.
 
 `08-ai-worker.yaml` uses the same digest-pinned API image and has no Service or
 public port. It starts at zero replicas; rendering/validation does not enable
-it. The existing deployment workflow does not automatically apply or scale this
-new optional workload. An authorized operator must apply its rendered manifest
-after migrations and the AI beta gates, then explicitly choose one replica.
-When enabled, include its prior image and replica count in release/rollback
-records alongside API and Web. Do not leave an old worker running against a new
-incompatible API/schema.
+it. The production renderer includes this file for digest validation, but the
+production deploy workflow does not copy or apply it. An authorized operator
+must use a reviewed rendered manifest after migrations and the AI beta gates,
+then explicitly choose one replica. When enabled, include its prior image and
+replica count in release/rollback records alongside API and Web. Do not leave
+an old worker running against a new incompatible API/schema.
 
 Supply `AI_ENCRYPTION_KEYS` and `AI_ENCRYPTION_ACTIVE_KEY` in the existing app
 Secret for both API and worker. They are optional on the API so the existing
@@ -140,8 +172,25 @@ The worker manifest also includes an egress NetworkPolicy: same-namespace
 PostgreSQL, cluster DNS, and public HTTPS only, excluding internal/metadata and
 special-use ranges. The application still enforces the exact recipient host
 allowlist and DNS pinning. Verify that the cluster CNI enforces NetworkPolicy
-and that its DNS labels match before enabling; these manifests have not been
-applied to the production cluster by this task.
+and that its DNS labels match before enabling; the normal release workflow
+leaves this manual worker unapplied.
+
+## Manual Research Studio and article translation workers
+
+`09-research-worker.yaml` and `10-article-translation-worker.yaml` also have no
+Service or public port and both start at zero replicas. They require the AI
+keyring, PostgreSQL access, DNS, and the same restricted public HTTPS egress as
+the AI worker. The Research worker is configured for a 5-second poll interval;
+the article translation worker uses the same interval. Enable either only after
+its migration, provider, consent, and synthetic smoke gates are recorded.
+
+The source-manifest validator checks both files, but the current release
+renderer emits `09-research-worker.yaml` and omits
+`10-article-translation-worker.yaml`; the automatic production workflow applies
+neither file. Treat article-translation rollout as an unresolved operational
+gap requiring an explicit reviewed render/deploy step before enabling it. Track
+the image digest and replica count for every manually enabled worker so a
+rollback cannot leave an older worker running against a newer schema.
 
 ## Account email worker
 
@@ -163,13 +212,12 @@ the API and restores or removes the worker if a release rollout fails.
 
 ## Optional Redis rate limiting
 
-Redis is not included in the normal release bundle and production remains on
-the API's default `memory` limiter until an operator opts in. The separate
+Redis is not created by the normal release manifests. The separate
 [`ops/k8s/optional/redis.yaml`](../optional/redis.yaml) manifest runs one
 authenticated, ClusterIP-only Redis Pod and permits ingress only from API Pods.
-It requires an operator-created `diary-v3-redis` Secret containing
-`REDIS_PASSWORD`; no Redis credentials or production Secret changes are
-included here.
+The API Deployment enables the `auto` backend via the `RATE_LIMIT_BACKEND`
+env var and an authenticated `REDIS_URL` key in the `diary-v3-app` Secret;
+the operator-provisioned `diary-v3-redis` Secret holds `REDIS_PASSWORD`.
 
 For a deliberate enablement, provision that Secret through the environment's
 approved secret manager, review and apply the optional Redis manifest, then

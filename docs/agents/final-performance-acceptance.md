@@ -1,5 +1,7 @@
 # Ticket61 bounded performance acceptance
 
+Historical ticket 61 measurement direction. The resulting [baseline and frozen gates](../parity/performance-baseline.md) and [core acceptance](../parity/final-release-report.md) preserve that exercise. Later measurements are recorded separately in the [2026-09-27 audit](../audits/project-cleanup-2026-09-27.md); do not overwrite the original evidence or interpret this assignment as unfinished work.
+
 Astra direction, 2026-09-06. This closes the explicit outstanding performance requirement in ticket61. Do not repeat cosmetic checks or build a benchmarking framework.
 
 Use only the frozen sanitized source in `/tmp/diary-v3-source-baseline` and disposable databases. Keep the user's diary-vue checkout read-only. Existing cold timings in legacy-runtime-evidence.json are not a percentile baseline. Existing parity runner documents how to run the actual frozen Nuxt/Nitro application against isolated MariaDB; use an independent fixture file and output artifacts so its original behavior evidence is not overwritten.

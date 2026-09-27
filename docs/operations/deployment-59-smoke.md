@@ -6,6 +6,23 @@ the isolated Compose project `diary-v3-production`, its separate
 market fixture. The existing `diary-v3-dev-postgres-1` container and volume were
 not used.
 
+## Status and current guides
+
+The commands and observations below are retained as dated, synthetic evidence;
+they are not a claim about the current production cluster. For a repeatable
+current local setup, follow [K3s operations](../../ops/k8s/README.md). The
+[production-shaped Compose file](../../compose.production.yaml) is a local
+exercise with disposable credentials and loopback HTTP, not a production
+configuration. The historical `--no-build` invocation below assumes its images
+have already been built.
+
+The current release build uses Node 24 images and the built entry points under
+`dist/api/`; the production deploy workflow uses digest-rendered manifests and
+its own migration/seed/smoke sequence. Do not use this record's image digests,
+synthetic IDs, or old pod names as current release inputs. See
+[`ops/k8s/production/README.md`](../../ops/k8s/production/README.md) and the
+[restore gate](restore-60-smoke.md) for current release and recovery rules.
+
 ## Image and startup proof
 
 The stack was started with:

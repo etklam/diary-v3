@@ -1,9 +1,12 @@
 # diary-v3 Full Rebuild Plan
 
-Status: original planning record; the module breakdown and test scope are confirmed, and implementation has now started against the local tickets. Progress is judged by each ticket's acceptance evidence.
-Inventory date: 2026-09-05.
+Status: original approved planning record, inventoried on 2026-09-05. Sections 1–10 retain the original scope, acceptance requirements, and proposed direction; they are not the current implementation checklist. Documentation status reviewed on 2026-09-27.
 
-Follow-up spec: [full rebuild PRD](/Users/klam/Desktop/project/diary-v3/.scratch/diary-v3-rebuild/PRD.md). The user has confirmed carrying over this plan's module breakdown and test scope; the PRD governs concrete acceptance.
+The core rebuild has local acceptance. Use [PRODUCT.md](PRODUCT.md) for current capabilities, [DESIGN.md](DESIGN.md) for built visual rules, [architecture](docs/architecture.md) for the actual runtime/source map, and the [documentation index](docs/README.md) for later features and evidence. The [2026-09-25 acceptance](docs/features/all-tickets-acceptance-2026-09-25.md) and [2026-09-27 audit](docs/audits/project-cleanup-2026-09-27.md) supersede planning-era progress statements without changing this plan's original intent. They do not authorize a production cutover.
+
+The user subsequently authorized documented legacy bug and technical-debt corrections under [ADR-0001](docs/adr/0001-parity-baseline-and-contract-corrections.md). Preserve valid feature intent rather than reproducing an erroneous formula or contract.
+
+Follow-up spec: [full rebuild PRD](.scratch/diary-v3-rebuild/PRD.md). The user has confirmed carrying over this plan's module breakdown and test scope; the PRD governs concrete acceptance.
 
 ## 1. Goals and Confirmed Scope
 
@@ -17,27 +20,20 @@ Follow-up spec: [full rebuild PRD](/Users/klam/Desktop/project/diary-v3/.scratch
 
 "Feature parity" covers user operations, permissions, data outcomes, APIs, scheduling, import/export, public content, and error scenarios. Page layout and implementation approach may change; features must not be silently dropped and trading formulas must not change during the rebuild.
 
-## 2. Current Baseline and Constraints
+## 2. Original Inventory and Baseline Constraints
 
 - diary-v3 was an empty folder at inventory time.
-- diary-vue currently has 43 page files and 124 API handler files; this is the inventory entry point, not 43 independent features or a completed acceptance result.
-- Source HEAD: `72b5bf7bb5cd841eff2fca9795a5fa977bff0196`.
-- The source carries uncommitted fixes to auth, schema, market jobs, Socket.IO, and more. Phase 0 must freeze a worktree snapshot that includes these changes; taking HEAD alone is not acceptable.
+- The legacy inventory contains 43 page files and 124 API handler files; this is the inventory entry point, not 43 independent features or a completed acceptance result.
+- Planning-scan HEAD: `72b5bf7bb5cd841eff2fca9795a5fa977bff0196`.
+- The planning scan included uncommitted fixes, so that HEAD alone was not a complete baseline. At implementation freeze, the source had advanced to clean commit `47f8313bf29870b52582db97209bef2e1cbe41ce`; the sanitized archive and manifest record the actual accepted inputs.
 - The legacy OpenAPI spec mostly covers the mobile/core API and does not cover every handler; a complete feature matrix must be built separately.
 - This was a code and documentation inventory: the legacy system's full test suite was not run, and no completed runtime feature-parity verification is claimed.
 
-Primary evidence:
-
-- [Current product scope](/Users/klam/Desktop/project/diary-vue/PRODUCT.md)
-- [Domain language and rules](/Users/klam/Desktop/project/diary-vue/CONTEXT.md)
-- [Feature workflows](/Users/klam/Desktop/project/diary-vue/docs/WORKFLOWS.md)
-- [React Native readiness](/Users/klam/Desktop/project/diary-vue/docs/backend-readiness.md)
-- [Data model](/Users/klam/Desktop/project/diary-vue/prisma/schema.prisma)
-- [Legacy database migrations](/Users/klam/Desktop/project/diary-vue/prisma/migrations)
+Primary evidence is the [frozen baseline](docs/parity/README.md), [manifest](docs/parity/source-manifest.json), and [archive](docs/parity/source-snapshot.tar.gz). The archive contains the legacy `PRODUCT.md`, `CONTEXT.md`, `docs/WORKFLOWS.md`, `docs/backend-readiness.md`, `prisma/schema.prisma`, and `prisma/migrations/`. These are archive-relative references, not instructions to consult the live diary-vue checkout. Ordinary parity uses this immutable sanitized baseline.
 
 ## 3. Proposed Technical Architecture
 
-A TypeScript monorepo using npm workspaces and a single lockfile.
+The original proposal uses a TypeScript monorepo with npm workspaces and a root lockfile. The later isolated Native proof has a separate lockfile. See [current architecture](docs/architecture.md) for the implemented layout and worker topology.
 
 | Layer | Choice | Responsibility |
 | --- | --- | --- |
@@ -54,7 +50,7 @@ Hono has a Node.js adapter and suits hosting a standalone HTTP API runtime; the 
 
 Drizzle provides PostgreSQL column types and a versioned migrations workflow; date and numeric types must be configured explicitly rather than relying on automatic serialization. [Column docs](https://orm.drizzle.team/docs/column-types), [migrations docs](https://orm.drizzle.team/docs/migrations)
 
-Pin compatibility-checked stable versions when implementation starts; this plan does not pre-commit to unverified version combinations.
+The original proposal deferred exact versions. Current pins are in package manifests and lockfiles; runtime requirements are in [README.md](README.md#local-development). The following tree is the original proposed layout, not the current source map.
 
 ```text
 diary-v3/
@@ -154,7 +150,7 @@ A fresh initialization contains only the market universe and ETF definitions the
 
 ## 7. UI/UX Plan
 
-What follows is a proposed design starting point, not an implemented or locked visual spec. The Impeccable product-fact record lives in [PRODUCT.md](/Users/klam/Desktop/project/diary-v3/PRODUCT.md).
+What follows is the original proposed design starting point. The current implemented direction, brand, colors, navigation, and spacing are governed by [DESIGN.md](DESIGN.md). The Impeccable product-fact record lives in [PRODUCT.md](PRODUCT.md).
 
 **Direction: a clear, calm investment research desk.** Identity comes from text, dates, investment judgments, and data hierarchy. Warm-white reading surfaces, ink-colored body text, and a restrained deep-green action color are candidates; up/down and risk keep independent semantics. Number alignment, table density, and long-session reading outrank decoration.
 
@@ -206,13 +202,23 @@ Deployment configuration and verification start in Phase 1; Phase 6 completes th
 - Performance is measured with representative large diaries, long time series, pagination, and market data; Phase 0 establishes baselines and thresholds instead of inventing timing guarantees now.
 - The self-hosted environment provides health/readiness, structured requestId/jobId logs, a migration Job, a single-instance scheduler, backup/restore, and a release-rollback flow.
 
-## 10. Decision Status for This Round
+## 10. Original Decision Status and Later Resolution
 
 Confirmed: React, PostgreSQL/Drizzle, full feature parity, UI/UX free to redesign, no legacy data migration, Docker/K3s, and deferral of push notifications and offline writes.
 
-This plan proposes: a TypeScript monorepo with a React Router framework web app and a Hono API; delivery stage by stage along complete feature flows; formal coding starts at Phase 0/1.
+The original proposal selected a TypeScript monorepo with a React Router framework Web app and a Hono API, delivered stage by stage along complete feature flows. Those runtime choices are now implemented.
 
-Still to be settled during implementation: compatible package versions, visual templates, a complete item-by-item parity checklist, performance baselines, and the public brand name. These do not change this round's scope and must not be treated as done.
+The initial open decisions now have recorded outcomes:
+
+| Original open item | Recorded outcome |
+| --- | --- |
+| Compatible package versions | Locked manifests and dependency evidence in the [latest audit](docs/audits/project-cleanup-2026-09-27.md) |
+| Visual templates | Current [DESIGN.md](DESIGN.md) and dated [design reviews](docs/design/) |
+| Item-by-item parity | [Frozen inventory and mappings](docs/parity/README.md), then [core acceptance](docs/parity/final-release-report.md) |
+| Performance baseline | [Frozen workloads and gates](docs/parity/performance-baseline.md), with separate later audit measurements |
+| Public brand | **Trade basic** |
+
+Later additions include personal achievements, public tool access, Member articles, account email, optional Redis rate limiting, manual AI Reports, Admin Research Studio, and article translations. Their current guides and independent release gates are indexed in [docs/README.md](docs/README.md). The parent rebuild PRD remains unchanged.
 
 ## 11. Article reading access (2026-09-24)
 
@@ -230,7 +236,9 @@ The application has no shared article query cache. The service worker already ex
 
 Deployment must run the additive migration before the access-aware API/Web. Freeze article mutations during the first rollout, establish tested access-aware rollback images before enabling Member publication, and review conservatively classified records. See the exact first-release, rollback, cache-bypass, and external-purge procedure in [production deployment notes](ops/k8s/production/README.md#article-access-release-boundary). No production migration, content publication, edge purge, or cutover is authorized or performed by this task. Previously public copies cannot be recalled, and external/public cover or Markdown assets retain their independent URL access.
 
-### Implemented and verified
+### Historical implementation and verification checkpoint
+
+The following records the article-access delivery checkpoint on 2026-09-24. Counts and execution claims are retained as historical evidence; this documentation refresh did not rerun them. Use the [latest audit](docs/audits/project-cleanup-2026-09-27.md) for later repository verification.
 
 The centralized API policy returns full content, a locked result, or not found. Reader metadata is explicitly projected, and `excerptAuthored` distinguishes deliberate public teasers from legacy/body-derived excerpts. The additive `0025_even_nightcrawler.sql` migration preserves existing identifiers, slugs, bodies, publication states and dates; only previously published records with a publication timestamp become Public. Other records remain Member with migration counts and an operator review query. Database enums, non-null defaults, runtime contracts, OpenAPI and the generated client agree.
 

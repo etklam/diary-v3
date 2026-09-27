@@ -2,6 +2,10 @@
 
 Status: local implementation and offline acceptance complete. Live-source/full-report acceptance remains blocked; formal research publication is not ready. See [acceptance record](research-studio-acceptance.md) for verified checks and outstanding inputs.
 
+The current API surface is the admin-only `/api/admin/research/*` route family in `apps/api/src/research-studio/routes.ts`, with contracts in `packages/contracts/src/research-openapi.ts`. Feature and generation flags default to disabled. Preparation and generation require the runtime gates; synthetic evidence is accepted only when the explicit synthetic flag and an injected transport are present. Source operations use the operation-specific rights in `apps/api/src/research-studio/source-policy.ts`, and the pinned source transport applies request deadlines, cancellation, byte limits, DNS checks and IP pinning.
+
+The [2026-09-27 project cleanup audit](../audits/project-cleanup-2026-09-27.md) is the current local audit reference. It records synthetic/disposable verification and source-level hardening only. It does not turn the recorded live-source budget, market-data rights, human report review or deployment evidence into completed acceptance.
+
 ## Scope
 
 Research Studio prepares immutable evidence, deterministic Node.js/TypeScript calculations, controlled research drafts, exact-revision approval and unpublished article handoff. It is admin-only. Public and Member readership remains in the existing article system. The source method is `us-equity-swing-report` version 1.0.0.

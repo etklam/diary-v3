@@ -4,6 +4,10 @@ Date: 2026-09-13
 
 Baseline repository HEAD: `61a6216e657088366015d4bc2327613bfd6c79ae`. Results below were produced from the shared working tree based on that HEAD; the changes and this report were uncommitted when tested.
 
+## Current source status (2026-09-27)
+
+The dated results below remain the 2026-09-13 native evidence snapshot. The current [project cleanup audit](../audits/project-cleanup-2026-09-27.md) records source/package-boundary checks, dependency remediation and iOS/Android bundle verification at the current project state. It does not claim a new simulator, physical-device, Keychain/Keystore, native binary, or operating-system deep-link run. The [native package artifact record](package-artifacts.md) and the [current proof instructions](../../proofs/native/README.md) describe the reproducible source boundary; neither promotes the native runtime status.
+
 ## Runtime and environment
 
 The proof is an isolated Expo-managed React Native project in `proofs/native` with Expo SDK `~57.0.0`, React Native `0.86.0`, React `19.2.3`, and Expo SecureStore `~57.0.4`. The proof has direct local-file dependencies on `@diary/contracts`, `@diary/api-client`, and `@diary/domain`. It is outside the root npm workspaces.

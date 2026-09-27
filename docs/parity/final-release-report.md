@@ -1,8 +1,10 @@
 # Final release acceptance — complete
 
+Historical acceptance checkpoint: 2026-09-06. Counts, commands, and approval statements below apply to the original core rebuild at that date, not every later feature or a production cutover. See the [2026-09-25 acceptance](../features/all-tickets-acceptance-2026-09-25.md), [2026-09-27 audit](../audits/project-cleanup-2026-09-27.md), and [current CI policy](../operations/ci-cd-notes.md) for later scope. `/tmp` paths below name session-local raw logs; only linked checked-in artifacts are portable evidence.
+
 All61 tickets are accepted, including the final cross-cutting verification. The authoritative inventory is [inventory.json](inventory.json): 212 source entries and114 stories. [Coverage checkpoint](coverage-checkpoint.md) records ownership and accepted feature coverage; it does not replace the final gates.
 
-## Current whole-repository evidence
+## Whole-repository evidence at the checkpoint
 
 - `npm run contracts:check` passed for the current registered API, schemas and generated client.
 - After fixing35 concrete unused-binding/Service Worker-global/test-type lint errors, `npm run lint` and `npm run build` passed.

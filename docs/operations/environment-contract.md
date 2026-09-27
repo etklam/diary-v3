@@ -16,22 +16,50 @@
 | `REDIS_URL` | Optional secret | Redis connection URL used only by `auto` or `redis`; required by `redis`. Use `rediss://` when the Redis endpoint requires TLS and never log the URL. |
 | `MARKET_PROVIDER` | Optional provider setting | Defaults to the live provider. Set to `fixture` only in disposable test environments. |
 | `MIGRATIONS_FOLDER` | Optional migration setting | Directory containing the Drizzle migration journal and SQL. Production migration jobs use `/app/packages/db/migrations`. |
+| `AI_ENCRYPTION_KEYS` | Optional API secret; required by the AI/research/translation workers | JSON object mapping AI key versions to base64-encoded 32-byte keys. Use the same keyring in every workload that reads or writes encrypted AI data. |
+| `AI_ENCRYPTION_ACTIVE_KEY` | Optional API secret; required by the AI/research/translation workers | Version in `AI_ENCRYPTION_KEYS` used for new encrypted values. Keep previous versions until retained data and backups no longer need them. |
+| `AI_ALLOWED_BASE_URLS` | Optional provider setting | Comma-separated exact HTTPS base URLs for AI Reports and Research Studio recipients. The default is `https://api.deepseek.com`; host, port and base path are matched. Article translation profiles configure their endpoints separately and retain public-address/TLS checks. Apply matching egress restrictions. |
+| `TAVILY_API_KEY` | Optional research-provider secret | Enables the Tavily source in Research Studio. Leave unset when that source is not approved; the API keeps the source unavailable rather than accepting an unconfigured key. |
 | `SMTP_ENCRYPTION_KEYS` | Optional secret | JSON object mapping SMTP key versions to base64-encoded 32-byte keys. Required before enabling account email. Use the same keyring in API and mail worker; retain old versions for encrypted outbox data and backup recovery. |
 | `SMTP_ENCRYPTION_ACTIVE_KEY` | Optional secret | Version name in `SMTP_ENCRYPTION_KEYS` used for new SMTP password and outbox encryption. Required before enabling account email. |
 | `SMTP_ALLOWED_HOSTS` | Optional environment-specific setting | Comma-separated exact `host:port` values for explicitly trusted private SMTP relays. Application DNS pinning still applies; network policy/firewall egress must independently allow the relay. |
 | `MAIL_WORKER_ID` | Optional worker setting | Stable operational label for the account email worker. |
 | `MAIL_WORKER_POLL_MS` | Optional worker setting | Poll interval in milliseconds, from 250 through 60000; defaults to 1000. |
+| `AI_WORKER_ID`, `AI_WORKER_INTERVAL_MS` | Optional AI worker settings | Worker label and poll interval. The interval defaults to 1000 ms; `AI_WORKER_ID` defaults to a process-specific value when omitted. |
+| `RESEARCH_WORKER_ID`, `RESEARCH_WORKER_POLL_MS` | Optional Research Studio worker settings | Worker label and poll interval. Polling must be an integer from 250 through 60000 ms; the default is 1000 ms. |
+| `ARTICLE_TRANSLATION_WORKER_ID`, `ARTICLE_TRANSLATION_WORKER_POLL_MS` | Optional article translation worker settings | Worker label and poll interval. Polling must be an integer from 250 through 60000 ms; the default is 1000 ms. |
+| `RESEARCH_PREPARATION_RETENTION_DAYS` | Optional maintenance setting | Enables the research-preparation retention CLI when set. Without it, the CLI logs that retention is disabled and exits without opening the database. |
+
+`POSTGRES_PASSWORD` and `DB_PASSWORD` are database bootstrap/provisioning
+inputs, not API variables. The local and production secret scripts use them to
+create the PostgreSQL Secret and the derived `DATABASE_URL`; never put either
+value in a committed manifest. `SEC_USER_AGENT` is optional for API process
+startup but is required by SEC requests and by the production provisioning
+script.
 
 The production and staging API/Web workloads share the same image entrypoints,
 probes, migration commands, and API/Web routing. Keep database URLs, JWT
 secrets, public origins, SEC contact values, TLS secrets, and persistent data
 separate between environments. Do not commit or log secret values.
 
+The repository declares Node `>=22.22.0` in `package.json`; Forgejo pins Node
+`22.22.0` for source checks and staging, while the Dockerfile builds and runs
+the production API/Web images on Node 24 and bundles the API for `node24`.
+Use `npm run build` before starting a built entry point. The API image starts
+`dist/api/server.js`; the Web image starts React Router's
+`apps/web/build/server/index.js` from `/app/apps/web`.
+
 The account email worker uses the API image and the same database and SMTP
 encryption keyring as the API. It runs while SMTP is disabled and remains idle;
 SMTP being enabled in the Admin Panel is the only application dispatch gate.
 See [the account email runbook](../runbooks/account-email.md) before configuring
 or enabling SMTP.
+
+The production release keeps the mail worker at one replica. AI, Research
+Studio, and article translation workers are manual workloads with no public
+port and start at zero replicas in their manifests; enabling one requires a
+separate reviewed rollout with the matching encrypted keyring and egress
+policy. The normal production workflow does not scale these workers.
 
 ## Request resource limits
 

@@ -1,5 +1,7 @@
 # Research method bundle
 
+Readiness boundary, reviewed 2026-09-27: the offline method and deterministic calculator have local acceptance. Research Studio RS-06 live-source/full-report publication remains blocked on the separate [source-use and retrieval review](source-policy-review.md) and budgeted acceptance. See the [current feature guide](../features/research-studio.md); this bundle is not evidence of live-provider approval.
+
 The Research Studio method is the versioned `us-equity-swing-report` profile at
 version `1.0.0`. The source evidence is the checked-in Notion export at
 `tests/fixtures/research-method/notion-pages.json`; Notion is not a runtime

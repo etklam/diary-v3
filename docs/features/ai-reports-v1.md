@@ -1,6 +1,10 @@
 # Manual AI review reports V1
 
-Status: IMPLEMENTED and locally VERIFIED. Live beta release gates remain PLANNED. Baseline: `de9286211682e513da2eb54bb84acd2fd92bb19d` (2026-09-21). The working tree was clean at intake. The approved attachment is the acceptance specification; this document records implementation decisions, not a claim that all gates have passed.
+Status: IMPLEMENTED in the local source; generation remains disabled by default. Live beta release gates remain PLANNED. Baseline: `de9286211682e513da2eb54bb84acd2fd92bb19d` (2026-09-21). The working tree was clean at intake. The approved attachment is the acceptance specification; this document records implementation decisions and dated evidence, not a claim that all release gates have passed.
+
+The current source boundary is `packages/contracts/src/{ai-reports,admin-ai,ai-openapi}.ts`, `apps/api/src/ai-reports`, and the Web routes `/reviews/ai-reports` and `/admin/ai`. The API exposes capabilities, consent, preview, report, regeneration, cancellation and deletion operations; Admin exposes runtime/provider, access, usage, prompt and audit operations. Runtime settings default to `generationEnabled: false` and `workerAvailable: false`, and the report service rejects generation until the runtime, current provider, owner consent/recipient revision and quota gates all pass. The [operations runbook](../runbooks/ai-reports.md) is the current enablement and rollback reference.
+
+The [2026-09-27 project cleanup audit](../audits/project-cleanup-2026-09-27.md) records the latest local security, resource and regression evidence. Its checks use synthetic fixtures and disposable services; they do not establish live DeepSeek quality, provider terms, deployment egress or production readiness.
 
 Only an authenticated owner explicitly submitting Generate or Regenerate creates a report. Loading, polling, changing language, logging in, worker maintenance and retention cleanup never create reports. Each admitted job can make at most one provider generation request; unknown upstream outcomes require manual retry.
 
@@ -37,7 +41,9 @@ The HTTPS transport uses exact deployment-controlled base URL allowlisting, reje
 
 No production deployment, paid DeepSeek smoke test, provider-terms acceptance or beta enablement is implied by local tests. These remain explicit release gates.
 
-## Local verification log
+## Historical local verification log (2026-09-21)
+
+The table below is retained as the implementation checkpoint recorded on 2026-09-21. It is not a current test count or a replacement for the current audit linked above.
 
 | Check | Observed result | Scope |
 | --- | --- | --- |

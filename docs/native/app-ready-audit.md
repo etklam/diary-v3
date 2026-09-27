@@ -6,6 +6,10 @@ Repository HEAD at audit start: `61a6216e657088366015d4bc2327613bfd6c79ae` (the 
 
 Scope: API, shared contracts/client/domain packages, native proof integration, backward compatibility, and RC2 release constraints. This audit does not approve a production cutover.
 
+## Current source status (2026-09-27)
+
+The verdict and evidence tables below remain the dated 2026-09-13 audit snapshot. The current [project cleanup audit](../audits/project-cleanup-2026-09-27.md) records the later source/package-boundary checks, dependency remediation, clean native proof installation, typecheck and platform bundle export. It explicitly preserves the native runtime boundary: no new iOS/Android binary, simulator, emulator or physical-device run is claimed. The current [package artifact record](package-artifacts.md) documents the offline tarball boundary separately.
+
 ## Verdict
 
 The existing API supports the proof's core native flows without a backend or JWT rewrite. The proof uses JSON native-session endpoints, bearer authentication, an injected standard-fetch transport, shared runtime contracts and domain helpers, owner-scoped API routes, and explicit calendar-date/decimal semantics. The Expo project typechecks and produces iOS and Android Hermes bundles; a disposable-PostgreSQL acceptance test passes login/restore, Diary write/read, Timeline, Review, Company context, logout/expiry, and account isolation.

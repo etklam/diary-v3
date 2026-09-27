@@ -1,5 +1,7 @@
 # Diary authoring and query semantics
 
+Implementation status reviewed 2026-09-27: diary reminders and ticket 10 search/title ordering are implemented and included in [core acceptance](../parity/final-release-report.md). Relevant runnable evidence includes [diary-list integration](../../tests/integration/diary-list.test.ts), [search-plan integration](../../tests/integration/diary-search-plan.test.ts), and [alert integration](../../tests/integration/alerts.test.ts). References below to those modules being unimplemented or pending are retained decision-time context, not current progress.
+
 Status: accepted
 
 Diary authoring preserves the canonical create/update fields, owner-only access, unique user/date constraint and explicit clearing semantics. Update requires title and content; omitted optional values remain unchanged, while null or an empty tag array clears the corresponding value. Alert payloads are not silently discarded while that module remains unimplemented. Nested transaction replacement follows the frozen diff contract: a row with an ID updates that row, a row without an ID is inserted, omitted existing rows are deleted, and an omitted transactions field preserves the collection.

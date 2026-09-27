@@ -2,81 +2,93 @@
 
 <!-- impeccable:product-schema 1 -->
 
+Current product record, reviewed against repository source on 2026-09-27. Use the [documentation index](docs/README.md) to distinguish current guides, accepted decisions, and dated acceptance evidence.
+
 ## Platform
 
 web
 
 ## Stack
 
-The user has specified React Web, PostgreSQL, and Drizzle, and confirmed keeping the Docker/K3s deployment.
-A future app is expected to use React Native; no app is being built at this stage.
-A TypeScript monorepo with a React Router web app, a Hono API, and shared contracts/client is underway.
+A TypeScript npm-workspace monorepo with React Router Web SSR, a Hono API, PostgreSQL, Drizzle, shared runtime contracts, and a standard-fetch client. Docker/K3s deployment and restore tooling are implemented. See the [architecture](docs/architecture.md) for runtime boundaries.
+
+A separate Expo/React Native proof consumes the shared packages and demonstrates native authentication and API access. It is not a released mobile product; device delivery, push notifications, and offline writes remain outside the delivered Web scope.
 
 ## Users
 
-The investment-diary users already served by the existing diary-vue product.
-Based on the existing code and product docs, the main scenarios are quick capture during trading hours, tracking investment theses, organizing trades and holdings, and after-hours and periodic reviews.
-User tenure and the external brand name have not been redefined; the mutually inconsistent tenure descriptions in the old docs are not carried over.
+Investment-diary users who capture decisions during trading hours, track investment theses, organize trades and holdings, and review outcomes after hours or periodically. The product rebuild preserves valid workflows from the frozen diary-vue baseline. Unverified tenure claims from older marketing documents are not carried forward.
 
 ## Product Purpose
 
-A complete rebuild of diary-vue that preserves every currently valid product feature and business behavior.
-Diaries, trades, investment theses, research evidence, reminders, and reviews together form a reviewable record of investment decisions.
-Feature scope is grounded in the source code, API contracts, and acceptance cases — not in page counts or historical planning docs.
+Diaries, trades, investment theses, research evidence, reminders, and reviews form a reviewable record of investment decisions. Behavioral contracts and acceptance evidence define feature coverage; page counts alone do not.
+
+The rebuild preserves valid feature intent while correcting documented legacy bugs and technical debt. [ADR-0001](docs/adr/0001-parity-baseline-and-contract-corrections.md) establishes that policy. Later approved capabilities have their own feature records and decisions; they do not silently alter the immutable parent PRD.
 
 ## Operating Context
 
-- The web app must support desktop and mobile browsers.
-- Existing capabilities include diaries, Timeline, Calendar, Reviews, Trade Plans, Portfolio, Company Hub, Watchlists, research tools, partner sharing, Agent API, public articles, and an admin console.
-- Keep the existing trilingual support (zh-TW/zh-CN/en), light and dark themes, timezone settings, PWA, and SEO for public content.
-- These capabilities were inventoried from the diary-vue code and product docs; the complete item-by-item acceptance matrix is built in Phase 0 of the plan.
+- Desktop and mobile browsers share a responsive Web app with zh-TW, zh-CN, and English interface copy, light/dark/system themes, and user timezone settings.
+- The private workspace includes Diary library, Quick Diary, Timeline, Calendar, Review queue, Trade Plans, Portfolio, Company Hub, Watchlists, reminders, Trading principles, partner sharing, personal achievements, and scoped Agent API access.
+- Public surfaces include the home page, guide, About, tools, and article discovery/reading. Public article content supports SSR and SEO; protected content is authorized by the API.
+- Administration covers articles, users, ETF definitions, AI configuration, Research Studio, and optional account email.
+- PWA support covers installation and updates. Private API responses and navigations are not an offline personal-data store.
 
 ## Capabilities and Constraints
 
-- Feature parity with diary-vue is complete; the UI/UX is redesigned by Impeccable.
-- No user data is migrated from the old system; the new system initializes from an empty PostgreSQL database.
-- The new system still needs versioned schema migrations, required system seed data, and backup restore.
-- App readiness this phase covers the shared API, reusable business logic, and native sign-in and renewal.
-- The user has confirmed: push notifications and offline writes are deferred to the React Native phase.
-- The user has authorized parallel implementation against the local tickets and explicitly asked that old bugs and tech debt be fixed along the way; preserve feature intent, do not reproduce the defects.
+- The original core rebuild has local feature-parity acceptance against the [frozen baseline](docs/parity/README.md). The [2026-09-25 acceptance](docs/features/all-tickets-acceptance-2026-09-25.md) and [2026-09-27 audit](docs/audits/project-cleanup-2026-09-27.md) document later scope and verification limits. Neither is blanket production readiness approval.
+- No legacy user data migration is part of the rebuild. Versioned migrations initialize an empty PostgreSQL database; static system seed and disposable backup/restore drills are implemented.
+- Ownership, partner-sharing allowlists, date semantics, decimal precision, and transaction integrity remain server responsibilities.
+- App readiness covers shared contracts, reusable rules, native sessions, package consumption, and the isolated proof. A production React Native app, push delivery, and offline writes remain deferred.
+- One active API process owns in-process scheduling and realtime. Optional Redis shares rate-limit counters; it does not make the scheduler safe for multiple API replicas.
+- Production cutover requires its own operational execution and evidence. Hosted CI still contains advisory gates, as recorded in the [CI/CD notes](docs/operations/ci-cd-notes.md).
 
 ## Brand Commitments
 
-The user explicitly allows replacing the existing UI/UX and has not specified any colors, typography, or visual system to carry over.
-diary-v3 is the current project name; the external product name is still TBD.
+The external product name is **Trade basic**, with that exact casing and spacing. `diary-v3` remains the repository and infrastructure name. The current visual system is recorded in [DESIGN.md](DESIGN.md); the original legacy UI is not a visual constraint.
 
 ## Evidence on Hand
 
-- Source: `/Users/klam/Desktop/project/diary-vue`.
-- Product and domain docs: the source project's PRODUCT.md, CONTEXT.md, docs/WORKFLOWS.md.
-- Implementation: pages, server/api, lib, prisma/schema.prisma, tests.
-- App contract: docs/backend-readiness.md, lib/contracts, lib/api-client, openapi/openapi.json.
-- Existing UI evidence: layouts/default.vue, pages/timeline/index.vue, assets/css/design-tokens.css.
-- At the 2026-09-05 inventory the source worktree had uncommitted changes, so HEAD alone does not represent the feature baseline.
+- [Frozen source manifest, archive, and inventory](docs/parity/README.md): the sanitized source at the recorded freeze, including legacy product/domain docs, implementation, migrations, contracts, and tests.
+- [Core release checkpoint](docs/parity/final-release-report.md): dated original rebuild acceptance.
+- [All-ticket acceptance](docs/features/all-tickets-acceptance-2026-09-25.md): subsequent local ticket execution and external release blockers.
+- [Cleanup, performance, and security audit](docs/audits/project-cleanup-2026-09-27.md): later source and verification checkpoint with measured limits.
+- [Design evidence](docs/design/): dated briefs, reviews, and captures; the current built rules live in DESIGN.md.
+
+Ordinary parity work uses the recorded archive, not a mutable checkout of diary-vue. The original dirty planning scan and the later clean frozen commit are distinguished in the baseline record.
 
 ## Product Principles
 
-1. Feature parity must be proven by behavior and tests.
-2. Quick capture stays low-friction, while reading, management, and review each get a clear entry point.
-3. Trade results, timezones, and sharing permissions stay consistent.
-4. The API is the shared business entry point for web and the future app.
-5. Reusable logic stays independent of Vue, React DOM, and native platforms.
+1. Prove feature coverage through behavior and tests.
+2. Keep capture low-friction and give reading, management, and review clear entries.
+3. Preserve consistent financial results, timezone handling, and sharing permissions.
+4. Keep the API authoritative for Web and native consumers.
+5. Keep reusable rules independent of browser, server, and native frameworks.
 
-## Personal achievements
+## Personal Achievements
 
-Users can manually record private milestones with a calendar date and achievement text, then browse, edit, or delete them. Multiple achievements can share a date; the list runs newest first. An account first reaching USD 100,000 is an example of a user-written milestone, not an automatically detected balance event. Records belong exclusively to the signed-in user and are not exposed through partner sharing.
+Users manually record private milestones with a calendar date and text, then browse, edit, or delete them. Multiple achievements can share a date; the list runs newest first. Reaching a chosen account value is a user-written milestone, not an automatically detected balance event. Achievements belong exclusively to the signed-in user and are not exposed through partner sharing.
 
-## Tools access model
+## Tools Access Model
 
-Tools are public product capabilities, not membership features. Guests can open the Tools index and the confirmed tool URLs, complete calculations, query and filter public research, view charts and filing details, copy results, export results, and download bounded SEC documents or ZIP packages without authentication. The same tool implementations are available to signed-in users from the workspace.
+Tools are public capabilities. Guests can calculate, query and filter public research, view charts and filing details, copy/export results, and download bounded SEC documents or ZIP packages. Signed-in users use the same tool implementations in the workspace.
 
-Authentication is required only for private additions: saving or appending a Diary, creating a Trade Plan, adding a Watchlist item, saving research evidence or notes, creating reminders, reading personal holdings or settings, and all administration. Guest attempts show an explicit sign-in prompt, preserve the current tool state, use a safe in-site return path, and require confirmation after sign-in before any private write.
+Private additions require authentication: saving or appending a Diary, creating a Trade Plan, adding a Watchlist item, saving evidence or notes, creating reminders, and reading personal holdings or settings. Guest flows preserve tool state, validate in-site return destinations, and require confirmation after sign-in before a private write. See the [access matrix](docs/tools-access-matrix.md).
 
-## Article access model
+## Article Access Model
 
-Published articles have exactly two reading levels: Public (anyone) and Members only (an existing valid authenticated user). Membership does not represent a paid plan. Public discovery can show a Member article's title, explicitly public teaser, category, tags, publication date, and access label; its body requires server authorization. Unpublished articles remain restricted to Admin editor previews. New articles default to Draft and Members only; Admins explicitly select Public when appropriate. Payment, billing, subscriptions, and paid entitlements are outside this scope.
+Published articles have two reading levels: Public and Members only. A member is an existing valid authenticated user; there is no paid membership entity. Public discovery may expose an explicitly authored public teaser and metadata, while Member bodies require server authorization. Unpublished content is restricted to Admin editor previews. New articles default to Draft and Members only.
+
+[Article translations](docs/article-translations.md) are optional translated derivatives with their own status, cost, and access rules. Payment, billing, subscriptions, and paid entitlements remain outside scope.
+
+## AI and Research
+
+[AI Reports V1](docs/features/ai-reports-v1.md) supports manually requested reports with access grants, quotas, reviewable snapshots, and independent worker execution. Local implementation does not satisfy its live-provider, quality, disclosure, and operational beta gates.
+
+[Research Studio](docs/features/research-studio.md) is an Admin research workflow based on a versioned method and deterministic calculator. Offline evidence and calculator acceptance are recorded; source-use rights, live retrieval, budgeted provider acceptance, and full-report publication remain separately gated. Synthetic evidence is not live-source approval.
+
+## Account Operations
+
+Optional [account email](docs/runbooks/account-email.md) supports the documented verification/recovery flows through an encrypted, allowlisted SMTP configuration and a separate worker. Optional [Redis rate limiting](docs/runbooks/rate-limiting.md) shares abuse counters. Both require explicit environment configuration; neither is required for the basic local Web/API setup.
 
 ## Accessibility & Inclusion
 
-The existing product docs take WCAG AA, keyboard operation, screen readers, and reduced motion as the baseline.
-The redesign plan keeps these capabilities and accepts trilingual content, long content, and mobile use.
+WCAG AA, keyboard access, screen-reader semantics, reduced motion, long content, and mobile use are design and verification targets. Dated browser and visual reviews identify their tested scope; they are not comprehensive assistive-technology certification.

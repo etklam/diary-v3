@@ -1,53 +1,28 @@
-# Domain Docs
+# Domain documentation
 
-This repository uses a single domain context: root CONTEXT.md (when created) and docs/adr/. All workspaces share the same domain vocabulary.
+This monorepo uses one domain context across Web, API, shared packages, and the native proof. There is no standalone `CONTEXT.md` or `CONTEXT-MAP.md`; use the actual records below rather than assuming a missing glossary exists.
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+## Reading order
 
-## Before exploring, read these
+1. [PRODUCT.md](../../PRODUCT.md) for current capabilities, access models, and release boundaries.
+2. [PLAN.md](../../PLAN.md) and the [immutable rebuild PRD](../../.scratch/diary-v3-rebuild/PRD.md) for original approved scope. The plan's initial proposals and the PRD's planning-era status are historical intent, not live execution status.
+3. The relevant approved extension specification and [feature guide](../README.md#feature-guides). Do not rewrite the parent PRD to absorb subsequent features.
+4. [ADRs](../adr/) for accepted decisions and deliberate legacy corrections. Read any separate implementation-status notes before interpreting an older pending statement.
+5. [DESIGN.md](../../DESIGN.md) for the current built UI rules and the relevant [design brief/review](../design/) for scoped evidence.
+6. [Architecture](../architecture.md), shared contracts, schema/migrations, and the relevant tests for implementation and runnable evidence.
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+## Domain language and invariants
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
+Use the names in product copy and contracts: Diary, Quick Diary, Timeline, Calendar, Review queue, Trade Plan, Portfolio, Company Hub, Watchlist, Investment Thesis, Evidence, reminder, Partner, Article, AI Report, and Research Studio. A Diary's calendar date is distinct from a UTC event instant. Persisted financial decimals and IDs use string contracts.
 
-## File structure
+An authenticated member is not a paid subscriber. Partner sharing grants an explicit subset of another user's data; it is not general ownership. AI Reports and Admin Research Studio have separate workflows and release gates. A native consumer proof is not a shipped mobile app.
 
-Single-context repo (most repos):
+The API owns authorization and authoritative business validation. PostgreSQL constraints and transactions enforce ownership links, diary uniqueness, ledger integrity, and session concurrency. Shared domain rules must remain portable. Consult [ADR-0001](../adr/0001-parity-baseline-and-contract-corrections.md) before treating an erroneous legacy behavior as a requirement.
 
-```
-/
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
-```
+## Scope and evidence
 
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
+Use the [sanitized frozen baseline](../parity/README.md) for parity; diary-vue is read-only and is not a moving implementation reference. Current acceptance is linked from the [documentation index](../README.md#acceptance-and-historical-evidence). Test results prove only the recorded date and scope.
 
-```
-/
-├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
-└── src/
-    ├── ordering/
-    │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
-        ├── CONTEXT.md
-        └── docs/adr/
-```
+Use [local issue-tracker conventions](issue-tracker.md) and [canonical labels](triage-labels.md). Triage roles and execution states are distinct. A ticket is done only when its acceptance criteria have runnable evidence.
 
-## Use the glossary's vocabulary
-
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
-
-If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill-with-docs`).
-
-## Flag ADR conflicts
-
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
-
-> _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+If a proposed change contradicts a product rule, accepted ADR, or approved specification, identify the conflict explicitly and record the resulting decision. Do not silently replace the documented rule or infer new scope from a historical checklist.

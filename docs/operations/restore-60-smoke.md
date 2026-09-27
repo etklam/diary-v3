@@ -5,7 +5,7 @@ synthetic records and a PostgreSQL container named `diary-v3-restore-60`; it
 does not use the development database, the production Compose volume, the
 local K3s PostgreSQL volume, or any user export.
 
-## Rehearsal procedure
+## Historical ticket-60 rehearsal
 
 The source schema was migrated through `0019_price_alert_moving_average_direction`
 (schema version **N**, 20 rows in `drizzle.__drizzle_migrations`). The source
@@ -18,6 +18,8 @@ The commands below are the reproducible shape of the rehearsal. The password
 and JWT values are throwaway local values; keep them in the shell environment,
 never in a committed file.
 
+## Current release gate
+
 The repeatable release gate is `npm run db:restore-smoke`. It owns a disposable
 `postgres:17.6-alpine` container, derives schema N from the penultimate entry in
 the repository migration journal, and requires N→N+1 to be exactly one
@@ -28,7 +30,9 @@ validation and before integration tests. The runner shares the job container's
 network namespace and uses its private port 5432; local runs use the dedicated
 host port 55435. A failed restore prevents image publication and deployment.
 
-The historical shell sequence below records the initial ticket-60 rehearsal at
+## Historical shell sequence
+
+The shell sequence below records the initial ticket-60 rehearsal at
 migration 0019. The current release gate selects its N migration from the
 current journal automatically.
 

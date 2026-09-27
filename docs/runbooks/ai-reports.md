@@ -1,6 +1,8 @@
 # AI reports operations
 
-Status: implementation runbook; live smoke and deployment evidence pending.
+Status: implementation runbook. The provider and deployment smoke described
+below require explicit operator authorization and synthetic fixtures; no live
+provider or production evidence is implied by local tests.
 
 ## Release sequence
 
@@ -8,7 +10,12 @@ Status: implementation runbook; live smoke and deployment evidence pending.
 2. Leave generation disabled and access denied by default. Configure secrets separately from the database and repository.
 3. Set `AI_ENCRYPTION_KEYS` to a JSON object mapping key versions to base64-encoded 32-byte keys. Set `AI_ENCRYPTION_ACTIVE_KEY` to the current version. Use the same keyring in API and worker. Do not log these values.
 4. Set `AI_ALLOWED_BASE_URLS` to exact comma-separated HTTPS base URLs controlled by the deployment operator. The default is `https://api.deepseek.com`. Host, port and base path are all part of the allowlist. Apply network egress restrictions too.
-5. Start the worker using the built worker entry point. Verify its database heartbeat and queued/running age before admitting jobs. The worker must not expose a public HTTP port.
+5. Build the release bundle with `npm run build`, then start the worker with
+   `node dist/api/ai-worker.js` (the Kubernetes entry point in
+   `08-ai-worker.yaml`). The source-checkout helper is `npm run ai:worker`; it is
+   not the production entry point. Verify the database heartbeat and
+   queued/running age before admitting jobs. The worker must not expose a public
+   HTTP port.
 6. An authorized Admin saves the provider draft, reviews recipient disclosure/pricing, explicitly runs a synthetic capability test and publishes it. Verify the selected model actually supports the configured parameters. Publish reviewed weekly/monthly templates.
 7. Verify provider/account retention, training and processing terms; finalize truthful disclosure. Grant only the intended beta users. Each user accepts the current recipient revision personally.
 
@@ -36,6 +43,13 @@ Restore with AI generation disabled and the worker stopped. Apply current migrat
 ## Rollback
 
 Disable generation and stop the worker. Preserve the schema and existing reports; owner reading still requires a grant, while cancellation/deletion remains owner-only even after revoke. Roll back only to a version compatible with the new schema and deletion semantics. Do not delete migrations or refund consumed quota through record deletion.
+
+The checked-in AI Deployment starts at `replicas: 0`, and the production release
+workflow neither applies nor scales it. If an operator enables one replica,
+record the API and worker image digests, key version, allowlist, replica count,
+and rollback image together. Stop the worker before an incompatible API/schema
+rollback; restore the same keyring before allowing reads of retained encrypted
+data.
 
 ## Live smoke evidence template
 

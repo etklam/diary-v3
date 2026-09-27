@@ -7,14 +7,27 @@ diagnosed.
 
 ## Pipeline overview
 
-Single workflow `.forgejo/workflows/deploy.yml` → job `verify-build-deploy`
-on the `hk` runner. Test tiering (since `3e789ed`, 2026-09-13):
+The production workflow is `.forgejo/workflows/deploy.yml`. A push to `main`
+starts job `verify-build-deploy` on the `hk` runner; tags and pull requests do
+not start this workflow. The separate `.forgejo/workflows/staging.yml` is a
+manual `workflow_dispatch` workflow that consumes a successful production
+source SHA, immutable API/Web image digests, and an isolated staging hostname.
 
-- **Blocking gates**: lint, typecheck, unit tests, contracts check, manifest
-  validation, build, image digest verification, deploy, production smoke.
-- **Advisory tiers** (`continue-on-error: true`): API integration tests, full
-  Chromium regression, WebKit critical path, release artifact acceptance.
-  Failures are visible in logs but never block the deploy.
+The current production tiering is:
+
+- **Blocking checks and release steps**: tracked-secret checks, lint,
+  typecheck, unit tests, contracts check, source-manifest validation,
+  PostgreSQL backup/restore smoke, production build, Docker image identity
+  checks, digest-pinned manifest rendering/validation, image publication, and
+  the deploy/rollback smoke path.
+- **Advisory** (`continue-on-error: true`): API integration tests, full
+  Chromium regression, WebKit critical path, and release artifact acceptance.
+  Their failures remain visible in the run and do not stop the later deploy
+  steps. Treat an advisory failure as release evidence to review, not as proof
+  that the tested behavior passed.
+
+The source checks and staging workflow use Node `22.22.0`. The Dockerfile uses
+Node 24 and the production API bundle targets `node24`; account for this recorded runtime split when diagnosing build-only differences.
 
 The tiering is locked by `tests/unit/deploy-workflow.test.ts`. Run
 `npx vitest run tests/unit/deploy-workflow.test.ts` after any workflow edit.
@@ -87,14 +100,24 @@ output.
 
 ## Verification path (do not trust the Forgejo UI)
 
-1. Push lands on both remotes and `ls-remote` SHAs match.
-2. `/actions/tasks?limit=N` shows the run for your `head_sha`.
-3. Ground truth for rollout: `ssh root@82.22.63.196 "kubectl -n diary-v3 get deploy,pods"`
-   — migrate/system-seed jobs Completed, api/web pods Running with fresh age.
-4. Canary: curl a route added in this commit (200 proves new code serves);
-   for auth-protected routes grep the live bundle chunks instead (401 proves
-   nothing — auth middleware runs before route matching).
-5. Smoke: `https://v3.trade-basic.com/` → 200, `/readyz` → `{"status":"ready"}`.
+1. Confirm the release-authorized push reached the configured `main` remote and
+   record the full source SHA. The deploy workflow does not run for tags or
+   pull requests.
+2. `/actions/tasks?limit=N` shows the run for that `head_sha`; use the workflow
+   log's checkout SHA as the identity check.
+3. Ground truth for a production rollout is the operator's approved cluster
+   inspection: API/Web and mail-worker pods should have the new digest, the
+   migrate/system-seed Jobs should be Completed, and the market CronJob should
+   reference the same API digest. The repository does not provide a production
+   access token or a safe read-only check from this document.
+4. For a route-level canary, use a route added in the release (200 proves the
+   new code serves). For auth-protected routes, inspect the deployed bundle or
+   use a synthetic authorized fixture; a 401 proves only that authentication
+   ran before route matching.
+5. The workflow smoke checks the public home and article index plus API
+   `/healthz` and `/readyz`. The standalone staging checklist is
+   [`staging-smoke.md`](staging-smoke.md) and starts with
+   `bash scripts/staging-smoke.sh https://<staging-hostname>`.
 
 ## Known flaky advisory failures (do not chase)
 

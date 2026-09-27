@@ -1,5 +1,7 @@
 # Built Design System Record
 
+Historical ticket-03 checkpoint from 2026-09-05. The limited screens, flat surfaces, and absence of bottom navigation below describe that checkpoint only. [DESIGN.md](../../DESIGN.md) is the current built-design authority, including the later layered surfaces, full workspace, brand, and mobile diary navigation. Host-local sidecars and capture paths are historical artifacts, not fresh-clone prerequisites.
+
 Date: 2026-09-05. Artifacts: [DESIGN.md](../../DESIGN.md) and the [design.json sidecar](../../.impeccable/design.json).
 
 The shipped documenter role is unavailable in this harness; a standalone documenter subagent read Impeccable `reference/document.md` and `reference/degraded/documenter.md` and performed substitute documentation. The context script, the detector, and a third round of UI changes were not re-run.

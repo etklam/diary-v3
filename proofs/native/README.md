@@ -2,7 +2,9 @@
 
 This isolated Expo-managed React Native app exercises the current API, native session, shared contracts, and domain packages. Its dependencies and lockfile stay under `proofs/native`; the repository Web/API workspace and production images do not install Expo or React Native.
 
-The proof targets Expo SDK 57. Expo's current [SDK reference](https://docs.expo.dev/versions/latest/) lists React Native 0.86 and React 19.2.3 for SDK 57. Secure token pairs use [Expo SecureStore](https://docs.expo.dev/versions/v57.0.0/sdk/securestore/) `~57.0.4`, which stores values through iOS Keychain and Android Keystore-backed storage.
+The [2026-09-27 project cleanup audit](../../docs/audits/project-cleanup-2026-09-27.md) records the current source-level, package-boundary and dependency evidence. It does not claim an iOS/Android binary, simulator/emulator run, physical-device run, or platform SecureStore verification. The dated native reports under [`docs/native`](../../docs/native/native-proof.md) retain their original runtime limitations.
+
+The proof pins Expo SDK `~57.0.0`, React Native `0.86.0`, and React `19.2.3` in its [package manifest](package.json). Secure token pairs use [Expo SecureStore](https://docs.expo.dev/versions/v57.0.0/sdk/securestore/) `~57.0.4`, which stores values through iOS Keychain and Android Keystore-backed storage.
 
 ## Run
 
@@ -21,6 +23,8 @@ npm run typecheck
 ```
 
 From the repository root, `npm run native:proof:test` runs the shared native-session and package-boundary tests, `npm run native:proof:typecheck` checks the app, and `npm run native:proof:compile` exports iOS and Android native bundles through Expo/Metro. These checks are separate from the production Web/API build. `npm run native:api:test` runs the focused disposable-PostgreSQL API acceptance test.
+
+The distributable source boundary is checked separately from the Expo proof. From the repository root, `npm run native:packages:pack` creates development tarballs with commit/tree/OpenAPI provenance, and `npm run native:packages:test` installs those tarballs in a fresh offline consumer and imports/typechecks every public export. These commands validate package installation and source compatibility; they do not produce or launch a native binary.
 
 Use the Expo CLI's `i` or `a` key to launch an installed iOS Simulator or Android Emulator, or run `npm run ios` / `npm run android` with the API origin set in the environment. The app must run in the native simulator; Expo Web is not evidence for this proof.
 

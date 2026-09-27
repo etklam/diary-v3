@@ -1,5 +1,7 @@
 # FIRE calculation precision and boundaries
 
+Implementation status reviewed 2026-09-27: ticket 48 is accepted, including the FIRE UI and copy flow. See [core acceptance](../parity/final-release-report.md), [unit fixtures](../../tests/unit/fire.test.ts), and [browser coverage](../../tests/e2e/fire.spec.ts). The original pending statement below records the decision-time checkpoint; this update does not claim a new test run.
+
 Status: accepted
 
 The user authorized correcting legacy bugs while preserving feature intent. The frozen `lib/financialFreedom.ts` remains the formula reference: nominal monthly compounding with contributions at month end, no intermediate rounding, and a withdrawal target derived from annual expenses and withdrawal rate. Money displays retain whole-unit rounding and years retain one decimal place.
