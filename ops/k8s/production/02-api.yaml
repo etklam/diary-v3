@@ -95,6 +95,13 @@ spec:
                 secretKeyRef:
                   name: diary-v3-app
                   key: SEC_USER_AGENT
+            - name: RATE_LIMIT_BACKEND
+              value: "auto"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diary-v3-app
+                  key: REDIS_URL
           ports:
             - name: http
               containerPort: 3101
