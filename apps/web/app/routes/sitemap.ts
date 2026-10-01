@@ -1,5 +1,6 @@
 import { postPublicListResponseSchema } from '@diary/contracts/post'
 import type { LoaderFunctionArgs } from 'react-router'
+import { canonicalOrigin } from '../site-origin'
 
 function apiUrl(request: Request, path: string) {
   const origin = typeof window === 'undefined' && typeof process !== 'undefined' && process.env.API_ORIGIN
@@ -13,7 +14,9 @@ function escapeXml(value: string) {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const origin = new URL(request.url).origin
+  // Every entry must name the canonical host and scheme, not the host that
+  // happened to request the sitemap.
+  const origin = canonicalOrigin(request.url)
   const rows: { slug: string; updatedAt: string; availableLocales: string[]; sourceLocale: string }[] = []
   let page = 1
   let totalPages = 1

@@ -1,15 +1,41 @@
 import { z } from 'zod'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { data, isRouteErrorResponse, Link, useLoaderData, useLocation, useNavigate, useOutletContext, useRevalidator, useRouteError, type ClientLoaderFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, isRouteErrorResponse, Link, useLoaderData, useLocation, useNavigate, useOutletContext, useRevalidator, useRouteError, type ClientLoaderFunctionArgs, type HeadersArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { postPublicDetailSchema, postPublicMetadataSchema, type PostPublicDetail } from '@diary/contracts/post'
 import { articleLocaleSchema } from '@diary/contracts'
 import { Markdown } from '../markdown'
 import { articleCacheInvalidationEvent, getSessionRevision, isLocallySignedOut, safeReturnPath, signInPath, useSessionState } from '../session'
+import { canonicalOrigin } from '../site-origin'
 import { useUi } from '../ui'
 import '../trade-plan.css'
 import type { ShellOutletContext } from '../root'
 
 const ARTICLE_NO_STORE = { 'Cache-Control': 'private, no-store' }
+/**
+ * A published PUBLIC article body carries no per-user field, and the admin
+ * edit action renders from client-fetched viewer state, so shared caches may
+ * hold the document. The API still resolves the translation from the account
+ * locale or the `diary-locale` cookie, so `Vary: Cookie` is required, not
+ * defensive: it gives crawlers and first-time readers — the traffic this
+ * policy exists for — one shared entry while every cookie-bearing reader keeps
+ * its own. Member bodies, lock screens, and failures stay uncacheable.
+ *
+ * Only shared caches may hold it. `max-age=0, must-revalidate` keeps it out of
+ * the private browser cache, because the reader's own session transitions
+ * reload this document to drop member data and admin affordances and a reload
+ * answered from the browser cache would replay the previous session's render.
+ * `stale-while-revalidate` is deliberately absent for the same reason: it
+ * permits exactly that stale reuse. The shared window is short so unpublishing
+ * or archiving takes effect quickly without a purge.
+ */
+const ARTICLE_PUBLIC_CACHE = {
+  'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=60',
+  Vary: 'Cookie',
+}
+
+function articleCacheHeaders(post: { access: string }, locked: boolean) {
+  return post.access === 'PUBLIC' && !locked ? ARTICLE_PUBLIC_CACHE : ARTICLE_NO_STORE
+}
 type PostPublicMetadata = z.infer<typeof postPublicMetadataSchema>
 type ArticleLoaderData = { post: PostPublicDetail | PostPublicMetadata; locked: boolean; origin: string }
 type ArticleView = Pick<ArticleLoaderData, 'post' | 'locked'>
@@ -53,12 +79,12 @@ async function loadMetadata(request: Request, params: LoaderFunctionArgs['params
     const publicResponse = await fetch(detailUrl, { cache: 'no-store', credentials: 'omit' })
     if (publicResponse.ok) {
       const detail = postPublicDetailSchema.parse(await publicResponse.json())
-      return data<ArticleLoaderData>({ post: detail, locked: false, origin: new URL(request.url).origin }, { headers: ARTICLE_NO_STORE })
+      return data<ArticleLoaderData>({ post: detail, locked: false, origin: canonicalOrigin(request.url) }, { headers: articleCacheHeaders(detail, false) })
     }
     if (publicResponse.status === 404) throw unavailable(404)
     if (publicResponse.status !== 401) throw unavailable(502)
   }
-  return data<ArticleLoaderData>({ post, locked: true, origin: new URL(request.url).origin }, { headers: ARTICLE_NO_STORE })
+  return data<ArticleLoaderData>({ post, locked: true, origin: canonicalOrigin(request.url) }, { headers: ARTICLE_NO_STORE })
 }
 
 async function loadArticle({ request, params }: LoaderFunctionArgs) {
@@ -69,7 +95,7 @@ async function loadArticle({ request, params }: LoaderFunctionArgs) {
   const response = await fetch(detailUrl, init)
   if (response.ok) {
     const post = postPublicDetailSchema.parse(await response.json())
-    return data<ArticleLoaderData>({ post, locked: false, origin: new URL(request.url).origin }, { headers: ARTICLE_NO_STORE })
+    return data<ArticleLoaderData>({ post, locked: false, origin: canonicalOrigin(request.url) }, { headers: articleCacheHeaders(post, false) })
   }
   if (response.status !== 401) throw unavailable(response.status === 404 ? 404 : 502)
 
@@ -93,7 +119,16 @@ export async function clientLoader({ request, params, serverLoader }: ClientLoad
   return loaded
 }
 
-export function headers() { return ARTICLE_NO_STORE }
+/**
+ * Carry the loader's access-aware policy onto the document response. A thrown
+ * loader response or a render error has no loader headers and stays private.
+ */
+export function headers({ loaderHeaders }: HeadersArgs) {
+  const cacheControl = loaderHeaders.get('Cache-Control')
+  if (cacheControl === null) return ARTICLE_NO_STORE
+  const vary = loaderHeaders.get('Vary')
+  return vary === null ? { 'Cache-Control': cacheControl } : { 'Cache-Control': cacheControl, Vary: vary }
+}
 export function shouldRevalidate() { return true }
 
 function localeUrl(origin: string, slug: string, locale: string, sourceLocale: string) {

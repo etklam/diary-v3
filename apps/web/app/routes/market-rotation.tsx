@@ -9,6 +9,9 @@ import { localizeAllocationMode, localizePolicyExplanation, localizePolicyWarnin
 import { formatMarketValue, marketClass, marketDirection } from '../market-display';
 import { ToolShell, toolByHref } from '../tool-shell';
 import './market-rotation.css';
+import { publicPageMeta } from '../route-meta';
+
+export const meta = publicPageMeta('/tools/market-rotation');
 
 const copy = {
   en: {

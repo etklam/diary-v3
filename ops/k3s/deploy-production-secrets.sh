@@ -42,7 +42,7 @@ if (kind === 'db') {
     stringData: {
       DATABASE_URL: databaseUrl.toString(),
       JWT_SECRET: required('JWT_SECRET'),
-      WEB_ORIGIN: 'https://v3.trade-basic.com',
+      WEB_ORIGIN: 'https://trade-basic.com',
       SEC_USER_AGENT: required('SEC_USER_AGENT'),
     },
   }))

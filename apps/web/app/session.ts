@@ -2,8 +2,10 @@ import { useSyncExternalStore } from 'react';
 import { createAccountResource } from './account-resource';
 import { createWebSession } from '@diary/api-client';
 import { clearPrivateServiceWorkerCache } from './pwa-client';
-import { safeCaptureReturnPath } from './capture-context';
-import { articleLocaleSchema, serializedIdSchema } from '@diary/contracts';
+import { safeAuthReturnPath } from './return-paths';
+// Return-destination rules live in their own module; re-exported so existing
+// callers keep importing them from the session surface.
+export { safeAuthReturnPath, safeReturnPath } from './return-paths';
 
 type SessionState = { authenticated: boolean | null; revision: number };
 const initial: SessionState = { authenticated: null, revision: 0 };
@@ -43,60 +45,7 @@ export function csrfToken() {
   return typeof document === 'undefined' ? null : document.cookie.split('; ').find(value => value.startsWith('csrf-token='))?.slice(11) ?? null;
 }
 
-function safeArticleReturnPath(candidate: string | null): string | null {
-  const match = candidate?.match(/^\/articles\/([^/?#]+)(?:\?([^#]*))?$/);
-  if (!candidate || !match) return null;
-  try {
-    const url = new URL(candidate, 'https://article-return.invalid');
-    if (url.origin !== 'https://article-return.invalid') return null;
-    const slug = decodeURIComponent(match[1]!);
-    if (!/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return null;
-    if ([...url.searchParams.keys()].some(key => key !== 'lang')) return null;
-    const locales = url.searchParams.getAll('lang');
-    if (locales.length > 1) return null;
-    const locale = locales[0] === undefined ? undefined : articleLocaleSchema.safeParse(locales[0]);
-    if (locale && !locale.success) return null;
-    return `/articles/${encodeURIComponent(slug)}${locale?.success ? `?lang=${locale.data}` : ''}`;
-  } catch {
-    return null;
-  }
-}
-
-export function safeReturnPath(candidate: string | null): string {
-  if (candidate && /^\/(?:diaries\/[1-9]\d*\/review|stocks\/[A-Za-z0-9.]{1,32}\/thesis)\?reviewSession=[a-f0-9-]{36}$/.test(candidate)) return candidate;
-  const capturePath = safeCaptureReturnPath(candidate);
-  if (capturePath) return capturePath;
-  // Partner comparison returns keep the allowlisted selection and limit only.
-  if (candidate && /^\/partners\/compare\?partnerId=[1-9]\d{0,18}$/.test(candidate)) return candidate;
-  if (candidate && /^\/partners\/compare\?partnerId=[1-9]\d{0,18}&limit=(?:20|40|60)$/.test(candidate)) return candidate;
-  if (candidate && /^\/partners\/compare\?limit=(?:20|40|60)&partnerId=[1-9]\d{0,18}$/.test(candidate)) return candidate;
-  if (candidate && /^\/partners\/compare\?limit=(?:20|40|60)$/.test(candidate)) return candidate;
-  if (candidate && /^\/discipline\?import=[A-Za-z0-9%+/=]+$/.test(candidate)) return candidate;
-  if (candidate && /^\/trade-plans(?:\/(?:new|[1-9]\d*))?$/.test(candidate)) return candidate;
-  const adminPostEdit = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/);
-  if (adminPostEdit && serializedIdSchema.safeParse(adminPostEdit[1]).success) return candidate!;
-  const articlePath = safeArticleReturnPath(candidate);
-  if (articlePath) return articlePath;
-  if (candidate && /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/.test(candidate)) return candidate;
-  // Only known private routes are return destinations; no URL normalization can create an external redirect.
-  if (candidate === '/etf/watchlist' || candidate === '/stocks/watchlist' || candidate === '/strategy-performance' || candidate === '/tools/position-sizing' || candidate === '/partners/compare' || candidate === '/partners' || candidate === '/discipline' || candidate === '/alerts' || candidate === '/reviews' || candidate === '/reviews/ai-reports' || candidate === '/timeline' || candidate === '/calendar' || candidate === '/diaries' || candidate === '/stocks' || candidate === '/achievements' || candidate === '/admin/etf' || candidate === '/admin/users' || candidate === '/admin/ai' || candidate === '/admin/article-translations' || candidate === '/admin/research' || candidate === '/admin/research/new' || candidate === '/admin/research/settings' || candidate === '/admin/blog' || candidate === '/admin/blog/new' || candidate === '/settings/api-keys' || candidate === '/settings/security' || candidate === '/settings') return candidate;
-  const researchRun = candidate?.match(/^\/admin\/research\/([^/]+)$/);
-  if (researchRun && researchRun[1]) return candidate!;
-  if (candidate === '/tools' || candidate === '/tools/etf' || candidate === '/tools/financial-freedom' || candidate === '/tools/market-rotation' || candidate === '/tools/relative-value' || candidate === '/tools/seasonality' || candidate === '/tools/sec-filings') return candidate;
-  if (candidate && /^\/tools\/sec-filings\/\d{1,10}\/\d{10}-\d{2}-\d{6}$/.test(candidate)) return candidate;
-  const diaryEditorContinuation = candidate?.match(/^\/diaries\/([1-9]\d*)\/edit\?returnTo=([^#]+)(#review-schedule)?$/);
-  if (diaryEditorContinuation) {
-    try {
-      const diaryId = diaryEditorContinuation[1];
-      const target = decodeURIComponent(diaryEditorContinuation[2]!);
-      if (target === `/diaries/${diaryId}` || target === `/diaries/${diaryId}/review`) return candidate!;
-    } catch {
-      // Keep the safe default below for malformed continuation values.
-    }
-  }
-  return candidate && /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/.test(candidate) ? candidate : '/diaries/new';
-}
-export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeReturnPath(path))}`; }
+export function signInPath(path: string) { return `/login?returnTo=${encodeURIComponent(safeAuthReturnPath(path))}`; }
 
 export function defaultWorkspacePath(page: string | null | undefined) {
   if (page === 'diaries') return '/diaries';

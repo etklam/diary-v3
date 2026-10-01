@@ -184,7 +184,7 @@ jobs:
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/11-mail-worker.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-mail-worker --timeout=300s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/03-web.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-web --timeout=300s"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/04-ingress.yaml' && kubectl apply -f '$REMOTE_RELEASE_DIR/05-market-cron.yaml'"
-          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' wait --for=condition=Ready certificate/trade-basic-com-tls --timeout=300s"
 
           API_DEPLOYMENT_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.containers[?(@.name==\"api\")].image}'")
           API_INIT_IMAGE=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.initContainers[?(@.name==\"migrate\")].image}'")

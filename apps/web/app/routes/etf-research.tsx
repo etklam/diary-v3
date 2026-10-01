@@ -10,6 +10,10 @@ import { formatMarketValue, formatNeutralValue, marketClass } from '../market-di
 import { ToolShell, toolByHref } from '../tool-shell';
 import '../trade-plan.css';
 import '../etf.css';
+import { publicPageMeta } from '../route-meta';
+
+export const meta = publicPageMeta('/tools/etf');
+
 type MetricGuide={definition:string;interpretation:string;limitations:string};
 const guideNotes:Record<'en'|'zh-TW'|'zh-CN',MetricGuide[]>= {
  en:[

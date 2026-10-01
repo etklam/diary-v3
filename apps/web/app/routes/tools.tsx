@@ -2,6 +2,9 @@ import { Link } from 'react-router'
 import { useUi } from '../ui'
 import { Icon } from '../icons'
 import { TOOLS } from '../tool-shell'
+import { publicPageMeta } from '../route-meta'
+
+export const meta = publicPageMeta('/tools')
 
 const copy = {
   en: { title: 'Tools', intro: 'Public calculators and research tools. Use them without an account; sign in only when you want to save private work.', calculator: 'Calculators', research: 'Research', use: 'Use the tool' },

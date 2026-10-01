@@ -19,7 +19,13 @@ function diaryPageFilter(db: Database, userId: bigint, query: DiaryListQuery, no
       sql`${diaries.risk} ilike ${pattern} escape ${'\\'}`,
       sql`${diaries.execution} ilike ${pattern} escape ${'\\'}`,
       sql`array_to_string(${diaries.tags}, ' ') ilike ${pattern} escape ${'\\'}`,
-      sql`exists (select 1 from ${diaryStocks} inner join ${stocks} on ${stocks.id} = ${diaryStocks.stockId} where ${diaryStocks.diaryId} = ${diaries.id} and ${stocks.symbol} ilike ${pattern} escape ${'\\'})`,
+      // Uncorrelated on purpose: the matching symbols depend only on the
+      // pattern, so this resolves once against the small stock registry
+      // instead of re-running a correlated EXISTS for every scanned diary.
+      // Same shape, and the same result set, as the exact `symbol` filter.
+      inArray(diaries.id, db.select({ id: diaryStocks.diaryId }).from(diaryStocks)
+        .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
+        .where(sql`${stocks.symbol} ilike ${pattern} escape ${'\\'}`)),
     )!)
   }
   if (query.symbol) {

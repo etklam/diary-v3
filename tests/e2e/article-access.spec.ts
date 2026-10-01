@@ -78,7 +78,13 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     const memberPath = `/articles/${created.MEMBER!.slug}`
     const memberReaderPath = `${memberPath}?lang=en`
     const firstPublic = await reader.goto(publicPath)
-    expect(firstPublic?.headers()['cache-control']).toContain('no-store')
+    // A public body may be held by a shared cache, keyed on the cookie that
+    // selects its translation, but never by this browser: session transitions
+    // reload the document and must not replay a cached render.
+    expect(firstPublic?.headers()['cache-control']).toContain('s-maxage=60')
+    expect(firstPublic?.headers()['cache-control']).toContain('max-age=0, must-revalidate')
+    expect(firstPublic?.headers()['cache-control']).not.toContain('stale-while-revalidate')
+    expect(firstPublic?.headers()['vary']).toContain('Cookie')
     await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
     await reader.reload()
     await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)

@@ -153,20 +153,50 @@ describe('account-wide session security', () => {
     expect(rotatedResponse.status).toBe(200)
     const rotated = (await rotatedResponse.json()).data
 
+    const previousAccess = browser.cookies.get('access-token')!
+    const previousRefresh = browser.cookies.get('refresh-token')!
     const changed = await changePassword(browser, {
       currentPassword: credentials.password, newPassword: 'new-account-security-password',
     })
     expect(changed.status).toBe(200)
     expect(await changed.json()).toEqual({
       success: true,
-      message: 'Password changed successfully. Please login again.',
+      sessionRetained: true,
+      message: 'Password changed successfully. Other devices were signed out.',
     })
-    expect(browser.cookies.has('access-token')).toBe(false)
-    expect(browser.cookies.has('refresh-token')).toBe(false)
+    // The device that proved the current password keeps a session, but only
+    // through credentials issued after the change.
+    expect(browser.cookies.get('access-token')).not.toBe(previousAccess)
+    expect(browser.cookies.get('refresh-token')).not.toBe(previousRefresh)
+    expect((await browser.request('/api/auth/me')).status).toBe(200)
+    const replaced = new BrowserSession(baseUrl)
+    replaced.cookies.set('access-token', previousAccess)
+    replaced.cookies.set('refresh-token', previousRefresh)
+    expect((await replaced.request('/api/auth/me')).status).toBe(401)
     expect((await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${rotated.accessToken}` } })).status).toBe(401)
     expect((await nativeRefresh(rotated.refreshToken)).status).toBe(401)
     expect((await nativeLogin(credentials)).status).toBe(401)
     expect((await nativeLogin({ ...credentials, password: 'new-account-security-password' })).status).toBe(200)
+  })
+
+  it('does not hand a replacement session to a bearer caller', async () => {
+    const credentials = await account()
+    await register(credentials)
+    const native = (await (await nativeLogin(credentials)).json()).data
+    const changed = await fetch(`${baseUrl}/api/user/password`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${native.accessToken}` },
+      body: JSON.stringify({ currentPassword: credentials.password, newPassword: 'new-account-security-password' }),
+    })
+    expect(changed.status).toBe(200)
+    expect(await changed.json()).toEqual({
+      success: true,
+      sessionRetained: false,
+      message: 'Password changed successfully. Please login again.',
+    })
+    // Any ambient browser cookies are still cleared, and none is replaced.
+    for (const cookie of changed.headers.getSetCookie()) expect(cookie).toMatch(/^[a-z-]+=;/)
+    expect((await nativeRefresh(native.refreshToken)).status).toBe(401)
   })
 
   it('serializes logout-all behind a native rotation so no replacement escapes revocation', async () => {

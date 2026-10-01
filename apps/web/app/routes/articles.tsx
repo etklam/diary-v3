@@ -1,6 +1,7 @@
-import { data, Form, Link, useLoaderData, useOutletContext, useRevalidator, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
+import { data, Form, Link, useLoaderData, useOutletContext, useRevalidator, type HeadersArgs, type LoaderFunctionArgs, type MetaFunction } from 'react-router'
 import { useEffect, useRef } from 'react'
 import { postPublicListResponseSchema, type PostPublicListResponse } from '@diary/contracts/post'
+import { canonicalOrigin } from '../site-origin'
 import { useUi } from '../ui'
 import '../trade-plan.css'
 import type { ShellOutletContext } from '../root'
@@ -13,6 +14,24 @@ function apiUrl(request: Request, path: string) {
 }
 
 const ARTICLE_NO_STORE = { 'Cache-Control': 'private, no-store' }
+/**
+ * The unfiltered index is the crawl entry point named in the sitemap, so it
+ * gets the same shared-cache policy as a public article. The listing resolves
+ * excerpts and translations from the session and the `diary-locale` cookie,
+ * so `Vary: Cookie` is required. Searches stay uncacheable: arbitrary queries
+ * would fill a shared cache with single-use entries. Only shared caches may
+ * hold the document: `max-age=0, must-revalidate` and no
+ * `stale-while-revalidate` keep a session transition's reload from replaying
+ * the previous session's render.
+ */
+const ARTICLE_INDEX_CACHE = {
+  'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=60',
+  Vary: 'Cookie',
+}
+
+function indexCacheHeaders(url: URL, failed: boolean) {
+  return failed || url.searchParams.has('search') ? ARTICLE_NO_STORE : ARTICLE_INDEX_CACHE
+}
 
 function articleRequestInit(request: Request): RequestInit {
   const headers = new Headers()
@@ -27,22 +46,31 @@ function articleRequestInit(request: Request): RequestInit {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url)
+  const origin = canonicalOrigin(request.url)
+  const empty = { data: [], pagination: { page: 1, limit: 9, total: 0, totalPages: 0 }, origin, search: url.search, searchFailed: true }
   try {
     const response = await fetch(apiUrl(request, `/api/blog${url.search}`), articleRequestInit(request))
-    if (!response.ok) return data({ data: [], pagination: { page: 1, limit: 9, total: 0, totalPages: 0 }, origin: url.origin, search: url.search, searchFailed: true }, { headers: ARTICLE_NO_STORE })
+    if (!response.ok) return data(empty, { headers: indexCacheHeaders(url, true) })
     const parsed = postPublicListResponseSchema.parse(await response.json())
-    return data({ ...parsed, origin: url.origin, search: url.search, searchFailed: false }, { headers: ARTICLE_NO_STORE })
+    return data({ ...parsed, origin, search: url.search, searchFailed: false }, { headers: indexCacheHeaders(url, false) })
   } catch {
-    return data({ data: [], pagination: { page: 1, limit: 9, total: 0, totalPages: 0 }, origin: url.origin, search: url.search, searchFailed: true }, { headers: ARTICLE_NO_STORE })
+    return data(empty, { headers: indexCacheHeaders(url, true) })
   }
 }
 
-export function headers() { return ARTICLE_NO_STORE }
+/** Carry the loader's cache policy onto the document; errors stay private. */
+export function headers({ loaderHeaders }: HeadersArgs) {
+  const cacheControl = loaderHeaders.get('Cache-Control')
+  if (cacheControl === null) return ARTICLE_NO_STORE
+  const vary = loaderHeaders.get('Vary')
+  return vary === null ? { 'Cache-Control': cacheControl } : { 'Cache-Control': cacheControl, Vary: vary }
+}
 export function shouldRevalidate() { return true }
 
-export const meta: MetaFunction<typeof loader> = () => [
+export const meta: MetaFunction<typeof loader> = ({ loaderData: loaded }) => [
   { title: 'Articles — Trade basic' },
   { name: 'description', content: 'Published investment research and decision notes.' },
+  ...(loaded?.origin ? [{ tagName: 'link' as const, rel: 'canonical', href: `${loaded.origin}/articles` }] : []),
 ]
 
 const copy = {

@@ -2780,6 +2780,8 @@ export interface components {
                 expectedProfit: string;
                 expectedAvgHolding: string;
                 timezone: string;
+                /** @enum {string} */
+                defaultWorkspacePage: "diaries" | "timeline" | "calendar";
             };
         };
         RegisterResponse: {
@@ -3130,6 +3132,8 @@ export interface components {
                     expectedProfit: string;
                     expectedAvgHolding: string;
                     timezone: string;
+                    /** @enum {string} */
+                    defaultWorkspacePage: "diaries" | "timeline" | "calendar";
                 };
             };
         };
@@ -3144,8 +3148,9 @@ export interface components {
         ChangePasswordResponse: {
             /** @enum {boolean} */
             success: true;
+            sessionRetained: boolean;
             /** @enum {string} */
-            message: "Password changed successfully. Please login again.";
+            message: "Password changed successfully. Other devices were signed out." | "Password changed successfully. Please login again.";
         };
         UpdateUserSettings: {
             name?: string | null;

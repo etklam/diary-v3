@@ -103,7 +103,7 @@ it('provisions special-character secrets without shell evaluation and retains ex
     expect(stateAfterCreate.secrets['diary-v3-app'].SEC_USER_AGENT).toBe(first.sec)
     const databaseUrl = new URL(stateAfterCreate.secrets['diary-v3-app'].DATABASE_URL)
     expect(decodeURIComponent(databaseUrl.password)).toBe(first.db)
-    expect(stateAfterCreate.secrets['diary-v3-app'].WEB_ORIGIN).toBe('https://v3.trade-basic.com')
+    expect(stateAfterCreate.secrets['diary-v3-app'].WEB_ORIGIN).toBe('https://trade-basic.com')
     expect(created.stdout).not.toContain(first.db)
     expect(created.stdout).not.toContain(first.jwt)
     expect(created.stdout).not.toContain(first.sec)

@@ -82,7 +82,15 @@ describe('production delivery safety', () => {
   });
 
   it('checks the public article index after deploy and rollback', () => {
-    expect(workflow.match(/https:\/\/v3\.trade-basic\.com\/articles/g)).toHaveLength(2);
+    // Two apex probes per path, plus the redirect target asserted once.
+    expect(workflow.match(/--max-time 20 https:\/\/trade-basic\.com\/articles/g)).toHaveLength(2);
+    expect(workflow.match(/--max-time 20 https:\/\/trade-basic\.com\/\)/g)).toHaveLength(2);
+    expect(workflow).not.toContain('v3.trade-basic.com');
+  });
+
+  it('requires the www alias to redirect instead of serving a second origin', () => {
+    expect(workflow).toContain("--max-time 20 https://www.trade-basic.com/articles)\" = 301");
+    expect(workflow).toContain("'%{redirect_url}' --max-time 20 https://www.trade-basic.com/articles)\" = \"https://trade-basic.com/articles\"");
   });
 
   it('validates every required source manifest', () => {

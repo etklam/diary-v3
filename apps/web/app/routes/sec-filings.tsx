@@ -6,6 +6,9 @@ import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { MarketResearchCapture } from '../market-research-capture'
 import { ToolShell, toolByHref } from '../tool-shell'
 import './sec-filings.css'
+import { publicPageMeta } from '../route-meta'
+
+export const meta = publicPageMeta('/tools/sec-filings')
 
 const copy = {
     en: {

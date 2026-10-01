@@ -292,9 +292,13 @@ jobs:
           SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
-          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE wait --for=condition=Ready certificate/v3-trade-basic-com-tls --timeout=300s"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/)" = 200
-          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/articles)" = 200
+          ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE wait --for=condition=Ready certificate/trade-basic-com-tls --timeout=300s"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://trade-basic.com/)" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://trade-basic.com/articles)" = 200
+          # The www alias must stay a redirect, never a second origin that
+          # issues its own cookies and self-canonicalizes.
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://www.trade-basic.com/articles)" = 301
+          test "$(curl -sS -o /dev/null -w '%{redirect_url}' --max-time 20 https://www.trade-basic.com/articles)" = "https://trade-basic.com/articles"
 
       - name: Rollback affected workloads and Rollback smoke test
         if: failure() && env.DEPLOYMENT_MUTATED == 'true'
@@ -316,5 +320,5 @@ jobs:
           if [ "${API_MUTATED:-false}" = true ]; then ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image deployment/diary-v3-api api='$API_IMAGE_BEFORE' && kubectl -n $DEPLOY_NAMESPACE scale deployment/diary-v3-api --replicas='$API_REPLICAS_BEFORE' && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"; fi
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run rollback-smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run rollback-smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/)" = 200
-          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://v3.trade-basic.com/articles)" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://trade-basic.com/)" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://trade-basic.com/articles)" = 200

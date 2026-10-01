@@ -1,4 +1,4 @@
-import {parseDailyMarketPrices} from './daily-prices.js';
+import {assertUsSessionSymbol,parseDailyMarketPrices} from './daily-prices.js';
 import { normalizeMarketSymbol, marketSymbolSchema, marketRangeSchema, marketQuoteSchema, marketHistoricalSchema, type MarketQuote, type MarketHistorical, type MarketRange } from '../../../../packages/contracts/src/market';
 import { createYahooQueue, MarketDataError } from './queue';
 import { getMarketDataCacheTtlSeconds } from './ttl';
@@ -112,6 +112,7 @@ export function createMarketData(options:{upstream:YahooUpstream;now?:()=>Date;t
   }
   function dailyPrices(input:string,rangeInput:MarketRange='1y',consumerSignal?:AbortSignal) {
     const symbol=marketSymbolSchema.parse(input),range=marketRangeSchema.parse(rangeInput);
+    assertUsSessionSymbol(symbol);
     return read(`daily-prices:${symbol}:${range}`,'historical',async signal=>{
       const at=now(),raw=object(await options.upstream.chart(symbol,{period1:rangeStart(range,at),period2:at,interval:'1d',return:'array'},signal));
       if(!Array.isArray(raw.quotes))throw new MarketDataError('Yahoo daily response malformed');

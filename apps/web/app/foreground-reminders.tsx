@@ -6,6 +6,17 @@ import { alertListResponseSchema } from '@diary/contracts/alerts';
 import { api, useUi } from './ui';
 import { useSessionState } from './session';
 
+/**
+ * REST is the safety net behind the socket, not the primary channel: it
+ * re-establishes the displayed state and refreshes the access cookie well
+ * inside its hour-long life. While the socket is live a trigger arrives as an
+ * event, so the poll runs slowly; a dropped socket falls back to the short
+ * interval until it reconnects. Either way a known upcoming trigger still
+ * pulls the next poll forward.
+ */
+export const LIVE_POLL_MS = 300_000
+export const FALLBACK_POLL_MS = 60_000
+
 /** Socket events are hints; only REST establishes the displayed reminder state. */
 export function ForegroundReminders() {
   const session = useSessionState(), { locale } = useUi();
@@ -21,7 +32,7 @@ export function ForegroundReminders() {
       if (!active || document.visibilityState === 'hidden') return;
       request?.abort(); const current = new AbortController(); request = current;
       if (timer) clearTimeout(timer);
-      let delay = 60_000;
+      let nextTrigger = Number.POSITIVE_INFINITY;
       try {
         const [diaryResult, priceResult] = await Promise.allSettled([
           api.GET('/api/alerts', { signal: current.signal }),
@@ -37,12 +48,17 @@ export function ForegroundReminders() {
           const now = Date.now(), unique = [...new Map(parsed.data.map(row => [row.id, row])).values()];
           setCount(unique.filter(row => Date.parse(row.triggerAt) <= now).length);
           const next = unique.find(row => Date.parse(row.triggerAt) > now);
-          if (next) delay = Math.max(250, Math.min(delay, Date.parse(next.triggerAt) - now));
+          if (next) nextTrigger = Date.parse(next.triggerAt) - now;
           // A server disconnect requires explicit reconnection after REST refreshes cookies.
           if (!socket.connected && !socket.active) socket.connect();
         }
       } catch { /* REST retry remains scheduled; a transport hint is not delivery proof. */ }
-      finally { if (active && !current.signal.aborted) timer = setTimeout(() => void restore(), delay); }
+      finally {
+        if (active && !current.signal.aborted) {
+          const base = socket.connected ? LIVE_POLL_MS : FALLBACK_POLL_MS;
+          timer = setTimeout(() => void restore(), Math.max(250, Math.min(base, nextTrigger)));
+        }
+      }
     }
     const refresh = () => { void restore(); };
     const disconnected = (reason: string) => { if (reason === 'io server disconnect') refresh(); };

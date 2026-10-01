@@ -8,11 +8,41 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
+  # The sibling system Ingress already pins this; without it the router depends
+  # on an ambient default IngressClass.
+  ingressClassName: traefik
+  # Both hosts resolve here so the certificate covers them and `www.` reaches a
+  # backend at all. The Web server answers `www.` with a 301 to the apex, so
+  # the apex is the only host that ever serves the app or sets a cookie.
   tls:
-    - hosts: [v3.trade-basic.com]
-      secretName: v3-trade-basic-com-tls
+    - hosts: [trade-basic.com, www.trade-basic.com]
+      secretName: trade-basic-com-tls
   rules:
-    - host: v3.trade-basic.com
+    - host: trade-basic.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: diary-v3-api
+                port:
+                  name: http
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: diary-v3-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: diary-v3-web
+                port:
+                  name: http
+    - host: www.trade-basic.com
       http:
         paths:
           - path: /api
@@ -49,10 +79,27 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-    - hosts: [v3.trade-basic.com]
-      secretName: v3-trade-basic-com-tls
+    - hosts: [trade-basic.com, www.trade-basic.com]
+      secretName: trade-basic-com-tls
   rules:
-    - host: v3.trade-basic.com
+    - host: trade-basic.com
+      http:
+        paths:
+          - path: /healthz
+            pathType: Exact
+            backend:
+              service:
+                name: diary-v3-api
+                port:
+                  name: http
+          - path: /readyz
+            pathType: Exact
+            backend:
+              service:
+                name: diary-v3-api
+                port:
+                  name: http
+    - host: www.trade-basic.com
       http:
         paths:
           - path: /healthz

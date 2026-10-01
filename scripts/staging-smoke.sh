@@ -13,7 +13,7 @@ const origin = new URL(value)
 if (origin.protocol !== 'https:' || origin.pathname !== '/' || origin.search || origin.hash || origin.username || origin.password) {
   throw new Error('A bare HTTPS staging origin is required')
 }
-if (origin.hostname === 'v3.trade-basic.com') throw new Error('The production hostname is forbidden')
+if (origin.hostname === 'trade-basic.com' || origin.hostname === 'www.trade-basic.com' || origin.hostname === 'v3.trade-basic.com') throw new Error('The production hostname is forbidden')
 console.log(origin.hostname)
 NODE
 )

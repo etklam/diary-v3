@@ -62,11 +62,18 @@ export function renderReleaseManifests(options: {
   const prodHost = productionHostname();
   const namespace = options.target === 'production' ? 'diary-v3' : 'diary-v3-staging';
   const hostname = options.target === 'production' ? prodHost : options.hostname;
+  // Production certificates cover the apex and its `www.` alias; staging has
+  // exactly one hostname.
+  const hosts = options.target === 'production'
+    ? Array.from(new Set([prodHost, `www.${prodHost}`]))
+    : [hostname!];
   validateImage(options.apiImage, apiRepository);
   validateImage(options.webImage, webRepository);
   if (!hostname) throw new Error('A staging hostname is required');
   validateHostname(hostname);
-  if (options.target === 'staging' && hostname === prodHost) throw new Error('Staging must not use the production hostname');
+  if (options.target === 'staging' && (hostname === prodHost || hostname === `www.${prodHost}` || hostname === prodHost.replace(/^www\./, ''))) {
+    throw new Error('Staging must not use the production hostname');
+  }
   if (options.target === 'production' && options.hostname && options.hostname !== prodHost) throw new Error('Production hostname is fixed by its source manifest');
 
   let apiImageCount = 0;
@@ -102,14 +109,25 @@ export function renderReleaseManifests(options: {
       if (manifest.kind === 'Ingress') {
         const spec = record(manifest.spec);
         const rules = Array.isArray(spec?.rules) ? spec.rules : [];
-        for (const rule of rules) {
+        const isWwwRule = (rule: unknown) => {
+          const host = record(rule)?.host;
+          return typeof host === 'string' && host.startsWith('www.');
+        };
+        // Production keeps the `www.` alias so the Web server can redirect it.
+        // Staging has one hostname: rewriting the alias too would emit two
+        // rules for the same host, so the alias is dropped instead.
+        const retained = options.target === 'production' ? rules : rules.filter(rule => !isWwwRule(rule));
+        for (const rule of retained) {
           const ingressRule = record(rule);
-          if (ingressRule) { ingressRule.host = hostname; ingressRuleCount += 1; }
+          if (!ingressRule) continue;
+          ingressRule.host = isWwwRule(ingressRule) ? `www.${prodHost}` : hostname!;
+          ingressRuleCount += 1;
         }
+        if (spec) spec.rules = retained;
         const tls = Array.isArray(spec?.tls) ? spec.tls : [];
         for (const entry of tls) {
           const tlsEntry = record(entry);
-          if (tlsEntry) tlsEntry.hosts = [hostname];
+          if (tlsEntry) tlsEntry.hosts = [...hosts];
         }
       }
       if (options.target === 'staging' && manifest.kind === 'CronJob') {

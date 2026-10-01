@@ -52,6 +52,7 @@ export function authUser(row: typeof users.$inferSelect) {
     expectedProfit: row.expectedProfit,
     expectedAvgHolding: row.expectedAvgHolding,
     timezone: row.timezone,
+    defaultWorkspacePage: row.defaultWorkspacePage,
   }
 }
 
@@ -176,6 +177,15 @@ export function createAuthSessionService({
     return user
   }
 
+  /**
+   * A browser refresh token is deliberately stable rather than single-use.
+   * Ambient cookie refresh can fire from any request and from several tabs at
+   * once, so rotating it would either sign people out mid-session or need a
+   * replay grace window; ticket-04 chose stability, and
+   * `tests/integration/web-session.test.ts` holds that contract. Containment
+   * comes from the token version, explicit logout, and logout-all instead.
+   * Native sessions are one device per family and do rotate.
+   */
   const refreshWebSession = async (token: string) => {
     const payload = await verifyToken(token, 'refresh', true)
     const [stored] = await db.select({
@@ -452,12 +462,24 @@ export function createAuthSessionService({
     return updated.tokenVersion
   })
 
+  /**
+   * Changing a password revokes every existing session: the token version is
+   * raised and all refresh tokens are deleted.
+   *
+   * `reissueWebSession` then mints one replacement for the device that made
+   * the change. Signing somebody out of the browser they are actively using
+   * protects nothing — the current password was just proven — while every
+   * other device still loses access.
+   */
   const changePassword = async (
     userId: bigint,
     currentPassword: string,
     newPassword: string,
-    afterPasswordChanged?: (tx: DatabaseTx, user: { email: string; locale: string }) => Promise<void>,
-  ) => {
+    options: {
+      reissueWebSession?: boolean
+      afterPasswordChanged?: (tx: DatabaseTx, user: { email: string; locale: string }) => Promise<void>
+    } = {},
+  ): Promise<{ accessToken: string; refreshToken: string } | undefined> => {
     const [candidate] = await db.select({ password: users.password }).from(users)
       .where(eq(users.id, userId)).limit(1)
     if (!candidate) return fail(404, 'USER_NOT_FOUND', 'User not found')
@@ -468,19 +490,38 @@ export function createAuthSessionService({
 
     return db.transaction(async (tx) => {
       await tx.execute(userSessionLock(userId))
-      const [current] = await tx.select({ password: users.password, email: users.email, locale: users.locale }).from(users)
+      const [current] = await tx.select({ id: users.id, password: users.password, email: users.email, role: users.role, locale: users.locale }).from(users)
         .where(eq(users.id, userId)).limit(1)
       if (!current) return fail(404, 'USER_NOT_FOUND', 'User not found')
       if (current.password !== candidate.password && !await bcrypt.compare(currentPassword, current.password)) {
         return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
       }
-      await tx.update(users).set({
+      const [updated] = await tx.update(users).set({
         password: hashedPassword,
         tokenVersion: sql`${users.tokenVersion} + 1`,
         updatedAt: now(),
-      }).where(eq(users.id, userId))
+      }).where(eq(users.id, userId)).returning({ tokenVersion: users.tokenVersion })
+      if (!updated) return fail(404, 'USER_NOT_FOUND', 'User not found')
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId))
-      await afterPasswordChanged?.(tx, { email: current.email, locale: current.locale })
+      await options.afterPasswordChanged?.(tx, { email: current.email, locale: current.locale })
+      if (!options.reissueWebSession) return undefined
+
+      // Issued against the raised token version, so credentials minted before
+      // the change stay invalid.
+      const sessionUser: SessionUser = {
+        id: current.id.toString(), email: current.email, role: current.role, tokenVersion: updated.tokenVersion,
+      }
+      const [accessToken, refreshToken] = await Promise.all([
+        signToken(sessionUser, 'access'), signToken(sessionUser, 'refresh'),
+      ])
+      await tx.insert(refreshTokens).values({
+        token: hashRefreshToken(refreshToken),
+        userId,
+        clientType: 'WEB',
+        familyId: randomUUID(),
+        expiresAt: new Date(now().getTime() + REFRESH_SECONDS * 1000),
+      })
+      return { accessToken, refreshToken }
     })
   }
 

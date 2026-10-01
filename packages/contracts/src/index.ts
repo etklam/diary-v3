@@ -3,6 +3,7 @@ import { ledgerTransactionInputSchema, ledgerTransactionResponseSchema, ledgerTr
 import { calendarDateSchema, serializedIdSchema, utcInstantSchema } from './common.js'
 import { alertDraftSchema, alertResponseSchema } from './alerts.js'
 import { linkedTradePlanResponseSchema } from './trade-plan.js'
+import { defaultWorkspacePageSchema } from './settings.js'
 
 export {
   achievementContentSchema,
@@ -378,6 +379,9 @@ export const authUserSchema = z.object({
   expectedProfit: z.string(),
   expectedAvgHolding: z.string(),
   timezone: z.string().min(1),
+  // Included so a client can route straight to the chosen workspace after
+  // sign-in instead of waiting on a second settings request.
+  defaultWorkspacePage: defaultWorkspacePageSchema,
 }).strict()
 
 // bcrypt only consumes the first 72 UTF-8 bytes; rejecting longer input avoids
@@ -491,9 +495,14 @@ export const changePasswordRequestSchema = z.object({
   newPassword: bcryptPasswordSchema.min(8),
 }).strict()
 
+export const CHANGE_PASSWORD_SESSION_RETAINED = 'Password changed successfully. Other devices were signed out.'
+export const CHANGE_PASSWORD_SIGN_IN_AGAIN = 'Password changed successfully. Please login again.'
+
 export const changePasswordResponseSchema = z.object({
   success: z.literal(true),
-  message: z.literal('Password changed successfully. Please login again.'),
+  /** True when this device kept a valid session; every other device did not. */
+  sessionRetained: z.boolean(),
+  message: z.enum([CHANGE_PASSWORD_SESSION_RETAINED, CHANGE_PASSWORD_SIGN_IN_AGAIN]),
 }).strict()
 
 const diaryTagsSchema = z.array(z.string().trim().min(1).max(100)).max(50)

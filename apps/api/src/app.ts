@@ -27,6 +27,8 @@ import {
   authUserResponseSchema,
   changePasswordRequestSchema,
   changePasswordResponseSchema,
+  CHANGE_PASSWORD_SESSION_RETAINED,
+  CHANGE_PASSWORD_SIGN_IN_AGAIN,
   createDiaryRequestSchema,
   deleteDiaryResponseSchema,
   diaryByDateQuerySchema,
@@ -340,6 +342,10 @@ export function createApp({
     setCookie(c, ACCESS_COOKIE, token, { ...authCookieOptions, maxAge: ACCESS_SECONDS })
   }
 
+  const setRefreshCookie = (c: Context<AppEnv>, token: string) => {
+    setCookie(c, REFRESH_COOKIE, token, { ...authCookieOptions, maxAge: REFRESH_SECONDS })
+  }
+
   const clearAuthCookies = (c: Context<AppEnv>) => {
     deleteCookie(c, ACCESS_COOKIE, { path: '/' })
     deleteCookie(c, REFRESH_COOKIE, { path: '/' })
@@ -646,7 +652,7 @@ export function createApp({
     })
     if (result.clientType !== 'WEB') throw new Error('Unexpected login session type')
     setAccessCookie(c, result.accessToken)
-    setCookie(c, REFRESH_COOKIE, result.refreshToken, { ...authCookieOptions, maxAge: REFRESH_SECONDS })
+    setRefreshCookie(c, result.refreshToken)
     return c.json(authUserResponseSchema.parse({ ok: true, data: authUser(result.user) }), 200)
   })
 
@@ -748,18 +754,32 @@ export function createApp({
     await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordIp, 'ip', clientIp(c, config.trustProxy))
     await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordUser, 'user', authenticated.id)
     const input = await parseJson(c, changePasswordRequestSchema)
-    await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword, async (tx, user) => {
-      await accountEmailLifecycle.invalidateForPasswordChange(tx, {
-        id: BigInt(authenticated.id),
-        email: user.email,
-        locale: user.locale,
-      }, now())
+    // Only an ambient browser session can be handed a replacement here; a
+    // bearer or API-key caller holds credentials this response cannot update.
+    const reissueWebSession = c.get('authTransport') === 'cookie'
+    const replacement = await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword, {
+      reissueWebSession,
+      afterPasswordChanged: async (tx, user) => {
+        await accountEmailLifecycle.invalidateForPasswordChange(tx, {
+          id: BigInt(authenticated.id),
+          email: user.email,
+          locale: user.locale,
+        }, now())
+      },
     })
+    // Sockets still hold the previous token version, including this device's.
+    // The browser reconnects with the credentials set below.
     onAccountRevoked?.(authenticated.id)
-    clearAuthCookies(c)
+    if (replacement) {
+      setAccessCookie(c, replacement.accessToken)
+      setRefreshCookie(c, replacement.refreshToken)
+    } else {
+      clearAuthCookies(c)
+    }
     return c.json(changePasswordResponseSchema.parse({
       success: true,
-      message: 'Password changed successfully. Please login again.',
+      sessionRetained: replacement !== undefined,
+      message: replacement ? CHANGE_PASSWORD_SESSION_RETAINED : CHANGE_PASSWORD_SIGN_IN_AGAIN,
     }), 200)
   })
 

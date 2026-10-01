@@ -96,15 +96,25 @@ function Shell() {
   }, [loginPath, session.authenticated]);
   useEffect(() => {
     const main = document.getElementById('main');
+    let frame = 0;
+    let applied = '';
     const updateTitle = () => {
+      frame = 0;
       const heading = main?.querySelector('h1')?.textContent;
-      document.title = pageTitle(location.pathname, locale, heading);
+      const next = pageTitle(location.pathname, locale, heading);
+      if (next === applied) return;
+      applied = next;
+      document.title = next;
     };
     updateTitle();
     if (!main) return;
-    const observer = new MutationObserver(updateTitle);
+    // The heading can appear or change anywhere under main, so the observer
+    // stays broad — but one frame-coalesced read replaces a subtree query and
+    // a document write per mutation, which a long table or a live preview
+    // would otherwise produce continuously.
+    const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(updateTitle); });
     observer.observe(main, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); if (frame) cancelAnimationFrame(frame); };
   }, [location.pathname, locale]);
   useEffect(() => {
     if (loginPath && session.authenticated === true && !signedInOnLoginRoute.current) navigate('/', { replace: true });
@@ -120,8 +130,9 @@ function Shell() {
   useEffect(() => {
     if (!adminPath) return;
     if (session.authenticated === false) {
-      const returnTo = `${location.pathname}${location.search}`;
-      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
+      // Same destination rule as every other sign-in link, so the value this
+      // writes is the value the login form accepts.
+      navigate(signInPath(`${location.pathname}${location.search}`), { replace: true });
       return;
     }
     if (session.authenticated === true && viewer?.role === 'USER') navigate('/', { replace: true });
@@ -187,7 +198,62 @@ function Shell() {
 export type ShellOutletContext = { authenticated: boolean | null; viewer: { id: string; role: 'USER' | 'ADMIN' } | null };
 
 export default function App() { return <UiProvider><Shell /></UiProvider>; }
+
+const boundaryCopy = {
+  'zh-TW': {
+    missingTitle: '找不到頁面', missingBody: '這個網址沒有對應的頁面，可能已經移除或輸入有誤。',
+    failedTitle: '無法載入', failedBody: '載入這個頁面時發生問題。重新載入通常可以解決；如果持續發生，請返回首頁再試。',
+    reload: '重新載入', back: '返回上一頁', home: '回到首頁', status: '狀態碼',
+  },
+  'zh-CN': {
+    missingTitle: '找不到页面', missingBody: '这个网址没有对应的页面，可能已经移除或输入有误。',
+    failedTitle: '无法加载', failedBody: '加载这个页面时发生问题。重新加载通常可以解决；如果持续发生，请返回首页再试。',
+    reload: '重新加载', back: '返回上一页', home: '回到首页', status: '状态码',
+  },
+  en: {
+    missingTitle: 'Page not found', missingBody: 'No page matches this address. It may have been removed, or the address may be wrong.',
+    failedTitle: 'Unable to load', failedBody: 'Something went wrong loading this page. Reloading usually resolves it; if it keeps happening, return home and try again.',
+    reload: 'Reload', back: 'Go back', home: 'Home', status: 'Status',
+  },
+} as const;
+
+type BoundaryLocale = keyof typeof boundaryCopy;
+
+/**
+ * The boundary replaces the root component, so it renders outside UiProvider
+ * and cannot use `useUi`. The stored preference is read after mount instead:
+ * server-rendered errors start in the document language and settle into the
+ * reader's own language on hydration, without a mismatch.
+ */
+function useBoundaryLocale(): BoundaryLocale {
+  const [locale, setLocale] = useState<BoundaryLocale>('zh-TW');
+  useEffect(() => {
+    const candidates = [
+      (() => { try { return localStorage.getItem('diary-locale'); } catch { return null; } })(),
+      document.documentElement.lang,
+    ];
+    const resolved = candidates.find((value): value is BoundaryLocale => value === 'zh-TW' || value === 'zh-CN' || value === 'en');
+    if (resolved) setLocale(resolved);
+  }, []);
+  return locale;
+}
+
 export function ErrorBoundary() {
   const error = useRouteError();
-  return <div className="boundary"><h1>{isRouteErrorResponse(error) && error.status === 404 ? '找不到頁面 / Page not found' : '無法載入 / Unable to load'}</h1><p>請重新載入，或返回首頁。 / Reload or return home.</p><Link to="/">首頁 / Home</Link></div>;
+  const locale = useBoundaryLocale();
+  const c = boundaryCopy[locale];
+  const routeError = isRouteErrorResponse(error) ? error : null;
+  const missing = routeError?.status === 404;
+  const title = missing ? c.missingTitle : c.failedTitle;
+  useEffect(() => { document.title = `${title} — Trade basic`; }, [title]);
+  return <div className="boundary">
+    <h1>{title}</h1>
+    <p role="alert">{missing ? c.missingBody : c.failedBody}</p>
+    {routeError && !missing && <p className="muted">{c.status}: {routeError.status}</p>}
+    <div className="actions">
+      {!missing && <button type="button" onClick={() => { window.location.reload(); }}>{c.reload}</button>}
+      <button type="button" className="secondary" onClick={() => { window.history.back(); }}>{c.back}</button>
+      <Link className="button secondary" to="/">{c.home}</Link>
+    </div>
+  </div>;
 }

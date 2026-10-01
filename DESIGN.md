@@ -239,7 +239,7 @@ Signed values come from `formatMarketValue` (always `+`/`−`, exact string deci
 
 ## Content and i18n
 
-Main interface copy uses full translation keys in zh-TW/zh-CN/en. Known partial coverage: the route boundary falls back to bilingual Chinese/English and the table Symbol header is fixed text. Trade times state the device IANA timezone; ambiguous DST times require an explicit UTC instant choice and nonexistent local times are rejected. Amounts stay as string inputs and are stored to two decimals.
+Main interface copy uses full translation keys in zh-TW/zh-CN/en. The route boundary renders outside the UI provider, so it resolves the stored preference after mount and starts from the document language; its 404 and failure states carry separate copy and separate actions (reload, back, home). Known partial coverage: the table Symbol header is fixed text, and search/share metadata (`route-meta.ts`, article `meta`) stays English. Trade times state the device IANA timezone; ambiguous DST times require an explicit UTC instant choice and nonexistent local times are rejected. Amounts stay as string inputs and are stored to two decimals.
 
 ## Page recipes
 

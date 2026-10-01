@@ -70,9 +70,23 @@ function divide(left: Fraction, right: Fraction): Fraction {
   return fraction(left.numerator * right.denominator, left.denominator * right.numerator)
 }
 
+/**
+ * Exact fixed-point parse of a decimal string.
+ *
+ * The write path already constrains ledger input to `numeric(15,4)`, but this
+ * is an exported calculation reachable from replayed persistence and from
+ * callers that are not that schema. Two inputs would otherwise be converted
+ * wrongly and silently: more fraction digits than `scale` are padded rather
+ * than truncated, which multiplies the value, and a leading sign would apply
+ * to the integer part alone, so `-1.5` would read as `-0.5`.
+ */
 function scaled(value: string, scale: number): bigint {
-  const [whole, decimalPart = ''] = value.split('.')
-  return BigInt(whole!) * (10n ** BigInt(scale)) + BigInt(decimalPart.padEnd(scale, '0'))
+  const match = /^(-?)(\d+)(?:\.(\d*))?$/.exec(value)
+  if (!match) throw new Error(`Invalid decimal string: ${value}`)
+  const fraction = match[3] ?? ''
+  if (fraction.length > scale) throw new Error(`Decimal has more than ${scale} fraction digits: ${value}`)
+  const magnitude = BigInt(match[2]!) * (10n ** BigInt(scale)) + BigInt(fraction.padEnd(scale, '0') || '0')
+  return match[1] ? -magnitude : magnitude
 }
 
 function roundedInteger(value: Fraction): bigint {

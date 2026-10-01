@@ -32,7 +32,7 @@ describe('release manifest rendering', () => {
     expect(allImages).toContain(webImage);
     expect(webContainer?.env).toContainEqual({ name: 'API_ORIGIN', value: 'http://diary-v3-api:3101' });
     expect(resources.find(resource => resource.kind === 'CronJob')?.spec).not.toMatchObject({ suspend: true });
-    expect((resources.find(resource => resource.kind === 'Ingress')?.spec as { rules: Array<{ host: string }> }).rules[0]?.host).toBe('v3.trade-basic.com');
+    expect((resources.find(resource => resource.kind === 'Ingress')?.spec as { rules: Array<{ host: string }> }).rules.map(rule => rule.host)).toEqual(['trade-basic.com', 'www.trade-basic.com']);
   });
 
   it('isolates staging namespace and hostname and pauses external market scheduling', () => {
@@ -52,8 +52,34 @@ describe('release manifest rendering', () => {
     expect(new Set(applicationImages.filter(image => image.startsWith('git.913555.xyz/etklam/diary-v3-web@')))).toEqual(new Set([webImage]));
   });
 
-  it('rejects a staging render that points at the production host', () => {
-    expect(() => renderReleaseManifests({ target: 'staging', apiImage, webImage, hostname: 'v3.trade-basic.com' })).toThrow('Staging must not use the production hostname');
+  it('rejects a staging render that points at the production host or its www alias', () => {
+    for (const hostname of ['trade-basic.com', 'www.trade-basic.com']) {
+      expect(() => renderReleaseManifests({ target: 'staging', apiImage, webImage, hostname })).toThrow('Staging must not use the production hostname');
+    }
+  });
+
+  it('covers the www alias in production certificates and drops it from staging', () => {
+    const production = documents(renderReleaseManifests({ target: 'production', apiImage, webImage }));
+    for (const ingress of production.filter(resource => resource.kind === 'Ingress')) {
+      const spec = ingress.spec as { rules: Array<{ host: string }>; tls: Array<{ hosts: string[] }> };
+      expect(spec.tls.every(entry => entry.hosts)).toBe(true);
+      for (const entry of spec.tls) expect(entry.hosts).toEqual(['trade-basic.com', 'www.trade-basic.com']);
+      expect(spec.rules.map(rule => rule.host)).toContain('www.trade-basic.com');
+    }
+    const staging = documents(renderReleaseManifests({ target: 'staging', apiImage, webImage, hostname: 'staging.example.invalid' }));
+    for (const ingress of staging.filter(resource => resource.kind === 'Ingress')) {
+      const spec = ingress.spec as { rules: Array<{ host: string }> };
+      // One hostname means one rule per path group; a rewritten alias would
+      // duplicate the host.
+      expect(spec.rules.map(rule => rule.host)).toEqual(['staging.example.invalid']);
+    }
+  });
+
+  it('pins the application Ingress to the traefik class', () => {
+    const resources = documents(renderReleaseManifests({ target: 'production', apiImage, webImage }));
+    const ingresses = resources.filter(resource => resource.kind === 'Ingress');
+    expect(ingresses.length).toBeGreaterThan(1);
+    expect(ingresses.every(ingress => (ingress.spec as { ingressClassName?: string }).ingressClassName === 'traefik')).toBe(true);
   });
 });
 

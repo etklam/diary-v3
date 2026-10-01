@@ -127,6 +127,14 @@
               "timezone": {
                 "type": "string",
                 "minLength": 1
+              },
+              "defaultWorkspacePage": {
+                "type": "string",
+                "enum": [
+                  "diaries",
+                  "timeline",
+                  "calendar"
+                ]
               }
             },
             "required": [
@@ -137,7 +145,8 @@
               "expectedMonthlyTrades",
               "expectedProfit",
               "expectedAvgHolding",
-              "timezone"
+              "timezone",
+              "defaultWorkspacePage"
             ],
             "additionalProperties": false
           }
@@ -2037,6 +2046,14 @@
                   "timezone": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "defaultWorkspacePage": {
+                    "type": "string",
+                    "enum": [
+                      "diaries",
+                      "timeline",
+                      "calendar"
+                    ]
                   }
                 },
                 "required": [
@@ -2047,7 +2064,8 @@
                   "expectedMonthlyTrades",
                   "expectedProfit",
                   "expectedAvgHolding",
-                  "timezone"
+                  "timezone",
+                  "defaultWorkspacePage"
                 ],
                 "additionalProperties": false
               }
@@ -2112,15 +2130,20 @@
               true
             ]
           },
+          "sessionRetained": {
+            "type": "boolean"
+          },
           "message": {
             "type": "string",
             "enum": [
+              "Password changed successfully. Other devices were signed out.",
               "Password changed successfully. Please login again."
             ]
           }
         },
         "required": [
           "success",
+          "sessionRetained",
           "message"
         ],
         "additionalProperties": false

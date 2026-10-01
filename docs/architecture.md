@@ -44,7 +44,8 @@ Web SSR fetches through the API using an internal origin; browser requests use t
 - Invalid explicit Bearer credentials fail closed rather than falling back to an ambient cookie. The [auth-session module](../apps/api/src/auth-session.ts) and route policies enforce the shared boundary.
 - API keys grant explicit Agent API scopes. User ownership, Admin access, and Partner sharing remain separate checks; a sharing relationship does not grant general access to private records.
 - Public tools allow guest research and calculation. Private saves require an authenticated owner. Published Member article bodies require a valid user session; Draft/Archived content stays in Admin preview. See the [access matrix](tools-access-matrix.md) and [article release boundary](../ops/k8s/production/README.md#article-access-release-boundary).
-- The PWA caches allowlisted static assets rather than personal API responses or navigations. Protected article HTML and Router data use private/no-store policies, with session-aware invalidation in the browser.
+- Changing a password raises the token version and deletes every refresh token, then re-issues one replacement for the browser that proved the current password; bearer and API-key callers get no replacement and must sign in again. The response reports which happened through `sessionRetained`.
+- The PWA caches allowlisted static assets rather than personal API responses or navigations; a failed navigation is answered with a precached offline page that carries no account data. Protected article HTML and Router data use private/no-store policies, with session-aware invalidation in the browser.
 
 ## Data and consistency
 
@@ -75,6 +76,12 @@ The [request-body wrapper](../apps/api/src/request-body-limit.ts) caps serialize
 SEC downloads and bundles stage files on disk and stream responses under byte limits, cancellation, deadlines, and a two-slot heavy-response gate. The [2026-09-27 audit](audits/project-cleanup-2026-09-27.md) records the synthetic memory improvement and a remaining capacity limit: metadata caches bound entry counts rather than retained bytes. Local RSS measurements are not container-memory guarantees.
 
 [Web SSR](../apps/web/app/entry.server.tsx) sets same-origin framing, MIME-sniffing protection, and a default referrer policy, preserving stricter route policies. These headers are not a comprehensive script-source CSP. Current implementation and regression evidence are linked from the audit rather than represented as a complete security certification.
+
+## Public host and caching
+
+The production [ingress](../ops/k8s/production/04-ingress.yaml) resolves the apex and its `www.` alias so one certificate covers both and the alias reaches a backend. The apex is the only origin that serves the app: Web SSR answers any `www.` document with a 301, because host-only cookies would otherwise split one account into two sessions and each host would self-canonicalize into duplicate index entries. [site-origin.ts](../apps/web/app/site-origin.ts) derives canonical links, locale alternates, the sitemap, and `robots.txt` from the same normalization, which also repairs the scheme: TLS terminates at the ingress, so the request this process observes is always `http`.
+
+Article documents carry an access-aware cache policy. A published PUBLIC article and the unfiltered index are shared-cacheable with `Vary: Cookie`, since the API resolves translations from the account locale and the `diary-locale` cookie; member bodies, lock screens, searches, and failures stay `private, no-store`. The [service worker](../apps/web/public/sw.js) serves content-hashed build assets from its cache first, revalidates stable-path assets in the background, never caches a document or API response, and answers a failed navigation with a precached offline page.
 
 ## Build, verification, and release
 

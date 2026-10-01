@@ -1,5 +1,5 @@
 import { authCapabilitiesSchema } from '@diary/contracts'
-import { defaultWorkspacePath, markSignedIn, safeReturnPath } from './session'
+import { defaultWorkspacePath, markSignedIn, safeAuthReturnPath } from './session'
 import { apiFailure, FailureNotice, invalidField, type Failure } from './api-error'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
@@ -50,11 +50,6 @@ const copy = {
 
 type Capability = ReturnType<typeof authCapabilitiesSchema.parse>
 type CapabilityState = 'loading' | 'ready' | 'error'
-
-function safeAuthReturnPath(value: string | null) {
-  if (value && value.startsWith('/admin/') && !value.startsWith('//') && !value.includes('://')) return value
-  return safeReturnPath(value)
-}
 
 function retryAfterSeconds(response: Response) {
   const raw = response.headers.get('retry-after')?.trim()
@@ -133,14 +128,11 @@ export function AuthForm({ register = false }: { register?: boolean }) {
       if (!result.response.ok) { setError(apiFailure(result.error, t('failed'))); return }
       if (register) { setDirectDone(true); return }
       markSignedIn()
-      let destination = '/timeline'
-      if (search.has('returnTo')) destination = returnTo
-      else {
-        try {
-          const settings = await api.GET('/api/user/settings')
-          destination = defaultWorkspacePath(settings.data?.settings.defaultWorkspacePage)
-        } catch { /* Keep Timeline as the default when preferences cannot load. */ }
-      }
+      // The sign-in response already carries the chosen start page, so the
+      // first screen is not held behind a second settings request.
+      const destination = search.has('returnTo')
+        ? returnTo
+        : defaultWorkspacePath(result.data && 'data' in result.data ? result.data.data.defaultWorkspacePage : undefined)
       navigate(destination, { replace: true })
     } catch { setError(apiFailure(null, t('connection'))) }
     finally { setPending(false) }

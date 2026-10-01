@@ -8,7 +8,7 @@ function pair(suffix: string): NativeSession {
     accessToken: `access-${suffix}`, refreshToken: `refresh-${suffix}`,
     accessTokenExpiresAt: '2026-09-05T10:00:00.000Z', refreshTokenExpiresAt: '2026-10-05T10:00:00.000Z',
     user: { id: '1', email: 'test@example.com', name: null, role: 'USER', timezone: 'UTC',
-      expectedMonthlyTrades: 0, expectedProfit: '0', expectedAvgHolding: '0' },
+      expectedMonthlyTrades: 0, expectedProfit: '0', expectedAvgHolding: '0', defaultWorkspacePage: 'timeline' },
   };
 }
 function storage(initial: NativeSession | null = pair('a')) {

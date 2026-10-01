@@ -22,7 +22,7 @@ async function account(page: Page) {
   return email;
 }
 
-test('password validation preserves masked inputs; changing password clears every open private view and requires the new password', async ({ page, context }) => {
+test('password validation preserves masked inputs; changing password keeps this device signed in and requires the new password everywhere else', async ({ page, context }) => {
   const email = await account(page);
   const other = await context.newPage();
   await other.goto('/diaries/new');
@@ -39,9 +39,15 @@ test('password validation preserves masked inputs; changing password clears ever
   const changed = page.waitForResponse(response => response.url().endsWith('/api/user/password'));
   await page.getByRole('button', { name: 'Change password', exact: true }).click();
   expect((await changed).status()).toBe(200);
-  await expect(page.getByRole('status')).toContainText('Password changed');
+  await expect(page.getByRole('status')).toContainText('this one stays signed in');
   await expect(page.getByLabel('Current password', { exact: true })).toHaveCount(0);
-  await expect(other.getByLabel('Content', { exact: true })).toHaveCount(0);
+  // This browser was re-issued a session, so its own open views keep working
+  // and a fresh private route still loads.
+  await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+  await page.goto('/diaries/new');
+  await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
+  // Any device without those replacement credentials has to use the new password.
+  await context.clearCookies();
   await login(page, email, password);
   await expect(page.getByTestId('error-code')).toHaveText('AUTH_LOGIN_INVALID_CREDENTIALS');
   await page.getByLabel('Password', { exact: true }).fill(next);

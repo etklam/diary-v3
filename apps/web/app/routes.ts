@@ -59,6 +59,7 @@ export default [
   route('articles', 'routes/articles.tsx'),
   route('articles/:slug', 'routes/article.tsx'),
   route('sitemap.xml', 'routes/sitemap.ts'),
+  route('robots.txt', 'routes/robots.ts'),
   route('blog', 'routes/blog-index-redirect.tsx'),
   route('blog/:slug', 'routes/blog-redirect.tsx'),
   route('admin/blog', 'routes/admin-blog.tsx'),

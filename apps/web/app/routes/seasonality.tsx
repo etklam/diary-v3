@@ -7,6 +7,9 @@ import { MarketResearchCapture } from '../market-research-capture'
 import { formatMarketValue, marketClass } from '../market-display'
 import { ToolShell, toolByHref } from '../tool-shell'
 import '../market-research.css'
+import { publicPageMeta } from '../route-meta'
+
+export const meta = publicPageMeta('/tools/seasonality')
 
 type Locale = SeasonalityLocale
 

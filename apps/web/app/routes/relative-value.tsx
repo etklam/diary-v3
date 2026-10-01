@@ -6,6 +6,9 @@ import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { MarketResearchCapture } from '../market-research-capture'
 import { ToolShell, toolByHref } from '../tool-shell'
 import '../market-research.css'
+import { publicPageMeta } from '../route-meta'
+
+export const meta = publicPageMeta('/tools/relative-value')
 
 type Locale = 'en' | 'zh-TW' | 'zh-CN'
 type Side = 'primary' | 'comparison'
