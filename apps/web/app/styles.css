@@ -179,7 +179,8 @@ textarea {
 }
 
 button,
-.button {
+.button,
+a.secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -197,7 +198,8 @@ button,
 }
 
 button:hover,
-.button:hover {
+.button:hover,
+a.secondary:hover {
   filter: brightness(0.94);
 }
 
@@ -215,6 +217,37 @@ button:disabled {
 
 .secondary:hover {
   border-color: var(--control);
+}
+
+/* Audit UI-004: bare inline links get a larger touch hit area on coarse pointers. */
+@media (pointer: coarse) {
+  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class]) {
+    position: relative;
+  }
+
+  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class])::after {
+    content: '';
+    position: absolute;
+    inset: -0.55em -0.35em;
+  }
+}
+
+/* Audit UI-004: disclosure summaries and native toggles need finger-sized boxes. */
+main summary {
+  min-height: 44px;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--action);
+}
+
+/* Audit UI-101: helper text stays above the 12px readability floor. */
+small {
+  font-size: 0.8125rem;
 }
 
 /* Compact action for toolbars and inline rows; still a 36px touch target. */
@@ -1433,7 +1466,7 @@ main:focus-visible {
   }
 
   .mobile-shell-header .brand-sub {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 
   .mobile-shell-actions {
@@ -1523,11 +1556,19 @@ main:focus-visible {
 
   .editor-footer {
     align-items: flex-start;
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
-  .editor-footer button {
-    width: 100%;
+  /* Audit UI-066: one button row instead of two stacked full-width rows. */
+  .editor-footer .actions {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .editor-footer .actions button {
+    flex: 1 1 auto;
   }
 
   .page-heading {

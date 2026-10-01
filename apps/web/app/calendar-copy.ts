@@ -22,7 +22,7 @@ export const calendarCopy = {
     emptyMonth: 'No diaries recorded this month.',
     timezone: 'Account timezone',
     select: 'Choose a date',
-    heatmapHint: 'Select a day to open its diary or start a quick entry.',
+    heatmapHint: 'Select a day to open its diary or start a quick entry. Scroll sideways to see the full year.',
   },
   'zh-TW': {
     title: '日記月曆',
@@ -47,7 +47,7 @@ export const calendarCopy = {
     emptyMonth: '這個月尚未有日記。',
     timezone: '帳戶時區',
     select: '選擇日期',
-    heatmapHint: '選擇日期以開啟日記，或開始快速記錄。',
+    heatmapHint: '選擇日期以開啟日記，或開始快速記錄。熱度圖可左右滑動查看全年。',
   },
   'zh-CN': {
     title: '日记月历',
@@ -72,6 +72,6 @@ export const calendarCopy = {
     emptyMonth: '这个月尚未有日记。',
     timezone: '账户时区',
     select: '选择日期',
-    heatmapHint: '选择日期以打开日记，或开始快速记录。',
+    heatmapHint: '选择日期以打开日记，或开始快速记录。热力图可左右滑动查看全年。',
   },
 };

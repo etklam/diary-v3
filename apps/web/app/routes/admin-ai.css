@@ -37,12 +37,12 @@
   font-weight: 600;
 }
 
-/* Global inputs stretch to full width for form fields; keep the small
-   choice controls at their native size on this page. */
+/* Global inputs stretch to full width for form fields; choice controls keep
+   the global 18px toggle size (audit UI-004/UI-111) instead of stretching. */
 .admin-ai-switch input[type="checkbox"],
 .admin-ai-key-actions input[type="radio"],
 .admin-ai-table-wrap input[type="checkbox"] {
-  width: auto;
+  width: 18px;
   min-height: 0;
 }
 

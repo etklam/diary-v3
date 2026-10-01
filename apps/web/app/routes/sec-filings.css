@@ -35,6 +35,22 @@
   gap: var(--space-2);
 }
 
+/* Audit UI-096: the search field uses the full content width like every other tool form. */
+.sec-company-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .sec-company-search > div {
+    flex-wrap: wrap;
+  }
+
+  .sec-company-search > div button {
+    flex: 1 1 100%;
+  }
+}
+
 .sec-company-search input,
 .sec-filings-filters input,
 .sec-filings-filters select,

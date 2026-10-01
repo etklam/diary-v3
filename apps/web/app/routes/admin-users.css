@@ -258,6 +258,13 @@
     flex: 1;
   }
 
+  /* Audit UI-110: keep the destructive action on its own row so a mis-tap
+     beside 儲存 cannot target account deletion. */
+  .admin-users-mobile-row .admin-users-role .admin-users-delete {
+    flex: 1 1 100%;
+    margin-top: var(--space-1);
+  }
+
   .admin-users-mobile-row .admin-users-role .muted {
     width: 100%;
     font-size: 0.875rem;

@@ -75,10 +75,10 @@ export default function Holdings() {
         return <tr key={row.symbol}><th scope="row"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link></th><td>{row.quantity}</td><td>{row.avgCost}</td><td>{row.totalCost}</td><td>{number(price ?? null)}</td><td>{number(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(quote.quoteAsOf))} UTC</time> : c.timeUnknown}</>}</td></tr>;
       })}</tbody></table></div><p className="muted">{c.updated}: <time dateTime={data.asOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(data.asOf))} UTC</time></p>
     </>}
-    <div className="actions"><Link className="button" to="/diaries/new">{l.record}</Link><button className="secondary" onClick={() => { retryBook(); retryPrices(); }} disabled={ledgerLoading || marketLoading}>{t('retry')}</button></div>
+    <div className="actions"><Link className="button" to="/diaries/new">{l.record}</Link>{data && data.holdings.length > 0 && <button className="secondary" onClick={() => { retryBook(); retryPrices(); }} disabled={ledgerLoading || marketLoading}>{t('retry')}</button>}</div>
     {marketLoading && quotes && <p role="status">{c.refreshing}</p>}
     {mismatch && <p role="status">{c.changed}</p>}
-    {!mismatch && <PortfolioValuation showHoldings={false} source={{ data: valuation, error: sectionError(quotes?.valuation, marketError), retry: retryPrices }}/>}
+    {!mismatch && data && data.holdings.length > 0 && <PortfolioValuation showHoldings={false} source={{ data: valuation, error: sectionError(quotes?.valuation, marketError), retry: retryPrices }}/>}
     <details className="holdings-details"><summary>{c.details}</summary>
       {!mismatch && <PortfolioAttention source={{ data: attention, error: sectionError(quotes?.attention, marketError), retry: retryPrices }}/>}
       <PortfolioExposure source={{ data: exposure, error: sectionError(data?.exposure, ledgerError), retry: retryBook }}/>

@@ -21,6 +21,8 @@
 
 .plan-form {
   margin-top: var(--space-8);
+  /* Audit UI-090: keep the save action visually separate from the next section. */
+  margin-bottom: var(--space-6);
 }
 
 .plan-form fieldset {

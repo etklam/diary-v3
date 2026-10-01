@@ -8,7 +8,7 @@
 .market-research-inputs input,.market-research-controls input,.market-research-controls select,.market-capture-form input,.market-capture-form textarea{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
 .market-research-inputs input[aria-invalid=true]{border-color:var(--danger)}
 .market-research-input-actions{display:flex;align-items:end;gap:8px}
-.market-research-input-actions button{min-height:40px}
+.market-research-input-actions button{min-height:40px;white-space:nowrap}
 .market-research-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:8px;color:var(--muted);font-size:.875rem}
 .market-research-controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px 16px;margin-top:16px}
 .market-research-controls label{min-width:130px}
@@ -40,9 +40,11 @@
 .seasonality-chart rect.market-down{fill:var(--market-down)}
 .seasonality-chart rect.market-flat{fill:var(--market-flat)}
 .seasonality-chart line{stroke:var(--border)}
-.seasonality-chart text{fill:var(--muted);font-size:12px}
+.seasonality-chart text{fill:var(--muted);font-size:13px}
 .seasonality-table{overflow-x:auto}
-.seasonality-table table{width:100%;border-collapse:collapse}
+/* Audit UI-039: keep the table tabular and panning instead of crushing cells
+   into one glyph per line on narrow screens. */
+.seasonality-table table{min-width:560px;width:100%;border-collapse:collapse}
 .seasonality-table th,.seasonality-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
 .seasonality-table th:nth-child(2),.seasonality-table td:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
 .seasonality-table .current{background:var(--muted-surface)}
@@ -64,6 +66,9 @@
 
 .market-research-relative-grid{grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);align-items:start}
 .market-research-relative-grid>.market-research-section{margin-top:32px}
+/* Audit UI-038: grid items must be shrinkable so the chart's min-width SVG
+   cannot widen the page; the chart scrolls inside its own container instead. */
+.market-research-grid>*,.market-research-relative-grid>*{min-width:0}
 .market-research-relative-grid .market-history-chart{min-width:0}
 
 @media(max-width:849px){.market-research-relative-grid{grid-template-columns:1fr}

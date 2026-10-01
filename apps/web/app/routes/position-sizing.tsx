@@ -148,7 +148,8 @@ export default function PositionSizing() {
       </section>
       <section className="position-sizing-panel position-sizing-results" aria-labelledby="position-sizing-results">
         <h2 id="position-sizing-results">{copy.results}</h2>
-        {!summary ? <p className={showInvalid ? 'position-sizing-error' : 'muted'} data-testid={showInvalid ? 'position-sizing-invalid' : 'position-sizing-hint'}>{showInvalid ? copy.invalid : copy.calculateHint}</p> : <>
+        {/* Audit UI-100: keep the manual-price disclaimer in the input card only. */}
+        {!summary ? showInvalid && <p className="position-sizing-error" data-testid="position-sizing-invalid">{copy.invalid}</p> : <>
           <dl className="position-sizing-total"><dt>{copy.invested}</dt><dd data-testid="position-sizing-invested">{money(summary.totalInvested)}</dd></dl>
           <div className="position-sizing-allocation" role="img" aria-label={copy.strategy}>
             {output!.results.map((row, index) => <span key={`${row.ratio}-${index}`} className={`allocation-segment allocation-series-${index % 3 + 1}`} style={{ inlineSize: `${row.ratio}%` }} title={`${row.ratio}%`} />)}
