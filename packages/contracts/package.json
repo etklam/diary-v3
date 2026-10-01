@@ -15,6 +15,7 @@
     "./diary-summary": "./src/diary-summary.ts",
     "./diary-saved-view": "./src/diary-saved-view.ts",
     "./diary-activity": "./src/diary-activity.ts",
+    "./activity-timeline": "./src/activity-timeline.ts",
     "./ledger": "./src/ledger.ts",
     "./calendar": "./src/calendar.ts",
     "./review": "./src/review.ts",

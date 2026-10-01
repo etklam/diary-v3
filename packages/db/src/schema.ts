@@ -123,6 +123,10 @@ export const diaries = pgTable('diaries', {
   unique('diaries_id_user_id_key').on(table.id, table.userId),
   index('diaries_user_id_idx').on(table.userId),
   index('diaries_user_created_idx').on(table.userId, table.createdAt.desc()),
+  // Completed reviews are their own events in the merged activity timeline;
+  // partial, because only reviewed diaries ever enter that branch.
+  index('diaries_user_reviewed_idx').on(table.userId, table.reviewedAt.desc(), table.id.desc())
+    .where(sql`reviewed_at is not null`),
 ])
 
 export const diarySavedViews = pgTable('diary_saved_views', {
@@ -856,6 +860,9 @@ export const thesisReviews = pgTable('thesis_reviews', {
   foreignKey({ name: 'thesis_reviews_thesis_owner_fkey', columns: [table.thesisId, table.userId], foreignColumns: [investmentTheses.id, investmentTheses.userId] }).onDelete('cascade'),
   index('thesis_reviews_user_thesis_time_idx').on(table.userId, table.thesisId, table.reviewedAt.desc(), table.id.desc()),
   index('thesis_reviews_thesis_user_idx').on(table.thesisId, table.userId),
+  // Account-wide chronological order for the merged activity timeline; the
+  // thesis-scoped index above leads with thesisId and cannot serve it.
+  index('thesis_reviews_user_time_idx').on(table.userId, table.reviewedAt.desc(), table.id.desc()),
   check('thesis_reviews_reflection_check', sql`nullif(btrim(${table.whatImproved}), '') is not null OR nullif(btrim(${table.whatDeteriorated}), '') is not null OR nullif(btrim(${table.whatChanged}), '') is not null`),
 ])
 

@@ -37,6 +37,35 @@
   margin-top: 0;
 }
 
+/* Record-type filter. Same segmented treatment as the reading-mode switch
+   above it, so the two rows read as one control group. */
+.timeline-kinds {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  margin-top: var(--space-3);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--muted-surface);
+}
+
+.timeline-kinds a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 14px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.timeline-kinds a[aria-current='true'] {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
 .timeline-filter-bar {
   display: flex;
   align-items: flex-start;
@@ -147,11 +176,107 @@
   border-bottom: 1px solid var(--border);
 }
 
+.timeline-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .timeline-month time {
   padding-top: 5px;
   color: var(--muted);
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* A diary carries a date only; a trade and a review carry a time of day, which
+   is what orders them inside a day. */
+.timeline-time {
+  color: var(--faint);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The kind badge is the one mark that makes a mixed feed scannable. It is a
+   tinted label, never a lifted chip: no shadow, no border. */
+.timeline-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: var(--space-2);
+  padding: 2px 9px;
+  border-radius: var(--radius-control);
+  background: var(--tint-neutral);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.timeline-kind svg {
+  flex: 0 0 auto;
+}
+
+.timeline-kind-diary {
+  background: var(--tint-info);
+  color: var(--tint-info-text);
+}
+
+.timeline-kind-review,
+.timeline-kind-thesis_review {
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+}
+
+/* Buy and sell are named in words and separated by weight. Market colour stays
+   reserved for price movement, so a booking direction never borrows it. */
+.timeline-trade-buy,
+.timeline-trade-sell {
+  font-weight: 700;
+}
+
+.timeline-trade-sell {
+  color: var(--muted);
+}
+
+.timeline-symbol-strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.timeline-trade-size {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Where a record came from: the diary behind a trade, or the day a review
+   closed out. Secondary to the record itself. */
+.timeline-origin {
+  margin: var(--space-3) 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.timeline-outcome {
+  padding: 1px 8px;
+  border-radius: var(--radius-control);
+  background: var(--tint-neutral);
+  font-weight: 600;
+}
+
+.timeline-outcome-intact {
+  background: var(--tint-info);
+  color: var(--tint-info-text);
+}
+
+.timeline-outcome-partial,
+.timeline-outcome-unclear {
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+}
+
+.timeline-outcome-invalidated {
+  background: var(--negative-tint);
+  color: var(--negative);
 }
 
 .timeline-month article {
@@ -234,6 +359,17 @@
     grid-template-columns: 1fr;
     gap: var(--space-3);
     padding: var(--space-6) 0;
+  }
+
+  /* Date and time sit on one line once the date column collapses. */
+  .timeline-when {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .timeline-month time {
+    padding-top: 0;
   }
 
   .timeline-month > header {

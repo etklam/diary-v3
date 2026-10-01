@@ -27,7 +27,7 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
-  expect(await primary.locator('.nav-diary-view').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+  expect(await primary.locator('.nav-diary-view').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))).toBe(true)
   await expect(primary.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
   await expect(primary.locator('.nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account'])
   await expect(primary.getByText('Daily work', { exact: true })).toHaveCount(0)
@@ -116,17 +116,21 @@ test('desktop workspace navigation marks the active route exactly once', async (
   }
 })
 
-test('mobile bottom navigation keeps diary views and writing reachable without covering content @webkit-critical', async ({ page }) => {
+test('mobile bottom navigation carries the whole diary loop without covering content @webkit-critical', async ({ page }) => {
   test.setTimeout(60_000)
   await page.setViewportSize({ width: 390, height: 844 })
   await signIn(page, `workspace-mobile-${randomUUID()}@example.test`)
 
   const diaryNavigation = page.getByTestId('mobile-diary-navigation')
   await expect(diaryNavigation).toBeVisible()
-  await expect(diaryNavigation.getByRole('link')).toHaveText(['Diary library', 'Timeline', 'Calendar', 'Write diary'])
-  expect(await diaryNavigation.getByRole('link').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+  // Five slots: capture, read (library, timeline, calendar) and review. The
+  // label text is read from its own span so a review badge cannot join it.
+  await expect(diaryNavigation.locator('a > span:last-child')).toHaveText(['Capture', 'Library', 'Timeline', 'Calendar', 'Reviews'])
+  expect(await diaryNavigation.getByRole('link').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))).toBe(true)
 
-  await expect(diaryNavigation.getByRole('link', { name: 'Write diary', exact: true })).toHaveAttribute('href', '/diaries/new')
+  // Capture goes to the low-friction path, not the full editor.
+  await expect(diaryNavigation.locator('a').first()).toHaveAttribute('href', '/diaries/quick')
+  await expect(diaryNavigation.locator('a').last()).toHaveAttribute('href', '/reviews')
   expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
   await expect(page.locator('.sidebar .mobile-diary-navigation')).toHaveCount(0)
 
@@ -141,7 +145,9 @@ test('mobile bottom navigation keeps diary views and writing reachable without c
   await expect(dialog.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute('href', '/')
   await expect(dialog.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
   await expect(dialog.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
-  expect(await dialog.locator('nav a').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+  // Rounded: a fractional layout height is a sub-pixel artifact, not a target
+  // smaller than the 44px minimum.
+  expect(await dialog.locator('nav a').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))).toBe(true)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(trigger).toBeFocused()
@@ -154,21 +160,26 @@ test('mobile bottom navigation keeps diary views and writing reachable without c
   await expect(dialog).toBeHidden()
 
   await page.goto('/stocks')
-  for (const [name, href] of [['Diary library', /\/diaries$/], ['Timeline', /\/timeline$/], ['Calendar', /\/calendar$/], ['Write diary', /\/diaries\/new$/]] as const) {
-    await diaryNavigation.getByRole('link', { name, exact: true }).click()
+  for (const [path, href] of [
+    ['/diaries/quick', /\/diaries\/quick$/], ['/diaries', /\/diaries$/],
+    ['/timeline', /\/timeline$/], ['/calendar', /\/calendar$/], ['/reviews', /\/reviews$/],
+  ] as const) {
+    await diaryNavigation.locator(`a[href="${path}"]`).click()
     await expect(page).toHaveURL(href)
-    await expect(diaryNavigation.getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page')
+    await expect(diaryNavigation.locator(`a[href="${path}"]`)).toHaveAttribute('aria-current', 'page')
     await page.goto('/stocks')
   }
-  await diaryNavigation.getByRole('link', { name: 'Write diary', exact: true }).click()
+  // The full editor keeps the capture slot marked, because that is the slot the
+  // reader used to start writing.
+  await page.goto('/diaries/new')
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible()
-  await expect(diaryNavigation.locator('[aria-current="page"]')).toHaveText('Write diary')
+  await expect(diaryNavigation.locator('[aria-current="page"] > span:last-child')).toHaveText('Capture')
   const save = page.getByRole('button', { name: 'Save diary', exact: true })
   await save.scrollIntoViewIfNeeded()
   expect((await save.boundingBox())!.y + (await save.boundingBox())!.height).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
   expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
   await page.goto('/diaries/quick')
-  await expect(diaryNavigation.locator('[aria-current="page"]')).toHaveText('Write diary')
+  await expect(diaryNavigation.locator('[aria-current="page"] > span:last-child')).toHaveText('Capture')
   const quickSave = page.getByRole('button', { name: 'Create diary', exact: true })
   await expect(quickSave).toBeVisible()
   await quickSave.scrollIntoViewIfNeeded()
@@ -179,13 +190,13 @@ test('mobile bottom navigation keeps diary views and writing reachable without c
   expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
   expect(await page.locator('.calendar-legend').evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
   for (const [locale, labels] of [
-    ['zh-TW', ['日記庫', '時間軸', '日曆', '寫日記']],
-    ['zh-CN', ['日记库', '时间轴', '日历', '写日记']],
-    ['en', ['Diary library', 'Timeline', 'Calendar', 'Write diary']],
+    ['zh-TW', ['記錄', '日記庫', '時間軸', '日曆', '複盤']],
+    ['zh-CN', ['记录', '日记库', '时间轴', '日历', '复盘']],
+    ['en', ['Capture', 'Library', 'Timeline', 'Calendar', 'Reviews']],
   ] as const) {
     await page.setViewportSize({ width: 320, height: 640 })
     await selectLocale(page, locale)
-    await expect(diaryNavigation.getByRole('link')).toHaveText([...labels])
+    await expect(diaryNavigation.locator('a > span:last-child')).toHaveText([...labels])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 390, height: 844 })

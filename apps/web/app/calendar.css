@@ -84,7 +84,10 @@
   font-size: 0.75rem;
 }
 
-.calendar-trades {
+.calendar-trades,
+/* A day can hold trades or completed reviews without holding a diary; both
+   marks are secondary to the diary dot, and the day opens its timeline. */
+.calendar-reviews {
   color: var(--muted);
   font-size: 0.75rem;
 }

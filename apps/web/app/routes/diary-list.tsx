@@ -351,7 +351,9 @@ export default function DiaryListPage() {
     + ((params.get('sortBy') ?? '') !== '' && params.get('sortBy') !== 'date-desc' ? 1 : 0)
     + ((params.get('limit') ?? '') !== '' && params.get('limit') !== '20' ? 1 : 0)
   return <section className="diary-library">
-    <header className="page-heading"><div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div><Link className="button" to="/diaries/new">{t('write')}</Link></header>
+    {/* Quick capture is the primary path everywhere it is offered; the full
+        editor stays available next to it rather than taking its place. */}
+    <header className="page-heading"><div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div><div className="actions"><Link className="button" to="/diaries/quick">{t('quick')}</Link><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></header>
     <section className="diary-library-view-toolbar" aria-label={libraryCopy.savedViews}>
       <div className="diary-library-view-select">
         <label>{libraryCopy.chooseView}

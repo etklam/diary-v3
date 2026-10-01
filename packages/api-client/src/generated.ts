@@ -471,6 +471,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["activityTimelineGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/market/quote/{symbol}": {
         parameters: {
             query?: never;
@@ -3767,9 +3783,10 @@ export interface components {
         DiaryActivityResponse: {
             data: {
                 date: string;
-                diaryId: string;
+                diaryId: string | null;
                 alertCount: number;
                 transactionCount: number;
+                reviewCount: number;
             }[];
             dateFrom: string;
             dateTo: string;
@@ -3844,6 +3861,80 @@ export interface components {
             reviewSummary?: string | null;
             reviewLearning?: string | null;
             reviewAdjustment?: string | null;
+        };
+        ActivityTimelineResponse: {
+            data: ({
+                /** @enum {string} */
+                kind: "DIARY";
+                id: string;
+                diaryId: string;
+                date: string;
+                occurredAt: null;
+                title: string;
+                excerpt: string;
+                tags: string[];
+                stockSymbols: string[];
+                /** @enum {string} */
+                createdVia: "WEB" | "API_KEY" | "TELEGRAM_BOT";
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "reviewed";
+                /** @enum {string|null} */
+                reviewOutcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                transactionCount: number;
+                alertCount: number;
+            } | {
+                /** @enum {string} */
+                kind: "TRADE";
+                id: string;
+                tradeId: string;
+                diaryId: string;
+                diaryTitle: string;
+                diaryDate: string;
+                date: string;
+                /** Format: date-time */
+                occurredAt: string;
+                symbol: string;
+                /** @enum {string} */
+                type: "BUY" | "SELL";
+                quantity: string;
+                price: string;
+                strategy: string | null;
+                emotion: string | null;
+                notesExcerpt: string | null;
+            } | {
+                /** @enum {string} */
+                kind: "REVIEW";
+                id: string;
+                diaryId: string;
+                date: string;
+                /** Format: date-time */
+                occurredAt: string;
+                title: string;
+                diaryDate: string;
+                /** @enum {string|null} */
+                outcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR" | null;
+                stockSymbols: string[];
+            } | {
+                /** @enum {string} */
+                kind: "THESIS_REVIEW";
+                id: string;
+                thesisId: string;
+                date: string;
+                /** Format: date-time */
+                occurredAt: string;
+                symbol: string;
+                /** @enum {string} */
+                outcome: "INTACT" | "PARTIAL" | "INVALIDATED" | "UNCLEAR";
+                /** @enum {string} */
+                portfolioDecision: "HOLD" | "ADD" | "REDUCE" | "EXIT" | "CONTINUE_WATCHING";
+                invalidationTriggered: boolean;
+            })[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
         };
         TradePlanInput: {
             diaryId?: string | null;
@@ -8266,6 +8357,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiaryActivityResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    activityTimelineGet: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                dateFrom?: string;
+                dateTo?: string;
+                group?: "diary" | "trade" | "review";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Merged diary, trade and review events newest first; private reflection text is excluded by construction */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityTimelineResponse"];
                 };
             };
             /** @description HTTP 400 error */

@@ -51,6 +51,7 @@ import { diaryListQuerySchema, diaryListResponseSchema } from './diary-list.js'
 import { diarySavedViewCreateRequestSchema, diarySavedViewDeleteResponseSchema, diarySavedViewListResponseSchema, diarySavedViewUpdateRequestSchema, diarySavedViewSchema } from './diary-saved-view.js'
 import { diarySummaryListResponseSchema } from './diary-summary.js'
 import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-activity.js'
+import { activityTimelineQuerySchema, activityTimelineResponseSchema } from './activity-timeline.js'
 import { holidayResponseSchema } from './calendar.js'
 import { diaryReviewWorkflowResponseSchema, diaryReviewWorkflowInputSchema, diaryReviewScheduleInputSchema, diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
 import { tradePlanInputSchema, tradePlanUpdateSchema, tradePlanListQuerySchema, tradePlanResponseSchema, tradePlanListResponseSchema, deleteTradePlanResponseSchema } from './trade-plan.js'
@@ -358,6 +359,17 @@ registry.registerPath({
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
   request: { query: diaryActivityQuerySchema.clone() },
   responses: { 200: json(DiaryActivityResponse, 'Civil-date activity for an inclusive range of at most 371 days'), ...errors([400, 401, 500]) },
+})
+
+const ActivityTimelineResponse = registry.register('ActivityTimelineResponse', activityTimelineResponseSchema.clone())
+registry.registerPath({
+  method: 'get', path: '/api/timeline', tags: ['Diaries'], operationId: 'activityTimelineGet',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { query: activityTimelineQuerySchema.clone() },
+  responses: {
+    200: json(ActivityTimelineResponse, 'Merged diary, trade and review events newest first; private reflection text is excluded by construction'),
+    ...errors([400, 401, 500]),
+  },
 })
 
 const marketSymbolParameter = z.string().min(1).max(32).regex(/^[A-Za-z0-9^][A-Za-z0-9.^=-]*$/)

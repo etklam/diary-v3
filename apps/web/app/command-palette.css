@@ -1,0 +1,214 @@
+/* Reads as a search field rather than a button: the affordance has to say
+   "type here", because that is what it opens. */
+.palette-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  text-align: start;
+}
+
+.palette-trigger > svg {
+  flex: 0 0 auto;
+}
+
+.palette-trigger > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-trigger > kbd {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid var(--control);
+  border-radius: 4px;
+  color: var(--faint);
+  font-size: var(--text-2xs);
+}
+
+/* On a phone there is no room for a label; the icon carries it. */
+.palette-trigger-compact {
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0 10px;
+}
+
+/* The palette is a genuine overlay, so it is one of the few surfaces that
+   earns a shadow — same rule the quick-capture popover follows. */
+.palette-dialog {
+  width: min(640px, calc(100vw - 2 * var(--space-4)));
+  max-width: none;
+  margin: 10vh auto auto;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+}
+
+.palette-dialog::backdrop {
+  background: oklch(0 0 0 / 0.32);
+}
+
+.palette-panel {
+  display: grid;
+  max-height: 70vh;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.palette-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.palette-search > svg {
+  flex: 0 0 auto;
+  color: var(--faint);
+}
+
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-base);
+}
+
+.palette-search input:focus,
+.palette-search input:focus-visible {
+  outline: none;
+}
+
+.palette-search input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.palette-note,
+.palette-hint {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.palette-hint {
+  border-top: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+.palette-results {
+  margin: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-section {
+  margin: var(--space-3) 0 var(--space-1) var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.palette-results > li:first-child .palette-section {
+  margin-top: var(--space-1);
+}
+
+/* One box for both the hover and the keyboard position, so moving between them
+   never shifts a row. */
+.palette-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.palette-option > svg {
+  flex: 0 0 auto;
+  color: var(--faint);
+}
+
+.palette-option.is-active {
+  background: var(--selected);
+  color: var(--action-strong);
+}
+
+.palette-option.is-active > svg {
+  color: var(--action);
+}
+
+.palette-label {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.palette-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-snippet {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-snippet mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+}
+
+.palette-detail {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .palette-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .palette-panel {
+    max-height: none;
+    height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

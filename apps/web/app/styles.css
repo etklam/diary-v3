@@ -1731,6 +1731,7 @@ dialog::backdrop {
 
   .desktop-shell-header,
   .desktop-nav,
+  .desktop-palette-trigger,
   .desktop-preferences {
     display: none;
   }
@@ -1805,23 +1806,60 @@ dialog::backdrop {
     padding: var(--page-block) var(--page-gutter) calc(var(--space-8) + var(--mobile-diary-navigation-space));
   }
 
+  /* Five slots at 360px leave ~68px each, so the gutter shrinks to the gap and
+     the labels carry no horizontal padding of their own. */
   .mobile-diary-navigation {
     position: fixed;
     inset: auto 0 0;
     z-index: var(--z-nav);
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-1);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
     height: var(--mobile-diary-navigation-space);
-    padding: var(--space-1) max(var(--page-gutter), env(safe-area-inset-right)) max(var(--space-1), env(safe-area-inset-bottom)) max(var(--page-gutter), env(safe-area-inset-left));
+    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-right)) max(var(--space-1), env(safe-area-inset-bottom)) max(var(--space-1), env(safe-area-inset-left));
     border-top: 1px solid var(--rule);
     background: var(--surface);
   }
 
+  /* --text-xs is the small-text floor and these labels are prose, not badge
+     text, so they stay on it and overflow with an ellipsis instead. */
   .mobile-diary-navigation a {
     min-height: 60px;
-    padding: 4px 2px;
+    padding: 4px 0;
     font-size: var(--text-xs);
+    text-align: center;
+  }
+
+  .mobile-diary-navigation a > span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The icon is the badge's positioning context, so the count rides the glyph
+     rather than the label and the row height never changes when it appears. */
+  .mobile-diary-icon {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .mobile-diary-badge {
+    position: absolute;
+    top: -6px;
+    left: 100%;
+    min-width: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--action);
+    color: var(--on-action);
+    font-size: var(--text-2xs);
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    line-height: 18px;
+    text-align: center;
+    transform: translateX(-7px);
   }
 
   .welcome {

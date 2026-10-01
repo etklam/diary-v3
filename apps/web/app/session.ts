@@ -125,7 +125,7 @@ const fetchSession: typeof fetch = async (input, init) => {
   // A remounted private surface must not refill from cookies while logout is in flight.
   const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname.startsWith('/api/achievements') || pathname === '/api/auth/me' || pathname.startsWith('/api/portfolio/')
     || pathname.startsWith('/api/blog/admin')
-    || /^\/api\/(?:ai|diaries|v2\/diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews)(?:\/|$)/.test(pathname)
+    || /^\/api\/(?:ai|diaries|v2\/diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews|timeline)(?:\/|$)/.test(pathname)
     || /^\/api\/stocks\/(?:holdings|portfolio|exposure|attention|prices|watchlist|timeline|alerts)(?:\/|$)/.test(pathname);
   if (locallySignedOut && (privatePath || /^\/api\/stocks\/[^/]+\/(?:timeline|evidence|notes|thesis|hub)(?:\/|$)/.test(pathname))) return invalidatedSessionResponse();
   const revision = state.revision;

@@ -56,14 +56,34 @@ it('projects only bounded civil-date activity, exact transaction counts and owne
   expect((await a.browser.post('/api/alerts', {
     diaryId: created.id, message: 'Future decision', triggerAt: '2027-03-09T09:00:00Z',
   })).status).toBe(200)
-  for (const timezone of ['Pacific/Kiritimati', 'Pacific/Pago_Pago', 'America/New_York']) {
+  // Trades carry their own instant, so they resolve on the day they happened in
+  // the account timezone — which is not always the day their diary was written.
+  // Reminders stay attached to the diary: they are notices about a judgment,
+  // not dated events of their own.
+  const expected = {
+    'Pacific/Kiritimati': [
+      { date: '2026-03-08', diaryId: created.id, alertCount: 2, transactionCount: 2, reviewCount: 0 },
+      { date: '2026-03-31', alertCount: 0, transactionCount: 0, reviewCount: 0 },
+    ],
+    'Pacific/Pago_Pago': [
+      { date: '2026-03-07', diaryId: null, alertCount: 0, transactionCount: 2, reviewCount: 0 },
+      { date: '2026-03-08', diaryId: created.id, alertCount: 2, transactionCount: 0, reviewCount: 0 },
+      { date: '2026-03-31', alertCount: 0, transactionCount: 0, reviewCount: 0 },
+    ],
+    'America/New_York': [
+      { date: '2026-03-08', diaryId: created.id, alertCount: 2, transactionCount: 2, reviewCount: 0 },
+      { date: '2026-03-31', alertCount: 0, transactionCount: 0, reviewCount: 0 },
+    ],
+  }
+  for (const [timezone, days] of Object.entries(expected)) {
     await database.db.update(users).set({ timezone }).where(eq(users.id, a.id))
     const response = await a.browser.request('/api/diaries/activity?dateFrom=2026-03-01&dateTo=2026-03-31')
     expect(response.status).toBe(200)
     const result = diaryActivityResponseSchema.parse(await response.json())
-    expect(result.data.map(day => day.date)).toEqual(['2026-03-08', '2026-03-31'])
-    expect(result.data[0]).toEqual({ date: '2026-03-08', diaryId: created.id, alertCount: 2, transactionCount: 2 })
-    expect(Object.keys(result.data[1]!).sort()).toEqual(['alertCount', 'date', 'diaryId', 'transactionCount'])
+    expect(result.data.map(day => day.date)).toEqual(days.map(day => day.date))
+    for (const [index, day] of days.entries()) expect(result.data[index]).toMatchObject(day)
+    expect(Object.keys(result.data[0]!).sort())
+      .toEqual(['alertCount', 'date', 'diaryId', 'reviewCount', 'transactionCount'])
   }
   const own = await b.browser.request('/api/diaries/activity?dateFrom=2026-03-01&dateTo=2026-03-31')
   const otherDays = diaryActivityResponseSchema.parse(await own.json()).data

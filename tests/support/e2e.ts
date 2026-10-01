@@ -88,8 +88,10 @@ export async function clickNav(page: Page, name: string) {
   const toolHref: Record<string, string> = { 'Position sizing': '/tools/position-sizing', 'Financial freedom': '/tools/financial-freedom', 'Relative value': '/tools/relative-value', Seasonality: '/tools/seasonality', 'ETF research': '/tools/etf', 'Market rotation': '/tools/market-rotation', 'SEC filings': '/tools/sec-filings' };
   if (diaryView) {
     const destination = name === 'Diary library' ? '/diaries' : name === 'Timeline' ? '/timeline' : '/calendar';
+    // The bottom bar has five slots, so it shortens the library label; the
+    // sidebar keeps the full name.
     const target = view
-      ? page.getByTestId('mobile-diary-navigation').getByRole('link', { name, exact: true })
+      ? page.getByTestId('mobile-diary-navigation').locator(`a[href="${destination}"]`)
       : page.locator('.desktop-nav').getByRole('link', { name, exact: true });
     await expect(target).toBeVisible();
     if (new URL(page.url()).pathname !== destination) {

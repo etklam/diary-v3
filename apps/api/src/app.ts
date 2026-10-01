@@ -78,6 +78,7 @@ import { diaryActivityQuerySchema } from '@diary/contracts/diary-activity'
 import { registerDiaryReviewRoutes } from './diary-review.js'
 import { readDiaryByDate, readDiaryDetail } from './diary-read.js'
 import { registerReviewQueueRoute } from './review-queue.js'
+import { registerActivityTimelineRoute } from './activity-timeline.js'
 import { registerInvestmentThesisRoutes } from './investment-thesis.js'
 import { registerStockNoteRoutes } from './stock-notes.js'
 import { registerEvidenceRoutes } from './evidence.js'
@@ -542,6 +543,7 @@ export function createApp({
   registerStockNoteRoutes(app, { db, now, fail, validationError, parseJson })
   registerInvestmentThesisRoutes(app, { db, now, fail, validationError, parseJson })
   registerReviewQueueRoute(app, { db, now, fail, validationError })
+  registerActivityTimelineRoute(app, { db, fail, validationError })
   registerDisciplineOg(app)
   registerAgentStockRoutes(app, { db, now, fail, validationError, parseJson })
   registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: consumeRateLimit })

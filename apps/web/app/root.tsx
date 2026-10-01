@@ -10,6 +10,7 @@ import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
 import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks } from './nav';
+import { CommandPalette, CommandPaletteTrigger } from './command-palette';
 import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
 import { pageTitle } from './page-title';
@@ -184,6 +185,9 @@ function Shell() {
       <aside className="sidebar">
         <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
         <div className="desktop-quick-entry"><QuickEntry/></div>
+        {/* Search sits above the list because the route count exceeds what any
+            sidebar can hold; the list below is the always-visible subset. */}
+        <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
         <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
         <div className="desktop-preferences">
           {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
@@ -192,6 +196,7 @@ function Shell() {
         <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
       </aside>
       <main id="main" className={wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
+      <CommandPalette role={role} />
       <DiaryNavigation />
     </div>
   </>;

@@ -1,0 +1,2 @@
+CREATE INDEX "diaries_user_reviewed_idx" ON "diaries" USING btree ("user_id","reviewed_at" DESC NULLS LAST,"id" DESC NULLS LAST) WHERE reviewed_at is not null;--> statement-breakpoint
+CREATE INDEX "thesis_reviews_user_time_idx" ON "thesis_reviews" USING btree ("user_id","reviewed_at" DESC NULLS LAST,"id" DESC NULLS LAST);

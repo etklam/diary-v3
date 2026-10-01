@@ -5,6 +5,8 @@ import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
+import { CommandPaletteTrigger } from './command-palette'
+import { workspaceCopy } from './destinations'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -14,17 +16,6 @@ const sectionCopy = {
   en: { diary: 'Diary & review', investing: 'Investing & trading', markets: 'Markets & tools', account: 'Account', admin: 'Administration' },
 } as const
 
-const workspaceCopy = {
-  'zh-TW': {
-    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', achievements: '個人成就', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理', researchStudio: '研究工作室', adminEmail: '電郵設定',
-  },
-  'zh-CN': {
-    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', achievements: '个人成就', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理', researchStudio: '研究工作室', adminEmail: '邮件设置',
-  },
-  en: {
-    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', achievements: 'Personal achievements', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration', researchStudio: 'Research Studio', adminEmail: 'Mail settings',
-  },
-} as const
 
 function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': string; 'zh-TW': string }) {
   return values[locale]
@@ -153,7 +144,9 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
   return <>
     <div className="mobile-shell-header">
       <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link>
-      <div className="mobile-shell-actions"><button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
+      {/* Search before Menu: on a phone the bottom bar owns the diary loop, so
+          the top bar's job is reaching everything else — by name, or by list. */}
+      <div className="mobile-shell-actions">{authenticated === true && <CommandPaletteTrigger compact/>}<button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
     </div>
     <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
       <div className="mobile-menu-panel">

@@ -18,7 +18,9 @@ import { signInPath } from '../session';
 import { calendarCopy } from '../calendar-copy';
 import '../calendar.css';
 
-type Activity = { date: string; diaryId: string; transactionCount: number; alertCount: number };
+import type { DiaryActivityDay } from '@diary/contracts/diary-activity';
+
+type Activity = DiaryActivityDay;
 type Preferences = { timezone: string; excludeHolidaysInStats: boolean };
 
 const shift = (key: string, days: number) => {
@@ -93,7 +95,10 @@ export default function Calendar() {
   }, [pending, today]);
 
   const byDate = new Map(activity.map(day => [day.date, day]));
-  const activeDays = new Set(byDate.keys());
+  // Coverage and the heatmap measure diary writing, so they count days that
+  // hold a diary. A day whose only activity is a trade or a review is still
+  // marked on the grid, and opens the merged timeline for that date.
+  const activeDays = new Set(activity.filter(day => day.diaryId !== null).map(day => day.date));
   const baseWeeks = today ? buildHeatmapWeeks({
     endDate: today,
     activeDays,
@@ -124,7 +129,11 @@ export default function Calendar() {
 
   function open(date: string) {
     const entry = byDate.get(date);
-    navigate(entry ? `/diaries/${entry.diaryId}` : `/diaries/quick?date=${date}`);
+    if (entry?.diaryId) navigate(`/diaries/${entry.diaryId}`);
+    // Trades and reviews have no single record to open; the day's merged
+    // timeline is the view that shows all of them.
+    else if (entry) navigate(`/timeline?dateFrom=${date}&dateTo=${date}`);
+    else navigate(`/diaries/quick?date=${date}`);
   }
 
   function move(delta: number) {
@@ -146,7 +155,12 @@ export default function Calendar() {
     grid.current?.querySelectorAll<HTMLButtonElement>('button')[Math.max(0, Math.min(days.length - 1, index + offset))]?.focus();
   }
 
-  const label = (date: string, excluded = false) => `${date} · ${byDate.has(date) ? l.recorded : l.empty}${excluded ? ` · ${l.holiday}` : ''}${byDate.get(date)?.transactionCount ? ` · ${byDate.get(date)!.transactionCount} ${l.transactions}` : ''}`;
+  const label = (date: string, excluded = false) => {
+    const day = byDate.get(date);
+    return `${date} · ${activeDays.has(date) ? l.recorded : l.empty}${excluded ? ` · ${l.holiday}` : ''}`
+      + `${day?.transactionCount ? ` · ${day.transactionCount} ${l.transactions}` : ''}`
+      + `${day?.reviewCount ? ` · ${day.reviewCount} ${l.reviews}` : ''}`;
+  };
 
   return <section className="diary-calendar">
     <header><h1>{l.title}</h1><p className="lede">{l.hint}</p></header>
@@ -166,7 +180,7 @@ export default function Calendar() {
       <div className="calendar-weekdays" aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <span key={index}>{new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2023, 0, 1 + index)))}</span>)}</div>
       <div ref={grid} className="calendar-grid" role="group" aria-label={l.select}>
         {Array.from({ length: new Date(`${days[0]}T00:00:00Z`).getUTCDay() }, (_, index) => <span key={`blank${index}`}/>)}
-        {days.map((date, index) => <button key={date} data-date={date} className={`${byDate.has(date) ? 'recorded' : ''} ${holidays.has(date) ? 'holiday' : ''}`} aria-label={label(date, holidays.has(date))} aria-current={date === today ? 'date' : undefined} onKeyDown={event => keys(event, index)} onClick={() => open(date)}><span>{index + 1}</span>{byDate.has(date) && <span className="calendar-marker" aria-hidden="true">●</span>}{(byDate.get(date)?.transactionCount ?? 0) > 0 && <span className="calendar-trades" aria-hidden="true">{byDate.get(date)!.transactionCount} ↔</span>}</button>)}
+        {days.map((date, index) => <button key={date} data-date={date} className={`${activeDays.has(date) ? 'recorded' : ''} ${holidays.has(date) ? 'holiday' : ''}`} aria-label={label(date, holidays.has(date))} aria-current={date === today ? 'date' : undefined} onKeyDown={event => keys(event, index)} onClick={() => open(date)}><span>{index + 1}</span>{activeDays.has(date) && <span className="calendar-marker" aria-hidden="true">●</span>}{(byDate.get(date)?.transactionCount ?? 0) > 0 && <span className="calendar-trades" aria-hidden="true">{byDate.get(date)!.transactionCount} ↔</span>}{(byDate.get(date)?.reviewCount ?? 0) > 0 && <span className="calendar-reviews" aria-hidden="true">{byDate.get(date)!.reviewCount} ✓</span>}</button>)}
       </div>
       {!days.some(date => activeDays.has(date)) && <p className="muted">{l.emptyMonth}</p>}
       <section className="calendar-heatmap">
