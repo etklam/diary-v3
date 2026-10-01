@@ -48,7 +48,9 @@
 .seasonality-table th,.seasonality-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
 .seasonality-table th:nth-child(2),.seasonality-table td:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
 .seasonality-table .current{background:var(--muted-surface)}
-.seasonality-interpretation{border-left:2px solid var(--border);padding-left:20px}
+/* A note about the table above, separated by a rule rather than stripped
+   down one side. */
+.seasonality-interpretation{border-top:1px solid var(--rule);padding-top:var(--space-4);margin-top:var(--space-5)}
 .seasonality-interpretation ol{padding-left:20px}
 .seasonality-copy-fallback{width:100%;min-height:160px;margin-top:12px}
 .market-research-page button{cursor:pointer}

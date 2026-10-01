@@ -11,7 +11,7 @@
 .public-header {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: var(--z-nav);
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -61,8 +61,8 @@
 
 .public-header nav a[aria-current="page"] {
   background: var(--selected);
-  color: var(--text);
-  font-weight: 650;
+  color: var(--action-strong);
+  font-weight: var(--weight-semibold);
 }
 
 /* Tools: the label links to /tools, the chevron discloses shortcuts. */
@@ -109,7 +109,7 @@
   position: absolute;
   top: calc(100% + 10px);
   left: 0;
-  z-index: 6;
+  z-index: var(--z-dropdown);
   display: grid;
   gap: 2px;
   min-width: 240px;
@@ -144,9 +144,6 @@
   white-space: nowrap;
 }
 
-.public-actions .secondary {
-  box-shadow: none;
-}
 
 /* Compact language/appearance controls live in the header row; the labeled
    versions stay in the drawer. */
@@ -234,13 +231,13 @@
   margin: auto;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   color: var(--text);
 }
 
 .public-menu-dialog::backdrop {
-  background: rgb(32 36 42 / 0.45);
+  background: var(--backdrop);
 }
 
 .public-menu-dialog[open] {
@@ -288,9 +285,8 @@
 .public-menu-tools-title {
   margin-bottom: var(--space-2);
   color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
 }
 
 .public-menu-tools {
@@ -495,66 +491,80 @@
   font-size: 1.25rem;
 }
 
+/* The tool index is a ruled list, not a tile grid. A wall of identical
+   icon-and-heading boxes says nothing about the tools it holds; rows let the
+   names align down a column and scan in one pass, and the list can grow
+   without becoming decoration. Two columns of rows on wide screens. */
 .tools-index-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  column-gap: var(--space-8);
+  border-top: 1px solid var(--rule);
 }
 
 .tool-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'icon title go'
+    'icon desc go';
+  align-items: start;
   min-width: 0;
-  padding: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  column-gap: var(--space-4);
+  padding: var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--rule);
   color: var(--text);
   text-decoration: none;
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  transition: background-color var(--dur-1) var(--ease-out);
 }
 
 .tool-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-2);
-  transform: translateY(-1px);
+  background: var(--tint-neutral);
+  color: var(--text);
 }
 
+/* The icon is a mark beside the name, not a filled tile repeated seven times. */
 .tool-card-icon {
+  grid-area: icon;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--tint-info);
-  color: var(--tint-info-text);
+  width: 24px;
+  height: 1.5rem;
+  color: var(--faint);
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.tool-card:hover .tool-card-icon {
+  color: var(--action);
 }
 
 .tool-card h3 {
+  grid-area: title;
   margin: 0;
-  font-size: 1rem;
+  line-height: 1.5;
+  font-size: var(--text-base);
 }
 
 .tool-card p {
-  margin: 0;
+  grid-area: desc;
+  align-self: start;
+  margin: var(--space-1) 0 0;
   color: var(--muted);
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .tool-card-go {
+  grid-area: go;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: auto;
-  padding-top: var(--space-2);
+  height: 1.5rem;
   color: var(--action);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
 }
 
 /* ---- Public home ---- */
@@ -583,10 +593,9 @@
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: normal;
 }
 
 .home-hero h1 {
@@ -626,14 +635,6 @@
   gap: var(--space-3);
 }
 
-.home-preview-label {
-  margin-bottom: var(--space-2);
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 .home-preview-entry {
   display: grid;
@@ -690,8 +691,9 @@
 
 .home-tools {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  column-gap: var(--space-8);
+  border-top: 1px solid var(--rule);
 }
 
 .home-tools-intro {
@@ -701,7 +703,7 @@
 .public-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-6);
   margin: 0;
   padding: 0;
   counter-reset: step;
@@ -710,11 +712,8 @@
 
 .public-steps li {
   position: relative;
-  padding: var(--space-6) var(--space-5) var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--rule-strong);
   counter-increment: step;
 }
 
@@ -723,10 +722,10 @@
   display: block;
   margin-bottom: var(--space-3);
   color: var(--action);
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
 }
 
 .public-steps h3 {
@@ -871,7 +870,7 @@
   min-height: 44px;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   font: inherit;

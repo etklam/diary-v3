@@ -2,7 +2,7 @@
 .article-translation-settings-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
 .article-translation-settings-header h1{margin:0}
 .article-translation-settings-header p{max-width:62ch;color:var(--muted);line-height:1.6}
-.article-translation-settings-callout,.article-translation-settings-form{padding:clamp(1rem,3vw,1.5rem);border:1px solid var(--border);border-radius:1rem;background:var(--surface)}
+.article-translation-settings-callout,.article-translation-settings-form{padding:clamp(1rem,3vw,1.5rem);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface)}
 .article-translation-settings-callout{display:grid;gap:.65rem;color:var(--muted);line-height:1.55}
 .article-translation-settings-callout p{margin:0}
 .article-translation-settings-form{display:grid;gap:1rem}
@@ -13,9 +13,9 @@
 .article-translation-settings-grid input,.article-translation-settings-grid textarea{width:100%;min-width:0}
 .article-translation-settings-prompt{grid-column:1/-1}
 .article-translation-settings-actions{display:flex;justify-content:flex-end}
-.article-translation-settings-notice{padding:.8rem 1rem;border-radius:.75rem;background:var(--tint-info);color:var(--tint-info-text);font-weight:600}
+.article-translation-settings-notice{padding:.8rem 1rem;border-radius:var(--radius-control);background:var(--tint-info);color:var(--tint-info-text);font-weight:600}
 .article-translation-default,.article-translation-provider-list{display:grid;gap:1rem}
-.article-translation-default{padding:clamp(1rem,3vw,1.5rem);border:1px solid var(--border);border-radius:1rem;background:var(--surface)}
+.article-translation-default{padding:clamp(1rem,3vw,1.5rem);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface)}
 .article-translation-default h2,.article-translation-provider-list h2,.article-translation-provider-form-heading h2{margin:0;font-size:1.125rem;line-height:1.4}
 .article-translation-default p,.article-translation-provider-list p{margin:.35rem 0 0}
 .article-translation-default-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem}

@@ -4,6 +4,8 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, use
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
 import { BrandMark } from './icons';
+// Tokens first: every rule in styles.css and public.css consumes them.
+import './tokens.css';
 import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
@@ -23,7 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     const value = (post as { resolvedLocale?: unknown }).resolvedLocale;
     return value === 'zh-TW' || value === 'zh-CN' || value === 'en' ? value : null;
   }).find(Boolean) ?? 'zh-TW';
-  return <html lang={articleLocale} suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t;var m=localStorage.getItem('diary-market-color');if(m==='cn'||m==='cb')document.documentElement.dataset.marketColor=m}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
+  return <html lang={articleLocale} suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f9fafd" /><link rel="preload" as="font" type="font/woff2" href="/fonts/plex-sans-latin-var.woff2" crossOrigin="anonymous" /><link rel="preload" as="font" type="font/woff2" href="/fonts/plex-mono-latin-400.woff2" crossOrigin="anonymous" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t;var m=localStorage.getItem('diary-market-color');if(m==='cn'||m==='cb')document.documentElement.dataset.marketColor=m;var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.querySelector('meta[name="theme-color"]').content=d?'#111219':'#f9fafd'}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
 }
 
 function PreferencesControls({ mobile = false, compact = false }: { mobile?: boolean; compact?: boolean }) {

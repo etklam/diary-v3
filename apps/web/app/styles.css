@@ -1,192 +1,27 @@
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  color-scheme: light;
-  --canvas: #f6f7f8;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --muted-surface: #eef0f2;
-  --text: #20242a;
-  --muted: #59616c;
-  --border: #d5d9df;
-  --border-strong: #b9c0c9;
-  --control: #7b8491;
-  --action: #2459b8;
-  --action-strong: #1d4a9c;
-  --on-action: #ffffff;
-  --selected: #e5e8ed;
-  --negative: #b62e3c;
-  --danger: #b62e3c;
-  --focus: #2459b8;
-  --market-up: #167044;
-  --market-down: #b62e3c;
-  --market-flat: #59616c;
-  --series-1: #4f75c2;
-  --series-2: #785ca8;
-  --series-3: #a2701f;
-  /* Tinted fills for badges and category marks; never used for market direction. */
-  --tint-info: rgb(79 117 194 / 0.12);
-  --tint-info-text: #2c4f92;
-  --tint-warn: rgb(162 112 31 / 0.13);
-  --tint-warn-text: #7a5312;
-  --tint-neutral: rgb(89 97 108 / 0.1);
-  --radius-control: 6px;
-  --radius-card: 10px;
-  --radius-pill: 999px;
-  --shadow-1: 0 1px 2px rgb(18 22 30 / 0.05);
-  --shadow-2: 0 1px 2px rgb(18 22 30 / 0.05), 0 4px 14px rgb(18 22 30 / 0.06);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-serif: Georgia, "Times New Roman", "Songti TC", "Noto Serif TC", "Noto Serif CJK TC", "SimSun", serif;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
-  --page-gutter: 16px;
-  --page-block: 24px;
-  --section-gap: 24px;
-  color: var(--text);
-  background: var(--canvas);
-  font-synthesis: none;
-}
+/* ===========================================================================
+   Base elements and shared primitives.
+   Tokens live in tokens.css; nothing here hard-codes a colour or a size.
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --canvas: #17191d;
-  --surface: #202329;
-  --surface-raised: #24282f;
-  --muted-surface: #292d34;
-  --text: #edf0f4;
-  --muted: #b1b8c3;
-  --border: #454c57;
-  --border-strong: #5a626e;
-  --control: #858f9e;
-  --action: #9bbcff;
-  --action-strong: #bcd4ff;
-  --on-action: #10234a;
-  --selected: #343a44;
-  --negative: #ff939c;
-  --danger: #ff939c;
-  --focus: #9bbcff;
-  --market-up: #70d49a;
-  --market-down: #ff939c;
-  --market-flat: #b1b8c3;
-  --series-1: #9bbcff;
-  --series-2: #c1a7f0;
-  --series-3: #e4bc77;
-  --tint-info: rgb(155 188 255 / 0.14);
-  --tint-info-text: #b9d2ff;
-  --tint-warn: rgb(228 188 119 / 0.14);
-  --tint-warn-text: #eccf9b;
-  --tint-neutral: rgb(177 184 195 / 0.14);
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
-  --shadow-2: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 14px rgb(0 0 0 / 0.3);
-}
+   THE STRUCTURAL HIERARCHY RULE governs this file: grouped content is bounded
+   by a rule and separated by space, never lifted by a shadow. `--shadow-1` is
+   `none`, so the legacy `box-shadow: var(--shadow-1)` still present in route
+   stylesheets resolves to nothing and no panel floats.
+   =========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --canvas: #17191d;
-    --surface: #202329;
-    --surface-raised: #24282f;
-    --muted-surface: #292d34;
-    --text: #edf0f4;
-    --muted: #b1b8c3;
-    --border: #454c57;
-    --border-strong: #5a626e;
-    --control: #858f9e;
-    --action: #9bbcff;
-    --action-strong: #bcd4ff;
-    --on-action: #10234a;
-    --selected: #343a44;
-    --negative: #ff939c;
-    --danger: #ff939c;
-    --focus: #9bbcff;
-    --market-up: #70d49a;
-    --market-down: #ff939c;
-    --market-flat: #b1b8c3;
-    --series-1: #9bbcff;
-    --series-2: #c1a7f0;
-    --series-3: #e4bc77;
-    --tint-info: rgb(155 188 255 / 0.14);
-    --tint-info-text: #b9d2ff;
-    --tint-warn: rgb(228 188 119 / 0.14);
-    --tint-warn-text: #eccf9b;
-    --tint-neutral: rgb(177 184 195 / 0.14);
-    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
-    --shadow-2: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 14px rgb(0 0 0 / 0.3);
-  }
-}
-
-/* Market color convention (user preference, localStorage `diary-market-color`).
-   `standard` = green up / red down (default, no attribute needed); `cn` = red up
-   / green down; `cb` = colorblind-safe blue/orange. Signs (+/−) are always
-   rendered by formatMarketValue, so color never carries direction alone. */
-:root[data-market-color="cn"] {
-  --market-up: #b62e3c;
-  --market-down: #167044;
-}
-
-:root[data-market-color="cb"] {
-  --market-up: #1a5fb8;
-  --market-down: #8f4a0d;
-}
-
-:root[data-theme="dark"][data-market-color="cn"] {
-  --market-up: #ff939c;
-  --market-down: #70d49a;
-}
-
-:root[data-theme="dark"][data-market-color="cb"] {
-  --market-up: #9cc2ff;
-  --market-down: #e8a35e;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-market-color="cn"] {
-    --market-up: #ff939c;
-    --market-down: #70d49a;
-  }
-
-  :root:not([data-theme="light"])[data-market-color="cb"] {
-    --market-up: #9cc2ff;
-    --market-down: #e8a35e;
-  }
-}
-
-/* Simplified-Chinese glyph selection: the default stack only names TC fonts,
-   so zh-CN readers would otherwise see traditional glyph forms. */
-html[lang="zh-CN"] {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
-}
-
-html[lang="en"] {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --page-gutter: 24px;
-    --page-block: 32px;
-  }
-}
-
-@media (min-width: 1200px) {
-  :root {
-    --page-gutter: 32px;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 * {
-  box-sizing: border-box;
-  scrollbar-color: var(--control) var(--canvas);
+  scrollbar-color: var(--control) transparent;
 }
 
 html {
   min-width: 320px;
   background: var(--canvas);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -195,8 +30,13 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--text);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  /* Plex has real kerning and ligature tables; let the renderer use them. */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
@@ -204,16 +44,174 @@ body {
   color: var(--text);
 }
 
+/* ---------------------------------------------------------------------------
+   Typography
+   One family carries the whole interface. The second voice is not a second
+   typeface but the monospace cut, reserved for the product's subject matter:
+   figures, tickers, timestamps, identifiers.
+   --------------------------------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: var(--weight-semibold);
+  text-wrap: balance;
+}
+
+h1 {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-title);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-lg);
+  letter-spacing: -0.008em;
+  line-height: var(--leading-snug);
+}
+
+h3 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-base);
+}
+
+h4 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+p {
+  max-width: 72ch;
+  text-wrap: pretty;
+}
+
+small {
+  /* The 13px small-text floor. */
+  font-size: var(--text-xs);
+}
+
+strong,
+b {
+  font-weight: var(--weight-semibold);
+}
+
+/* Figures. Every number the user is asked to judge gets the monospace cut at
+   a matched optical size, so columns align and a price never reads as prose. */
+.num,
+.figure,
+time,
+kbd,
+code,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-figure);
+}
+
+time {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+label {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.lede {
+  max-width: 72ch;
+  margin-bottom: var(--space-7);
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* A standalone hairline, for separating regions without drawing a box. */
+.rule {
+  height: 1px;
+  margin: var(--space-6) 0;
+  border: 0;
+  background: var(--rule);
+}
+
+hr {
+  height: 1px;
+  margin: var(--space-6) 0;
+  border: 0;
+  background: var(--rule);
+}
+
+/* ---------------------------------------------------------------------------
+   Links
+   --------------------------------------------------------------------------- */
+
 a {
   color: var(--action);
+  text-decoration-thickness: 1px;
   text-underline-offset: 4px;
+  transition: color var(--dur-1) var(--ease-out), text-decoration-color var(--dur-1) var(--ease-out);
 }
+
+a:hover {
+  color: var(--action-hover);
+  text-decoration-thickness: 2px;
+}
+
+/* Bare inline links get a finger-sized hit area on coarse pointers. */
+@media (pointer: coarse) {
+  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class]) {
+    position: relative;
+  }
+
+  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class])::after {
+    content: '';
+    position: absolute;
+    inset: -0.55em -0.35em;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Focus
+   One ring, legible on canvas, on white and on the sidebar surface, with a
+   halo so it survives a tinted or coloured backdrop.
+   --------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   Shape is shared; appearance is one of three committed variants. Each carries
+   the full state set: default, hover, active, focus, disabled.
+   --------------------------------------------------------------------------- */
 
 button,
 input,
 select,
 textarea {
   font: inherit;
+  letter-spacing: inherit;
 }
 
 button,
@@ -232,132 +230,101 @@ a.secondary {
   justify-content: center;
   gap: var(--space-2);
   min-height: 44px;
-  padding: 9px 18px;
+  padding: 10px 16px;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   background: var(--action);
   color: var(--on-action);
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   line-height: 1.4;
   text-decoration: none;
   cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
 }
 
 button:hover,
 .button:hover,
 a.secondary:hover {
-  filter: brightness(0.94);
+  background: var(--action-hover);
+  color: var(--on-action);
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
+button:active,
+.button:active {
+  background: var(--action-strong);
 }
 
+/* Secondary: the page's own surface, bounded by a control-contrast edge.
+   No shadow — a button is not a floating object. */
 .secondary {
-  border-color: var(--border-strong);
+  border-color: var(--control);
   background: var(--surface);
   color: var(--text);
-  box-shadow: var(--shadow-1);
 }
 
 .secondary:hover {
-  border-color: var(--control);
+  border-color: var(--text);
+  background: var(--surface-sunken);
+  color: var(--text);
 }
 
-/* Audit UI-004: bare inline links get a larger touch hit area on coarse pointers. */
-@media (pointer: coarse) {
-  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class]) {
-    position: relative;
-  }
-
-  main :is(p, li, h1, h2, h3, h4, td, th) > a:not([class])::after {
-    content: '';
-    position: absolute;
-    inset: -0.55em -0.35em;
-  }
+.secondary:active {
+  background: var(--selected);
 }
 
-/* Audit UI-004: disclosure summaries and native toggles need finger-sized boxes. */
-main summary {
-  min-height: 44px;
+/* Quiet: an action that must not compete, e.g. a row-level control. */
+.quiet-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--action);
 }
 
-input[type='checkbox'],
-input[type='radio'] {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  accent-color: var(--action);
+.quiet-button:hover {
+  border-color: transparent;
+  background: var(--action-tint);
+  color: var(--action-hover);
 }
 
-/* Audit UI-101: helper text stays above the 12px readability floor. */
-small {
-  font-size: 0.8125rem;
+/* Destructive: reserved for delete and archive actions that name their
+   consequence and pair with a confirmation dialog. */
+button.danger-button,
+.button.danger-button {
+  border-color: var(--negative);
+  background: var(--surface);
+  color: var(--negative);
+}
+
+button.danger-button:hover,
+.button.danger-button:hover {
+  background: var(--negative-tint);
+  color: var(--negative);
+}
+
+button:disabled,
+.button[aria-disabled='true'] {
+  background: var(--action);
+  opacity: 0.5;
+  /* Buttons here are disabled while a submit is in flight, not to signal
+     invalid input, so the waiting cursor is the honest one. */
+  cursor: wait;
+}
+
+button.secondary:disabled,
+button.danger-button:disabled {
+  background: var(--surface);
 }
 
 /* Compact action for toolbars and inline rows; still a 36px touch target. */
 .button-compact {
   min-height: 36px;
-  padding: 5px 12px;
-  font-size: 0.875rem;
+  padding: 6px 11px;
+  font-size: var(--text-xs);
 }
 
-a:hover {
-  text-decoration-thickness: 2px;
-}
-
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  margin-bottom: var(--space-4);
-  overflow-wrap: anywhere;
-  font-size: 1.5rem;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-}
-
-h2 {
-  margin-bottom: var(--space-4);
-  font-size: 1.125rem;
-  line-height: 1.4;
-}
-
-h3 {
-  margin-bottom: var(--space-2);
-  font-size: 1rem;
-}
-
-p {
-  max-width: 72ch;
-}
-
-time {
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.num {
-  font-variant-numeric: tabular-nums;
-}
-
-label {
-  display: grid;
-  gap: var(--space-2);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
+/* ---------------------------------------------------------------------------
+   Fields
+   --------------------------------------------------------------------------- */
 
 input,
 select,
@@ -371,18 +338,37 @@ textarea {
   background: var(--surface);
   color: var(--text);
   caret-color: var(--action);
+  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
 }
 
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: var(--border-strong);
+  border-color: var(--text);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--action);
+  box-shadow: 0 0 0 3px var(--focus-halo);
+  outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  border-color: var(--rule);
+  background: var(--surface-sunken);
+  color: var(--faint);
+  cursor: not-allowed;
 }
 
 textarea {
@@ -392,7 +378,40 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
+  /* Placeholders are text and carry the same 4.5:1 requirement as body copy. */
   color: var(--muted);
+  opacity: 1;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  flex-shrink: 0;
+  accent-color: var(--action);
+}
+
+/* Native numeric and date inputs render their own figures; give them the
+   monospace cut so they match every other number on the page. */
+input[type='number'],
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[inputmode='decimal'],
+input[inputmode='numeric'] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-figure);
+}
+
+[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+[aria-invalid='true']:focus {
+  border-color: var(--negative);
+  box-shadow: 0 0 0 3px var(--negative-tint);
 }
 
 main form {
@@ -404,11 +423,51 @@ main form > button {
   justify-self: start;
 }
 
-.muted,
-.lede {
-  color: var(--muted);
+/* Disclosure summaries and native toggles need finger-sized boxes. */
+main summary {
+  min-height: 44px;
 }
 
+kbd {
+  padding: 2px 5px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-inset);
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-normal);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Status text
+   --------------------------------------------------------------------------- */
+
+.error {
+  margin: 0;
+  color: var(--negative);
+  overflow-wrap: anywhere;
+}
+
+.error p {
+  margin-bottom: var(--space-2);
+}
+
+.error code {
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+}
+
+.success {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--action-tint);
+  color: var(--text);
+}
+
+/* Financial direction. Colour is always redundant with the sign that
+   `formatMarketValue` writes; it never carries direction on its own. */
 .market-up {
   color: var(--market-up);
 }
@@ -421,32 +480,26 @@ main form > button {
   color: var(--market-flat);
 }
 
-/* Destructive action: outlined in the negative color; reserve for delete/archive
-   buttons that name their consequence and pair with a confirmation dialog. */
-button.danger-button,
-.button.danger-button {
-  border-color: var(--negative);
-  background: var(--surface);
-  color: var(--negative);
-  box-shadow: none;
-}
-
 .sr-only {
   position: fixed;
   clip-path: inset(50%);
 }
 
-/* Loading placeholder: a quiet pulsing block sized like the content it stands
-   in for. Pair with role="status" text via .sr-only. */
+/* ---------------------------------------------------------------------------
+   Loading
+   A placeholder sized like the content it stands in for, so layout never
+   jumps. Pair with role="status" text via .sr-only.
+   --------------------------------------------------------------------------- */
+
 @keyframes skeleton-pulse {
   from { opacity: 1; }
-  to { opacity: 0.55; }
+  to { opacity: 0.45; }
 }
 
 .skeleton {
-  border-radius: var(--radius-control);
-  background: var(--muted-surface);
-  animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+  border-radius: var(--radius-inset);
+  background: var(--tint-neutral);
+  animation: skeleton-pulse 1.4s var(--ease-in-out) infinite alternate;
 }
 
 .skeleton-line {
@@ -458,27 +511,32 @@ button.danger-button,
   max-width: 72ch;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-    opacity: 0.55;
-  }
-}
+/* ---------------------------------------------------------------------------
+   Shared surface primitives
+   --------------------------------------------------------------------------- */
 
-/* ---- Shared surface primitives ---- */
-
-/* Card: the standard raised surface for grouped content on the canvas. */
+/* Card: a bounded region for a form, a dialog body, or content that genuinely
+   needs an edge. Flat by design — it is a ruled box on the page, not a tile
+   hovering over it. Reach for `.panel` first; never nest one card in another. */
 .card {
   min-width: 0;
-  padding: var(--space-6);
-  border: 1px solid var(--border);
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: var(--shadow-1);
 }
 
 .card > :last-child {
   margin-bottom: 0;
+}
+
+.card .card {
+  /* Nested cards are always wrong; degrade to a plain ruled block rather than
+     stacking two boxes if a route ever produces one. */
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
 
 .card-title {
@@ -486,7 +544,7 @@ button.danger-button,
   align-items: center;
   gap: var(--space-2);
   margin: 0 0 var(--space-4);
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .card-title svg {
@@ -494,7 +552,26 @@ button.danger-button,
   color: var(--muted);
 }
 
-/* Section header row: title on the left, actions aligned to the baseline. */
+/* Panel: the default way to group content in this system. A heading with a
+   rule under it and content below, flush on the canvas. No box, no shadow —
+   hierarchy from the rule and the space around it. */
+.panel {
+  min-width: 0;
+  margin-bottom: var(--space-8);
+}
+
+.panel > header,
+.panel > .section-head {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--space-4);
+}
+
+.panel > :last-child {
+  margin-bottom: 0;
+}
+
+/* Section header row: title left, one action aligned to its baseline. */
 .section-head {
   display: flex;
   align-items: baseline;
@@ -513,7 +590,54 @@ button.danger-button,
   flex: 0 0 auto;
 }
 
-/* Stat tile: one label plus one primary figure. */
+/* Ledger rows: the core idiom. A label, a figure, and a hairline between
+   them — what a record of positions and amounts actually looks like. Use
+   this instead of a grid of stat tiles. */
+.ledger {
+  display: grid;
+  border-top: 1px solid var(--rule);
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ledger-row > :first-child {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.ledger-row > :last-child {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-figure);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ledger-row-total {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--rule-strong);
+}
+
+.ledger-row-total > :first-child {
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+}
+
+.ledger-row-total > :last-child {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+/* Stat: one label above one primary figure. Legitimate for a single headline
+   number; a row of four of them is the hero-metric template, not a design. */
 .stat {
   min-width: 0;
 }
@@ -522,37 +646,41 @@ button.danger-button,
   display: block;
   margin-bottom: var(--space-1);
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   overflow-wrap: anywhere;
 }
 
 .stat-value {
   margin: 0;
-  font-size: 1.375rem;
-  font-weight: 650;
-  line-height: 1.25;
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
   font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-figure);
+  line-height: var(--leading-tight);
   overflow-wrap: anywhere;
 }
 
 .stat-value small {
   color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-normal);
+  letter-spacing: normal;
 }
 
-/* Badge: bounded status/category vocabulary. */
+/* Badge: a bounded status and category vocabulary. */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 9px;
-  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  border-radius: var(--radius-inset);
   background: var(--tint-neutral);
   color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.6;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.7;
   white-space: nowrap;
 }
 
@@ -566,75 +694,142 @@ button.danger-button,
   color: var(--tint-warn-text);
 }
 
+/* Direction badges stay unfilled: the market palette is never a fill. */
 .badge-up {
   background: transparent;
+  padding-inline: 0;
   color: var(--market-up);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .badge-down {
   background: transparent;
+  padding-inline: 0;
   color: var(--market-down);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Toolbar: one row for filters and primary list controls. */
+/* Toolbar: one row of filters and list controls, sitting in a sunken well so
+   it reads as chrome rather than as content. */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: var(--space-3) var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  background: var(--surface-sunken);
 }
 
 .toolbar label {
   min-width: 140px;
-  font-size: 0.8125rem;
   color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .toolbar label select,
 .toolbar label input {
   min-height: 40px;
   padding: 7px 10px;
-  font-size: 0.9375rem;
+  font-size: var(--text-sm);
 }
 
-/* Empty / loading states share one quiet presentation. */
+/* Empty state: a quiet well that names the next action. Not a dashed outline —
+   nothing here is a drop target. */
 .empty-state {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  justify-items: start;
   padding: var(--space-6);
-  border: 1px dashed var(--border-strong);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-card);
+  background: var(--surface-sunken);
   color: var(--muted);
-  font-size: 0.9375rem;
+  font-size: var(--text-sm);
 }
 
 .empty-state p {
   margin: 0;
+  max-width: 56ch;
 }
 
-.lede {
-  margin-bottom: var(--space-7);
-  line-height: 1.75;
+.empty-state :is(h2, h3) {
+  margin-bottom: 0;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Wide tables live in their own bordered scroll region; the page never widens
+   to fit one. */
+.table-scroll {
+  max-width: 100%;
+  margin-top: var(--space-6);
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.table-scroll > table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table-scroll caption {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+}
+
+.table-scroll th,
+.table-scroll td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-scroll th {
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.table-scroll > table tr:last-child td,
+.table-scroll > table tr:last-child th {
+  border-bottom: 0;
 }
 
 .skip {
   position: fixed;
   top: 12px;
   left: 16px;
-  z-index: 10;
+  z-index: var(--z-toast);
   padding: 12px;
-  background: var(--surface);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
   clip-path: inset(50%);
 }
 
 .skip:focus {
   clip-path: none;
 }
+/* ===========================================================================
+   Application shell: sidebar, navigation, main region, dialogs, page frames.
+   =========================================================================== */
 
 .app-shell {
   display: grid;
@@ -643,26 +838,33 @@ button.danger-button,
   align-items: stretch;
 }
 
+/* The second neutral layer. The sidebar is a recessed panel in both themes:
+   slightly deeper than the canvas in light, slightly darker in dark. */
 .sidebar {
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  gap: var(--space-6);
   height: 100dvh;
   padding: var(--space-6) var(--space-4) var(--space-5);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--rule);
   background: var(--muted-surface);
 }
+
+/* ---- Brand -------------------------------------------------------------- */
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--text);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--text-lg);
   text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--text);
 }
 
 .brand-mark {
@@ -681,28 +883,34 @@ button.danger-button,
   min-width: 0;
 }
 
+/* The wordmark is real text in two weights of one family — a variable axis
+   the self-hosted face actually honours. */
 .brand .brand-name {
   display: block;
-  font-weight: 500;
+  font-weight: var(--weight-normal);
+  letter-spacing: var(--tracking-title);
   line-height: 1.2;
 }
 
 .brand .brand-name strong {
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .brand .brand-sub {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 400;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-normal);
+  letter-spacing: normal;
   line-height: 1.35;
 }
 
 .desktop-shell-header {
   display: block;
 }
+
+/* ---- Quick capture ------------------------------------------------------ */
 
 .desktop-quick-entry {
   display: grid;
@@ -723,20 +931,8 @@ button.danger-button,
 .quick-entry-shortcut {
   grid-column: 1 / -1;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--text-2xs);
   text-align: center;
-}
-
-kbd {
-  padding: 1px 5px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--muted-surface);
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.3;
-  white-space: nowrap;
 }
 
 .quick-capture-disclosure {
@@ -748,12 +944,13 @@ kbd {
   place-items: center;
   width: 44px;
   min-height: 44px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control);
   border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--muted);
   cursor: pointer;
   list-style: none;
+  transition: border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
 }
 
 .quick-capture-disclosure > summary::-webkit-details-marker {
@@ -761,25 +958,29 @@ kbd {
 }
 
 .quick-capture-disclosure > summary:hover {
+  border-color: var(--text);
   color: var(--text);
 }
 
 .quick-capture-disclosure[open] > summary {
   border-color: var(--action);
+  background: var(--action-tint);
   color: var(--action);
 }
 
+/* An overlay, so it is one of the few things in this system that earns a
+   shadow. Positioned fixed-adjacent inside a non-clipping parent. */
 .quick-capture-options {
   position: absolute;
   top: calc(100% + var(--space-2));
   right: 0;
-  z-index: 3;
+  z-index: var(--z-dropdown);
   min-width: 190px;
-  padding: var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
+  padding: var(--space-1);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
 }
 
 .quick-capture-options a {
@@ -790,12 +991,17 @@ kbd {
   padding: 8px 10px;
   border-radius: var(--radius-control);
   color: var(--text);
+  font-size: var(--text-sm);
   text-decoration: none;
+  transition: background-color var(--dur-1) var(--ease-out);
 }
 
 .quick-capture-options a:hover {
-  background: var(--tint-neutral);
+  background: var(--selected);
+  color: var(--text);
 }
+
+/* ---- Navigation --------------------------------------------------------- */
 
 .desktop-nav,
 .nav-group-links,
@@ -804,7 +1010,7 @@ kbd {
 }
 
 .desktop-nav {
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .nav-overview {
@@ -813,42 +1019,46 @@ kbd {
 
 .nav-group {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
 }
 
+/* Sentence case, not a tracked-out all-caps eyebrow. The rule above the group
+   does the separating; the label only has to name it. */
 .nav-group h2 {
   margin: 0 0 var(--space-1) var(--space-3);
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.05em;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: normal;
   line-height: 1.4;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .nav-group-links {
-  gap: 2px;
+  gap: 1px;
 }
 
 .nav-more {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .nav-more > summary {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
+  min-height: 40px;
   padding: 6px var(--space-3);
   border-radius: var(--radius-control);
   color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   line-height: 1.4;
   cursor: pointer;
   list-style: none;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
 }
 
 .nav-more .nav-group-links {
@@ -859,8 +1069,13 @@ kbd {
   display: none;
 }
 
+.nav-more > summary:hover {
+  background: var(--tint-neutral);
+  color: var(--text);
+}
+
 .nav-more > summary svg {
-  transition: transform 150ms ease-out;
+  transition: transform var(--dur-2) var(--ease-out);
 }
 
 .nav-more[open] > summary {
@@ -880,23 +1095,27 @@ kbd {
   padding: 6px var(--space-3);
   border-radius: var(--radius-control);
   color: var(--text);
+  font-size: var(--text-sm);
   text-decoration: none;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
 }
 
 .desktop-nav a.nav-diary-view {
   min-height: 44px;
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .desktop-nav a svg,
 .mobile-menu-dialog nav a svg {
   flex: 0 0 auto;
-  color: var(--muted);
+  color: var(--faint);
+  transition: color var(--dur-1) var(--ease-out);
 }
 
 .desktop-nav a:hover,
 .mobile-menu-dialog nav a:hover {
   background: var(--tint-neutral);
+  color: var(--text);
 }
 
 .desktop-nav a:hover svg,
@@ -904,17 +1123,17 @@ kbd {
   color: var(--text);
 }
 
-.desktop-nav a[aria-current="page"],
-.mobile-menu-dialog nav a[aria-current="page"] {
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-  border: 1px solid var(--border);
-  font-weight: 650;
-  padding: 5px calc(var(--space-3) - 1px);
+/* The current page is marked by ink, not by lifting it off the sidebar.
+   Same box, same padding — no reflow between states. */
+.desktop-nav a[aria-current='page'],
+.mobile-menu-dialog nav a[aria-current='page'] {
+  background: var(--selected);
+  color: var(--action-strong);
+  font-weight: var(--weight-semibold);
 }
 
-.desktop-nav a[aria-current="page"] svg,
-.mobile-menu-dialog nav a[aria-current="page"] svg {
+.desktop-nav a[aria-current='page'] svg,
+.mobile-menu-dialog nav a[aria-current='page'] svg {
   color: var(--action);
 }
 
@@ -922,17 +1141,28 @@ kbd {
   display: grid;
   gap: var(--space-3);
   margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
 }
 
 .preferences {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
+}
+
+.preferences label {
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .preferences select {
-  padding: 8px;
-  font-size: 0.875rem;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: var(--text-sm);
 }
+
+/* ---- Main --------------------------------------------------------------- */
 
 .app-shell > main {
   width: 100%;
@@ -955,34 +1185,32 @@ main:focus-visible {
   outline-offset: -4px;
 }
 
+/* ---- Page frames -------------------------------------------------------- */
+
 .welcome {
   max-width: 800px;
   padding-top: var(--space-8);
 }
 
 .welcome h1 {
-  max-width: 22ch;
-  margin-bottom: var(--space-6);
-  font-size: 2rem;
-  line-height: 1.45;
+  max-width: 24ch;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-3xl);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .welcome .lede {
-  max-width: 52ch;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+  max-width: 54ch;
+  font-size: var(--text-base);
 }
 
 .welcome-note {
-  margin-top: var(--space-8);
+  margin-top: var(--space-10);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .welcome-note p {
@@ -991,7 +1219,7 @@ main:focus-visible {
 
 .form-page {
   max-width: 440px;
-  margin: var(--space-8) auto;
+  margin: var(--space-10) auto;
 }
 
 .form-page h1 {
@@ -1002,18 +1230,83 @@ main:focus-visible {
   margin-top: var(--space-6);
 }
 
-.error {
-  margin: 0;
-  color: var(--negative);
-  overflow-wrap: anywhere;
+.page-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--section-gap);
 }
 
-.success {
-  padding: var(--space-3) var(--space-4);
-  border-radius: 4px;
-  background: var(--selected);
-  color: var(--text);
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: var(--space-8);
 }
+
+.agenda-section {
+  margin-bottom: var(--space-8);
+  padding-top: var(--section-gap);
+  border-top: 1px solid var(--rule);
+}
+
+.agenda-row {
+  padding: var(--space-4) 0;
+}
+
+.status-label {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  color: var(--action);
+  font-size: var(--text-sm);
+}
+
+.context-panel {
+  align-self: start;
+  padding: var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--muted-surface);
+}
+
+.context-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.foreground-reminders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  margin-bottom: var(--section-gap);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+.pwa-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-5);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.pwa-status button {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+}
+
+.boundary {
+  max-width: 560px;
+  padding: var(--space-10) var(--page-gutter);
+  margin-inline: auto;
+}
+
+/* ---- Editors and reading ------------------------------------------------ */
 
 .editor {
   max-width: 880px;
@@ -1052,11 +1345,11 @@ main:focus-visible {
   margin-bottom: var(--space-5);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-control);
-  background: var(--selected);
+  background: var(--action-tint);
 }
 
 .article-save-result a {
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
 .article-archive-hint,
@@ -1068,6 +1361,7 @@ main:focus-visible {
   display: block;
   width: 100%;
   max-height: 480px;
+  border-radius: var(--radius-card);
   object-fit: cover;
 }
 
@@ -1083,7 +1377,8 @@ main:focus-visible {
 }
 
 .title-input {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
 }
 
 .editor-footer {
@@ -1092,14 +1387,16 @@ main:focus-visible {
   justify-content: space-between;
   gap: var(--space-4);
   padding-top: var(--space-5);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 
 .editor-footer span {
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
+/* Reading surfaces drop density: a bounded measure and a wide line height, so
+   the user's own writing stays reviewable. */
 .diary-reading {
   max-width: 72ch;
 }
@@ -1107,7 +1404,7 @@ main:focus-visible {
 .diary-reading header {
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 
 .diary-reading h1 {
@@ -1115,7 +1412,7 @@ main:focus-visible {
 }
 
 .diary-content {
-  line-height: 1.85;
+  line-height: var(--leading-relaxed);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -1123,22 +1420,21 @@ main:focus-visible {
 .diary-reading footer {
   margin-top: var(--space-8);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 
 .inline-link {
   margin-inline-start: var(--space-5);
 }
 
-.boundary {
-  padding: var(--space-8);
-}
-
 .preview-notice {
   max-width: none;
   padding: var(--space-3) var(--space-4);
-  background: var(--selected);
-  font-size: 0.875rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--text-sm);
 }
 
 .preview-nav {
@@ -1148,83 +1444,66 @@ main:focus-visible {
   margin: var(--space-6) 0 var(--space-8);
 }
 
-.preview-nav button[aria-pressed="true"] {
+.preview-nav button[aria-pressed='true'] {
   border-color: var(--action);
   background: var(--action);
   color: var(--on-action);
 }
 
-.page-heading {
+.preview-empty {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--section-gap);
-}
-
-.split {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-  gap: var(--space-8);
-}
-
-.agenda-section {
-  margin-bottom: var(--space-8);
-  padding-top: var(--section-gap);
-  border-top: 1px solid var(--border);
-}
-
-.agenda-row {
-  padding: var(--space-4) 0;
-}
-
-.status-label {
-  display: inline-block;
-  margin-bottom: var(--space-3);
-  color: var(--action);
-  font-size: 0.875rem;
-}
-
-.context-panel {
-  align-self: start;
-  padding: var(--space-6);
-  background: var(--muted-surface);
-}
-
-.context-panel p:last-child {
-  margin-bottom: 0;
-}
-
-.foreground-reminders {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3) var(--space-6);
-  margin-bottom: var(--section-gap);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
-.pwa-status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-5);
-  color: var(--muted);
-  font-size: 0.8125rem;
+.preview-empty input {
+  width: 20px;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--action);
 }
 
-.pwa-status button {
-  min-height: 32px;
-  padding: 4px 12px;
-  font-size: 0.8125rem;
-}
+/* ---- Overlays -----------------------------------------------------------
+   Dialogs and popovers are the only surfaces that genuinely sit above the
+   page, so they are the only ones that carry a shadow. Entry is a short
+   fade and a 4px rise: enough to say "this arrived", not a performance.
+   ------------------------------------------------------------------------- */
 
 .mobile-shell-header,
 .mobile-menu-dialog {
   display: none;
+}
+
+dialog {
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+}
+
+dialog[open] {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out);
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+dialog::backdrop {
+  background: var(--backdrop);
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    background: oklch(0.2 0.02 277 / 0);
+  }
 }
 
 .mobile-menu-dialog {
@@ -1232,19 +1511,12 @@ main:focus-visible {
   max-height: calc(100dvh - 24px);
   margin: auto;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.mobile-menu-dialog::backdrop {
-  background: rgb(32 36 42 / 0.45);
+  border-radius: var(--radius-card);
 }
 
 .mobile-menu-panel {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-5);
   max-height: calc(100dvh - 24px);
   padding: var(--space-5);
   overflow-y: auto;
@@ -1256,7 +1528,7 @@ main:focus-visible {
   justify-content: space-between;
   gap: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 
 .mobile-menu-header h2 {
@@ -1264,7 +1536,7 @@ main:focus-visible {
 }
 
 .mobile-menu-dialog nav {
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .mobile-menu-dialog nav a {
@@ -1275,14 +1547,14 @@ main:focus-visible {
   display: grid;
   gap: var(--space-4);
   padding-top: var(--space-5);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 
 .mobile-menu-capture {
   display: grid;
   gap: var(--space-3);
   padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 
 .mobile-menu-capture h2 {
@@ -1310,71 +1582,18 @@ main:focus-visible {
 }
 
 .mobile-menu-preferences .preferences select {
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .mobile-menu-trigger {
   min-width: 88px;
 }
 
-.mobile-diary-navigation {
-  display: none;
-}
-
-.mobile-diary-navigation a {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  min-width: 0;
-  min-height: 60px;
-  padding: 6px 4px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  color: var(--text);
-  font-size: 0.875rem;
-  font-weight: 650;
-  line-height: 1.25;
-  text-align: center;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-.mobile-diary-navigation a:hover {
-  background: var(--tint-neutral);
-  color: var(--text);
-}
-
-.mobile-diary-navigation a[aria-current="page"] {
-  border-color: var(--border);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-1);
-}
-
-.mobile-diary-navigation a[aria-current="page"] svg {
-  color: var(--action);
-}
-
-.mobile-brand-name {
-  font-size: 1.125rem;
-  font-weight: 500;
-}
-
 .quick-dialog {
   width: min(680px, calc(100% - 32px));
   max-height: calc(100dvh - 48px);
   padding: var(--space-6);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.quick-dialog::backdrop,
-.delete-dialog::backdrop {
-  background: rgb(32 36 42 / 0.45);
+  border-radius: var(--radius-card);
 }
 
 .dialog-close {
@@ -1401,78 +1620,61 @@ main:focus-visible {
 
 .quick-dialog .editor header .lede {
   margin-bottom: var(--space-4);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
-.preview-empty {
+/* ---- Mobile navigation -------------------------------------------------- */
+
+.mobile-diary-navigation {
+  display: none;
+}
+
+.mobile-diary-navigation a {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.preview-empty input {
-  width: 20px;
-  min-height: 44px;
-  margin: 0;
-  accent-color: var(--action);
-}
-
-.table-scroll {
-  max-width: 100%;
-  margin-top: var(--space-6);
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-}
-
-.table-scroll > table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.table-scroll caption {
-  padding: var(--space-4);
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  font-weight: 650;
-}
-
-.table-scroll th,
-.table-scroll td {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-.table-scroll th {
-  background: var(--muted-surface);
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.table-scroll > table tr:last-child td,
-.table-scroll > table tr:last-child th {
-  border-bottom: 0;
-}
-
-[aria-invalid="true"] {
-  border-color: var(--negative);
-}
-
-.error p {
-  margin-bottom: var(--space-2);
-}
-
-.error code {
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 60px;
+  padding: 6px 4px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
   overflow-wrap: anywhere;
-  font-size: 0.875rem;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
 }
+
+.mobile-diary-navigation a svg {
+  color: var(--faint);
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.mobile-diary-navigation a:hover {
+  background: var(--tint-neutral);
+  color: var(--text);
+}
+
+.mobile-diary-navigation a[aria-current='page'] {
+  background: var(--selected);
+  color: var(--action-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.mobile-diary-navigation a[aria-current='page'] svg {
+  color: var(--action);
+}
+
+.mobile-brand-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+}
+
+/* ---- Breakpoints -------------------------------------------------------- */
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .app-shell {
@@ -1486,7 +1688,7 @@ main:focus-visible {
   .quick-capture-primary {
     gap: 4px;
     padding-inline: 8px;
-    font-size: 0.875rem;
+    font-size: var(--text-xs);
   }
 
   .quick-capture-primary svg {
@@ -1516,16 +1718,15 @@ main:focus-visible {
   .sidebar {
     position: sticky;
     top: 0;
-    z-index: 5;
+    z-index: var(--z-nav);
     display: block;
     height: auto;
     min-height: 0;
     padding: var(--space-3) var(--page-gutter);
     padding-top: max(var(--space-3), env(safe-area-inset-top));
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--rule);
     background: var(--muted-surface);
-    box-shadow: var(--shadow-1);
   }
 
   .desktop-shell-header,
@@ -1535,7 +1736,7 @@ main:focus-visible {
   }
 
   .desktop-quick-entry > .quick-entry-controls,
-  .desktop-quick-entry > p[role="status"] {
+  .desktop-quick-entry > p[role='status'] {
     display: none;
   }
 
@@ -1552,11 +1753,11 @@ main:focus-visible {
   }
 
   .mobile-shell-header .brand-name {
-    font-size: 1rem;
+    font-size: var(--text-base);
   }
 
   .mobile-shell-header .brand-sub {
-    font-size: 0.75rem;
+    font-size: var(--text-2xs);
   }
 
   .mobile-shell-actions {
@@ -1583,7 +1784,7 @@ main:focus-visible {
   }
 
   .mobile-menu-panel .nav-group h2 {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
   }
 
   .mobile-menu-panel .preferences {
@@ -1592,7 +1793,7 @@ main:focus-visible {
     gap: var(--space-3);
   }
 
-  .mobile-menu-panel .preferences > div[role="alert"] {
+  .mobile-menu-panel .preferences > div[role='alert'] {
     grid-column: 1 / -1;
   }
 
@@ -1607,21 +1808,20 @@ main:focus-visible {
   .mobile-diary-navigation {
     position: fixed;
     inset: auto 0 0;
-    z-index: 6;
+    z-index: var(--z-nav);
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-1);
     height: var(--mobile-diary-navigation-space);
     padding: var(--space-1) max(var(--page-gutter), env(safe-area-inset-right)) max(var(--space-1), env(safe-area-inset-bottom)) max(var(--page-gutter), env(safe-area-inset-left));
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--rule);
     background: var(--surface);
-    box-shadow: 0 -1px 3px rgb(18 22 30 / 0.08);
   }
 
   .mobile-diary-navigation a {
     min-height: 60px;
     padding: 4px 2px;
-    font-size: 0.8125rem;
+    font-size: var(--text-xs);
   }
 
   .welcome {
@@ -1629,7 +1829,7 @@ main:focus-visible {
   }
 
   .welcome h1 {
-    font-size: 1.75rem;
+    font-size: var(--text-2xl);
   }
 
   .welcome-note {
@@ -1649,7 +1849,7 @@ main:focus-visible {
     flex-wrap: wrap;
   }
 
-  /* Audit UI-066: one button row instead of two stacked full-width rows. */
+  /* One button row instead of two stacked full-width rows. */
   .editor-footer .actions {
     display: flex;
     flex: 1 1 100%;
@@ -1678,6 +1878,7 @@ main:focus-visible {
     margin-top: var(--space-6);
   }
 
+  /* Full-viewport sheet: no border, no radius, no entry offset. */
   .quick-dialog {
     width: 100%;
     max-width: none;
@@ -1713,12 +1914,23 @@ main:focus-visible {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Reduced motion. Every transition and animation in this system is state
+   feedback, so removing it costs nothing: states still change, instantly.
+   --------------------------------------------------------------------------- */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    transition: none !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .skeleton {
     animation: none !important;
+    opacity: 0.6;
   }
 }

@@ -58,7 +58,7 @@
   gap: var(--space-3);
   margin-bottom: var(--space-5);
   padding: var(--space-3) var(--space-4);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: var(--muted-surface);
 }
 
@@ -210,7 +210,7 @@
     bottom: var(--mobile-diary-navigation-space, 76px);
     background: var(--surface);
     padding-block: var(--space-3);
-    z-index: 2;
+    z-index: var(--z-sticky);
   }
 }
 @media (max-height: 500px) and (max-width: 767px) {

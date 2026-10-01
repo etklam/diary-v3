@@ -1,0 +1,381 @@
+/* ===========================================================================
+   Trade basic — design tokens ("The Ledger")
+   ---------------------------------------------------------------------------
+   Every value the interface is allowed to use lives here. `styles.css` and the
+   route stylesheets consume these roles and never hard-code a colour, radius,
+   duration or type size.
+
+   North star: a bound professional record, not a dashboard. Hierarchy comes
+   from rules, alignment and figure treatment — not from cards floating on a
+   grey canvas. Neutrals are tinted toward the one brand hue (ink blue-violet,
+   OKLCH hue 277) so the page reads as paper with ink in it rather than as the
+   default cool grey. Every text/background pair in both themes is verified
+   against WCAG 2.1 (body ≥ 4.5:1, control affordances ≥ 3:1).
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Typeface
+   IBM Plex Sans carries text; IBM Plex Mono carries every figure, ticker and
+   timestamp, which is the product's actual subject matter. Only the Latin
+   subsets are self-hosted (~59KB on the critical path); CJK stays on the
+   platform faces, which the `unicode-range` split below keeps untouched.
+   Licence: OFL-1.1, see public/fonts/LICENSE-IBM-Plex.txt
+   --------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'IBM Plex Sans Web';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('/fonts/plex-sans-latin-var.woff2') format('woff2-variations');
+  /* U+2212 (true minus) is in this range: `formatMarketValue` depends on it. */
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Web';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('/fonts/plex-sans-latin-ext-var.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono Web';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/plex-mono-latin-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono Web';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/plex-mono-latin-500.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* --- Type families -----------------------------------------------------
+     The Latin face leads; the platform CJK face follows and is selected per
+     `html[lang]` below, so zh-TW and zh-CN readers keep correct glyph forms. */
+  --font-sans: 'IBM Plex Sans Web', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: 'IBM Plex Mono Web', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif: Georgia, 'Times New Roman', 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', SimSun, serif;
+
+  /* --- Type scale (fixed rem; product UI reads at a consistent DPI) ------ */
+  --text-2xs: 0.75rem;     /* 12px — badge text only, never essential prose */
+  --text-xs: 0.8125rem;    /* 13px — the small-text floor */
+  --text-sm: 0.875rem;     /* 14px — labels, table body, secondary text */
+  --text-base: 1rem;       /* 16px — body */
+  --text-lg: 1.125rem;     /* 18px — section titles (h2) */
+  --text-xl: 1.3125rem;    /* 21px — primary figures */
+  --text-2xl: 1.5rem;      /* 24px — page titles (h1) */
+  --text-3xl: 1.875rem;    /* 30px — the one page hero */
+
+  --leading-tight: 1.25;   /* figures */
+  --leading-snug: 1.4;     /* headings */
+  --leading-normal: 1.6;   /* interface body */
+  --leading-relaxed: 1.85; /* reading surfaces */
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 680;
+
+  /* Plex is a tight grotesque already; tracking stays well inside the
+     -0.04em floor and headings never go below -0.015em. */
+  --tracking-title: -0.015em;
+  --tracking-figure: -0.01em;
+
+  /* --- Light theme: ink on paper ---------------------------------------- */
+  color-scheme: light;
+
+  --canvas: oklch(0.985 0.004 277);         /* page */
+  --surface: oklch(1 0 0);                  /* bounded regions, forms, dialogs */
+  --surface-sunken: oklch(0.968 0.006 277); /* table headers, inset wells */
+  --surface-raised: oklch(1 0 0);           /* overlays — carries --shadow-pop */
+  --muted-surface: oklch(0.957 0.008 277);  /* sidebar, context panels */
+
+  --text: oklch(0.265 0.022 277);
+  --muted: oklch(0.505 0.022 277);          /* secondary text; passes 4.5:1 everywhere */
+  --faint: oklch(0.62 0.018 277);           /* disabled and decorative only — never prose */
+
+  --rule: oklch(0.905 0.008 277);           /* the hairline this system is built on */
+  --rule-strong: oklch(0.815 0.012 277);    /* divider between major regions */
+  --border: var(--rule);                    /* compatibility role for route CSS */
+  --border-strong: var(--rule-strong);
+  --control: oklch(0.655 0.016 277);        /* input and secondary-button edge, ≥3:1 */
+
+  --action: oklch(0.455 0.148 277);
+  --action-hover: oklch(0.4 0.148 277);
+  --action-strong: oklch(0.355 0.14 277);
+  --on-action: oklch(0.99 0.004 277);
+  --action-tint: oklch(0.455 0.148 277 / 0.09);
+  --selected: oklch(0.455 0.148 277 / 0.11);
+  --focus: oklch(0.455 0.148 277);
+  --focus-halo: oklch(0.455 0.148 277 / 0.16);
+
+  --negative: oklch(0.505 0.175 25);
+  --danger: oklch(0.505 0.175 25);
+  --negative-tint: oklch(0.505 0.175 25 / 0.08);
+
+  /* Financial direction. Reserved for market movement; never decoration, and
+     never drawn from the locale, brand or status roles. */
+  --market-up: oklch(0.5 0.125 150);
+  --market-down: oklch(0.515 0.175 25);
+  --market-flat: oklch(0.525 0.016 277);
+
+  /* Chart series. No green and no red, so a series can never read as
+     gain or loss, and none of them collide with the ink action colour. */
+  --series-1: oklch(0.5 0.11 215);
+  --series-2: oklch(0.5 0.15 320);
+  --series-3: oklch(0.52 0.115 75);
+
+  /* Status tints for badges and category marks. */
+  --tint-info: oklch(0.455 0.148 277 / 0.12);
+  --tint-info-text: oklch(0.42 0.12 255);
+  --tint-warn: oklch(0.52 0.115 75 / 0.16);
+  --tint-warn-text: oklch(0.455 0.095 70);
+  --tint-neutral: oklch(0.505 0.022 277 / 0.12);
+
+  /* --- Space ------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 56px;
+  --page-gutter: 16px;
+  --page-block: 24px;
+  --section-gap: 24px;
+
+  /* --- Radius: a crisp 4px family. A record book is not a pill. ---------- */
+  --radius-inset: 2px;
+  --radius-control: 4px;
+  --radius-card: 8px;
+  --radius-pill: 999px;
+
+  /* --- Elevation ---------------------------------------------------------
+     THE STRUCTURAL HIERARCHY RULE. Grouped content is bounded by a rule, not
+     lifted by a shadow: `--shadow-1` is deliberately `none` so no panel,
+     toolbar, table or nav item floats. Shadow is spent only on surfaces that
+     genuinely sit above the page — dialogs, popovers, sticky edges. */
+  --backdrop: oklch(0.2 0.02 277 / 0.5);
+  --shadow-1: none;
+  --shadow-pop: 0 1px 2px oklch(0.265 0.022 277 / 0.07), 0 6px 12px oklch(0.265 0.022 277 / 0.09);
+  --shadow-2: var(--shadow-pop);
+  --shadow-sticky: 0 1px 0 oklch(0.265 0.022 277 / 0.07);
+
+  /* --- Motion ------------------------------------------------------------
+     State feedback only: hover, focus, selection, disclosure, overlay entry.
+     No page-load choreography. All of it has a reduced-motion answer. */
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 260ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* --- Semantic stacking order ------------------------------------------ */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-nav: 200;
+  --z-dropdown: 300;
+  --z-overlay: 400;
+  --z-toast: 500;
+
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--canvas);
+  font-synthesis: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme: the same roles after hours. Ink-tinted near-black rather than
+   slate grey, and the sidebar recedes below the content instead of sitting
+   above it — the inverse of the light theme's layering, same mental model.
+   --------------------------------------------------------------------------- */
+
+/* The explicit opt-in and the `prefers-color-scheme` fallback need the same
+   declarations. They are duplicated rather than shared because the fallback
+   must not win over an explicit `light` choice, and CSS cannot hoist a
+   custom-property block across two selectors without a build step. Keep the
+   two copies in sync. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --canvas: oklch(0.185 0.013 277);
+  --surface: oklch(0.232 0.015 277);
+  --surface-sunken: oklch(0.205 0.013 277);
+  --surface-raised: oklch(0.26 0.016 277);
+  --muted-surface: oklch(0.158 0.012 277);
+
+  --text: oklch(0.935 0.008 277);
+  --muted: oklch(0.735 0.016 277);
+  --faint: oklch(0.6 0.015 277);
+
+  --rule: oklch(0.335 0.017 277);
+  --rule-strong: oklch(0.44 0.02 277);
+  --control: oklch(0.555 0.02 277);
+
+  --action: oklch(0.785 0.115 283);
+  --action-hover: oklch(0.845 0.09 283);
+  --action-strong: oklch(0.865 0.085 283);
+  --on-action: oklch(0.21 0.06 280);
+  --action-tint: oklch(0.785 0.115 283 / 0.14);
+  --selected: oklch(0.785 0.115 283 / 0.16);
+  --focus: oklch(0.785 0.115 283);
+  --focus-halo: oklch(0.785 0.115 283 / 0.24);
+
+  --negative: oklch(0.745 0.14 25);
+  --danger: oklch(0.745 0.14 25);
+  --negative-tint: oklch(0.745 0.14 25 / 0.14);
+
+  --market-up: oklch(0.8 0.15 155);
+  --market-down: oklch(0.745 0.14 25);
+  --market-flat: oklch(0.72 0.014 277);
+
+  --series-1: oklch(0.76 0.105 215);
+  --series-2: oklch(0.76 0.12 320);
+  --series-3: oklch(0.82 0.11 80);
+
+  --tint-info: oklch(0.785 0.115 283 / 0.16);
+  --tint-info-text: oklch(0.83 0.09 255);
+  --tint-warn: oklch(0.82 0.11 80 / 0.16);
+  --tint-warn-text: oklch(0.85 0.08 75);
+  --tint-neutral: oklch(0.735 0.016 277 / 0.14);
+
+  --backdrop: oklch(0.1 0.01 277 / 0.66);
+  --shadow-pop: 0 1px 2px oklch(0.12 0.01 277 / 0.5), 0 6px 12px oklch(0.12 0.01 277 / 0.45);
+  --shadow-2: var(--shadow-pop);
+  --shadow-sticky: 0 1px 0 oklch(0.12 0.01 277 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --canvas: oklch(0.185 0.013 277);
+    --surface: oklch(0.232 0.015 277);
+    --surface-sunken: oklch(0.205 0.013 277);
+    --surface-raised: oklch(0.26 0.016 277);
+    --muted-surface: oklch(0.158 0.012 277);
+
+    --text: oklch(0.935 0.008 277);
+    --muted: oklch(0.735 0.016 277);
+    --faint: oklch(0.6 0.015 277);
+
+    --rule: oklch(0.335 0.017 277);
+    --rule-strong: oklch(0.44 0.02 277);
+    --control: oklch(0.555 0.02 277);
+
+    --action: oklch(0.785 0.115 283);
+    --action-hover: oklch(0.845 0.09 283);
+    --action-strong: oklch(0.865 0.085 283);
+    --on-action: oklch(0.21 0.06 280);
+    --action-tint: oklch(0.785 0.115 283 / 0.14);
+    --selected: oklch(0.785 0.115 283 / 0.16);
+    --focus: oklch(0.785 0.115 283);
+    --focus-halo: oklch(0.785 0.115 283 / 0.24);
+
+    --negative: oklch(0.745 0.14 25);
+    --danger: oklch(0.745 0.14 25);
+    --negative-tint: oklch(0.745 0.14 25 / 0.14);
+
+    --market-up: oklch(0.8 0.15 155);
+    --market-down: oklch(0.745 0.14 25);
+    --market-flat: oklch(0.72 0.014 277);
+
+    --series-1: oklch(0.76 0.105 215);
+    --series-2: oklch(0.76 0.12 320);
+    --series-3: oklch(0.82 0.11 80);
+
+    --tint-info: oklch(0.785 0.115 283 / 0.16);
+    --tint-info-text: oklch(0.83 0.09 255);
+    --tint-warn: oklch(0.82 0.11 80 / 0.16);
+    --tint-warn-text: oklch(0.85 0.08 75);
+    --tint-neutral: oklch(0.735 0.016 277 / 0.14);
+
+    --backdrop: oklch(0.1 0.01 277 / 0.66);
+    --shadow-pop: 0 1px 2px oklch(0.12 0.01 277 / 0.5), 0 6px 12px oklch(0.12 0.01 277 / 0.45);
+    --shadow-2: var(--shadow-pop);
+    --shadow-sticky: 0 1px 0 oklch(0.12 0.01 277 / 0.5);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Market colour convention (user preference, localStorage `diary-market-color`).
+   `standard` = green up / red down (default); `cn` = 紅漲綠跌; `cb` = a
+   colourblind-safe blue/orange pair held well clear of the ink action hue.
+   `formatMarketValue` always renders +/−, so colour never carries direction
+   on its own under any of these.
+   --------------------------------------------------------------------------- */
+
+:root[data-market-color='cn'] {
+  --market-up: oklch(0.515 0.175 25);
+  --market-down: oklch(0.5 0.125 150);
+}
+
+:root[data-market-color='cb'] {
+  --market-up: oklch(0.47 0.15 235);
+  --market-down: oklch(0.52 0.135 55);
+}
+
+:root[data-theme='dark'][data-market-color='cn'] {
+  --market-up: oklch(0.745 0.14 25);
+  --market-down: oklch(0.8 0.15 155);
+}
+
+:root[data-theme='dark'][data-market-color='cb'] {
+  --market-up: oklch(0.78 0.11 243);
+  --market-down: oklch(0.79 0.12 62);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-market-color='cn'] {
+    --market-up: oklch(0.745 0.14 25);
+    --market-down: oklch(0.8 0.15 155);
+  }
+
+  :root:not([data-theme='light'])[data-market-color='cb'] {
+    --market-up: oklch(0.78 0.11 243);
+    --market-down: oklch(0.79 0.12 62);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Script-specific stacks. The self-hosted Latin face always leads; only the
+   CJK fallback changes, so Simplified-Chinese readers get SC glyph forms and
+   English readers skip the CJK families entirely.
+   --------------------------------------------------------------------------- */
+
+html[lang='zh-CN'] {
+  --font-sans: 'IBM Plex Sans Web', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', SimSun, serif;
+}
+
+html[lang='en'] {
+  --font-sans: 'IBM Plex Sans Web', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --page-gutter: 24px;
+    --page-block: 32px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --page-gutter: 32px;
+  }
+}

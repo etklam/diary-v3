@@ -84,7 +84,7 @@
 .safe-markdown code {
   padding: 0.15em 0.4em;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   background: var(--tint-neutral);
   font-family: var(--font-mono);
   font-size: 0.875em;
@@ -97,7 +97,7 @@
   margin-bottom: 1.25em;
   padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--muted-surface);
   font-size: 0.875rem;
   line-height: 1.6;
@@ -119,9 +119,7 @@
 .safe-markdown blockquote {
   margin: 1.5em 0;
   padding: var(--space-2) var(--space-4);
-  border-left: 3px solid color-mix(in srgb, var(--action) 35%, var(--border));
-  border-radius: 0 var(--radius-control) var(--radius-control) 0;
-  background: var(--muted-surface);
+  border-left: 1px solid var(--rule-strong);
   color: var(--muted);
 }
 

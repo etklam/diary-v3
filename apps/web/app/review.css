@@ -200,7 +200,7 @@
   gap: var(--space-3);
   margin: var(--space-4) 0;
   padding: var(--space-3) var(--space-4);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: var(--muted-surface);
 }
 
@@ -273,7 +273,7 @@
 .review-reschedule summary, .review-original-disclosure summary { min-height: 44px; padding: var(--space-3) 0; cursor: pointer; }
 .review-reschedule fieldset { min-width: 0; border: 0; padding: 0; }
 @media (max-width: 767px) {
-  .review-footer { position: sticky; bottom: var(--mobile-diary-navigation-space, 76px); background: var(--surface); padding: var(--space-3); z-index: 2; }
+  .review-footer { position: sticky; bottom: var(--mobile-diary-navigation-space, 76px); background: var(--surface); padding: var(--space-3); z-index: var(--z-sticky); }
   .diary-review { padding-bottom: var(--space-6); }
 }
 .review-plan-execution { flex-basis: 100%; min-width: 0; }

@@ -17,7 +17,7 @@ export default function About() {
   const { locale } = useUi();
   const c = copy[locale];
   return <article className="public-page public-reading">
-    <header><p className="public-eyebrow">Trade basic</p><h1>{c.title}</h1><p className="lede">{c.intro}</p></header>
+    <header><h1>{c.title}</h1><p className="lede">{c.intro}</p></header>
     <section className="public-section"><h2>{c.purpose}</h2></section>
     <section className="public-section"><h2>{c.who}</h2><p>{c.whoText}</p></section>
     <section className="public-section"><h2>{c.distinction}</h2><p>{c.distinctionText}</p></section>

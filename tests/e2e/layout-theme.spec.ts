@@ -104,7 +104,8 @@ test('mobile preferences stay in Menu while keyboard quick diary remains availab
 
   await selectTheme(page, 'dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await expect.poll(() => page.locator('meta[name="theme-color"]').getAttribute('content')).toBe('#17191d')
+  // The dark canvas from tokens.css; the browser chrome follows the theme.
+  await expect.poll(() => page.locator('meta[name="theme-color"]').getAttribute('content')).toBe('#111219')
 
   await page.keyboard.press('Control+j')
   const quickDialog = page.locator('dialog.capture-dialog')

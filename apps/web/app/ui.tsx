@@ -35,7 +35,7 @@ export function UiProvider({children}:{children:ReactNode}) {
     if (!ready) return;
     document.documentElement.dataset.theme=theme;
     const media=window.matchMedia('(prefers-color-scheme: dark)');
-    const updateThemeColor=()=>document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'||(theme==='system'&&media.matches)?'#17191d':'#f6f7f8');
+    const updateThemeColor=()=>document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'||(theme==='system'&&media.matches)?'#111219':'#f9fafd');
     updateThemeColor();
     media.addEventListener('change',updateThemeColor);
     try { localStorage.setItem('diary-theme',theme); } catch { /* Optional preference storage. */ }

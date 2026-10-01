@@ -91,7 +91,7 @@
 
 .calendar-grid .holiday,
 .heatmap-week .holiday {
-  background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--border) 5px, var(--border) 6px);
+  background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--rule-strong) 5px, var(--rule-strong) 6px);
 }
 
 .calendar-heatmap {
@@ -127,7 +127,7 @@
   min-height: 28px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-inset);
   background: var(--muted-surface);
 }
 

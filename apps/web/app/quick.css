@@ -6,13 +6,13 @@
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   color: var(--text);
 }
 
 .capture-dialog::backdrop {
-  background: rgb(32 36 42 / 0.45);
+  background: var(--backdrop);
 }
 
 .capture-dialog-header {
@@ -140,7 +140,7 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--muted-surface);
 }
 
@@ -268,7 +268,7 @@
   .editor .quick-composer .quick-submit {
     position: sticky;
     bottom: var(--mobile-diary-navigation-space, 76px);
-    z-index: 2;
+    z-index: var(--z-sticky);
     margin: 0 calc(-1 * var(--page-gutter));
     padding: var(--space-2) var(--page-gutter) max(var(--space-2), env(safe-area-inset-bottom));
     background: var(--canvas);

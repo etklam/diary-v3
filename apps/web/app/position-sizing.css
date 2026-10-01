@@ -96,10 +96,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The sum of the inputs. Marked the way a ledger marks a total — a heavier
+   rule closing the column — not with a coloured stripe down its side. */
 .position-sizing-total {
-  margin-bottom: var(--space-4);
-  padding-left: var(--space-4);
-  border-left: 3px solid var(--action);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--rule-strong);
 }
 
 .position-sizing-total dt {
@@ -223,7 +225,7 @@
 }
 
 .position-sizing-markdown textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.55;
 }
