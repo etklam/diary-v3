@@ -9,7 +9,7 @@ Reviewed against repository source on 2026-09-27. The product is **Trade basic**
 | Install, run, and verify locally | [Project README](../README.md) |
 | Understand current capabilities and limits | [Product](../PRODUCT.md) |
 | Navigate runtimes, packages, and data boundaries | [Architecture](architecture.md) |
-| Implement or review the UI | [Current design system](../DESIGN.md) and [scoped design records](design/) |
+| Implement or review the UI | [Current design system](../DESIGN.md), [scoped design records](design/), and the [design changelog](design/CHANGELOG.md) |
 | Understand accepted technical decisions | [ADRs](adr/) |
 | Configure and operate a deployment | [Environment contract](operations/environment-contract.md), [CI/CD](operations/ci-cd-notes.md), and [K3s guide](../ops/k8s/README.md) |
 | Check the latest local engineering evidence | [2026-09-27 cleanup, performance, and security audit](audits/project-cleanup-2026-09-27.md) |

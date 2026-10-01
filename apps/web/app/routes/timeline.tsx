@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { groupTimelineEntries } from '@diary/domain';
-import { useUi } from '../ui';
+import { useUi, LoadingBlock } from '../ui';
 import { useTimeline } from '../use-timeline';
 import { timelineCopy } from '../timeline-copy';
 import { FailureNotice, invalidField } from '../api-error';
@@ -55,7 +55,7 @@ export default function TimelinePage() {
       </details>
       {hasDateFilter && <button type="button" className="secondary timeline-filter-clear" onClick={() => setParams({})}>{c.clear}</button>}
     </div>
-    {timeline.loading ? <p role="status">{t('loading')}</p> : <>
+    {timeline.loading ? <LoadingBlock label={t('loading')} /> : <>
       <p className="muted" role="status">{timeline.entries.length} {locale === 'en' && timeline.entries.length === 1 ? 'diary loaded' : c.loaded}</p>
       {groups.map(group => <section className="timeline-month" key={group.period} aria-label={monthLabel(group.period)}><header><h2>{monthLabel(group.period)}</h2><span className="muted">{group.entries.length} {locale === 'en' && group.entries.length === 1 ? 'entry' : c.entries}</span></header><ol>{group.entries.map(entry => <li key={entry.id} data-testid="timeline-entry"><time dateTime={entry.date}>{entry.date}</time><article><h3><Link to={`/diaries/${entry.id}`}>{entry.title}</Link></h3><ul className="timeline-meta" aria-label={c.entries}>{entry.stockSymbols.map(symbol => <li key={symbol} className="timeline-symbol">{symbol}</li>)}{entry.tags.map(tag => <li key={tag}>{tag}</li>)}{entry.transactionCount > 0 && <li>{entry.transactionCount} {c.transactions}</li>}{entry.alertCount > 0 && <li>{entry.alertCount} {c.alerts}</li>}{entry.reviewed && <li>{c.reviewed}{entry.reviewOutcome && entry.reviewOutcome in c ? ` · ${c[entry.reviewOutcome as 'INTACT']}` : ''}</li>}</ul><p className="timeline-excerpt">{entry.excerpt || c.noContent}</p>{entry.excerpt && <Link className="timeline-read" to={`/diaries/${entry.id}`}>{c.read}</Link>}</article></li>)}</ol></section>)}
       {!timeline.error && timeline.entries.length === 0 && <div className="timeline-empty"><p>{c.empty}</p><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div>}

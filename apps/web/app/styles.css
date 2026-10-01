@@ -120,6 +120,52 @@
   }
 }
 
+/* Market color convention (user preference, localStorage `diary-market-color`).
+   `standard` = green up / red down (default, no attribute needed); `cn` = red up
+   / green down; `cb` = colorblind-safe blue/orange. Signs (+/−) are always
+   rendered by formatMarketValue, so color never carries direction alone. */
+:root[data-market-color="cn"] {
+  --market-up: #b62e3c;
+  --market-down: #167044;
+}
+
+:root[data-market-color="cb"] {
+  --market-up: #1a5fb8;
+  --market-down: #8f4a0d;
+}
+
+:root[data-theme="dark"][data-market-color="cn"] {
+  --market-up: #ff939c;
+  --market-down: #70d49a;
+}
+
+:root[data-theme="dark"][data-market-color="cb"] {
+  --market-up: #9cc2ff;
+  --market-down: #e8a35e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-market-color="cn"] {
+    --market-up: #ff939c;
+    --market-down: #70d49a;
+  }
+
+  :root:not([data-theme="light"])[data-market-color="cb"] {
+    --market-up: #9cc2ff;
+    --market-down: #e8a35e;
+  }
+}
+
+/* Simplified-Chinese glyph selection: the default stack only names TC fonts,
+   so zh-CN readers would otherwise see traditional glyph forms. */
+html[lang="zh-CN"] {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+
+html[lang="en"] {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 @media (min-width: 768px) {
   :root {
     --page-gutter: 24px;
@@ -373,6 +419,50 @@ main form > button {
 
 .market-flat {
   color: var(--market-flat);
+}
+
+/* Destructive action: outlined in the negative color; reserve for delete/archive
+   buttons that name their consequence and pair with a confirmation dialog. */
+button.danger-button,
+.button.danger-button {
+  border-color: var(--negative);
+  background: var(--surface);
+  color: var(--negative);
+  box-shadow: none;
+}
+
+.sr-only {
+  position: fixed;
+  clip-path: inset(50%);
+}
+
+/* Loading placeholder: a quiet pulsing block sized like the content it stands
+   in for. Pair with role="status" text via .sr-only. */
+@keyframes skeleton-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+
+.skeleton {
+  border-radius: var(--radius-control);
+  background: var(--muted-surface);
+  animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeleton-line {
+  height: 1rem;
+  margin: var(--space-3) 0;
+}
+
+.skeleton-list {
+  max-width: 72ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.55;
+  }
 }
 
 /* ---- Shared surface primitives ---- */

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { achievementListSchema, writeAchievementSchema, type AchievementResponse } from '@diary/contracts/achievements'
-import { api, useUi } from '../ui'
+import { api, useUi, LoadingBlock } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath } from '../session'
 import '../achievements.css'
@@ -203,11 +203,11 @@ export default function Achievements() {
     </form>}
     <FailureNotice failure={writeError} id="achievement-form-error" />
     {status && <p role="status">{status === 'saved' ? c.saved : c.deleted}</p>}
-    {error ? <><FailureNotice failure={error} /><div className="actions"><button type="button" onClick={() => retry(value => value + 1)}>{t('retry')}</button>{error.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/achievements')}>{t('login')}</Link>}</div></> : rows === null ? <p role="status">{t('loading')}</p> : rows.length === 0 ? <div className="empty-state"><p>{c.empty}</p></div> : <ol className="achievement-list card">
+    {error ? <><FailureNotice failure={error} /><div className="actions"><button type="button" onClick={() => retry(value => value + 1)}>{t('retry')}</button>{error.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/achievements')}>{t('login')}</Link>}</div></> : rows === null ? <LoadingBlock label={t('loading')} /> : rows.length === 0 ? <div className="empty-state"><p>{c.empty}</p></div> : <ol className="achievement-list card">
       {rows.map(row => <li key={row.id} data-testid="achievement">
         <time dateTime={row.date}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${row.date}T00:00:00Z`))}</time>
         <p className="achievement-content">{row.content}</p>
-        <div className="actions"><button type="button" className="secondary" disabled={pending || formOpen} onClick={() => openEdit(row)}>{c.editAction}</button><button type="button" className="secondary" disabled={pending || formOpen} onClick={() => void remove(row)}>{c.remove}</button></div>
+        <div className="actions"><button type="button" className="secondary" disabled={pending || formOpen} onClick={() => openEdit(row)}>{c.editAction}</button><button type="button" className="secondary danger-button" disabled={pending || formOpen} onClick={() => void remove(row)}>{c.remove}</button></div>
       </li>)}
     </ol>}
   </section>

@@ -23,15 +23,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
     const value = (post as { resolvedLocale?: unknown }).resolvedLocale;
     return value === 'zh-TW' || value === 'zh-CN' || value === 'en' ? value : null;
   }).find(Boolean) ?? 'zh-TW';
-  return <html lang={articleLocale} suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
+  return <html lang={articleLocale} suppressHydrationWarning><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#f6f7f8" /><link rel="manifest" href="/manifest.webmanifest" /><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><script dangerouslySetInnerHTML={{__html: `try{var t=localStorage.getItem('diary-theme');if(t==='dark'||t==='light'||t==='system')document.documentElement.dataset.theme=t;var m=localStorage.getItem('diary-market-color');if(m==='cn'||m==='cb')document.documentElement.dataset.marketColor=m}catch{}`}} /><Meta /><Links /></head><body>{children}<ScrollRestoration /><Scripts /></body></html>;
 }
 
 function PreferencesControls({ mobile = false, compact = false }: { mobile?: boolean; compact?: boolean }) {
-  const { t, locale, setLocale, theme, setTheme, ready, localeReady, localeError, retryLocale } = useUi();
+  const { t, locale, setLocale, theme, setTheme, marketColor, setMarketColor, ready, localeReady, localeError, retryLocale } = useUi();
   return <div className={compact ? 'preferences preferences-compact' : 'preferences'}>
     <label>{!compact && t('language')}<select aria-label={compact ? t('language') : undefined} disabled={!ready||!localeReady} data-testid={mobile ? 'mobile-locale-select' : 'locale-select'} value={locale} onChange={e => setLocale(e.target.value as 'zh-TW' | 'zh-CN' | 'en')}><option value="zh-TW">繁體中文</option><option value="zh-CN">简体中文</option><option value="en">English</option></select></label>
     {localeError&&<div role="alert"><p>{locale==='en'?'Unable to load or save your language preference.':locale==='zh-CN'?'无法读取或保存语言偏好。':'無法讀取或儲存語言偏好。'}</p><button type="button" className="secondary" onClick={retryLocale}>{t('retry')}</button></div>}
     <label>{!compact && t('theme')}<select aria-label={compact ? t('theme') : undefined} disabled={!ready} data-testid={mobile ? 'mobile-theme-select' : 'theme-select'} value={theme} onChange={e => setTheme(e.target.value as 'light' | 'dark' | 'system')}><option value="system">{t('system')}</option><option value="light">{t('light')}</option><option value="dark">{t('dark')}</option></select></label>
+    <label>{!compact && t('marketColor')}<select aria-label={compact ? t('marketColor') : undefined} disabled={!ready} data-testid={mobile ? 'mobile-market-color-select' : 'market-color-select'} value={marketColor} onChange={e => setMarketColor(e.target.value as 'standard' | 'cn' | 'cb')}><option value="standard">{t('marketStandard')}</option><option value="cn">{t('marketCn')}</option><option value="cb">{t('marketCb')}</option></select></label>
   </div>;
 }
 

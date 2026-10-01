@@ -135,11 +135,6 @@
   white-space: nowrap;
 }
 
-.admin-users-delete {
-  border-color: var(--negative);
-  color: var(--negative);
-}
-
 .admin-users-mobile-list {
   display: none;
 }

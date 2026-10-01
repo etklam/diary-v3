@@ -370,7 +370,7 @@ export default function DiaryListPage() {
         {selectedView && <>
           {selectedViewIsDirty && <button type="button" className="secondary" onClick={updateSelectedView} disabled={savedViewPending}>{libraryCopy.update}</button>}
           <button type="button" className="secondary" onClick={() => { setSavedViewEditor('rename'); setSavedViewName(selectedView.name); setSavedViewNotice(null) }} disabled={savedViewPending}>{libraryCopy.rename}</button>
-          <button type="button" className="secondary" onClick={deleteSelectedView} disabled={savedViewPending}>{libraryCopy.remove}</button>
+          <button type="button" className="secondary danger-button" onClick={deleteSelectedView} disabled={savedViewPending}>{libraryCopy.remove}</button>
         </>}
       </div>
       {selectedViewIsDirty && <p className="diary-library-view-dirty" role="status">{libraryCopy.viewDirty}</p>}

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { signInPath, useSessionState } from '../session';
 import { Link } from 'react-router';
 import { portfolioLedgerResponseSchema, portfolioOverviewResponseSchema, type PortfolioLedgerResponse, type PortfolioOverviewResponse } from '@diary/contracts/portfolio-overview';
-import { api, useUi } from '../ui';
+import { api, useUi, LoadingBlock } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { ledgerCopy } from '../ledger-copy';
 import { formatMarketValue, formatNeutralValue, marketClass } from '../market-display';
@@ -65,7 +65,7 @@ export default function Holdings() {
   return <section className="holdings-workspace"><header><h1>{c.title}</h1><p className="lede">{l.holdingsHint}</p></header>
     {ledgerError && <><FailureNotice failure={ledgerError}/><button onClick={retryBook}>{t('retry')}</button></>}
     {ledgerLoading && data && <p role="status">{c.refreshing}</p>}
-    {!data ? !ledgerError && <p role="status">{t('loading')}</p> : data.holdings.length === 0 ? <p>{l.empty}</p> : <>
+    {!data ? !ledgerError && <LoadingBlock label={t('loading')} /> : data.holdings.length === 0 ? <p>{l.empty}</p> : <>
       <p className="holdings-scroll-hint muted" id="holdings-scroll-hint">{c.scroll}</p><div className="holdings-table" role="region" aria-label={c.title} aria-describedby="holdings-scroll-hint" tabIndex={0}><table aria-label={c.title}><thead><tr>{[l.symbol, l.quantity, l.avgCost, l.totalCost, c.price, c.value, c.pnl, c.status].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{data.holdings.map(row => {
         const quote = valuation?.holdings.find(item => item.symbol === row.symbol);
         const compatible = quote && quote.quantity === Number(row.quantity) && quote.totalCost === Number(row.totalCost);
