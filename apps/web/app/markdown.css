@@ -4,7 +4,15 @@
    spacing scales with each element's own type size. */
 
 .safe-markdown {
-  line-height: 1.8;
+  line-height: 1.85;
+  /* break-word, not anywhere: `anywhere` lets an ordinary word split mid-word
+     and shrinks the min-content width, which collapsed table columns into
+     "infrastructu / re". Only URLs and code may break inside a word. */
+  overflow-wrap: break-word;
+}
+
+.safe-markdown a,
+.safe-markdown code {
   overflow-wrap: anywhere;
 }
 
@@ -98,13 +106,22 @@
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--muted-surface);
+  /* A code block is a well, which is the surface-sunken role. */
+  background: var(--surface-sunken);
   font-size: 0.875rem;
   line-height: 1.6;
+  tab-size: 2;
   overflow-x: auto;
   /* Same reasoning as .markdown-table: keep long code lines from inflating
      content-sized ancestors. */
   contain: inline-size;
+}
+
+/* A region that scrolls must be reachable by keyboard; the component gives
+   pre a tabindex, so it needs a visible focus state like the table region. */
+.safe-markdown pre:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }
 
 .safe-markdown pre code {
@@ -181,45 +198,31 @@
 
 /* ---- Images ---- */
 
+/* width/height auto keeps a raster image at its natural size and stops an SVG
+   with no intrinsic size (an icon, a logo) from stretching to fill the whole
+   measure; the max pair then bounds anything larger than the reading column. */
 .safe-markdown img {
+  display: block;
+  width: auto;
   max-width: 100%;
   height: auto;
+  max-height: 28rem;
+  margin: 1.5em 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
 }
 
 /* ---- Tables ---- */
 
-.safe-markdown table {
-  width: 100%;
-  min-width: 0;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.safe-markdown th,
-.safe-markdown td {
-  min-width: 8ch;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-.safe-markdown thead th {
-  background: var(--muted-surface);
-  font-weight: 650;
-  border-bottom: 1px solid var(--border-strong);
-  white-space: nowrap;
-}
-
-.safe-markdown tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--muted-surface) 50%, transparent);
-}
-
+/* Markdown tables follow the .table-scroll idiom from styles.css: a bounded,
+   bordered, rounded scroll region on the surface, so a wide table has a
+   visible right edge to scroll against instead of bleeding off the column. */
 .markdown-table {
   max-width: 100%;
+  margin: 1.5em 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   overflow-x: auto;
   /* Inline-size containment stops the table's intrinsic width leaking into
      ancestors that size from content (e.g. grid items with min-width: auto);
@@ -232,6 +235,50 @@
   outline-offset: 3px;
 }
 
-.markdown-table table {
-  min-width: 0;
+/* Columns size to their content and the region scrolls, rather than the table
+   being squeezed into the measure: at 100% width the browser hands a prose
+   column its minimum and stacks it one word per line. min-width keeps a short
+   table filling the region. */
+.safe-markdown table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.safe-markdown th,
+.safe-markdown td {
+  min-width: 5ch;
+  /* A long note wraps at a readable measure instead of running the table out
+     to the width of its longest sentence. */
+  max-width: 32ch;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Header follows the house table header: sunken, muted, small, semibold. */
+.safe-markdown thead th {
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+/* The region's own border closes the table; hierarchy stays on the hairlines
+   rather than on zebra fills. */
+.safe-markdown tbody tr:last-child td,
+.safe-markdown tbody tr:last-child th {
+  border-bottom: 0;
+}
+
+/* The Figure Rule: a cell holding only a figure takes the mono cut, so prices
+   and percentages line up down the column. Set by the td/th components. */
+.safe-markdown td.num,
+.safe-markdown th.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
