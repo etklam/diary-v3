@@ -171,13 +171,17 @@ function Shell() {
       </footer>
     </div>
   </>;
-  if (adminPath && (session.authenticated !== true || viewer === null)) return <>
-    <a className="skip" href="#main">{t('skip')}</a>
-    <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
-  </>;
+  // An administration path renders only for a confirmed ADMIN. Every other
+  // case — still resolving, signed out, or a USER — waits here while the effect
+  // above redirects: a USER goes home, a signed-out visitor goes to sign-in.
+  // This deliberately shows no permission message. A non-admin is sent away
+  // rather than told to leave, and the two cannot both be true: the previous
+  // explanation was unreachable as a resting state, so it only ever flashed
+  // before the redirect landed. Each admin route still reports its own
+  // authorization failure for the data it owns.
   if (adminPath && viewer?.role !== 'ADMIN') return <>
     <a className="skip" href="#main">{t('skip')}</a>
-    <main id="main" tabIndex={-1}><p role="alert">{locale === 'en' ? 'You do not have permission to manage this area.' : locale === 'zh-CN' ? '你没有权限管理此区域。' : '你沒有權限管理此區域。'}</p><Link className="button secondary" to="/">{t('home')}</Link></main>
+    <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
   </>;
   return <>
     <a className="skip" href="#main">{t('skip')}</a>

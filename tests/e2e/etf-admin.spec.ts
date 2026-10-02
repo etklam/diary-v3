@@ -26,7 +26,10 @@ test('ordinary account cannot reach catalog operations through direct URLs',asyn
  await page.request.post('/api/auth/register',{data:{email,password}});
  await page.goto('/login?returnTo=%2Fadmin%2Fetf');await selectLocale(page, 'en');
  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
- await expect(page).toHaveURL(/\/admin\/etf$/);await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByRole('button',{name:'Add ETF',exact:true})).toHaveCount(0);
+ // A USER is redirected home rather than parked on the admin route with an
+ // explanation: the shell no longer renders a permission message it would
+ // immediately navigate away from.
+ await expect(page).toHaveURL(/\/$/);await expect(page.getByRole('button',{name:'Add ETF',exact:true})).toHaveCount(0);
  await page.goto('/settings');await expect(page.getByRole('link',{name:'Manage ETF catalog',exact:true})).toHaveCount(0);
 });
 
