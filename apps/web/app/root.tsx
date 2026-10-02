@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useMatches, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse, type MetaFunction } from 'react-router';
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
 import { api, UiProvider, useUi } from './ui';
-import { BrandMark } from './icons';
+import { BrandMark, Icon } from './icons';
 // Tokens first: every rule in styles.css and public.css consumes them.
 import './tokens.css';
 import './styles.css';
@@ -189,9 +189,15 @@ function Shell() {
             sidebar can hold; the list below is the always-visible subset. */}
         <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
         <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
+        {/* Language, theme and market colour change about twice a year, so they
+            sit behind a disclosure and stop spending ~120px of standing
+            sidebar height; sign-out stays directly reachable. */}
         <div className="desktop-preferences">
           {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
-          {preferences}
+          <details className="desktop-preferences-disclosure">
+            <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>
+            {preferences}
+          </details>
         </div>
         <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
       </aside>

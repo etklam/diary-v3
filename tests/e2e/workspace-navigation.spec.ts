@@ -23,7 +23,8 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   const primary = page.locator('.desktop-nav')
   for (const [name, href] of [
     ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['AI reports', '/reviews/ai-reports'], ['Trade plans', '/trade-plans'],
-    ['Holdings', '/stocks'], ['Watchlist', '/stocks/watchlist'], ['Market research', '/stocks/SPY'], ['Tools', '/tools'],
+    ['Holdings', '/stocks'], ['Watchlist', '/stocks/watchlist'], ['Tools', '/tools'],
+    ['Diary reminders', '/alerts'], ['Partner management', '/partners'],
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
@@ -79,10 +80,29 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
     if (width === 1440) await page.screenshot({ path: `docs/design/evidence/navigation/${selector.slice(1)}-1440.png`, fullPage: true })
   }
 
-  const diaryManagement = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })
-  await diaryManagement.locator('summary').click()
-  await expect(diaryManagement.getByRole('link', { name: 'Partner management', exact: true })).toBeVisible()
-  await expect(diaryManagement.getByRole('link', { name: 'Diary reminders', exact: true })).toHaveAttribute('href', '/alerts')
+  // Diary reminders and partner sharing are diary functions, so they are in the
+  // open list rather than behind a "Diary management" disclosure.
+  await expect(page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })).toHaveCount(0)
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Partner management', exact: true })).toBeVisible()
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Diary reminders', exact: true })).toBeVisible()
+
+  // Market research opens on a company, so the group leads with a lookup field;
+  // an empty submit keeps the former fixed default reachable.
+  const lookup = page.locator('.desktop-nav').getByTestId('nav-lookup-form')
+  await expect(lookup.getByRole('textbox')).toHaveAttribute('placeholder', 'SPY')
+  await lookup.getByRole('textbox').fill('nvda')
+  await lookup.getByRole('button', { name: 'Open', exact: true }).click()
+  await expect(page).toHaveURL(/\/stocks\/NVDA$/)
+  await expect(lookup).toHaveAttribute('aria-current', 'page')
+  await page.goto('/')
+  await lookup.getByRole('button', { name: 'Open', exact: true }).click()
+  await expect(page).toHaveURL(/\/stocks\/SPY$/)
+
+  // Every tool the public header discloses is reachable from the workspace too.
+  const toolShortcuts = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Tools' })
+  await toolShortcuts.locator('summary').click()
+  await expect(toolShortcuts.getByRole('link', { name: 'SEC filings', exact: true })).toHaveAttribute('href', '/tools/sec-filings')
+  await expect(toolShortcuts.getByRole('link')).toHaveCount(7)
 
   await page.goto('/partners/compare')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Timeline')
@@ -108,12 +128,16 @@ test('desktop workspace navigation marks the active route exactly once', async (
   for (const [path, active] of [
     ['/diaries/123/edit', 'Diary library'], ['/diaries/123/review', 'Review queue'], ['/reviews/ai-reports', 'AI reports'], ['/timeline', 'Timeline'], ['/calendar', 'Calendar'], ['/partners/compare', 'Timeline'],
     ['/partners', 'Partner management'], ['/stocks/watchlist', 'Watchlist'], ['/stocks/alerts', 'Price reminders'],
-    ['/stocks/NVDA', 'Market research'], ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
+    ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
   ] as const) {
     await page.goto(path)
     await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText(active)
     await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(1)
   }
+
+  await page.goto('/stocks/NVDA')
+  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(0)
+  await expect(page.locator('.desktop-nav').getByTestId('nav-lookup-form')).toHaveAttribute('aria-current', 'page')
 })
 
 test('mobile bottom navigation carries the whole diary loop without covering content @webkit-critical', async ({ page }) => {
@@ -154,7 +178,6 @@ test('mobile bottom navigation carries the whole diary loop without covering con
 
   await trigger.press('Enter')
   await expect(dialog).toBeVisible()
-  await dialog.locator('.nav-more > summary').filter({ hasText: 'Diary management' }).click()
   await dialog.getByRole('link', { name: 'Partner management', exact: true }).click()
   await expect(page).toHaveURL(/\/partners$/)
   await expect(dialog).toBeHidden()

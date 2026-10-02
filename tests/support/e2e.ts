@@ -18,6 +18,19 @@ async function selectPreference(page: Page, desktopTestId: string, mobileTestId:
   // swaps in its menu. Let selectOption retry briefly, then pick the control
   // that actually belongs to the resolved shell.
   const desktopControl = page.getByTestId(desktopTestId);
+
+  // The private desktop shell keeps the preference selects behind a disclosure.
+  // Set `open` on the element instead of clicking the summary: the shell can
+  // still be swapping in, and a click would wait on a summary that is not
+  // visible yet. The disclosure is uncontrolled, so the attribute sticks — but
+  // a shell swap replaces the element, so re-open before each attempt.
+  async function openPreferenceDisclosure() {
+    const details = page.locator('details.desktop-preferences-disclosure');
+    if (await details.count() === 0) return;
+    await details.first().evaluate(element => { (element as HTMLDetailsElement).open = true; }).catch(() => {});
+  }
+
+  await openPreferenceDisclosure();
   try {
     await desktopControl.selectOption(value, { timeout: 1500 });
     return;
@@ -29,6 +42,9 @@ async function selectPreference(page: Page, desktopTestId: string, mobileTestId:
   const menu = page.getByTestId('mobile-menu');
   const hasMenu = await menu.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
   if (!hasMenu) {
+    // The desktop shell resolved after the first attempt; its disclosure is a
+    // fresh element, so open that one before waiting on the select.
+    await openPreferenceDisclosure();
     await desktopControl.selectOption(value);
     return;
   }
@@ -82,7 +98,9 @@ export async function clickNav(page: Page, name: string) {
   const view = (page.viewportSize()?.width ?? 1280) < 768;
   const normalized = name === 'Start' ? 'Overview' : name;
   const diaryView = ['Diary library', 'Timeline', 'Calendar'].includes(name);
-  const secondary = ['Partners', 'Trading principles', 'Diary reminders', 'Price reminders'].includes(name);
+  // Only the trade-management group is still a disclosure; diary sub-items sit
+  // in the open list.
+  const secondary = ['Trading principles', 'Price reminders'].includes(name);
   const secondaryHref: Record<string, string> = { Partners: '/partners', 'Trading principles': '/discipline', 'Diary reminders': '/alerts', 'Price reminders': '/stocks/alerts' };
   const tool = ['Position sizing', 'Financial freedom', 'Relative value', 'Seasonality', 'ETF research', 'Market rotation', 'SEC filings'].includes(name);
   const toolHref: Record<string, string> = { 'Position sizing': '/tools/position-sizing', 'Financial freedom': '/tools/financial-freedom', 'Relative value': '/tools/relative-value', Seasonality: '/tools/seasonality', 'ETF research': '/tools/etf', 'Market rotation': '/tools/market-rotation', 'SEC filings': '/tools/sec-filings' };
@@ -124,7 +142,8 @@ export async function clickNav(page: Page, name: string) {
     }
     if (tool) {
       await dialog.getByRole('link', { name: 'Tools', exact: true }).click();
-      await page.locator(`a[href="${toolHref[name]}"]`).click();
+      // The sidebar now also lists every tool, so scope to the page content.
+      await page.locator('#main').locator(`a[href="${toolHref[name]}"]`).click();
       return;
     }
     await dialog.getByRole('link', { name: normalized, exact: true }).click();
@@ -140,8 +159,8 @@ export async function clickNav(page: Page, name: string) {
     return;
   }
   if (tool) {
-    await page.getByRole('link', { name: 'Tools', exact: true }).click();
-    await page.locator(`a[href="${toolHref[name]}"]`).click();
+    await page.locator('.desktop-nav').getByRole('link', { name: 'Tools', exact: true }).click();
+    await page.locator('#main').locator(`a[href="${toolHref[name]}"]`).click();
     return;
   }
   await page.getByRole('link', { name: normalized, exact: true }).click();

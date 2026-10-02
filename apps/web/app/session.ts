@@ -119,9 +119,29 @@ export function invalidateArticleCache() {
 export const webSession = createWebSession({ baseUrl: typeof window === 'undefined' ? 'http://localhost' : window.location.origin });
 // Local session invalidation has no server request ID; provide the recovery code only.
 function invalidatedSessionResponse() { return Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }); }
+/**
+ * Marks a background read that only decorates the chrome — today the review
+ * count on the navigation badge, which every authenticated page requests.
+ * Such a read still gets a 401 of its own, but it must never be the thing that
+ * ends the session: the badge is not the reason the reader is on the page, and
+ * a sign-out triggered from the shell would discard whatever they were doing.
+ * Surfaces whose own data is unauthorized keep the normal invalidation.
+ */
+export const DECORATIVE_READ_HEADER = 'x-diary-decorative-read';
+
+/** Reading the flag must never fail the request it is inspecting, so an
+ * unusual header shape is treated as "not decorative". */
+function isDecorativeRead(input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) {
+  try {
+    return new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
+      .get(DECORATIVE_READ_HEADER) === '1';
+  } catch { return false; }
+}
+
 const fetchSession: typeof fetch = async (input, init) => {
   const url = input instanceof Request ? input.url : String(input);
   const pathname = new URL(url, 'http://local.invalid').pathname;
+  const decorative = isDecorativeRead(input, init);
   // A remounted private surface must not refill from cookies while logout is in flight.
   const privatePath = pathname.startsWith('/api/etf/watchlist') || pathname.startsWith('/api/alerts') || pathname.startsWith('/api/achievements') || pathname === '/api/auth/me' || pathname.startsWith('/api/portfolio/')
     || pathname.startsWith('/api/blog/admin')
@@ -138,7 +158,7 @@ const fetchSession: typeof fetch = async (input, init) => {
       else publish({ ...state, authenticated: false });
     }
   }
-  if(response.status===401&&!pathname.startsWith('/api/auth/')&&state.authenticated) {
+  if(response.status===401&&!pathname.startsWith('/api/auth/')&&state.authenticated&&!decorative) {
     const error = await response.clone().json().catch(() => null);
     // A wrong current password is a form error, not a revoked browser session.
     if(error?.data?.code !== 'AUTH_LOGIN_INVALID_CREDENTIALS') clearPrivateSession();

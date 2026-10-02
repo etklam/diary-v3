@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router'
+import { stockSymbolSchema } from '@diary/contracts/watchlist'
 import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
 import { CommandPaletteTrigger } from './command-palette'
 import { workspaceCopy } from './destinations'
+import { useReviewCount } from './use-review-count'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -15,6 +17,32 @@ const sectionCopy = {
   'zh-CN': { diary: '日记与复盘', investing: '投资与交易', markets: '市场与工具', account: '账户', admin: '管理' },
   en: { diary: 'Diary & review', investing: 'Investing & trading', markets: 'Markets & tools', account: 'Account', admin: 'Administration' },
 } as const
+
+const navCopy = {
+  'zh-TW': { lookup: '查公司行情', lookupHint: '輸入代號，或直接查看 SPY。', lookupSubmit: '查看', waiting: '項待複盤' },
+  'zh-CN': { lookup: '查公司行情', lookupHint: '输入代号，或直接查看 SPY。', lookupSubmit: '查看', waiting: '项待复盘' },
+  en: { lookup: 'Look up a company', lookupHint: 'Enter a ticker, or open SPY.', lookupSubmit: 'Open', waiting: 'waiting for review' },
+} as const
+
+/**
+ * Remembers whether a secondary group is expanded. Owning the current route
+ * still forces it open, so arriving by any other means never hides where you
+ * are; otherwise the reader's own last choice wins over a collapsed default.
+ */
+function usePersistedDisclosure(key: string, forcedOpen: boolean) {
+  const storageKey = `diary-v3:nav-open:${key}`
+  const [remembered, setRemembered] = useState(false)
+  useEffect(() => {
+    try { setRemembered(localStorage.getItem(storageKey) === '1') }
+    catch { /* Navigation stays usable when device storage is unavailable. */ }
+  }, [storageKey])
+  function remember(open: boolean) {
+    setRemembered(open)
+    try { localStorage.setItem(storageKey, open ? '1' : '0') }
+    catch { /* The session keeps the choice even when it cannot be persisted. */ }
+  }
+  return { open: forcedOpen || remembered, remember }
+}
 
 
 function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': string; 'zh-TW': string }) {
@@ -62,45 +90,105 @@ export function navigationOwner(pathname: string): NavigationOwner {
   return null
 }
 
+/**
+ * Market research always opens on a company, because `/stocks/:symbol` has no
+ * index — so the entry point asks which one instead of naming "Market research"
+ * and silently meaning SPY. An empty submit still opens that former default,
+ * shown as the placeholder, so the no-ticker-in-mind case keeps working.
+ */
+const LOOKUP_DEFAULT_SYMBOL = 'SPY'
+
+function CompanyLookup({ idPrefix, onNavigate, current }: { idPrefix: string; onNavigate?: () => void; current: boolean }) {
+  const { locale } = useUi()
+  const c = navCopy[locale]
+  const navigate = useNavigate()
+  const [symbol, setSymbol] = useState('')
+  const trimmed = symbol.trim()
+  const parsed = stockSymbolSchema.safeParse(trimmed)
+  const destination = trimmed === '' ? LOOKUP_DEFAULT_SYMBOL : parsed.success ? parsed.data : null
+  // A company page has no nav link to mark, so the field that opens it carries
+  // the current state. `aria-current` is a global state, valid off a link.
+  return <form className="nav-lookup" data-testid={`${idPrefix}-lookup-form`}
+    aria-current={current ? 'page' : undefined} onSubmit={event => {
+    event.preventDefault()
+    if (destination === null) return
+    setSymbol('')
+    onNavigate?.()
+    navigate(`/stocks/${destination}`)
+  }}>
+    <label htmlFor={`${idPrefix}-lookup`}>{c.lookup}</label>
+    <div className="nav-lookup-row">
+      <input id={`${idPrefix}-lookup`} name="symbol" value={symbol} maxLength={32}
+        autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+        placeholder={LOOKUP_DEFAULT_SYMBOL} aria-describedby={`${idPrefix}-lookup-hint`}
+        onChange={event => setSymbol(event.target.value)} />
+      <button type="submit" className="secondary" disabled={destination === null}>{c.lookupSubmit}</button>
+    </div>
+    <p id={`${idPrefix}-lookup-hint`} className="nav-lookup-hint">{c.lookupHint}</p>
+  </form>
+}
+
+/** Tool shortcuts from the shared registry, so a signed-in reader reaches every
+ * tool the public header already discloses instead of only the index. */
+function NavToolShortcuts({ onNavigate, forcedOpen }: { onNavigate?: () => void; forcedOpen: boolean }) {
+  const { locale } = useUi()
+  const c = workspaceCopy[locale]
+  const disclosure = usePersistedDisclosure('tools', forcedOpen)
+  return <details className="nav-more" open={disclosure.open}
+    onToggle={event => disclosure.remember(event.currentTarget.open)}>
+    <summary><Icon name="chevronDown" />{c.tools}</summary>
+    <div className="nav-group-links nav-secondary-links">
+      {TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={onNavigate}>
+        <Icon name={tool.icon} />{tool.name[locale]}
+      </Link>)}
+    </div>
+  </details>
+}
+
 export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean }) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
   const c = workspaceCopy[locale]
+  const n = navCopy[locale]
   const owner = navigationOwner(location.pathname)
-  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined}><Icon name={icon} />{text}</Link>
+  const waiting = useReviewCount()
+  const trade = usePersistedDisclosure('trade-management', owner === 'priceReminders' || owner === 'discipline')
+  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
   return <>
     <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
+    {/* Diary sub-items stay in the open list rather than behind a disclosure:
+        reminders and partner sharing are diary functions, and the product is
+        the diary loop, so none of them should cost an extra click. */}
     <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}><h2 id={`${idPrefix}-diary`}>{sections.diary}</h2><div className="nav-group-links">
       {showDiaryViews && <>
         {link('/diaries', c.diaryLibrary, 'book', 'diary')}
         {link('/timeline', c.timeline, 'timeline', 'timeline')}
         {link('/calendar', c.calendar, 'calendar', 'calendar')}
       </>}
-      {link('/reviews', c.reviewQueue, 'check', 'reviews')}
+      {link('/reviews', c.reviewQueue, 'check', 'reviews', waiting ?? 0)}
       {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
-    </div><details className="nav-more" open={owner === 'diaryReminders' || owner === 'partners' || undefined}>
-      <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
-      <div className="nav-group-links">
-        {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
-        {link('/partners', c.partners, 'users', 'partners')}
-      </div>
-    </details></section>
+      {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
+      {link('/partners', c.partners, 'users', 'partners')}
+    </div></section>
     <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}><h2 id={`${idPrefix}-investing`}>{sections.investing}</h2><div className="nav-group-links">
       {link('/stocks', c.holdings, 'briefcase', 'holdings')}
       {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
       {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
-    </div><details className="nav-more" open={owner === 'priceReminders' || owner === 'discipline' || undefined}>
+    </div><details className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
       <summary><Icon name="chevronDown" />{c.tradeManagement}</summary>
       <div className="nav-group-links nav-secondary-links">
         {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
         {link('/discipline', c.principles, 'shield', 'discipline')}
       </div>
     </details></section>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-markets`}><h2 id={`${idPrefix}-markets`}>{sections.markets}</h2><div className="nav-group-links">
-      {link('/stocks/SPY', c.marketResearch, 'chart', 'marketResearch')}
-      {link('/tools', c.tools, 'wrench', 'tools')}
-    </div></section>
+    <section className="nav-group" aria-labelledby={`${idPrefix}-markets`}><h2 id={`${idPrefix}-markets`}>{sections.markets}</h2>
+      <CompanyLookup idPrefix={idPrefix} onNavigate={onNavigate} current={owner === 'marketResearch'} />
+      <div className="nav-group-links">
+        {link('/tools', c.tools, 'wrench', 'tools')}
+      </div>
+      <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
+    </section>
     <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
       {link('/articles', c.publicArticles, 'fileText', 'articles')}
       {link('/achievements', c.achievements, 'target', 'achievements')}

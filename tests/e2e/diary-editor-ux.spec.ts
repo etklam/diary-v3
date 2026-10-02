@@ -162,7 +162,7 @@ test('a restored local draft keeps its original revision after another device sa
     if (route.request().method() === 'PUT') fullEditorPuts += 1;
     await route.continue();
   });
-  await page.locator('form').evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  await page.locator('#main form').evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
   expect(fullEditorPuts).toBe(0);
 
   await page.getByRole('button', { name: 'Reload server version', exact: true }).click();

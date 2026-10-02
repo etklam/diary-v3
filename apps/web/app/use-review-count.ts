@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { reviewGroupsResponseSchema } from '@diary/contracts/review-queue'
 import { api } from './ui'
-import { useSessionState } from './session'
+import { DECORATIVE_READ_HEADER, useSessionState } from './session'
 
 /**
  * How many reviews need attention now — overdue plus due today. Upcoming and
@@ -28,7 +28,11 @@ async function fetchCount(revision: number): Promise<number> {
   if (!pending || pending.revision !== revision) {
     const work = {
       revision,
-      promise: api.GET('/api/reviews', { params: { query: { limit: 1 } } }).then(result => {
+      // Decorative: a failure here leaves the badge off, and never signs anyone out.
+      promise: api.GET('/api/reviews', {
+        params: { query: { limit: 1 } },
+        headers: { [DECORATIVE_READ_HEADER]: '1' },
+      }).then(result => {
         if (!result.response.ok || !result.data) throw new Error('Review count unavailable')
         const { counts } = reviewGroupsResponseSchema.parse(result.data)
         const count = counts.overdue + counts.today

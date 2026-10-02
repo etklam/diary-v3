@@ -25,7 +25,8 @@ for (const width of [1440, 768, 390, 360]) test(`integrated surfaces fit and ret
       await expect(reflection).toHaveValue('Editing survives reading disclosure');
       await reflection.fill('');
     }
-    if (name === 'plan') await expect(page.locator('form')).toBeVisible();
+    // Scoped to the page: the shell's own company-lookup form is not the subject.
+    if (name === 'plan') await expect(page.locator('#main form')).toBeVisible();
     await selectTheme(page, width === 390 || width === 768 ? 'dark' : 'light');
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: `${folder}/${name}.png`, fullPage: true });

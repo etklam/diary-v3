@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearPrivateSession, markSignedIn, sessionFetch, webSession } from '../../apps/web/app/session'
+import { DECORATIVE_READ_HEADER, clearPrivateSession, isLocallySignedOut, markSignedIn, sessionFetch, webSession } from '../../apps/web/app/session'
 
 afterEach(() => { vi.restoreAllMocks(); markSignedIn() })
 
@@ -30,5 +30,31 @@ describe('activity timeline browser session boundary', () => {
     const result = await pending
     expect(result.status).toBe(401)
     expect(await result.text()).not.toContain('previous-owner-synthetic-trade')
+  })
+})
+
+/**
+ * The review-count badge is requested from the shell on every authenticated
+ * page. A 401 on that decorative read must not end the session, or a background
+ * count could discard whatever the reader was in the middle of writing.
+ */
+describe('decorative background reads', () => {
+  it('does not sign the reader out when the badge count is unauthorized', async () => {
+    vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }))
+    markSignedIn()
+    const response = await sessionFetch('http://localhost/api/reviews?limit=1', {
+      headers: { [DECORATIVE_READ_HEADER]: '1' },
+    })
+    // The caller still learns the read failed; the session simply survives it.
+    expect(response.status).toBe(401)
+    expect(isLocallySignedOut()).toBe(false)
+  })
+
+  it('still signs the reader out when the review queue itself is unauthorized', async () => {
+    vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }))
+    markSignedIn()
+    const response = await sessionFetch('http://localhost/api/reviews?limit=1')
+    expect(response.status).toBe(401)
+    expect(isLocallySignedOut()).toBe(true)
   })
 })

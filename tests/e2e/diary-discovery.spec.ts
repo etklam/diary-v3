@@ -218,12 +218,12 @@ test('timeline groups by month, loads more, and returns from a diary', async ({ 
   await expect(page.locator('.timeline-month')).toHaveCount(1);
   await expect(page.locator('.timeline-month header h2')).toHaveText('September 2026');
   await expect(page.getByTestId('timeline-entry')).toHaveCount(20);
-  await page.getByRole('button', { name: 'Load more diaries', exact: true }).click();
+  await page.getByRole('button', { name: 'Load more activity', exact: true }).click();
   await expect(page.getByTestId('timeline-entry')).toHaveCount(27);
   await expect(page.locator('.timeline-month')).toHaveCount(2);
   await expect(page.locator('.timeline-symbol').first()).toHaveText('NVDA');
   await expect(page.locator('.timeline-month header h2').last()).toHaveText('August 2026');
-  await expect(page.getByRole('status')).toContainText('27 diaries loaded');
+  await expect(page.getByRole('status')).toContainText('27 records loaded');
 
   // Opening a diary and returning keeps the timeline usable. Entries carry two
   // links (title and the bounded "read full diary" link) to the same diary.
@@ -260,7 +260,12 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
     })).status()).toBe(201);
   }
   const listRequests: string[] = [];
-  page.on('request', request => { if (request.url().includes('/api/diaries/summary')) listRequests.push(request.url()); });
+  // The library pages through /api/diaries/summary; the merged timeline pages
+  // through /api/timeline. Count both so each section measures its own feed.
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.pathname === '/api/diaries/summary' || url.pathname === '/api/timeline') listRequests.push(request.url());
+  });
 
   const started = Date.now();
   await page.goto('/diaries');
@@ -273,7 +278,10 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
   // settle before the fetch lands.
   async function expectSingleRequest(action: () => Promise<void>, settle: () => Promise<void>) {
     const before = listRequests.length;
-    const responsePromise = page.waitForResponse(response => response.url().includes('/api/diaries/summary'));
+    const responsePromise = page.waitForResponse(response => {
+      const { pathname } = new URL(response.url());
+      return pathname === '/api/diaries/summary' || pathname === '/api/timeline';
+    });
     await action();
     await responsePromise;
     await settle();
@@ -313,7 +321,7 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
   await expect(page.getByTestId('timeline-entry')).toHaveCount(20);
   expect(listRequests.length).toBeLessThanOrEqual(2);
   await expectSingleRequest(
-    async () => { await page.getByRole('button', { name: 'Load more diaries', exact: true }).click(); },
+    async () => { await page.getByRole('button', { name: 'Load more activity', exact: true }).click(); },
     async () => { await expect(page.getByTestId('timeline-entry')).toHaveCount(40); },
   );
   console.log(`SCALE first-load=${firstLoad}ms requests=${JSON.stringify(listRequests)}`);

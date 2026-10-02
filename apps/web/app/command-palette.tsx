@@ -36,7 +36,8 @@ export function CommandPaletteTrigger({ compact = false }: { compact?: boolean }
   const { locale } = useUi()
   const c = copy[locale]
   return <button type="button" className={compact ? 'secondary palette-trigger palette-trigger-compact' : 'secondary palette-trigger'}
-    data-testid="command-palette-trigger" aria-label={compact ? c.open : undefined}
+    data-testid={compact ? 'mobile-command-palette-trigger' : 'command-palette-trigger'}
+    aria-label={compact ? c.open : undefined}
     onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}>
     <Icon name="compass" size={17} aria-hidden="true" />
     {!compact && <><span>{c.open}</span><kbd>⌘K</kbd></>}

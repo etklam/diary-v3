@@ -105,7 +105,8 @@ test('Review queue welcomes a fresh account with an entry point', async ({ page 
   await page.goto('/reviews');
   const emptyBlock = page.getByTestId('queue-empty');
   await expect(emptyBlock).toContainText('Nothing waiting for review right now.');
-  await expect(emptyBlock.getByRole('link', { name: 'Write a diary', exact: true })).toHaveAttribute('href', '/diaries/new');
+  // Quick capture is the primary path wherever capture is offered.
+  await expect(emptyBlock.getByRole('link', { name: 'Quick diary', exact: true })).toHaveAttribute('href', '/diaries/quick');
   await expect(emptyBlock.getByRole('link', { name: 'Diary library', exact: true })).toHaveAttribute('href', '/diaries');
   // A fully empty queue renders the welcome block alone; no bucket sections.
   await expect(page.getByRole('region', { name: 'Today', exact: true })).toHaveCount(0);

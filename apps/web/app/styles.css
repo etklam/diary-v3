@@ -1145,6 +1145,108 @@ kbd {
   border-top: 1px solid var(--rule);
 }
 
+/* Same disclosure treatment as a secondary navigation group, so the sidebar
+   has one collapsing idiom rather than two. */
+.desktop-preferences-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+
+.desktop-preferences-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.desktop-preferences-disclosure > summary:hover {
+  background: var(--tint-neutral);
+  color: var(--text);
+}
+
+.desktop-preferences-disclosure > summary svg {
+  flex: 0 0 auto;
+  color: var(--faint);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.desktop-preferences-disclosure[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.desktop-preferences-disclosure .preferences {
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+/* Count of reviews waiting, trailing the label. Decorative: the link's own
+   accessible name carries the number. */
+.nav-badge {
+  min-width: 18px;
+  margin-left: auto;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--action);
+  color: var(--on-action);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Market research opens on a company, so the group leads with the field that
+   chooses one instead of a link to a fixed symbol. */
+.nav-lookup {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  padding-inline: var(--space-3);
+}
+
+.nav-lookup > label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+/* Same ink the current link uses, so "you are on a company page" reads the
+   same as every other current marker. */
+.nav-lookup[aria-current='page'] > label {
+  color: var(--action-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.nav-lookup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.nav-lookup-row input {
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+}
+
+.nav-lookup-row button {
+  min-height: 36px;
+  padding-inline: 10px;
+  font-size: var(--text-xs);
+}
+
+.nav-lookup-hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--text-2xs);
+}
+
 .preferences {
   display: grid;
   gap: var(--space-3);
