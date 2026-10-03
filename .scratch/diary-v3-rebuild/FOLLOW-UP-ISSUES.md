@@ -37,3 +37,36 @@ Tickets 64–81 are all recorded Execution: done; earlier pending paragraphs in 
 | 82 | Return exact per-user Diary counts in Admin inventory | done; focused HTTP and Admin browser reruns passed. | [82-admin-users-diary-count.md](issues/82-admin-users-diary-count.md); [final verification](../../docs/features/all-tickets-acceptance-2026-09-25.md) |
 
 The consolidated [All-ticket acceptance inventory — 2026-09-25](../../docs/features/all-tickets-acceptance-2026-09-25.md) records the completed local verification, including the separate E2E reruns and the remaining external acceptance gates.
+
+## Capture-cost follow-ups — 2026-10-04
+
+A review of input cost across `/diaries/quick` and `/diaries/new` produced eleven findings;
+these are the ones judged worth scheduling. Seven are specified and unimplemented, and one is a
+design question that refines already-accepted work rather than reporting a defect.
+
+Two findings were deliberately not filed, and should not be revived without new evidence:
+loosening the submit lock on the destination lookup, and removing the create/append `<select>`.
+Both sit inside the uncertain-append state machine guarded by
+`tests/e2e/diary-response-loss.spec.ts`, against benefits that only appear on a degraded
+network or amount to one saved glance. Three further findings were ruled low return: moving
+snippets and recent tags to the server, replacing the tag inputs with a chip control (the
+eight recent-tag chips from [70](issues/70-recent-diary-tags.md) already cover repeat tagging),
+and merging the two authoring routes — the last being a maintenance argument about two
+overlapping state machines rather than an input-cost one.
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 84 | Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter | ready-for-agent; Execution: todo | [84-quick-keyboard-submit.md](issues/84-quick-keyboard-submit.md) |
+| 85 | Launch straight into capture from the installed app icon | ready-for-agent; Execution: todo | [85-app-shortcuts-to-capture.md](issues/85-app-shortcuts-to-capture.md) |
+| 86 | Receive shared links and text into a Quick Diary draft | ready-for-agent; Execution: todo; blocked by 85 | [86-share-target-into-quick-diary.md](issues/86-share-target-into-quick-diary.md) |
+| 87 | Offer prefilled capture from holdings, watchlist and price alerts | ready-for-agent; Execution: todo | [87-prefilled-capture-entries.md](issues/87-prefilled-capture-entries.md) |
+| 88 | Stop requiring a title in the full Diary editor | ready-for-agent; Execution: todo | [88-full-editor-title-derivation.md](issues/88-full-editor-title-derivation.md) |
+| 89 | Suggest company symbols the account already tracks | ready-for-agent; Execution: todo | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
+| 90 | Remove the cold-start wait before the Quick Diary writing area | ready-for-agent; Execution: todo; blocked by 85 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
+| 91 | Revisit the destination summary sitting above Quick writing | needs-triage; refines accepted work in [64](issues/64-quick-content-first.md) | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
+
+Suggested order: 84, 85 and 87 first — each is additive, cheap, and touches no write semantics.
+Then 86 and 88. Then 89 and 90, with 90 after 85 because the launcher shortcut is what makes
+cold-start capture a primary path. 91 needs an Astra ruling and may close as `wontfix`.
+
+No implementation, verification or acceptance is recorded for any of these tickets yet.

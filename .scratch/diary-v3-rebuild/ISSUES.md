@@ -74,3 +74,20 @@ Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are 
 | 63 — Research to Diary context handoff | Follow-up | Execution: done | [63-research-diary-handoff.md](issues/63-research-diary-handoff.md) |
 | 64–81 — Convenience and architecture follow-ups | Follow-up | All record Execution: done; see the index for each ticket | [Follow-up issues](FOLLOW-UP-ISSUES.md) |
 | 82 — Return exact per-user Diary counts in Admin inventory | Bug | done; focused HTTP and Admin browser reruns passed | [82-admin-users-diary-count.md](issues/82-admin-users-diary-count.md); [final verification](../../docs/features/all-tickets-acceptance-2026-09-25.md) |
+
+## Capture-cost follow-ups (84–91)
+
+Published 2026-10-04 from a review of input cost across the two authoring paths
+(`/diaries/quick` and `/diaries/new`). None of these are implemented yet. Ticket 83 predates
+this set and is not indexed above.
+
+| Ticket | Type | Recorded state | Issue file |
+| --- | --- | --- | --- |
+| 84 — Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter | Follow-up | ready-for-agent; Execution: todo | [84-quick-keyboard-submit.md](issues/84-quick-keyboard-submit.md) |
+| 85 — Launch straight into capture from the installed app icon | Follow-up | ready-for-agent; Execution: todo | [85-app-shortcuts-to-capture.md](issues/85-app-shortcuts-to-capture.md) |
+| 86 — Receive shared links and text into a Quick Diary draft | Follow-up | ready-for-agent; Execution: todo; blocked by 85 | [86-share-target-into-quick-diary.md](issues/86-share-target-into-quick-diary.md) |
+| 87 — Offer prefilled capture from holdings, watchlist and price alerts | Follow-up | ready-for-agent; Execution: todo | [87-prefilled-capture-entries.md](issues/87-prefilled-capture-entries.md) |
+| 88 — Stop requiring a title in the full Diary editor | Follow-up | ready-for-agent; Execution: todo | [88-full-editor-title-derivation.md](issues/88-full-editor-title-derivation.md) |
+| 89 — Suggest company symbols the account already tracks | Follow-up | ready-for-agent; Execution: todo | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
+| 90 — Remove the cold-start wait before the Quick Diary writing area | Follow-up | ready-for-agent; Execution: todo; blocked by 85 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
+| 91 — Revisit the destination summary sitting above Quick writing | Design decision | needs-triage; refines accepted work in 64 | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
