@@ -5,7 +5,7 @@ import { stockNotes, stocks, type Database } from '@diary/db'
 import { and, eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { readStockNotesForAuthor } from './stock-note-read.js'
 import { ensureWatchingStock } from './watchlist.js'
 

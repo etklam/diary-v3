@@ -7,7 +7,7 @@ import {
 } from '@diary/contracts/market-state'
 import type { ErrorCode } from '@diary/contracts'
 import type { Database } from '@diary/db'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import {
   getBreadthHistory,
   getLatestBreadthSnapshot,

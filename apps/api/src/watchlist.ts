@@ -4,7 +4,7 @@ import { stocks, stockWatchlists, stockTimelineRecords, type Database } from '@d
 import { and, asc, count, desc, eq, gte, inArray, max, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
@@ -75,15 +75,12 @@ export function registerWatchlistRoutes(app: Hono<AppEnv>, dependencies: {
   const lock = watchlistLock
   const includeManagementFields = (c: Context<AppEnv>) => c.req.header('x-watchlist-features') === 'management-v1'
 
+  /** Clients without the `management-v1` feature header never see `pinned`. */
   function legacyItemShape<T extends { pinned?: boolean }>(item: T, includePinned: boolean) {
     if (includePinned) return item
     const legacy = { ...item }
     delete legacy.pinned
     return legacy
-  }
-
-  function legacyMutationShape<T extends { pinned?: boolean }>(item: T, includePinned: boolean) {
-    return legacyItemShape(item, includePinned)
   }
 
   app.get('/api/stocks/watchlist', async c => {
@@ -119,7 +116,7 @@ export function registerWatchlistRoutes(app: Hono<AppEnv>, dependencies: {
     const includePinned = includeManagementFields(c)
     const result = await db.transaction(async tx => {
       const { item, stock } = await ensureWatchingStock(tx, userId, input.symbol, now(), input.sortOrder, input.pinned)
-      return legacyMutationShape(stockWatchlistMutationResponseSchema.parse({ id: String(item.id), symbol: stock.symbol, sortOrder: item.sortOrder, pinned: item.pinned, status: item.status }), includePinned)
+      return legacyItemShape(stockWatchlistMutationResponseSchema.parse({ id: String(item.id), symbol: stock.symbol, sortOrder: item.sortOrder, pinned: item.pinned, status: item.status }), includePinned)
     })
     return c.json(result, 200)
   })
@@ -164,7 +161,7 @@ export function registerWatchlistRoutes(app: Hono<AppEnv>, dependencies: {
       const [normalized] = await tx.select().from(stockWatchlists).where(and(eq(stockWatchlists.id, item.id), eq(stockWatchlists.userId, userId)))
       const [stock] = await tx.select().from(stocks).where(eq(stocks.id, item.stockId))
       if (!stock) throw new Error('Canonical stock missing')
-      return legacyMutationShape(stockWatchlistMutationResponseSchema.parse({ id: String(item.id), symbol: stock.symbol, status: normalized?.status ?? item.status, sortOrder: normalized?.sortOrder ?? item.sortOrder, pinned: normalized?.pinned ?? item.pinned, updatedAt: normalized?.updatedAt.toISOString() ?? item.updatedAt.toISOString() }), includePinned)
+      return legacyItemShape(stockWatchlistMutationResponseSchema.parse({ id: String(item.id), symbol: stock.symbol, status: normalized?.status ?? item.status, sortOrder: normalized?.sortOrder ?? item.sortOrder, pinned: normalized?.pinned ?? item.pinned, updatedAt: normalized?.updatedAt.toISOString() ?? item.updatedAt.toISOString() }), includePinned)
     })
     if (!result) fail(404, 'WATCHLIST_ITEM_NOT_FOUND', `Watchlist item ${itemId} not found`)
     return c.json(result)

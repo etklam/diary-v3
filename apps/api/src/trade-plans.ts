@@ -15,7 +15,7 @@ import { and, asc, count, desc, eq, inArray, like } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { registerTradePlanExecutionRoutes } from './trade-plan-execution.js'
 
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]

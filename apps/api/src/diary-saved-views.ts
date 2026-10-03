@@ -4,7 +4,7 @@ import { diarySavedViews, type Database } from '@diary/db'
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 type SavedViewRow = typeof diarySavedViews.$inferSelect
 type SavedViewFail = (status: number, code: ErrorCode, message: string) => never

@@ -5,7 +5,7 @@ import { alerts, diaries, users, type Database } from '@diary/db'
 import { and, asc, eq, or, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 export async function persistDiaryAlert(tx: Transaction, diaryId: bigint, input: AlertDraft, timezone: string, timestamp: Date) {
   if (!input.recurringMode) return (await tx.insert(alerts).values({ diaryId, message: input.message, triggerAt: new Date(input.triggerAt), createdAt: timestamp }).returning())[0]!

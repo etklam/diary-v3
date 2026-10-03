@@ -4,7 +4,7 @@ import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import { etfWatchlistCreateSchema, etfWatchlistItemSchema, etfWatchlistListSchema } from '@diary/contracts/etf'
 import { etfs, etfWatchlists, users, type Database } from '@diary/db'
 import { and, eq, max, sql } from 'drizzle-orm'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 export function registerEtfWatchlistRoutes(app: Hono<AppEnv>, dependencies: {
  db: Database; now: () => Date; fail: (status: number, code: ErrorCode, message: string) => never
  validationError: (error: z.ZodError) => never; parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>

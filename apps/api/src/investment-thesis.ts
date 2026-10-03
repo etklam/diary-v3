@@ -6,7 +6,7 @@ import { investmentTheses, thesisReviews, stocks, type Database } from '@diary/d
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 type Thesis = typeof investmentTheses.$inferSelect
 type Review = typeof thesisReviews.$inferSelect

@@ -41,7 +41,7 @@ import { lockResearchMutation, researchPublicationIssue, type ResearchTransactio
 import type { ResearchLatestCompletedSession } from './research-studio/service.js'
 import { loadArticleTranslationSummaries, loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
 import { enqueueArticleTranslationJob } from './article-translations/store.js'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
 import type { RateLimitPolicy } from './rate-limit/types.js'
 import { safeErrorContext } from './diagnostics.js'

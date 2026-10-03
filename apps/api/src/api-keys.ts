@@ -5,7 +5,7 @@ import { apiKeyCredentials, type Database } from '@diary/db'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
 import type { RateLimitPolicy } from './rate-limit/types.js'
 export function registerApiKeyRoutes(app: Hono<AppEnv>, dependencies: {

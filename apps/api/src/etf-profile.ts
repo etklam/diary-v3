@@ -4,7 +4,7 @@ import { marketSymbolSchema } from '@diary/contracts/market'
 import { etfProfileQuerySchema,etfProfileSchema } from '@diary/contracts/etf-profile'
 import { computeEtfRisk,computeEtfRelativeStrength } from '@diary/domain/etf-risk'
 import { rangeStart,type createMarketData,type MarketRead } from './market-data/index.js'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 export function registerEtfProfileRoutes(app:Hono<AppEnv>,dependencies:{market:ReturnType<typeof createMarketData>;now:()=>Date;validationError:(error:z.ZodError)=>never}) {
  const {market,now,validationError}=dependencies
  for(const part of ['profile','risk','valuation','rs'] as const)app.get(`/api/etf/:symbol/${part}`,async c=>{

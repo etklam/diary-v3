@@ -6,7 +6,7 @@ import { disciplines, users, type Database } from '@diary/db'
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 const defaults = ['寫日記是提升交易心態的最好方法', '明天又是新的一天，持續寫日記吧', '明天見']
 const serialize = (row: typeof disciplines.$inferSelect) => disciplineResponseSchema.parse({ id: String(row.id), content: row.content, order: row.order, createdAt: row.createdAt.toISOString() })
 export function registerDisciplineRoutes(app: Hono<AppEnv>, dependencies: {

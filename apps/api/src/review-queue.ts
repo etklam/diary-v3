@@ -5,7 +5,7 @@ import { listDiaryStocks } from './diary-stocks.js'
 import { sql } from 'drizzle-orm'
 import type { Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
   db: Database; now: () => Date

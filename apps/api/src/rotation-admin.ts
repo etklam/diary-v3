@@ -2,7 +2,7 @@ import type {Context,Hono} from 'hono';
 import type {z} from 'zod';
 import type {ErrorCode} from '@diary/contracts';
 import {rotationBatchRequestSchema,rotationBatchResponseSchema} from '@diary/contracts/rotation';
-import type {AppEnv} from './app.js';
+import type { AppEnv } from './app-context.js'
 import {RotationBatchBusy,type runRotationBatch} from './rotation-batch.js';
 import {executeRotationScopes} from './rotation-execution.js';
 export function registerRotationAdmin(app:Hono<AppEnv>,dependencies:{run?: (scope:'sectors'|'indexes'|'core')=>ReturnType<typeof runRotationBatch>;parseJson:<T>(context:Context<AppEnv>,schema:z.ZodType<T>)=>Promise<T>;fail:(status:number,code:ErrorCode,message:string)=>never}){

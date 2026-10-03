@@ -21,7 +21,7 @@ import { and, asc, count, desc, eq, inArray, ne } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 type TradePlanRow = typeof tradePlans.$inferSelect

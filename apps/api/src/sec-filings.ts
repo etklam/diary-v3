@@ -12,7 +12,7 @@ import {
   type SecProviderErrorCode,
 } from '@diary/contracts/sec-filings'
 import type { ErrorCode } from '@diary/contracts'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { SecProviderError } from './sec-edgar/errors.js'
 import { buildBatchPackage, buildSingleFilingPackage } from './sec-edgar/package.js'
 import { acquireSecResourceSlot, createSecLifetime, createTempWorkspace, stageDocument, streamStagedFile } from './sec-edgar/download.js'

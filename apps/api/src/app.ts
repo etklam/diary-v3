@@ -15,68 +15,31 @@ import { registerPriceAlertRoutes } from './price-alerts.js'
 import { registerAlertRoutes } from './alerts.js'
 import { registerPerformanceRoute } from './performance.js'
 import { registerPortfolioAttentionRoutes } from './portfolio-attention.js'
-import { readPortfolioExposure } from './portfolio-exposure.js'
 import { registerCompanyHubRoute } from './company-hub.js'
 import { registerPostRoutes } from './posts.js'
+import { registerAuthRoutes } from './auth-routes.js'
+import { registerDiaryRoutes } from './diary-routes.js'
+import { registerPortfolioRoutes } from './portfolio-routes.js'
 import { registerArticleTranslationRoutes } from './article-translations/routes.js'
-import { createHash, randomBytes, randomUUID as nodeRandomUUID, timingSafeEqual } from 'node:crypto'
-import { isIP } from 'node:net'
-import { getConnInfo } from '@hono/node-server/conninfo'
-import {
-  apiErrorResponseSchema,
-  authUserResponseSchema,
-  changePasswordRequestSchema,
-  changePasswordResponseSchema,
-  CHANGE_PASSWORD_SESSION_RETAINED,
-  CHANGE_PASSWORD_SIGN_IN_AGAIN,
-  createDiaryRequestSchema,
-  deleteDiaryResponseSchema,
-  diaryByDateQuerySchema,
-  loginRequestSchema,
-  MAX_SERIALIZED_ID,
-  authMutationResponseSchema,
-  nativeAuthResponseSchema,
-  nativeLoginRequestSchema,
-  nativeLogoutRequestSchema,
-  nativeRefreshRequestSchema,
-  registerRequestSchema,
-  registerResponseSchema,
-  serializedIdSchema,
-  updateDiaryRequestSchema,
-  updateDiaryV2RequestSchema,
-  type ErrorCode,
-  type UpdateDiaryRequest,
-} from '@diary/contracts'
-import { recentClosedTradesQuerySchema } from '@diary/contracts/ledger'
-import { apiKeyCredentials, mailSettings, refreshTokens, users, type Database } from '@diary/db'
-import { currentUtcDate } from '@diary/domain'
-import bcrypt from 'bcryptjs'
+import { createHash, randomBytes, randomUUID as nodeRandomUUID } from 'node:crypto'
+import { apiErrorResponseSchema } from '@diary/contracts'
+import { apiKeyCredentials, users, type Database } from '@diary/db'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { Hono, type Context, type MiddlewareHandler } from 'hono'
 import { cors } from 'hono/cors'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { z } from 'zod'
-import { updateUserSettingsSchema, userSettingsResponseSchema } from '@diary/contracts/settings'
 import {
   ACCESS_COOKIE,
   ACCESS_SECONDS,
   REFRESH_COOKIE,
   REFRESH_SECONDS,
-  authUser,
   createAuthSessionService,
-  hashRefreshToken,
   type SessionUser,
 } from './auth-session.js'
-import { getUserSettings, updateUserSettings } from './user-settings.js'
 import { createMarketData, createYahooUpstream } from './market-data/index.js'
 import { safeErrorContext } from './diagnostics.js'
 import { registerMarketRoutes } from './market-routes.js'
-import { listDiaries, listDiarySummaries } from './diary-list.js'
-import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
-import { diaryActivity } from './diary-activity.js'
-import { diaryActivityQuerySchema } from '@diary/contracts/diary-activity'
 import { registerDiaryReviewRoutes } from './diary-review.js'
-import { readDiaryByDate, readDiaryDetail } from './diary-read.js'
 import { registerReviewQueueRoute } from './review-queue.js'
 import { registerActivityTimelineRoute } from './activity-timeline.js'
 import { registerInvestmentThesisRoutes } from './investment-thesis.js'
@@ -84,19 +47,8 @@ import { registerStockNoteRoutes } from './stock-notes.js'
 import { registerEvidenceRoutes } from './evidence.js'
 import { registerWatchlistRoutes } from './watchlist.js'
 import { registerDiarySavedViewRoutes } from './diary-saved-views.js'
-import { listLinkedTradePlans, registerTradePlanRoutes } from './trade-plans.js'
-import { DiaryStockLimitError } from './diary-stocks.js'
-import { valuePortfolio, batchQuotePrices } from './portfolio.js'
-import { exportClosedTrades, tradeExportFilename } from './trade-export.js'
+import { registerTradePlanRoutes } from './trade-plans.js'
 import { createNagerHolidayProvider, registerHolidayRoutes, type HolidayProvider } from './holidays.js'
-import { diaryListQuerySchema } from '@diary/contracts/diary-list'
-import {
-  createDiary,
-  deleteDiary,
-  serializeDiary,
-  updateDiary,
-} from './diary.js'
-import { getHoldings, getRecentClosedTrades, LedgerValidationError } from './ledger.js'
 import { registerSecFilingRoutes } from './sec-filings.js'
 import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
 import { registerAdminUserRoutes } from './admin-users.js'
@@ -119,43 +71,22 @@ import type { SmtpTransportFactory } from './account-email/smtp.js'
 import { createMemoryRateLimitRuntime, RATE_LIMIT_POLICIES, RateLimitStoreUnavailableError, rateLimitKey } from './rate-limit/index.js'
 import type { RateLimitPolicy, RateLimitResult, RateLimitRuntime } from './rate-limit/index.js'
 import { requestBodyLengthLimit, requestBodyLimit, RequestBodyLimitError } from './request-body-limit.js'
+import {
+  ApiError,
+  clientIp,
+  CSRF_COOKIE,
+  CSRF_HEADER,
+  fail,
+  parseJson,
+  PUBLIC_STATE_PATHS,
+  safeEqual,
+  validationError,
+  type ApiConfig,
+  type AppEnv,
+} from './app-context.js'
 
-const CSRF_COOKIE = 'csrf-token'
-const CSRF_HEADER = 'x-csrf-token'
-const PUBLIC_STATE_PATHS = new Set([
-  '/api/auth/register',
-  '/api/auth/registration/request',
-  '/api/auth/registration/complete',
-  '/api/auth/password-reset/request',
-  '/api/auth/password-reset/complete',
-  '/api/auth/login',
-  '/api/auth/refresh',
-  '/api/auth/logout',
-  '/api/auth/native/login',
-  '/api/auth/native/refresh',
-  '/api/auth/native/logout',
-])
-
-export interface ApiConfig {
-  jwtSecret: string
-  nodeEnv: 'development' | 'test' | 'production'
-  trustProxy: boolean
-  webOrigin: string
-  secUserAgent?: string
-}
-
-type AuthTransport = 'cookie' | 'bearer' | 'api-key'
-
-export interface AppEnv {
-  Variables: {
-    requestId: string
-    user: SessionUser
-    apiKey: { id: string; userId: string; label: string; scope: 'DIARY_CREATE' | 'AGENT_WRITE' }
-    authTransport: AuthTransport
-    rateLimitRetryAfterSeconds: number | undefined
-    rateLimitBackendUnavailable: boolean | undefined
-  }
-}
+export { resolveClientIp } from './app-context.js'
+export type { ApiConfig, AppEnv } from './app-context.js'
 
 export interface AppDependencies {
   databasePool?: Pick<import('pg').Pool,'connect'>
@@ -182,82 +113,6 @@ export interface AppDependencies {
   smtpHostLookup?: (hostname: string) => Promise<string[]>
   smtpAllowedPrivateHosts?: string
   rateLimiter?: RateLimitRuntime
-}
-
-interface ErrorDetail {
-  field?: string
-  message?: string
-  value?: unknown
-}
-
-class ApiError extends Error {
-  constructor(
-    readonly statusCode: number,
-    readonly code: ErrorCode,
-    message: string,
-    readonly details: ErrorDetail[] | null = null,
-  ) {
-    super(message)
-  }
-}
-
-function fail(status: number, code: ErrorCode, message: string, details: ErrorDetail[] | null = null): never {
-  throw new ApiError(status, code, message, details)
-}
-
-function validationError(error: z.ZodError): never {
-  fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', error.issues.map((issue) => ({
-    field: issue.path.join('.'),
-    message: issue.message,
-  })))
-}
-
-async function parseJson<T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T> {
-  try {
-    const result = schema.safeParse(await c.req.json())
-    if (!result.success) validationError(result.error)
-    return result.data
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof RequestBodyLimitError) throw error
-    fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ message: 'Request body must be valid JSON' }])
-  }
-}
-
-function isUniqueViolation(error: unknown, constraint?: string): boolean {
-  if (!error || typeof error !== 'object') return false
-  const candidate = error as { code?: unknown; constraint?: unknown; cause?: unknown }
-  const direct = candidate.code === '23505' && (!constraint || candidate.constraint === constraint)
-  return direct || (candidate.cause !== undefined && isUniqueViolation(candidate.cause, constraint))
-}
-
-function instant(value: Date | string): string {
-  return (value instanceof Date ? value : new Date(value)).toISOString()
-}
-
-function databaseId(value: string): bigint | undefined {
-  if (!serializedIdSchema.safeParse(value).success
-    || value.length > MAX_SERIALIZED_ID.length
-    || (value.length === MAX_SERIALIZED_ID.length && value > MAX_SERIALIZED_ID)) return undefined
-  return BigInt(value)
-}
-
-export function resolveClientIp(trustProxy: boolean, forwardedFor: string | undefined, remoteAddress: string | undefined): string {
-  const trusted = trustProxy ? forwardedFor?.split(',').at(-1)?.trim() : undefined
-  if (trusted && isIP(trusted)) return trusted
-  return remoteAddress ?? 'unknown'
-}
-
-function clientIp(c: Context<AppEnv>, trustProxy: boolean): string {
-  let remoteAddress: string | undefined
-  try { remoteAddress = getConnInfo(c).remote.address } catch { remoteAddress = undefined }
-  return resolveClientIp(trustProxy, c.req.header('x-forwarded-for'), remoteAddress)
-}
-
-function safeEqual(left: string, right: string): boolean {
-  const a = Buffer.from(left)
-  const b = Buffer.from(right)
-  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 export function createApp({
@@ -597,397 +452,24 @@ export function createApp({
     consume: consumeRateLimit,
   })
 
-  app.post('/api/auth/register', async (c) => {
-    const ip = clientIp(c, config.trustProxy)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.registerIp, 'ip', ip)
-    const input = await parseJson(c, registerRequestSchema)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.registerAccount, 'account', input.email.trim().toLowerCase())
-
-    try {
-      const password = await bcrypt.hash(input.password, 10)
-      const user = await db.transaction(async tx => {
-        const [settings] = await tx.select({ enabled: mailSettings.enabled }).from(mailSettings)
-          .where(eq(mailSettings.singleton, 'default')).for('update').limit(1)
-        if (settings?.enabled) fail(409, 'AUTH_EMAIL_VERIFICATION_REQUIRED', 'Verify your email before creating an account')
-        const [existing] = await tx.select({ id: users.id }).from(users)
-          .where(sql`lower(${users.email}) = ${input.email.toLowerCase()}`).limit(1)
-        if (existing) fail(409, 'USER_EMAIL_EXISTS', `Email ${input.email} already registered`)
-        const [created] = await tx.insert(users).values({
-          email: input.email,
-          password,
-          name: input.name,
-        }).returning()
-        return created
-      })
-      if (!user) throw new Error('User insert returned no row')
-      return c.json(registerResponseSchema.parse({
-        success: true,
-        user: {
-          id: user.id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          expectedMonthlyTrades: user.expectedMonthlyTrades,
-          expectedProfit: user.expectedProfit,
-          expectedAvgHolding: user.expectedAvgHolding,
-          createdAt: instant(user.createdAt),
-        },
-      }), 200)
-    } catch (error) {
-      if (isUniqueViolation(error, 'users_email_lower_key')) fail(409, 'USER_EMAIL_EXISTS', `Email ${input.email} already registered`)
-      throw error
-    }
+  registerAuthRoutes(app, {
+    db,
+    config,
+    now,
+    logger,
+    session,
+    accountEmailLifecycle,
+    findUserByEmail,
+    setAccessCookie,
+    setRefreshCookie,
+    clearAuthCookies,
+    ...(onAccountRevoked ? { onAccountRevoked } : {}),
+    consume: consumeRateLimit,
   })
 
-  app.post('/api/auth/login', async (c) => {
-    const ip = clientIp(c, config.trustProxy)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginIp, 'ip', ip)
-    const input = await parseJson(c, loginRequestSchema)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginAccount, 'account', input.email.trim().toLowerCase())
-    const user = await findUserByEmail(input.email)
-    if (!user || !await bcrypt.compare(input.password, user.password)) {
-      fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
-    }
+  registerDiaryRoutes(app, { db, now })
 
-    const result = await session.createLoginSession({
-      candidate: user, password: input.password, clientType: 'WEB',
-    })
-    if (result.clientType !== 'WEB') throw new Error('Unexpected login session type')
-    setAccessCookie(c, result.accessToken)
-    setRefreshCookie(c, result.refreshToken)
-    return c.json(authUserResponseSchema.parse({ ok: true, data: authUser(result.user) }), 200)
-  })
-
-  app.post('/api/auth/refresh', async (c) => {
-    if (c.get('authTransport') && c.get('authTransport') !== 'cookie') {
-      fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
-    }
-    const refreshToken = getCookie(c, REFRESH_COOKIE)
-    if (!refreshToken) fail(401, 'AUTH_NO_REFRESH_TOKEN', 'No refresh token provided')
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshIp, 'ip', clientIp(c, config.trustProxy))
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshToken, 'token', hashRefreshToken(refreshToken).slice(0, 24))
-    const refreshed = await session.refreshWebSession(refreshToken)
-    setAccessCookie(c, refreshed.accessToken)
-    return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
-  })
-
-  app.post('/api/auth/logout', async (c) => {
-    const transport = c.get('authTransport')
-    const isCookieSession = transport === undefined || transport === 'cookie'
-    if (isCookieSession) {
-      const refreshToken = getCookie(c, REFRESH_COOKIE)
-      if (refreshToken) {
-        try {
-          await db.delete(refreshTokens).where(and(
-            eq(refreshTokens.token, hashRefreshToken(refreshToken)),
-            eq(refreshTokens.clientType, 'WEB'),
-          ))
-        } catch (error) {
-          // Browser logout is fail-safe: clearing the local credentials must not
-          // depend on refresh-token persistence being available.
-          const candidate = error && typeof error === 'object'
-            ? error as { name?: unknown; code?: unknown }
-            : undefined
-          logger.error('Browser refresh-token cleanup failed', {
-            operation: 'auth_logout_cleanup',
-            requestId: c.get('requestId'),
-            errorName: typeof candidate?.name === 'string' ? candidate.name : 'Error',
-            errorCode: typeof candidate?.code === 'string' ? candidate.code : undefined,
-          })
-        }
-      }
-      clearAuthCookies(c)
-    }
-    return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
-  })
-
-  app.post('/api/auth/native/login', async (c) => {
-    const ip = clientIp(c, config.trustProxy)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginIp, 'ip', ip)
-    const input = await parseJson(c, nativeLoginRequestSchema)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.loginAccount, 'account', input.email.trim().toLowerCase())
-    const user = await findUserByEmail(input.email)
-    if (!user || !await bcrypt.compare(input.password, user.password)) {
-      fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
-    }
-    const result = await session.createLoginSession({
-      candidate: user,
-      password: input.password,
-      clientType: 'NATIVE',
-      deviceName: input.deviceName,
-    })
-    if (result.clientType !== 'NATIVE') throw new Error('Unexpected login session type')
-    return c.json(nativeAuthResponseSchema.parse({ ok: true, data: result.pair }), 200)
-  })
-
-  app.post('/api/auth/native/refresh', async (c) => {
-    const input = await parseJson(c, nativeRefreshRequestSchema)
-    const tokenHash = hashRefreshToken(input.refreshToken)
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshIp, 'ip', clientIp(c, config.trustProxy))
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.refreshToken, 'token', tokenHash.slice(0, 24))
-    const outcome = await session.refreshNativeSession(input.refreshToken)
-    if (!outcome.ok) {
-      if (outcome.reason === 'invalid') fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
-      if (outcome.reason === 'not-found') fail(401, 'AUTH_TOKEN_NOT_FOUND', 'Token not found')
-      if (outcome.reason === 'expired') fail(401, 'AUTH_TOKEN_EXPIRED', 'Token expired')
-      fail(401, 'AUTH_TOKEN_REVOKED', 'Token has been revoked')
-    }
-    return c.json(nativeAuthResponseSchema.parse({ ok: true, data: outcome.pair }), 200)
-  })
-
-  app.post('/api/auth/native/logout', async (c) => {
-    const input = await parseJson(c, nativeLogoutRequestSchema)
-    await session.logoutNativeSession(input.refreshToken)
-    return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
-  })
-
-  app.post('/api/auth/logout-all', async (c) => {
-    const authenticated = c.get('user')
-    if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    await session.logoutAllSessions(BigInt(authenticated.id))
-    onAccountRevoked?.(authenticated.id)
-    clearAuthCookies(c)
-    return c.json(authMutationResponseSchema.parse({ ok: true }), 200)
-  })
-
-  app.put('/api/user/password', async (c) => {
-    const authenticated = c.get('user')
-    if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordIp, 'ip', clientIp(c, config.trustProxy))
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.passwordUser, 'user', authenticated.id)
-    const input = await parseJson(c, changePasswordRequestSchema)
-    // Only an ambient browser session can be handed a replacement here; a
-    // bearer or API-key caller holds credentials this response cannot update.
-    const reissueWebSession = c.get('authTransport') === 'cookie'
-    const replacement = await session.changePassword(BigInt(authenticated.id), input.currentPassword, input.newPassword, {
-      reissueWebSession,
-      afterPasswordChanged: async (tx, user) => {
-        await accountEmailLifecycle.invalidateForPasswordChange(tx, {
-          id: BigInt(authenticated.id),
-          email: user.email,
-          locale: user.locale,
-        }, now())
-      },
-    })
-    // Sockets still hold the previous token version, including this device's.
-    // The browser reconnects with the credentials set below.
-    onAccountRevoked?.(authenticated.id)
-    if (replacement) {
-      setAccessCookie(c, replacement.accessToken)
-      setRefreshCookie(c, replacement.refreshToken)
-    } else {
-      clearAuthCookies(c)
-    }
-    return c.json(changePasswordResponseSchema.parse({
-      success: true,
-      sessionRetained: replacement !== undefined,
-      message: replacement ? CHANGE_PASSWORD_SESSION_RETAINED : CHANGE_PASSWORD_SIGN_IN_AGAIN,
-    }), 200)
-  })
-
-  app.get('/api/user/settings', async (c) => {
-    const authenticated = c.get('user')
-    if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const settings = await getUserSettings(db, BigInt(authenticated.id))
-    if (!settings) fail(404, 'USER_NOT_FOUND', 'User not found')
-    return c.json(userSettingsResponseSchema.parse({ success: true, settings }), 200)
-  })
-
-  app.put('/api/user/settings', async (c) => {
-    const authenticated = c.get('user')
-    if (!authenticated) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const input = await parseJson(c, updateUserSettingsSchema)
-    const settings = await updateUserSettings(db, BigInt(authenticated.id), input, now())
-    if (!settings) fail(404, 'USER_NOT_FOUND', 'User not found')
-    return c.json(userSettingsResponseSchema.parse({ success: true, settings }), 200)
-  })
-
-  app.get('/api/auth/me', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const [user] = await db.select().from(users).where(eq(users.id, BigInt(session.id))).limit(1)
-    if (!user) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    return c.json(authUserResponseSchema.parse({ ok: true, data: authUser(user) }), 200)
-  })
-
-  app.post('/api/agent/diaries', async c => {
-    const key = c.get('apiKey')
-    if (!key) fail(401, 'AUTH_TOKEN_INVALID', 'API key required')
-    const input = await parseJson(c, createDiaryRequestSchema)
-    if (input.appendToToday) fail(400, 'SYS_VALIDATION_ERROR', 'appendToToday is not available for API key diary creation')
-    const diaryDate = input.date ?? currentUtcDate(now())
-    try {
-      const result = await createDiary(db, BigInt(key.userId), input, diaryDate, now, { createdVia: 'API_KEY', createdByLabel: key.label })
-      c.header('Cache-Control', 'no-store')
-      return c.json(serializeDiary(result.diary, false, result.transactions, [], result.stockSymbols, result.alerts), 201)
-    } catch (error) {
-      if (isUniqueViolation(error, 'diaries_user_date_key')) fail(409, 'DIARY_ALREADY_EXISTS', `Diary already exists for ${diaryDate}`)
-      if (error instanceof LedgerValidationError) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'transactions', message: error.message }])
-      throw error
-    }
-  })
-
-  app.post('/api/diaries', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const input = await parseJson(c, createDiaryRequestSchema)
-    const diaryDate = input.date ?? currentUtcDate(now())
-    try {
-      const result = await createDiary(db, BigInt(session.id), input, diaryDate, now)
-      return c.json(serializeDiary(result.diary, false, result.transactions, [], result.stockSymbols, result.alerts), 201)
-    } catch (error) {
-      if (isUniqueViolation(error, 'diaries_user_date_key')) fail(409, 'DIARY_ALREADY_EXISTS', `Diary already exists for ${diaryDate}`)
-      if (error instanceof DiaryStockLimitError) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'stockSymbols', message: error.message }])
-      if (error instanceof LedgerValidationError) {
-        fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'transactions', message: error.message }])
-      }
-      throw error
-    }
-  })
-
-  app.get('/api/diaries', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = diaryListQuerySchema.safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    return c.json(await listDiaries(db, BigInt(session.id), query.data, now()))
-  })
-
-  app.get('/api/diaries/activity', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = diaryActivityQuerySchema.safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    return c.json(await diaryActivity(db, BigInt(session.id), query.data.dateFrom, query.data.dateTo))
-  })
-
-  app.get('/api/diaries/by-date', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = diaryByDateQuerySchema.safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    return c.json(await readDiaryByDate(db, query.data.date, BigInt(session.id)), 200)
-  })
-
-  // Summary discovery feed; registered before '/api/diaries/:id' so the
-  // parameterized route never swallows the literal 'summary' segment.
-  app.get('/api/diaries/summary', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = diaryListQuerySchema.safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    const includeSearchSnippet = c.req.header('x-diary-search-snippet') === '1'
-    return c.json(diarySummaryListResponseSchema.parse(await listDiarySummaries(db, BigInt(session.id), query.data, now(), includeSearchSnippet)))
-  })
-
-  app.get('/api/diaries/:id', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const id = c.req.param('id')
-    if (!serializedIdSchema.safeParse(id).success) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'id', message: 'Invalid id', value: id }])
-    const parsedId = databaseId(id)
-    if (parsedId === undefined) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    const diary = await readDiaryDetail(db, parsedId, BigInt(session.id))
-    if (!diary) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    return c.json(diary, 200)
-  })
-
-  const updateDiaryRoute = async (c: Context<AppEnv>, input: UpdateDiaryRequest) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const id = c.req.param('id') ?? ''
-    if (!serializedIdSchema.safeParse(id).success) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'id', message: 'Invalid id', value: id }])
-    const parsedId = databaseId(id)
-    if (parsedId === undefined) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    try {
-      const result = await updateDiary(db, parsedId, BigInt(session.id), input, now())
-      if (!result) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-      if ('conflict' in result && result.conflict) fail(409, 'DIARY_REVISION_CONFLICT', 'Diary changed after it was loaded. Reload the latest version before saving.')
-      const planRows = await listLinkedTradePlans(db, BigInt(session.id), [result.diary.id])
-      return c.json(serializeDiary(result.diary, true, result.transactions, planRows, result.stockSymbols, result.alerts), 200)
-    } catch (error) {
-      if (isUniqueViolation(error, 'diaries_user_date_key')) {
-        fail(409, 'DIARY_ALREADY_EXISTS', `Diary already exists for ${input.date}`)
-      }
-      if (error instanceof LedgerValidationError) {
-        fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'transactions', message: error.message }])
-      }
-      throw error
-    }
-  }
-
-  app.put('/api/diaries/:id', async c => updateDiaryRoute(c, await parseJson(c, updateDiaryRequestSchema)))
-  app.put('/api/v2/diaries/:id', async c => updateDiaryRoute(c, await parseJson(c, updateDiaryV2RequestSchema)))
-
-  app.delete('/api/diaries/:id', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const id = c.req.param('id')
-    if (!serializedIdSchema.safeParse(id).success) fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'id', message: 'Invalid id', value: id }])
-    const parsedId = databaseId(id)
-    if (parsedId === undefined) fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-    try {
-      if (!await deleteDiary(db, parsedId, BigInt(session.id))) {
-        fail(404, 'DIARY_NOT_FOUND', `Diary ${id} not found`)
-      }
-    } catch (error) {
-      if (error instanceof LedgerValidationError) {
-        fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field: 'transactions', message: error.message }])
-      }
-      throw error
-    }
-    return c.json(deleteDiaryResponseSchema.parse({ success: true }), 200)
-  })
-
-  app.get('/api/stocks/exposure', async c => {
-    c.header('Cache-Control', 'no-store')
-    const user = c.get('user'); if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    return c.json(await readPortfolioExposure(db, BigInt(user.id), now().toISOString().slice(0, 10)))
-  })
-
-  app.get('/api/stocks/holdings', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    return c.json(await getHoldings(db, BigInt(session.id)), 200)
-  })
-
-  app.get('/api/stocks/portfolio', async c => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    c.header('Cache-Control', 'no-store')
-    return c.json(await valuePortfolio(db, BigInt(session.id), market, now(), c.req.raw.signal))
-  })
-
-  app.post('/api/stocks/prices', async c => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const input = await parseJson(c, z.object({ symbols: z.array(z.string().max(32)).min(1).max(25) }).strict())
-    await consumeRateLimit(c, RATE_LIMIT_POLICIES.marketIp, 'ip', clientIp(c, config.trustProxy))
-    const quotes = await batchQuotePrices(market, input.symbols, c.req.raw.signal)
-    if (Object.keys(quotes).length === 0) fail(502, 'SYS_EXTERNAL_SERVICE_ERROR', 'Prices unavailable. Please try again later.')
-    c.header('Cache-Control', 'no-store')
-    return c.json(quotes)
-  })
-
-  app.get('/api/stats/recent-trades', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = recentClosedTradesQuerySchema.safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    return c.json(await getRecentClosedTrades(db, BigInt(session.id), query.data, now()), 200)
-  })
-
-  app.get('/api/stats/export-trades', async (c) => {
-    const session = c.get('user')
-    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const query = z.object({ symbol: z.string().trim().max(20).transform(value => value.toUpperCase()).optional() }).strict().safeParse(c.req.query())
-    if (!query.success) validationError(query.error)
-    const csv = await exportClosedTrades(db, BigInt(session.id), query.data.symbol)
-    c.header('Content-Type', 'text/csv; charset=utf-8')
-    c.header('Content-Disposition', `attachment; filename="${tradeExportFilename(now(), query.data.symbol)}"`)
-    c.header('Cache-Control', 'no-store')
-    return c.body(csv)
-  })
+  registerPortfolioRoutes(app, { db, config, now, market, consume: consumeRateLimit })
 
   app.notFound((c) => {
     const error = new ApiError(404, 'SYS_NOT_FOUND', 'Resource not found')

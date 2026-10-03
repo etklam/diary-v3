@@ -1,5 +1,5 @@
 import { createDatabase } from '@diary/db'
-import type { ApiConfig } from './app.js'
+import type { ApiConfig } from './app-context.js'
 import { createApiRuntime } from './runtime.js'
 import { createMarketData } from './market-data/index.js'
 import { createFixtureUpstream } from './market-data/fixture.js'

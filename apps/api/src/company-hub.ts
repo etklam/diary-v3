@@ -6,7 +6,7 @@ import { stocks, stockWatchlists, investmentTheses, thesisReviews, stockTimeline
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import type { createMarketData } from './market-data/index.js'
 import { getHoldings } from './ledger.js'
 import { serializeThesis, serializeThesisReview } from './investment-thesis.js'

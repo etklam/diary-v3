@@ -4,7 +4,7 @@ import { computePerformanceStats } from '@diary/domain/performance-stats'
 import type { Database } from '@diary/db'
 import type { Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { readUserLedger } from './ledger.js'
 export function registerPerformanceRoute(app: Hono<AppEnv>, dependencies: {
   db: Database; fail: (status: number, code: ErrorCode, message: string) => never; validationError: (error: z.ZodError) => never

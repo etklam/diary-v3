@@ -6,7 +6,7 @@ import { stockNoteCreateRequestSchema, toStockNoteContractResponse } from '@diar
 import { agentTimelineBatchRequestSchema, agentTimelineBatchResponseSchema } from '@diary/contracts/evidence'
 import { diaries, stocks, stockWatchlists, stockNotes, type Database } from '@diary/db'
 import { and, asc, eq } from 'drizzle-orm'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { insertStockTimelineRecord } from './stock-timeline-capture.js'
 import { ensureWatchingStock, watchlistLock } from './watchlist.js'
 export function registerAgentStockRoutes(app: Hono<AppEnv>, dependencies: {

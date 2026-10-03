@@ -15,7 +15,7 @@ import {
 } from '@diary/contracts'
 import { alerts, diaries, transactions, users, type Database } from '@diary/db'
 import { count, desc, eq, ilike, or, sql } from 'drizzle-orm'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { userSessionLock } from './auth-session.js'
 import { lockAiOwner } from './ai-reports/job-store.js'
 

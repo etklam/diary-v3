@@ -9,7 +9,7 @@ import { diaryExcerpt } from '@diary/domain'
 import { sql } from 'drizzle-orm'
 import type { Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { listDiaryStocks } from './diary-stocks.js'
 
 /**

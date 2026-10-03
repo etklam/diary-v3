@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 const escapeXml = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[char]!)
 export function registerDisciplineOg(app: Hono<AppEnv>) {
  app.get('/api/og/discipline.svg', c => {

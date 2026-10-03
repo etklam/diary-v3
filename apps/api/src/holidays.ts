@@ -2,7 +2,7 @@ import { holidayQuerySchema, holidayResponseSchema, holidaySchema, type Holiday 
 import type { ErrorCode } from '@diary/contracts'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 
 const upstreamHolidaySchema = holidaySchema.passthrough()
 const upstreamHolidayListSchema = upstreamHolidaySchema.array().max(500)

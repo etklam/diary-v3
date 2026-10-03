@@ -4,7 +4,7 @@ import { priceAlerts, type Database } from '@diary/db'
 import { and, desc, eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 export function registerPriceAlertRoutes(app: Hono<AppEnv>, dependencies: {
   db: Database; now: () => Date; fail: (status: number, code: ErrorCode, message: string) => never
   validationError: (error: z.ZodError) => never; parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>

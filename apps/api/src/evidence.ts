@@ -5,7 +5,7 @@ import { stocks, stockTimelineRecords, type Database } from '@diary/db'
 import { and, desc, eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { insertStockTimelineRecord } from './stock-timeline-capture.js'
 import { ensureWatchingStock } from './watchlist.js'
 

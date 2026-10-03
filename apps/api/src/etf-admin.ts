@@ -4,7 +4,7 @@ import { serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import { adminEtfCreateSchema, adminEtfCreatedSchema, adminEtfListSchema, adminEtfSeedSchema, adminEtfDeleteSchema, adminEtfInitializeSchema } from '@diary/contracts/etf'
 import { etfs, etfPrices, etfWatchlists, type Database } from '@diary/db'
 import { asc, count, eq, sql } from 'drizzle-orm'
-import type { AppEnv } from './app.js'
+import type { AppEnv } from './app-context.js'
 import { MarketDataError, type createMarketData } from './market-data/index.js'
 import { COMMON_ETFS } from './etf-seed.js'
 export function registerEtfAdminRoutes(app: Hono<AppEnv>, dependencies: {
