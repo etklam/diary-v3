@@ -1,5 +1,4 @@
-import { mailSettings, type Database } from '@diary/db'
-import { eq } from 'drizzle-orm'
+import { mailSettings } from '@diary/db'
 import { decryptSmtpSecret, encryptSmtpSecret, environmentSmtpKeyring, type SmtpKeyring } from './secrets.js'
 import { resolveSmtpHost } from './smtp-host.js'
 import { sendSmtpMessage, type SmtpConfig, type SmtpMessage, type SmtpTransportFactory } from './smtp.js'
@@ -12,12 +11,6 @@ export interface SmtpRuntimeOptions {
   keyring?: SmtpKeyring
   lookup?: (hostname: string) => Promise<string[]>
   allowedPrivateHosts?: string
-}
-
-export async function readSmtpSettings(db: Database): Promise<SmtpSettingsRow> {
-  const [settings] = await db.select().from(mailSettings).where(eq(mailSettings.singleton, 'default')).limit(1)
-  if (!settings) throw new Error('SMTP_SETTINGS_NOT_INITIALIZED')
-  return settings
 }
 
 export function sealMailPayload(payload: EncryptedMailPayload, keyring = environmentSmtpKeyring()): string {

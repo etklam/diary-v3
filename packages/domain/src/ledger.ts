@@ -184,7 +184,3 @@ export function replayLedger(entries: readonly LedgerEntry[]) {
   }))
   return { holdings, closedTrades }
 }
-
-export function calculateBuyHoldings(entries: readonly (LedgerEntry & { type: 'BUY' })[]): DecimalHolding[] {
-  return replayLedger(entries).holdings
-}

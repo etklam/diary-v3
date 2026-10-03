@@ -1,6 +1,6 @@
-import { eq, inArray } from 'drizzle-orm'
-import { articleLocaleSchema, type ArticleLocale } from '@diary/contracts'
-import { postTranslations, posts, users, type Database } from '@diary/db'
+import { inArray } from 'drizzle-orm'
+import { type ArticleLocale } from '@diary/contracts'
+import { postTranslations, posts, type Database } from '@diary/db'
 
 type SourcePost = Pick<typeof posts.$inferSelect,
   'title'
@@ -50,25 +50,6 @@ export function currentPublishedTranslation(post: SourcePost, translation: Artic
     && translation.status !== 'unpublished'
     && translation.publishedSourceRevision === post.sourceRevision
     && translation.publishedSourceHash === post.sourceHash)
-}
-
-export async function resolveRequestedArticleLocale(options: {
-  db: Database
-  post: SourcePost
-  explicitLocale?: string | null
-  accountId?: bigint | null
-  cookieLocale?: string | null
-}): Promise<ArticleLocale> {
-  if (options.explicitLocale !== undefined && options.explicitLocale !== null) {
-    return articleLocaleSchema.parse(options.explicitLocale)
-  }
-  if (options.accountId !== undefined && options.accountId !== null) {
-    const [account] = await options.db.select({ locale: users.locale }).from(users).where(eq(users.id, options.accountId)).limit(1)
-    const locale = articleLocaleSchema.safeParse(account?.locale)
-    if (locale.success) return locale.data
-  }
-  const cookieLocale = articleLocaleSchema.safeParse(options.cookieLocale)
-  return cookieLocale.success ? cookieLocale.data : options.post.sourceLocale as ArticleLocale
 }
 
 export function resolveArticleTranslation(post: SourcePost, rows: readonly ArticleTranslationSnapshot[], requestedLocale: ArticleLocale): ArticleLocaleResolution {

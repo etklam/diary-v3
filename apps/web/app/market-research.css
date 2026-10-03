@@ -1,5 +1,5 @@
 .market-research-page{max-width:1280px}
-.market-research-section{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);box-shadow:var(--shadow-1);padding:var(--space-6);margin-top:var(--space-5)}
+.market-research-section{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);padding:var(--space-6);margin-top:var(--space-5)}
 .market-research-section h2{margin:0 0 var(--space-4)}
 .market-research-section h3{margin:0 0 var(--space-4)}
 .market-research-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
@@ -28,7 +28,7 @@
 .market-history-chart text{fill:var(--muted);font-size:12px}
 .market-empty{padding:16px 0;color:var(--muted)}
 .market-error{color:var(--danger)}
-.market-capture{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);box-shadow:var(--shadow-1);padding:var(--space-6);margin-top:var(--space-5)}
+.market-capture{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);padding:var(--space-6);margin-top:var(--space-5)}
 .market-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
 .market-capture-form{display:grid;gap:12px;max-width:760px;margin-top:16px}
 .market-capture-form button{width:max-content}

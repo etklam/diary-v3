@@ -62,10 +62,6 @@ export async function insertLedgerTransactions(
   }))).returning()
 }
 
-// Transitional aliases keep independently running slices buildable while the
-// Diary module switches from the BUY-only ticket 15 names.
-export const insertBuyTransactions = insertLedgerTransactions
-
 export async function readUserLedger(
   db: Database | DbTransaction,
   userId: bigint,
@@ -182,7 +178,6 @@ export function listDiaryTransactions(db: Database | DbTransaction, diaryId: big
 export async function getHoldings(db: Database | DbTransaction, userId: bigint) {
   return holdingsResponseSchema.parse((await readLedgerSnapshot(db, userId)).holdings)
 }
-export const getBuyHoldings = getHoldings
 
 export async function getRecentClosedTrades(
   db: Database,

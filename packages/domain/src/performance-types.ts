@@ -54,21 +54,3 @@ export interface PerformanceStatsResult<TDate = string> {
 }
 
 export type PerformanceStatsPayload = PerformanceStatsResult<string>
-
-export function performancePeriodOptions(
-  translate: (key: string) => string,
-  keyPrefix: string,
-): { value: PerfPeriod; label: string }[] {
-  return PERFORMANCE_PERIODS.map((value) => ({
-    value,
-    label: translate(`${keyPrefix}.${value}`),
-  }))
-}
-
-export function performancePeriodLabel(
-  translate: (key: string) => string,
-  keyPrefix: string,
-  period: PerfPeriod,
-): string {
-  return translate(`${keyPrefix}.${period}`)
-}

@@ -222,8 +222,6 @@ export const TAVILY_SEARCH_POLICY = createSourcePolicy({
   conditions: ['A configured key and plan entitlement are required.', 'Search results do not prove that a discovered page was read.'],
 })
 
-export const purposeUseKey = purposeToUseKey
-
 export function sourcePolicySnapshot(policy: ResearchSourcePolicy) {
   return {
     sourceId: policy.sourceId,

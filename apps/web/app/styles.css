@@ -3,9 +3,8 @@
    Tokens live in tokens.css; nothing here hard-codes a colour or a size.
 
    THE STRUCTURAL HIERARCHY RULE governs this file: grouped content is bounded
-   by a rule and separated by space, never lifted by a shadow. `--shadow-1` is
-   `none`, so the legacy `box-shadow: var(--shadow-1)` still present in route
-   stylesheets resolves to nothing and no panel floats.
+   by a rule and separated by space, never lifted by a shadow. Elevation is
+   spent only on surfaces that genuinely sit above the page; no panel floats.
    =========================================================================== */
 
 *,

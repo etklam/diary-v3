@@ -73,11 +73,3 @@ export type PortfolioHolding = z.infer<typeof portfolioHoldingSchema>
 export type PortfolioHoldingsResponse = z.infer<typeof portfolioHoldingsResponseSchema>
 export type PortfolioAggregations = z.infer<typeof portfolioAggregationsSchema>
 export type PortfolioValuationResponse = z.infer<typeof portfolioValuationResponseSchema>
-
-export function toPortfolioHoldingsResponse(value: unknown): PortfolioHoldingsResponse {
-  return portfolioHoldingsResponseSchema.parse(value)
-}
-
-export function toPortfolioValuationResponse(value: unknown): PortfolioValuationResponse {
-  return portfolioValuationResponseSchema.parse(value)
-}

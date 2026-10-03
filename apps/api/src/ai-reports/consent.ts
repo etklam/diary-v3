@@ -1,27 +1,18 @@
-import { eq } from 'drizzle-orm'
-import { aiUserConsents, type Database } from '@diary/db'
-
-export async function readAiConsent(db: Database, userId: bigint) {
-  const [row] = await db.select().from(aiUserConsents).where(eq(aiUserConsents.userId, userId)).limit(1)
-  return row ?? null
+/** The consent facts the gate needs, satisfied by any `ai_user_consent` projection. */
+export interface AiConsentState {
+  acceptedAt: Date | null
+  revokedAt: Date | null
+  recipientRevision: number
 }
 
-export async function acceptAiConsent(db: Database, input: { userId: bigint; recipientRevision: number; disclosureVersion: string; now: Date }) {
-  const [row] = await db.insert(aiUserConsents).values({
-    userId: input.userId,
-    recipientRevision: input.recipientRevision,
-    disclosureVersion: input.disclosureVersion,
-    acceptedAt: input.now,
-    revokedAt: null,
-    updatedAt: input.now,
-  }).onConflictDoUpdate({
-    target: aiUserConsents.userId,
-    set: { recipientRevision: input.recipientRevision, disclosureVersion: input.disclosureVersion, acceptedAt: input.now, revokedAt: null, updatedAt: input.now },
-  }).returning()
-  return row
-}
-
-export async function revokeAiConsent(db: Database, userId: bigint, now: Date) {
-  const [row] = await db.update(aiUserConsents).set({ revokedAt: now, updatedAt: now }).where(eq(aiUserConsents.userId, userId)).returning()
-  return row ?? null
+/**
+ * The single consent gate for AI report generation: consent must be accepted,
+ * not revoked, and pinned to the recipient revision the caller is about to use.
+ * Dispatch admission, the worker and the report service all enforce this, so
+ * the rule lives here rather than being restated at each call site.
+ */
+export function aiConsentIsValid(consent: AiConsentState | null | undefined, recipientRevision: number): boolean {
+  if (!consent?.acceptedAt) return false
+  if (consent.revokedAt) return false
+  return consent.recipientRevision === recipientRevision
 }

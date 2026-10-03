@@ -207,10 +207,6 @@ export function resolveQuickNoteLocaleVariant(locale: string): QuickNoteLocaleVa
   return 'en'
 }
 
-export function isQuickNoteZhLocale(locale: string): boolean {
-  return resolveQuickNoteLocaleVariant(locale) !== 'en'
-}
-
 function getLocalizedLabel(label: LocalizedLabel, locale: string): string {
   return label[resolveQuickNoteLocaleVariant(locale)]
 }

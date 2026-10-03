@@ -1432,9 +1432,6 @@ export const mailSettings = pgTable('smtp_settings', {
   check('smtp_settings_enabled_complete', sql`not ${table.enabled} or (${table.host} is not null and ${table.port} is not null and ${table.security} in ('tls', 'starttls') and ${table.senderName} is not null and ${table.senderEmail} is not null and ${table.lastTestStatus} = 'passed' and ${table.lastTestedAt} is not null and ${table.lastTestedRevision} = ${table.revision})`),
 ])
 
-/** SMTP-specific alias retained for callers that use the transport name. */
-export const smtpSettings = mailSettings
-
 /** Lifecycle records retain only a digest of the raw account link token. */
 export const accountEmailTokens = pgTable('account_email_token', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
@@ -1518,9 +1515,6 @@ export const accountEmailRateLimits = pgTable('email_request_rate_limit', {
   check('email_request_rate_limit_digest_shape', sql`${table.digest} ~ '^[a-f0-9]{64}$'`),
   check('email_request_rate_limit_count_nonnegative', sql`${table.requestCount} >= 0`),
 ])
-
-/** Descriptive alias for callers that group limits by request rather than account. */
-export const emailRequestRateLimits = accountEmailRateLimits
 
 /** Mail administration audit records intentionally contain no recipient or secret fields. */
 export const mailAdminAuditEvents = pgTable('mail_admin_audit_event', {

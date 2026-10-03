@@ -34,6 +34,7 @@ import { recordUserQuotaUsage, releaseUserQuota, reserveUserQuota, readUserQuota
 import { cancelAiReport, deleteAiReport, lockAiGlobal, lockAiOwner } from './job-store.js'
 import { releaseGlobalAiBudget, reserveGlobalAiBudget, settleGlobalAiBudget } from './budget.js'
 import type { AiMessage } from './deepseek-provider.js'
+import { aiConsentIsValid } from './consent.js'
 export type AiBuildContext = (db: Database, input: Parameters<typeof buildReportContext>[1]) => ReturnType<typeof buildReportContext>
 
 export interface AiReportServiceOptions {
@@ -169,7 +170,7 @@ export class AiReportService {
     if (!runtime?.generationEnabled) reason = 'AI_REPORTS_DISABLED'
     else if (!access?.enabled) reason = 'AI_ACCESS_DENIED'
     else if (!provider?.encryptedApiKey || !provider.model) reason = 'AI_NOT_CONFIGURED'
-    else if (!consent?.acceptedAt || consent.revokedAt || consent.recipientRevision !== provider.recipientRevision) reason = 'AI_CONSENT_REQUIRED'
+    else if (!aiConsentIsValid(consent, provider.recipientRevision)) reason = 'AI_CONSENT_REQUIRED'
     else if (!workerAvailable) reason = 'AI_WORKER_UNAVAILABLE'
     else if ((quota?.remaining ?? 0) <= 0) reason = 'AI_QUOTA_EXCEEDED'
     return aiCapabilitiesSchema.parse({ enabled: Boolean(runtime?.generationEnabled), canGenerate: reason === null, reason, remainingQuota: quota?.remaining ?? null, monthlyQuota: access?.monthlyQuota ?? null, recipientRevision: provider?.recipientRevision ?? null, disclosureVersion: provider?.disclosureVersion ?? null, recipientName: provider?.recipientName ?? null, disclosureText: provider?.disclosureText ?? null, consentAcceptedAt: consent?.acceptedAt?.toISOString() ?? null, workerAvailable })
@@ -272,7 +273,7 @@ export class AiReportService {
       const [prompt] = await tx.select().from(aiPromptVersions).where(and(eq(aiPromptVersions.reportType, request.periodType), eq(aiPromptVersions.status, 'published'))).orderBy(desc(aiPromptVersions.id)).limit(1)
       if (!provider?.encryptedApiKey || !prompt) throw new AiReportServiceError('AI_NOT_CONFIGURED', 503)
       const [consent] = await tx.select().from(aiUserConsents).where(eq(aiUserConsents.userId, userId)).for('update')
-      if (!consent?.acceptedAt || consent.revokedAt || consent.recipientRevision !== provider.recipientRevision) throw new AiReportServiceError('AI_CONSENT_REQUIRED', 403)
+      if (!aiConsentIsValid(consent, provider.recipientRevision)) throw new AiReportServiceError('AI_CONSENT_REQUIRED', 403)
       const [active] = await tx.select({ id: aiReports.id }).from(aiReports).where(and(eq(aiReports.userId, userId), sql`${aiReports.status} in ('queued','running')`, isNull(aiReports.deletedAt))).limit(1).for('update')
       if (active) throw new AiReportServiceError('AI_REPORT_ALREADY_RUNNING', 409)
       if (request.regenerateFromReportId) {

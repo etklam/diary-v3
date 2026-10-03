@@ -122,6 +122,3 @@ export async function researchPublicationIssue(input: {
   if (!instrument) return issue('RESEARCH_ARTICLE_PROVENANCE', 'Research instrument is unavailable')
   return researchPublicationFreshnessIssue({ symbol: instrument.symbol, referenceSession: link.referenceSession, now: input.now, latestCompletedSession: input.latestCompletedSession })
 }
-
-export function hashResearchArticleTitle(title: string): string { return sha256(title) }
-export function hashResearchArticleBody(content: string): string { return sha256(content) }

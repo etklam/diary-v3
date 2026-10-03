@@ -9,6 +9,7 @@ import {
   calculateSmaSeries,
   calculateEmaSeries,
   calculateRmaSeries,
+  calculateRsi14,
   deriveTradePlanCandidates,
   deriveStructuralLevels,
   findConfirmedPivots,
@@ -133,6 +134,29 @@ describe('seeded moving averages', () => {
   it('re-seeds after a missing observation', () => {
     expect(calculateEmaSeries([1, 2, 3, null, 10, 11, 12], 3)).toEqual([null, null, 2, null, null, null, 11])
     expect(calculateRmaSeries([1, 2, 3, null, 10, 11, 12], 3)).toEqual([null, null, 2, null, null, null, 11])
+  })
+})
+
+describe('RSI14', () => {
+  const rising = Array.from({ length: 16 }, (_, index) => 100 + index)
+  const falling = Array.from({ length: 16 }, (_, index) => 100 - index)
+
+  it('produces its first value on the fifteenth close', () => {
+    const series = calculateRsi14(rising)
+    expect(series.slice(0, 14).every(value => value === null)).toBe(true)
+    expect(series[14]).not.toBeNull()
+  })
+
+  it('resolves a zero average loss or gain without dividing by zero', () => {
+    expect(calculateRsi14(rising)[14]).toBe(100)
+    expect(calculateRsi14(falling)[14]).toBe(0)
+    expect(calculateRsi14(Array.from({ length: 16 }, () => 100))[14]).toBe(50)
+  })
+
+  it('matches the RSI14 series that the metrics calculator reports', () => {
+    const bars = syntheticBars()
+    const metrics = calculateResearchMetrics(inputFor(bars))
+    expect(calculateRsi14(bars.map(bar => bar.close))).toEqual([...metrics.rsi14])
   })
 })
 

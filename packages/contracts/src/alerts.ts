@@ -82,9 +82,6 @@ export const alertCreateRequestWireOpenApiSchema = z.intersection(
   z.intersection(alertCreateRequestWireTriggerOpenApiSchema, alertCreateRequestWireRecurringOpenApiSchema),
 )
 
-// Keep the previous export name for callers that only need the operation body.
-export const alertCreateRequestOpenApiSchema = alertCreateRequestWireOpenApiSchema
-
 export const alertDiaryReferenceSchema = z.object({
   id: serializedIdSchema,
   title: z.string(),

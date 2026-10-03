@@ -20,7 +20,6 @@
   padding: var(--space-3) var(--page-gutter);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
-  box-shadow: var(--shadow-1);
 }
 
 .public-header .brand {
@@ -453,7 +452,6 @@
   border-radius: var(--radius-card);
   background: var(--tint-info);
   color: var(--tint-info-text);
-  box-shadow: var(--shadow-1);
 }
 
 .tool-title-row h1 {

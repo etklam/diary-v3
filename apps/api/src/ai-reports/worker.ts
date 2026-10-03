@@ -6,6 +6,7 @@ import { decryptAiSecret } from './secrets.js'
 import { validateAiAnalysis } from './output-validator.js'
 import { admitAiReportDispatch, claimNextAiReport, completeAiReport, failAiReport, heartbeatAiReport, requeueAiReport, releaseAiCallSlot } from './job-store.js'
 import { AiReportService, AiReportServiceError } from './report-service.js'
+import { aiConsentIsValid } from './consent.js'
 
 export interface AiWorkerOptions {
   db: Database
@@ -51,7 +52,7 @@ async function assertDispatchStillAdmissible(db: Database, row: typeof aiReports
   const [access] = await db.select().from(aiUserAccess).where(eq(aiUserAccess.userId, row.userId)).limit(1)
   if (!access?.enabled) throw new AiReportServiceError('AI_ACCESS_DENIED', 403)
   const [consent] = await db.select().from(aiUserConsents).where(eq(aiUserConsents.userId, row.userId)).limit(1)
-  if (!consent?.acceptedAt || consent.revokedAt || consent.recipientRevision !== row.recipientRevision) throw new AiReportServiceError('AI_CONSENT_REQUIRED', 403)
+  if (!aiConsentIsValid(consent, row.recipientRevision)) throw new AiReportServiceError('AI_CONSENT_REQUIRED', 403)
   const [fresh] = await db.select({ sourceState: aiReports.sourceState, deletedAt: aiReports.deletedAt }).from(aiReports).where(and(eq(aiReports.id, row.id), eq(aiReports.status, 'running'))).limit(1)
   if (!fresh || fresh.deletedAt || fresh.sourceState === 'invalidated') throw new AiReportServiceError('AI_SOURCE_INVALIDATED', 409)
   return provider

@@ -31,7 +31,6 @@ export const seasonalityMonths: readonly SeasonalityMonth[] = [
   { month: 12, avgReturn: 1.49, volatility: 'medium', characteristics: localized('A strong year-end finish.', '年末 rally、強勢收官。', '年末 rally、强势收官。'), reasons: reasons(['Year-end bonus and capital inflow', 'Tax planning delays selling', 'Institutional window dressing', 'Holiday optimism'], ['年終獎金及資金投入', '稅務規劃延後賣出', '機構粉飾報表', '假期樂觀情緒'], ['年终奖金及资金投入', '税务规划延后卖出', '机构粉饰报表', '假期乐观情绪']) },
 ]
 
-export const strongSeasonalityMonths = [11, 12, 1, 2, 3, 4] as const
 export const weakSeasonalityMonths = [5, 6, 7, 8, 9, 10] as const
 
 const monthNames: Record<SeasonalityLocale, string[]> = {

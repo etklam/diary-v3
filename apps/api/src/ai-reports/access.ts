@@ -1,17 +1,6 @@
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { aiUserAccess, users, type Database } from '@diary/db'
 
-export async function readAiAccess(db: Database, userId: bigint) {
-  const [row] = await db.select().from(aiUserAccess).where(eq(aiUserAccess.userId, userId)).limit(1)
-  return row ?? null
-}
-
-export async function ensureAiAccess(db: Database, userId: bigint) {
-  const [row] = await db.insert(aiUserAccess).values({ userId }).onConflictDoNothing().returning()
-  if (row) return row
-  return readAiAccess(db, userId)
-}
-
 export async function updateAiAccess(db: Pick<Database, 'insert'>, input: { userId: bigint; enabled: boolean; monthlyQuota: number; actorUserId: bigint; now: Date }) {
   const [row] = await db.insert(aiUserAccess).values({
     userId: input.userId,

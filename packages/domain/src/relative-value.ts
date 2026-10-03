@@ -45,19 +45,8 @@ const aliases: Record<string, string> = {
   RUT: '^RUT',
 }
 
-export function normalizeRelativeSymbol(value: string) {
-  const symbol = value.trim().toUpperCase()
-  return aliases[symbol] ?? symbol
-}
-
 export function getRelativeAliasSuggestion(value: string): string | null {
-  const normalized = value.trim().toUpperCase()
-  if (normalized === 'SPX') return '^GSPC'
-  if (normalized === 'DJI') return '^DJI'
-  if (normalized === 'IXIC') return '^IXIC'
-  if (normalized === 'NDX') return '^NDX'
-  if (normalized === 'RUT') return '^RUT'
-  return null
+  return aliases[value.trim().toUpperCase()] ?? null
 }
 
 function assertPositiveFinite(value: number, label: string) {

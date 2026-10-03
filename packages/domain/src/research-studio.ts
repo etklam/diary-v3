@@ -952,18 +952,7 @@ export function calculateResearchMetrics(input: ResearchCalculationInput | { bar
   const sma200 = smaSeries(closes, 200)
   const ema12 = emaSeries(closes, 12)
   const ema26 = emaSeries(closes, 26)
-  const gains: NullableNumber[] = closes.map((close, index) => index === 0 ? null : Math.max(close - (closes[index - 1] ?? close), 0))
-  const losses: NullableNumber[] = closes.map((close, index) => index === 0 ? null : Math.max((closes[index - 1] ?? close) - close, 0))
-  const avgGain = rmaSeries(gains, 14)
-  const avgLoss = rmaSeries(losses, 14)
-  const rsi14 = avgGain.map((gain, index) => {
-    const loss = avgLoss[index] ?? null
-    if (!valid(gain) || !valid(loss)) return null
-    if (loss === 0 && gain > 0) return 100
-    if (gain === 0 && loss > 0) return 0
-    if (gain === 0 && loss === 0) return 50
-    return 100 - 100 / (1 + gain / loss)
-  })
+  const rsi14 = calculateRsi14(closes)
   const macd = ema12.map((value, index) => valid(value) && valid(ema26[index] ?? null) ? value - (ema26[index] as number) : null)
   const macdSignal = emaSeries(macd, 9)
   const macdHistogram = macd.map((value, index) => valid(value) && valid(macdSignal[index] ?? null) ? value - (macdSignal[index] as number) : null)
@@ -1169,8 +1158,6 @@ export function calculateRewardRisk(
   return { valid: mid !== null && conservative !== null, reason: mid !== null && conservative !== null ? null : 'Entry and stop zones do not produce positive risk.', entryMid, stopMid, targetMid, riskMid, rewardMid, mid, conservative }
 }
 
-export const calculateLongRewardRisk = calculateRewardRisk
-
 function planZone(level: StructuralLevel): ResearchPlanZone {
   return { zoneId: level.zoneId, lower: level.lower, upper: level.upper, anchors: [...level.anchors], basis: level.basis }
 }
@@ -1339,11 +1326,18 @@ export function calculateDirectionScore(metrics: ResearchMetrics, relativeStreng
   return { rawScore, caps, finalScore, label: scoreLabel(finalScore), evidence, missing }
 }
 
-export const calculateRsi14 = (closes: readonly number[]) => {
-  const values = rmaSeries(closes.map((close, index) => index === 0 ? null : Math.max(close - (closes[index - 1] ?? close), 0)), 14)
-  const losses = rmaSeries(closes.map((close, index) => index === 0 ? null : Math.max((closes[index - 1] ?? close) - close, 0)), 14)
-  return values.map((gain, index) => {
-    const loss = losses[index] ?? null
+/**
+ * RSI14 over Wilder's RMA, per the v1 indicator contract: the first value lands
+ * on the fifteenth close, and a zero average gain or loss resolves to 0, 100 or
+ * 50 rather than dividing by zero.
+ */
+export function calculateRsi14(closes: readonly number[]): NullableNumber[] {
+  const change = (close: number, index: number, direction: 1 | -1) =>
+    index === 0 ? null : Math.max((close - (closes[index - 1] ?? close)) * direction, 0)
+  const avgGain = rmaSeries(closes.map((close, index) => change(close, index, 1)), 14)
+  const avgLoss = rmaSeries(closes.map((close, index) => change(close, index, -1)), 14)
+  return avgGain.map((gain, index) => {
+    const loss = avgLoss[index] ?? null
     if (!valid(gain) || !valid(loss)) return null
     if (loss === 0 && gain > 0) return 100
     if (gain === 0 && loss > 0) return 0

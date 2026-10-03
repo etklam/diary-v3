@@ -11,7 +11,6 @@ export const PORTFOLIO_ATTENTION_REASONS = [
 ] as const
 
 export const portfolioAttentionReasonSchema = z.enum(PORTFOLIO_ATTENTION_REASONS)
-export const portfolioAttentionTargetKindSchema = z.enum(['stock', 'diary'])
 
 const portfolioAttentionEvidenceSchema = z.object({
   concentrationPct: z.number().finite().nullable().optional(),
@@ -66,9 +65,3 @@ export type PortfolioAttentionReason = z.infer<typeof portfolioAttentionReasonSc
 export type PortfolioAttentionItem = z.infer<typeof portfolioAttentionItemSchema>
 export type PortfolioAttentionQuery = z.infer<typeof portfolioAttentionQuerySchema>
 export type PortfolioAttentionResponse = z.infer<typeof portfolioAttentionResponseSchema>
-
-export const portfolioAttentionListResponseSchema = portfolioAttentionResponseSchema
-
-export function toPortfolioAttentionResponse(value: unknown): PortfolioAttentionResponse {
-  return portfolioAttentionResponseSchema.parse(value)
-}

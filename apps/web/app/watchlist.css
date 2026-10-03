@@ -259,7 +259,6 @@
   border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
-  box-shadow: var(--shadow-1);
   cursor: pointer;
   user-select: none;
 }

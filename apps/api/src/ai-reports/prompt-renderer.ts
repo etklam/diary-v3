@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { aiAnalysisSchema } from '@diary/contracts/ai-reports'
 import type { AiMessage } from './deepseek-provider.js'
 
-export const AI_FIXED_RULES_VERSION = '1'
 export const defaultAiPrompts = {
   weekly: `Review the saved records for {{period_label}} in {{locale}}. Focus on specific decisions, recorded execution and reflection. Attribute market opinions to the user's notes. Compare with the user's own saved rules, respecting their creation dates and incomplete history. Distinguish missing evidence from a violation. End with at most three practical journaling or review improvements for next week, never trade instructions.`,
   monthly: `Review the original records for {{period_label}} in {{locale}}. Identify recurring decision and execution patterns only when multiple sources support them; label isolated incidents. Explain how recorded judgments changed without inventing causation or comparisons to an unavailable previous month. Respect hindsight and rule-history gaps. End with at most three review questions for next month, never trade instructions.`,

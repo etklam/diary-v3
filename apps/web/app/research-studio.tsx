@@ -1,12 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
-  researchAttemptSchema,
-  researchEvidenceSchema,
-  researchInstrumentProfileSchema,
-  researchMethodProfileSchema,
   researchRunDetailSchema,
-  researchRunListResponseSchema,
-  researchSettingsResponseSchema,
   type ResearchAttempt,
   type ResearchEvidence,
   type ResearchQaGate,
@@ -210,28 +204,4 @@ export function Limitations({ run }: { run: ResearchRunDetail }) {
   const visible = limitations.slice(0, 3)
   const rest = limitations.slice(3)
   return <section className="research-limitations" aria-labelledby="research-limitations-title"><h2 id="research-limitations-title">{c.limitations}</h2>{limitations.length ? <><ul>{visible.map((limitation, index) => <li key={`${index}:${limitation}`}>{limitation}</li>)}</ul>{rest.length > 0 && <details className="research-more-limitations"><summary>{researchConfigurationCopy(locale as Locale).showAllLimitations} ({rest.length})</summary><ul>{rest.map((limitation, index) => <li key={`${index}:${limitation}`}>{limitation}</li>)}</ul></details>}</> : <p className="muted">{c.noLimitations}</p>}</section>
-}
-
-export function schemaForSettings() {
-  return researchSettingsResponseSchema
-}
-
-export function schemaForMethods() {
-  return researchMethodProfileSchema.array()
-}
-
-export function schemaForInstruments() {
-  return researchInstrumentProfileSchema.array()
-}
-
-export function schemaForList() {
-  return researchRunListResponseSchema
-}
-
-export function schemaForAttempt() {
-  return researchAttemptSchema
-}
-
-export function schemaForEvidence() {
-  return researchEvidenceSchema
 }

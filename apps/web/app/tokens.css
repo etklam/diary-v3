@@ -166,11 +166,10 @@
 
   /* --- Elevation ---------------------------------------------------------
      THE STRUCTURAL HIERARCHY RULE. Grouped content is bounded by a rule, not
-     lifted by a shadow: `--shadow-1` is deliberately `none` so no panel,
-     toolbar, table or nav item floats. Shadow is spent only on surfaces that
-     genuinely sit above the page — dialogs, popovers, sticky edges. */
+     lifted by a shadow: no panel, toolbar, table or nav item floats. Shadow is
+     spent only on surfaces that genuinely sit above the page — dialogs,
+     popovers, sticky edges. */
   --backdrop: oklch(0.2 0.02 277 / 0.5);
-  --shadow-1: none;
   --shadow-pop: 0 1px 2px oklch(0.265 0.022 277 / 0.07), 0 6px 12px oklch(0.265 0.022 277 / 0.09);
   --shadow-2: var(--shadow-pop);
   --shadow-sticky: 0 1px 0 oklch(0.265 0.022 277 / 0.07);

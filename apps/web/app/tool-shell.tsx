@@ -59,8 +59,6 @@ const copy = {
   'zh-CN': { tools: '工具', calculator: '计算工具', research: '研究工具', use: '使用工具' },
 } as const
 
-export function toolName(tool: ToolEntry, locale: keyof typeof copy) { return tool.name[locale] }
-
 export function toolByHref(href: string): ToolEntry {
   const tool = TOOLS.find(entry => entry.href === href)
   if (!tool) throw new Error(`Unknown tool href: ${href}`)

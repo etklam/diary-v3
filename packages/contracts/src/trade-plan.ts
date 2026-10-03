@@ -77,7 +77,6 @@ export const tradePlanUpdateSchema = z.object(tradePlanWriteFields).partial().st
   .superRefine(validateZone)
 
 export const tradePlanSortSchema = z.enum(['updatedAt-desc', 'createdAt-desc', 'symbol-asc']).default('updatedAt-desc')
-export const tradePlanStatusQuerySchema = tradePlanStatusSchema.optional()
 export const tradePlanListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -85,7 +84,6 @@ export const tradePlanListQuerySchema = z.object({
   symbol: tradePlanWriteFields.symbol.optional(),
   sortBy: tradePlanSortSchema,
 }).strict()
-export const tradePlanListParamsSchema = tradePlanListQuerySchema
 
 const responseDecimalSchema = z.string().regex(/^\d+(?:\.\d+)?$/).transform(canonicalDecimal)
 

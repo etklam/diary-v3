@@ -104,20 +104,6 @@ export function getCoreUniverse(): UniverseEntry[] {
   return [...CORE_ETF_UNIVERSE, ...MEGA_CAP_UNIVERSE]
 }
 
-/**
- * Returns the core_etf percentile pool.
- */
-export function getCoreEtfPool(): UniverseEntry[] {
-  return CORE_ETF_UNIVERSE
-}
-
-/**
- * Returns the mega_cap + single_stock percentile pool.
- */
-export function getMegaCapStockPool(): UniverseEntry[] {
-  return MEGA_CAP_UNIVERSE
-}
-
 export function getUniverseForScope(scope: 'sectors' | 'indexes' | 'core'): UniverseEntry[] {
   switch (scope) {
     case 'sectors':

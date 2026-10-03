@@ -19,7 +19,6 @@ import { canonicalDecimal } from './ledger.js'
  */
 export const ACTIVITY_EVENT_KINDS = ['DIARY', 'TRADE', 'REVIEW', 'THESIS_REVIEW'] as const
 export type ActivityEventKind = typeof ACTIVITY_EVENT_KINDS[number]
-export const activityEventKindSchema = z.enum(ACTIVITY_EVENT_KINDS)
 
 /** Reading filter the timeline offers; `review` spans both review kinds. */
 export const ACTIVITY_EVENT_GROUPS = ['diary', 'trade', 'review'] as const

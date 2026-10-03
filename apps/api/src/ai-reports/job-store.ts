@@ -3,6 +3,7 @@ import { and, asc, eq, gt, isNotNull, isNull, lt, ne, or, sql } from 'drizzle-or
 import { aiPromptVersions, aiProviderConfigVersions, aiReportAttempts, aiReportSources, aiReports, aiRuntimeState, aiUserAccess, aiUserConsents, type Database } from '@diary/db'
 import { consumeUserQuota, recordUserQuotaUsage, releaseUserQuota, type QuotaReservation } from './quota.js'
 import { consumeGlobalAiBudget, releaseGlobalAiBudget, settleGlobalAiBudget } from './budget.js'
+import { aiConsentIsValid } from './consent.js'
 
 export const AI_OWNER_LOCK_CLASS = 7441
 export const AI_GLOBAL_LOCK_CLASS = 7440
@@ -48,12 +49,6 @@ export async function reapExpiredCallSlots(tx: Pick<Database, 'select' | 'update
 export async function countActiveCallSlots(tx: Pick<Database, 'select'>) {
   const [row] = await tx.select({ count: sql<number>`count(*)::int` }).from(aiReportAttempts).where(isNull(aiReportAttempts.slotReleasedAt))
   return Number(row?.count ?? 0)
-}
-
-/** Compatibility helper retained for callers that need one global admission check. */
-export async function countLiveAiCalls(tx: Pick<Database, 'select' | 'update' | 'execute'>, now: Date) {
-  await reapExpiredCallSlots(tx, now)
-  return countActiveCallSlots(tx)
 }
 
 export async function releaseAiCallSlot(db: Database, input: { attemptId: bigint; now: Date }) {
@@ -136,7 +131,7 @@ export async function admitAiReportDispatch(db: Database, input: { reportId: big
     if (!prompt || prompt.status !== 'published' || activePromptId !== reportRefs.promptId) return false
     const [access] = await tx.select({ enabled: aiUserAccess.enabled }).from(aiUserAccess).where(eq(aiUserAccess.userId, input.reservation.userId)).limit(1).for('update')
     const [consent] = await tx.select({ acceptedAt: aiUserConsents.acceptedAt, revokedAt: aiUserConsents.revokedAt, recipientRevision: aiUserConsents.recipientRevision }).from(aiUserConsents).where(eq(aiUserConsents.userId, input.reservation.userId)).limit(1).for('update')
-    if (!access?.enabled || !consent?.acceptedAt || consent.revokedAt || consent.recipientRevision !== reportRefs.recipientRevision) return false
+    if (!access?.enabled || !aiConsentIsValid(consent, reportRefs.recipientRevision)) return false
     const [row] = await tx.update(aiReports).set({ dispatchedAt: input.now, updatedAt: input.now })
       .where(and(eq(aiReports.id, input.reportId), eq(aiReports.status, 'running'), eq(aiReports.leaseToken, input.leaseToken), isNull(aiReports.deletedAt), ne(aiReports.sourceState, 'invalidated'), isNull(aiReports.dispatchedAt))).returning({ id: aiReports.id, userId: aiReports.userId })
     if (!row) return false

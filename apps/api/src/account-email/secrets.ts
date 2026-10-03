@@ -46,8 +46,6 @@ export function environmentSmtpKeyring(environment: NodeJS.ProcessEnv = process.
   }
 }
 
-export const getSmtpKeyring = environmentSmtpKeyring
-
 function unavailable(): never {
   throw new SmtpSecretError('SMTP_ENCRYPTION_UNAVAILABLE')
 }
