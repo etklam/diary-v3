@@ -57,6 +57,7 @@ import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
 import { AiReportService } from './ai-reports/report-service.js'
 import type { AiTransport } from './ai-reports/outbound-policy.js'
 import { registerAchievementRoutes } from './achievements.js'
+import { registerGoalRoutes } from './goals.js'
 import { registerResearchRoutes } from './research-studio/routes.js'
 import type { ResearchEvidenceProvider, ResearchLatestCompletedSession, ResearchTransport } from './research-studio/service.js'
 import { createLatestCompletedUsEquitySessionResolver, createResearchEvidenceProvider, createTavilySearchProvider, createVerifiedUsEquityCalendarProvider } from './research-studio/sources.js'
@@ -405,6 +406,7 @@ export function createApp({
   registerPartnerRoutes(app, { db, now, fail, validationError, parseJson })
   registerDisciplineRoutes(app, { db, now, fail, validationError, parseJson })
   registerAchievementRoutes(app, { db, now, fail, validationError, parseJson })
+  registerGoalRoutes(app, { db, now, fail, validationError, parseJson })
   registerPriceAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerAlertRoutes(app, { db, now, fail, validationError, parseJson })
   registerPerformanceRoute(app, { db, fail, validationError })

@@ -937,6 +937,28 @@ export const personalAchievements = pgTable('personal_achievements', {
   check('personal_achievements_content_length', sql`length(${table.content}) <= 1000`),
 ])
 
+export const personalGoalStatus = pgEnum('personal_goal_status', ['active', 'achieved'])
+
+/**
+ * A manually recorded intention. `target_date` is null for open-ended goals and
+ * overdue state is derived at read time, so no scheduled job has to age rows.
+ */
+export const personalGoals = pgTable('personal_goals', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  targetDate: date('target_date', { mode: 'string' }),
+  status: personalGoalStatus('status').default('active').notNull(),
+  achievedDate: date('achieved_date', { mode: 'string' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('personal_goals_user_status_idx').on(table.userId, table.status, table.targetDate, table.id.desc()),
+  check('personal_goals_content_nonempty', sql`length(btrim(${table.content})) > 0`),
+  check('personal_goals_content_length', sql`length(${table.content}) <= 1000`),
+  check('personal_goals_achieved_date_consistency', sql`(${table.status} = 'achieved') = (${table.achievedDate} is not null)`),
+])
+
 export const partnerLinks = pgTable('partner_links', {
   id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   userAId: bigint('user_a_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),

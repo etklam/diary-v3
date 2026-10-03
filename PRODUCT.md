@@ -27,7 +27,7 @@ The rebuild preserves valid feature intent while correcting documented legacy bu
 ## Operating Context
 
 - Desktop and mobile browsers share a responsive Web app with zh-TW, zh-CN, and English interface copy, light/dark/system themes, and user timezone settings.
-- The private workspace includes Diary library, Quick Diary, Timeline, Calendar, Review queue, Trade Plans, Portfolio, Company Hub, Watchlists, reminders, Trading principles, partner sharing, personal achievements, and scoped Agent API access.
+- The private workspace includes Diary library, Quick Diary, Timeline, Calendar, Review queue, Trade Plans, Portfolio, Company Hub, Watchlists, reminders, Trading principles, partner sharing, personal achievements and goals, and scoped Agent API access.
 - Public surfaces include the home page, guide, About, tools, and article discovery/reading. Public article content supports SSR and SEO; protected content is authorized by the API.
 - Administration covers articles, users, ETF definitions, AI configuration, Research Studio, and optional account email.
 - PWA support covers installation and updates. Private API responses and navigations are not an offline personal-data store.
@@ -63,9 +63,13 @@ Ordinary parity work uses the recorded archive, not a mutable checkout of diary-
 4. Keep the API authoritative for Web and native consumers.
 5. Keep reusable rules independent of browser, server, and native frameworks.
 
-## Personal Achievements
+## Personal Achievements and Goals
 
-Users manually record private milestones with a calendar date and text, then browse, edit, or delete them. Multiple achievements can share a date; the list runs newest first. Reaching a chosen account value is a user-written milestone, not an automatically detected balance event. Achievements belong exclusively to the signed-in user and are not exposed through partner sharing.
+Users manually record private milestones with a calendar date and text, then browse, edit, or delete them. Multiple achievements can share a date; the list runs newest first. Reaching a chosen account value is a user-written milestone, not an automatically detected balance event.
+
+Goals are the forward-looking half of the same page: free text such as "reach 15% YTD this year" or "reach USD 1,000,000", with an optional target date — a goal may be open-ended. A goal is either in progress or achieved; overdue is derived from the target date at read time rather than stored, so a goal ages into it without any scheduled job. Goals carry no progress figure: portfolio valuation covers only priced holdings and reports no YTD return, so any computed progress would misstate the account. Marking a goal achieved records the achievement date and prefills the achievement form with the goal's wording; the user confirms and saves it, so nothing is written to the achievement record automatically.
+
+Achievements and goals belong exclusively to the signed-in user and are not exposed through partner sharing.
 
 ## Tools Access Model
 

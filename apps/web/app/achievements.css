@@ -2,6 +2,22 @@
   max-width: 800px;
 }
 
+.achievements-section + .achievements-section {
+  margin-top: var(--space-8);
+}
+
+.achievements-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.achievements-section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
 .achievement-form {
   margin: var(--space-7) 0;
 }
@@ -28,10 +44,68 @@
   margin-top: var(--space-5);
 }
 
+/* Labels are grids by default; the deadline switch reads as one line instead. */
+.achievement-form .goal-open-ended {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.goal-list,
 .achievement-list {
   margin: var(--space-7) 0 0;
   padding: 0 var(--space-6);
   list-style: none;
+}
+
+.goal-list li {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--border);
+}
+
+.goal-list li:first-child {
+  border-top: 0;
+}
+
+.goal-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The status mark follows the timeline's rule: a tinted label, never a lifted chip. */
+.goal-status {
+  padding: 2px 9px;
+  border-radius: var(--radius-control);
+  background: var(--tint-neutral);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.goal-status-achieved {
+  background: var(--tint-info);
+  color: var(--tint-info-text);
+}
+
+.goal-status-overdue {
+  background: var(--negative-tint);
+  color: var(--negative);
+}
+
+.goal-list .actions {
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
 }
 
 .achievement-list li {
@@ -66,8 +140,15 @@
 }
 
 @media (max-width: 767px) {
+  .goal-list,
   .achievement-list {
     padding-inline: var(--space-4);
+  }
+
+  .achievements-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
   }
 
   .achievement-list li {

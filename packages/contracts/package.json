@@ -36,6 +36,7 @@
     "./price-alerts": "./src/price-alerts.ts",
     "./discipline": "./src/discipline.ts",
     "./achievements": "./src/achievements.ts",
+    "./goals": "./src/goals.ts",
     "./discipline-share": "./src/discipline-share.ts",
     "./partners": "./src/partners.ts",
     "./api-keys": "./src/api-keys.ts",

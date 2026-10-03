@@ -15,6 +15,16 @@ export {
 export type { AchievementResponse } from './achievements.js'
 
 export {
+  goalContentSchema,
+  goalStatusSchema,
+  writeGoalSchema,
+  goalResponseSchema,
+  goalListSchema,
+  deleteGoalResponseSchema,
+} from './goals.js'
+export type { GoalResponse, GoalStatus } from './goals.js'
+
+export {
   aiAnalysisSchema,
   aiAnalysisItemSchema,
   aiCapabilitiesSchema,
@@ -251,6 +261,7 @@ export const errorCodes = [
   'DIARY_NOT_FOUND',
   'DIARY_REVISION_CONFLICT',
   'ACHIEVEMENT_NOT_FOUND',
+  'GOAL_NOT_FOUND',
   'ALERT_NOT_FOUND',
   'PRICE_ALERT_NOT_FOUND',
   'DISCIPLINE_NOT_FOUND',

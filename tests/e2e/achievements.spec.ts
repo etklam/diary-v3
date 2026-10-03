@@ -14,7 +14,7 @@ for (const width of [1440, 390]) test(`personal achievements CRUD and responsive
   await expect(page).toHaveURL(/\/achievements$/)
   await selectLocale(page, 'en')
 
-  await expect(page.getByRole('heading', { name: 'Personal achievements', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Achievements and goals', exact: true })).toBeVisible()
   await expect(page.getByText('No achievements recorded yet.', { exact: true })).toBeVisible()
   if (width === 390) await selectTheme(page, 'dark')
   await page.getByRole('button', { name: 'Add achievement', exact: true }).click()
@@ -41,10 +41,80 @@ for (const width of [1440, 390]) test(`personal achievements CRUD and responsive
   await expect(page.getByText('Achievement deleted.', { exact: true })).toBeVisible()
 
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  for (const [locale, title] of [['zh-TW', '個人成就'], ['zh-CN', '个人成就'], ['en', 'Personal achievements']] as const) {
+  for (const [locale, title] of [['zh-TW', '個人成就與目標'], ['zh-CN', '个人成就与目标'], ['en', 'Achievements and goals']] as const) {
     await selectLocale(page, locale)
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
   }
+})
+
+const civilDate = (offsetDays: number) => new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10)
+
+for (const width of [1440, 390]) test(`personal goals CRUD and achievement handoff at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 })
+  const email = `goals-${randomUUID()}@example.test`
+  const password = 'synthetic-goal-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login?returnTo=%2Fachievements')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/achievements$/)
+  await selectLocale(page, 'en')
+
+  await expect(page.getByRole('heading', { name: 'Goals', exact: true })).toBeVisible()
+  await expect(page.getByText('No goals set yet.', { exact: true })).toBeVisible()
+  if (width === 390) await selectTheme(page, 'dark')
+
+  await page.getByRole('button', { name: 'Add goal', exact: true }).click()
+  await page.getByTestId('goal-input').fill('Reach 15% YTD this year')
+  await page.getByTestId('goal-date').fill(civilDate(90))
+  await page.getByRole('button', { name: 'Save goal', exact: true }).click()
+  const dated = page.getByTestId('goal').filter({ hasText: 'Reach 15% YTD this year' })
+  await expect(dated).toContainText('In progress')
+  await expect(dated).toContainText('90 days left')
+  await expect(page.getByRole('button', { name: 'Add goal', exact: true })).toBeFocused()
+
+  // An open-ended goal carries no deadline and sorts after the dated ones.
+  await page.getByRole('button', { name: 'Add goal', exact: true }).click()
+  await page.getByTestId('goal-input').fill('Write a diary entry every trading day')
+  await page.getByTestId('goal-open-ended').check()
+  await expect(page.getByTestId('goal-date')).toBeDisabled()
+  await page.getByRole('button', { name: 'Save goal', exact: true }).click()
+  await expect(page.getByTestId('goal')).toHaveCount(2)
+  await expect(page.getByTestId('goal').last()).toContainText('No deadline')
+  await page.reload()
+  await expect(page.getByTestId('goal')).toHaveCount(2)
+  await page.screenshot({ path: `docs/design/evidence/achievements/goals-${width}.png`, fullPage: true })
+
+  await dated.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByTestId('goal-input').fill('Reach 20% YTD this year')
+  await page.getByTestId('goal-date').fill(civilDate(-5))
+  await page.screenshot({ path: `docs/design/evidence/achievements/goal-editor-${width}.png`, fullPage: true })
+  await page.getByRole('button', { name: 'Save goal', exact: true }).click()
+  // Overdue is derived at read time, so a past deadline reads as overdue immediately.
+  const overdue = page.getByTestId('goal').filter({ hasText: 'Reach 20% YTD this year' })
+  await expect(overdue).toContainText('Overdue')
+  await expect(overdue).toContainText('5 days overdue')
+
+  await overdue.getByRole('button', { name: 'Mark achieved', exact: true }).click()
+  await expect(overdue).toContainText('Achieved')
+  await expect(page.getByText('Goal marked achieved. Review the wording, then save it as an achievement.', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('achievement-input')).toHaveValue('Reach 20% YTD this year')
+  await expect(page.getByTestId('achievement-date')).toHaveValue(civilDate(0))
+  await page.getByRole('button', { name: 'Save achievement', exact: true }).click()
+  await expect(page.getByTestId('achievement')).toContainText('Reach 20% YTD this year')
+
+  // Resuming an achieved goal restores the derived overdue reading.
+  await overdue.getByRole('button', { name: 'Resume', exact: true }).click()
+  await expect(overdue).toContainText('Overdue')
+
+  page.once('dialog', dialog => dialog.accept())
+  await overdue.getByRole('button', { name: 'Delete', exact: true }).click()
+  await expect(page.getByTestId('goal')).toHaveCount(1)
+  await expect(page.getByText('Goal deleted.', { exact: true })).toBeVisible()
+
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
 test('personal achievements guest view offers a safe sign-in return', async ({ page }) => {

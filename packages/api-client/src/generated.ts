@@ -1195,6 +1195,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalsGet"];
+        put?: never;
+        post: operations["goalsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["goalsUpdate"];
+        post?: never;
+        delete: operations["goalsDelete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/discipline/export": {
         parameters: {
             query?: never;
@@ -3109,7 +3141,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "INVESTMENT_THESIS_REVISION_CONFLICT" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "GOAL_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "INVESTMENT_THESIS_REVISION_CONFLICT" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -13343,6 +13375,263 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Personal achievement deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    goalsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personal goals ordered active first, then by target date */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        content: string;
+                        targetDate: string | null;
+                        /** @enum {string} */
+                        status: "active" | "achieved";
+                        achievedDate: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    goalsCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Personal goal input */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    content: string;
+                    targetDate: string | null;
+                    /** @enum {string} */
+                    status?: "active" | "achieved";
+                };
+            };
+        };
+        responses: {
+            /** @description Personal goal created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        content: string;
+                        targetDate: string | null;
+                        /** @enum {string} */
+                        status: "active" | "achieved";
+                        achievedDate: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    goalsUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Personal goal input */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    content: string;
+                    targetDate: string | null;
+                    /** @enum {string} */
+                    status?: "active" | "achieved";
+                };
+            };
+        };
+        responses: {
+            /** @description Personal goal updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        content: string;
+                        targetDate: string | null;
+                        /** @enum {string} */
+                        status: "active" | "achieved";
+                        achievedDate: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    goalsDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personal goal deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
