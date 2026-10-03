@@ -16,6 +16,7 @@ import { diaryCopy } from './diary-copy';
 import { Markdown } from './markdown';
 import './diary-editor.css';
 import { diaryResponseSchema, type CreateDiaryRequest, type DiaryResponse } from '@diary/contracts';
+import { createEmptyQuickNoteTemplateData,deriveQuickTitle,generateTemplateDraft } from '@diary/domain';
 import { buildCapturePath, normalizeCaptureContext, type CaptureContext } from './capture-context';
 import { CaptureNotice } from './capture-notice';
 import { readDraftEnvelope, useDraftLifecycle, writeDraftEnvelope } from './draft-lifecycle';
@@ -39,6 +40,14 @@ const appendDefiniteNoWriteCodes = [
 ] as const;
 function isDefiniteAppendNoWrite(failure:Failure){
  return typeof failure.code==='string' && (appendDefiniteNoWriteCodes as readonly string[]).includes(failure.code);
+}
+
+// Title is an optional override in both authoring paths. An empty one derives
+// the dated label Quick Diary submits, through the same shared domain rule, so
+// every body-assembly path here (create, update, date-conflict append and the
+// write-recovery comparison) sends the identical title for identical writing.
+export function diaryWriteTitle(title:string,content:string,date:string,locale:string){
+ return title.trim()||deriveQuickTitle(content,generateTemplateDraft({templateKind:'blank',date,locale,templateData:createEmptyQuickNoteTemplateData()}).title);
 }
 
 function sameDiaryWrite(diary: DiaryResponse, body: Record<string, unknown>) {
@@ -287,7 +296,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   return {tags,companies:parsedCompanies.success?parsedCompanies.data??[]:[],alerts,original,hasSchedule:Boolean(reviewTime),hasTransactions:transactions.length};
  }
  function appendCopy(existing:DiaryResponse,parsedTransactions:NonNullable<CreateDiaryRequest['transactions']>,alerts:NonNullable<CreateDiaryRequest['alerts']>,companies:string[],tags:string[],reviewDueAt:string|null):CreateDiaryRequest{
-  return {title:existing.title,content:form.content.trim(),date:existing.date,appendToToday:true,
+  return {title:diaryWriteTitle(existing.title,form.content,existing.date,locale),content:form.content.trim(),date:existing.date,appendToToday:true,
    ...(tags.length?{tags}:{}),...(companies.length?{stockSymbols:companies}:{}),
    ...(form.thesis?.trim()?{thesis:form.thesis.trim()}:{}),...(form.risk?.trim()?{risk:form.risk.trim()}:{}),...(form.execution?.trim()?{execution:form.execution.trim()}:{}),
    ...(reviewDueAt?{reviewDueAt}:{}),...(parsedTransactions.length?{transactions:parsedTransactions}:{}),...(alerts.length?{alerts}: {})};
@@ -337,7 +346,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   const transactionState=canonicalState(sources).transactions;
   const writeTransactions=!id||!sameTransactionCollection(transactionState,baselineRef.current.transactions);
   setPending(true);savingRef.current=true;setSaveState('saving');setError(null);setRecoveryState(null);setRecoveryDiary(null);setDateConflict(null);
-  const body={...form,...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,...(writeTransactions?{transactions:parsedTransactions}:{})};
+  const body={...form,title:diaryWriteTitle(form.title,form.content,form.date,locale),...(alertsDirty?{alerts}:{}),reviewDueAt,stockSymbols:companies.data??[],tags:form.tags.map(tag=>tag.trim()).filter(Boolean),thesis:form.thesis||null,risk:form.risk||null,execution:form.execution||null,...(writeTransactions?{transactions:parsedTransactions}:{})};
   const writeRevision=sessionRef.current.revision;
   const finishConfirmed=(diary:DiaryResponse)=>{if(!liveWrite(writeRevision))return;revisionRef.current=diary.revision;const confirmed=canonicalState(editableFromResponse(diary));baselineRef.current=confirmed;dirtyRef.current=false;setBaseline(confirmed);if(liveWrite(writeRevision))rememberTags(body.tags??[]);clearDraft();window.dispatchEvent(new Event('diary-reminders-changed'));navigate(returnTo??`/diaries/${diary.id}`,{state:{saved:true,captureContext:captureRef.current}});};
   try{
@@ -360,7 +369,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  function field(name:'title'|'date'|'thesis'|'risk'|'execution',label:string,className?:string){
   const multiline=name==='thesis'||name==='risk'||name==='execution';
   const shared={name,className,value:form[name]??'',onChange:(event:React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>)=>change(name,event.target.value),'aria-invalid':invalidField(error,name),'aria-describedby':error?'form-error':undefined};
-  return <label>{label}{multiline?<textarea {...shared} rows={3} maxLength={10000}/>:<input {...shared} type={name==='date'?'date':'text'} required={name==='title'||name==='date'} maxLength={name==='title'?500:undefined}/>}</label>;
+  return <label>{label}{multiline?<textarea {...shared} rows={3} maxLength={10000}/>:<input {...shared} type={name==='date'?'date':'text'} required={name==='date'} maxLength={name==='title'?500:undefined}/>}</label>;
  }
  const changes=conflictChanges();
  function toggleRecentTag(tag:string){setForm(current=>{const currentTags=current.tags.map(value=>value.trim()).filter(Boolean);const next=currentTags.includes(tag)?currentTags.filter(value=>value!==tag):[...currentTags,tag];return {...current,tags:next.length?next:['']};});}

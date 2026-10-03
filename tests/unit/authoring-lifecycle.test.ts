@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createEmptyQuickNoteTemplateData, deriveQuickTitle, generateTemplateDraft } from '@diary/domain';
 import { clearDraftEnvelope, flushCapturedDraft, readDraftEnvelope, writeDraftEnvelope } from '../../apps/web/app/draft-lifecycle';
+import { diaryWriteTitle } from '../../apps/web/app/diary-editor';
 import { clearRecentTags, readRecentTags, rememberRecentTags } from '../../apps/web/app/recent-tags';
 import { safeReturnPath } from '../../apps/web/app/session';
+
+const locales = ['zh-TW', 'zh-CN', 'en'] as const;
+// The Quick Diary submit expression for an untitled blank note.
+const quickTitle = (content: string, date: string, locale: string) =>
+  deriveQuickTitle(content, generateTemplateDraft({ templateKind: 'blank', date, locale, templateData: createEmptyQuickNoteTemplateData() }).title);
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -66,6 +73,24 @@ describe('authoring local lifecycle storage', () => {
 
     expect(flushCapturedDraft({ key, value: { content: 'stale after save' }, dirty: true, paused: false }, suppressed)).toBe(false);
     expect(readDraftEnvelope(key)).toBeNull();
+  });
+
+  it('derives the full-editor title exactly as Quick Diary does when none is written', () => {
+    const content = '## Evidence\nThe thesis held through the close.';
+    for (const locale of locales) expect(diaryWriteTitle('', content, '2026-10-04', locale)).toBe(quickTitle(content, '2026-10-04', locale));
+    expect(diaryWriteTitle('   ', content, '2026-10-04', 'zh-TW')).toBe('2026/10/04 日記');
+    expect(diaryWriteTitle('', content, '2026-10-04', 'zh-CN')).toBe('2026/10/04 日记');
+    expect(diaryWriteTitle('', content, '2026-10-04', 'en')).toBe('2026/10/04 Diary');
+  });
+
+  it('keeps a deliberate title verbatim and stays within the 500-character bound', () => {
+    expect(diaryWriteTitle('  Deliberate title  ', 'content', '2026-10-04', 'en')).toBe('Deliberate title');
+    const long = `${'多語言的長內容'.repeat(400)}\n${'long content '.repeat(400)}`;
+    for (const locale of locales) {
+      expect(diaryWriteTitle('', long, '2026-10-04', locale)).toBe(quickTitle(long, '2026-10-04', locale));
+      expect(diaryWriteTitle('', long, '2026-10-04', locale).length).toBeLessThanOrEqual(500);
+      expect(diaryWriteTitle('', long, '2026-10-04', locale).trim().length).toBeGreaterThan(0);
+    }
   });
 
   it('keeps the review schedule continuation through sign-in return validation', () => {
