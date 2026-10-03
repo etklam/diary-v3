@@ -161,6 +161,20 @@
   font-size: 0.75em;
 }
 
+/* The keyboard-save hint rides beside the submit button as a quiet
+   affordance, matching the ⌘ / Ctrl J hint in the capture controls. */
+.quick-submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.quick-submit-shortcut {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+
 .quick-composer label {
   margin-bottom: var(--space-5);
 }
@@ -282,5 +296,11 @@
 
   .editor .quick-composer form {
     padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  }
+
+  /* Touch widths get the sticky save bar instead; a hardware-key hint
+     would only add height there. */
+  .quick-submit-shortcut {
+    display: none;
   }
 }
