@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { stockWatchlistCreateRequestSchema, stockWatchlistDeleteResponseSchema, stockWatchlistMutationResponseSchema, stockWatchlistReorderResponseSchema, stockWatchlistResponseSchema, type StockWatchlistItem } from '@diary/contracts/watchlist'
 import { api, useUi } from '../ui'
+import { CaptureEntry } from '../capture-entry'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { getSessionRevision, signInPath, useSessionState } from '../session'
 import { watchlistCopy, type WatchlistCopy } from '../watchlist-copy'
@@ -48,6 +49,7 @@ function WatchlistRow({ item, locale, c, sort, index, visibleItems, filteredView
     <p className="watch-summary">{item.latestRecord ? <><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</> : c.none}</p>
     <div className="watch-actions" aria-label={`${c.more}: ${item.stock.symbol}`}>
       <Link className="button secondary button-compact" to={company}>{c.viewResearch}</Link>
+      <CaptureEntry symbol={item.stock.symbol}/>
       <button type="button" className="secondary button-compact" disabled={disabled || !canMoveUp} onClick={() => onMove('up')} title={filteredView ? c.customHint : undefined}>{c.moveUp}</button>
       <button type="button" className="secondary button-compact" disabled={disabled || !canMoveDown} onClick={() => onMove('down')} title={filteredView ? c.customHint : undefined}>{c.moveDown}</button>
       <button type="button" className="secondary button-compact" disabled={disabled} onClick={onPin}>{item.pinned ? c.unpinned : c.pinned}</button>

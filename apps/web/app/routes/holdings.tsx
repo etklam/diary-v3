@@ -3,6 +3,7 @@ import { PortfolioExposure } from '../portfolio-exposure';
 import { PortfolioValuation } from '../portfolio-valuation';
 import { TradeExport } from '../trade-export';
 import { RecentRealizedTrades } from '../recent-realized-trades';
+import { CaptureEntry } from '../capture-entry';
 import { useEffect, useRef, useState } from 'react';
 import { signInPath, useSessionState } from '../session';
 import { Link } from 'react-router';
@@ -72,7 +73,7 @@ export default function Holdings() {
         const price = compatible ? quote.price : undefined;
         const value = price === undefined ? null : price * Number(row.quantity), pnl = value === null ? null : value - Number(row.totalCost);
         const stale = quote?.source === 'stale' || (quote?.quoteAsOf && Date.now() - Date.parse(quote.quoteAsOf) > 72 * 3600_000);
-        return <tr key={row.symbol}><th scope="row"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link></th><td>{row.quantity}</td><td>{row.avgCost}</td><td>{row.totalCost}</td><td>{number(price ?? null)}</td><td>{number(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(quote.quoteAsOf))} UTC</time> : c.timeUnknown}</>}</td></tr>;
+        return <tr key={row.symbol}><th scope="row"><span className="holdings-symbol"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link><CaptureEntry symbol={row.symbol}/></span></th><td>{row.quantity}</td><td>{row.avgCost}</td><td>{row.totalCost}</td><td>{number(price ?? null)}</td><td>{number(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(quote.quoteAsOf))} UTC</time> : c.timeUnknown}</>}</td></tr>;
       })}</tbody></table></div><p className="muted">{c.updated}: <time dateTime={data.asOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(data.asOf))} UTC</time></p>
     </>}
     <div className="actions"><Link className="button" to="/diaries/new">{l.record}</Link>{data && data.holdings.length > 0 && <button className="secondary" onClick={() => { retryBook(); retryPrices(); }} disabled={ledgerLoading || marketLoading}>{t('retry')}</button>}</div>

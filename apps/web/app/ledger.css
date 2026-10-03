@@ -129,3 +129,12 @@
 
 .holdings-scroll-hint { display: none; }
 @media (max-width: 1023px) { .holdings-scroll-hint { display: block; } }
+
+/* The per-row capture entry rides with the symbol, which is the one cell this
+   horizontally scrolling table always shows first. Keeping it inside the cell
+   leaves the column model untouched; the compact control sets the row height. */
+.holdings-symbol {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
