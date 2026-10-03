@@ -10,5 +10,9 @@ test-results/
 !.env.example
 .DS_Store
 *.tsbuildinfo
-.scratch/
+# Scratch space stays local, except the Markdown issue tracker that AGENTS.md
+# treats as the source of truth for the active feature. A bare `.scratch/` also
+# ignored new tracker tickets, so they never reached version control.
+.scratch/*
+!.scratch/diary-v3-rebuild/
 .expo/
