@@ -6,234 +6,315 @@
 }
 
 .diary-timeline > .page-heading {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
-.timeline-modes {
-  display: inline-flex;
-  max-width: 100%;
-  margin-top: var(--space-5);
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--muted-surface);
-}
+/* ---------------------------------------------------------------------------
+   Chrome: one band
+   Which timeline, which record types, which dates and how many — on a single
+   wrapping row, so the first memory stays above the fold on a phone.
+   --------------------------------------------------------------------------- */
 
-.timeline-modes a {
-  display: inline-flex;
+.timeline-toolbar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  min-height: 36px;
-  padding: 4px 16px;
-  border-radius: var(--radius-control);
-  color: var(--muted);
-  font-weight: 600;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) 0;
+  border-block: 1px solid var(--rule);
 }
 
-.timeline-modes a[aria-current="page"] {
-  background: var(--surface-raised);
-  color: var(--text);
-}
-
-.pair-page .timeline-modes {
-  margin-top: 0;
-}
-
-/* Record-type filter. Same segmented treatment as the reading-mode switch
-   above it, so the two rows read as one control group. */
+/* The two segmented controls answer different questions — whose records, and
+   which kind — so the quieter one is the mode switch the reader rarely moves. */
+.timeline-modes,
 .timeline-kinds {
   display: inline-flex;
   flex-wrap: wrap;
   max-width: 100%;
-  margin-top: var(--space-3);
-  padding: 4px;
-  border: 1px solid var(--border);
+  padding: 3px;
+  border: 1px solid var(--rule);
   border-radius: var(--radius-control);
   background: var(--muted-surface);
 }
 
+.timeline-modes a,
 .timeline-kinds a {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 4px 14px;
-  border-radius: var(--radius-control);
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: var(--radius-inset);
   color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
 }
 
+.timeline-modes a:hover,
+.timeline-kinds a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.timeline-modes a[aria-current='page'],
 .timeline-kinds a[aria-current='true'] {
   background: var(--surface-raised);
   color: var(--text);
 }
 
-.timeline-filter-bar {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  margin: var(--space-5) 0;
-  padding: var(--space-2) 0;
-  border-block: 1px solid var(--border);
+/* The partner view carries this switch on its own, outside the toolbar row. */
+.pair-page .timeline-modes {
+  margin: var(--space-4) 0;
 }
 
 .timeline-filters {
-  flex: 1;
   min-width: 0;
 }
 
+/* Open, the control claims its own row of the toolbar so the date fields get
+   the full width instead of squeezing the controls beside them. */
+.timeline-filters[open] {
+  flex: 1 1 100%;
+}
+
+.timeline-filters[open] summary {
+  width: fit-content;
+}
+
+/* Styled like a secondary control rather than a disclosure row, because in the
+   toolbar it is one control among several. */
 .timeline-filters summary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: 44px;
-  padding: var(--space-2) 0;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--control);
+  border-radius: var(--radius-control);
   color: var(--text);
-  font-weight: 650;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition: background-color 140ms var(--ease-out);
+}
+
+.timeline-filters summary:hover {
+  background: var(--muted-surface);
 }
 
 .timeline-filters summary::-webkit-details-marker {
   display: none;
 }
 
-.timeline-filter-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.timeline-filter-label svg {
-  flex: 0 0 auto;
-  transition: transform 160ms ease;
-}
-
-.timeline-filters[open] .timeline-filter-label svg {
-  transform: rotate(180deg);
-}
-
 .timeline-filters summary::marker {
   content: '';
 }
 
-.timeline-filter-range {
+.timeline-filters summary svg {
+  flex: 0 0 auto;
   color: var(--muted);
-  font-weight: 400;
-  text-align: end;
+}
+
+.timeline-filter-caret {
+  transition: transform 160ms var(--ease-out);
+}
+
+.timeline-filters[open] .timeline-filter-caret {
+  transform: rotate(180deg);
+}
+
+.timeline-filter-range {
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
+/* The date fields are a second row of the toolbar, not a popover: they stay in
+   flow, so nothing is clipped and nothing has to be dismissed. */
 .timeline-filters form {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--space-5);
-  padding: var(--space-4) 0 var(--space-3);
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) 0 var(--space-2);
 }
 
-.timeline-filters label,
+.timeline-filters label {
+  min-width: 160px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.timeline-filters label input {
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: var(--text-sm);
+}
+
 .timeline-filters .actions {
   margin: 0;
 }
 
-.timeline-filter-clear {
-  flex: 0 0 auto;
-  min-height: 36px;
-  margin-top: var(--space-2);
-  padding: 5px 12px;
-  font-size: 0.875rem;
+/* The loaded count closes the row; it is status, not a control. */
+.timeline-count {
+  margin: 0 0 0 auto;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------------------
+   The feed
+   --------------------------------------------------------------------------- */
 
 .timeline-month {
-  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
 }
 
+/* The month name follows the reader down a feed that can run for thousands of
+   pixels, so the answer to "when am I" is never off-screen. */
 .timeline-month > header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-5);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--canvas);
 }
 
 .timeline-month h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
 }
 
-.timeline-month > ol {
+.timeline-month > header span {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-days,
+.timeline-records {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.timeline-month > ol > li {
+/* A day, not a record, is the row: the diary that framed it, the trades it
+   produced and the reviews that closed earlier judgments read as one block
+   under a single date. */
+.timeline-day {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: var(--space-7);
-  padding: var(--space-8) 0;
-  border-bottom: 1px solid var(--border);
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--space-5);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--rule);
 }
 
-.timeline-when {
+.timeline-day-mark {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: flex-end;
+  gap: 1px;
+  padding-top: 1px;
+  text-align: end;
 }
 
-.timeline-month time {
-  padding-top: 5px;
+.timeline-day-number {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-figure);
+  line-height: 1.15;
+}
+
+/* The weekday is information — whether a decision was made on a Monday or a
+   Friday — so it stays at the small-text floor and at muted, not faint. */
+.timeline-day-weekday {
   color: var(--muted);
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
 }
 
-/* A diary carries a date only; a trade and a review carry a time of day, which
-   is what orders them inside a day. */
-.timeline-time {
-  color: var(--faint);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
+.timeline-records {
+  display: grid;
+  gap: var(--space-4);
 }
 
-/* The kind badge is the one mark that makes a mixed feed scannable. It is a
-   tinted label, never a lifted chip: no shadow, no border. */
-.timeline-kind {
+/* The gutter mark is the one thing that makes a mixed feed scannable at a
+   glance; the kind is still spelled out in the meta line below the title. */
+.timeline-record {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.timeline-mark {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: var(--space-2);
-  padding: 2px 9px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-control);
   background: var(--tint-neutral);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
 }
 
-.timeline-kind svg {
-  flex: 0 0 auto;
-}
-
-.timeline-kind-diary {
+.timeline-mark-diary {
   background: var(--tint-info);
   color: var(--tint-info-text);
 }
 
-.timeline-kind-review,
-.timeline-kind-thesis_review {
+.timeline-mark-review,
+.timeline-mark-thesis_review {
   background: var(--tint-warn);
   color: var(--tint-warn-text);
+}
+
+.timeline-record article {
+  min-width: 0;
+}
+
+.timeline-record h3 {
+  margin: 0 0 var(--space-1);
+  overflow-wrap: anywhere;
+  font-size: var(--text-base);
+  line-height: 1.45;
+}
+
+.timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  list-style: none;
+}
+
+/* The kind as text, so the tinted mark never carries the meaning alone. */
+.timeline-meta-kind {
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+}
+
+.timeline-meta-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Buy and sell are named in words and separated by weight. Market colour stays
    reserved for price movement, so a booking direction never borrows it. */
 .timeline-trade-buy,
 .timeline-trade-sell {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .timeline-trade-sell {
@@ -241,27 +322,30 @@
 }
 
 .timeline-symbol-strong {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
 .timeline-trade-size {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
 /* Where a record came from: the diary behind a trade, or the day a review
    closed out. Secondary to the record itself. */
 .timeline-origin {
-  margin: var(--space-3) 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--text-xs);
 }
 
 .timeline-outcome {
-  padding: 1px 8px;
-  border-radius: var(--radius-control);
+  padding: 1px 7px;
+  border-radius: var(--radius-inset);
   background: var(--tint-neutral);
-  font-weight: 600;
+  color: var(--text);
+  font-weight: var(--weight-semibold);
 }
 
 .timeline-outcome-intact {
@@ -280,112 +364,114 @@
   color: var(--negative);
 }
 
-.timeline-month article {
-  min-width: 0;
-}
-
-.timeline-month h3 {
-  margin: 0 0 var(--space-3);
-  overflow-wrap: anywhere;
-  font-size: 1.125rem;
-  line-height: 1.5;
-}
-
-.timeline-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  margin: 0;
-  padding: 0;
-  color: var(--muted);
-  font-size: 0.875rem;
-  list-style: none;
-}
-
 .timeline-symbol {
-  padding: 1px 8px;
-  border-radius: var(--radius-control);
+  padding: 1px 7px;
+  border-radius: var(--radius-inset);
   background: var(--selected);
   color: var(--text);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
 .timeline-excerpt {
   display: -webkit-box;
-  max-width: 75ch;
-  margin-bottom: var(--space-3);
+  max-width: 72ch;
+  margin: var(--space-2) 0 0;
   overflow: hidden;
   color: var(--muted);
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
+  text-wrap: pretty;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
+/* A second route to the diary the title already links to, kept because it names
+   the action. Inline rather than a 44px block of its own: at twenty records,
+   that block was most of the page. */
 .timeline-read {
-  display: inline-block;
-  min-height: 44px;
-  padding: 8px 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin-top: var(--space-1);
   color: var(--action);
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
 }
 
 .timeline-more,
 .timeline-recovery,
 .timeline-empty {
-  margin-top: var(--space-8);
+  margin-top: var(--space-6);
+}
+
+.timeline-end {
+  margin-top: var(--space-6);
+  font-size: var(--text-xs);
 }
 
 @media (max-width: 767px) {
-  .timeline-filter-bar {
-    align-items: stretch;
+  /* The sticky month header clears the mobile top app bar. */
+  .timeline-month > header {
+    top: calc(64px + env(safe-area-inset-top));
+  }
+
+  .timeline-toolbar {
+    gap: var(--space-2);
+  }
+
+  .timeline-modes,
+  .timeline-kinds {
+    flex: 1 1 100%;
+  }
+
+  .timeline-modes a,
+  .timeline-kinds a {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 4px 8px;
+  }
+
+  /* The date control takes the width it needs and the loaded count closes the
+     same row, so chrome costs three rows on a phone rather than four. */
+  .timeline-filters {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .timeline-filters summary {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--space-1);
+    justify-content: space-between;
+    width: 100%;
   }
 
   .timeline-filter-range {
+    flex: 1 1 auto;
     text-align: start;
   }
 
-  .timeline-filters form {
-    grid-template-columns: 1fr;
+  .timeline-filters label {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
-  .timeline-month > ol > li {
-    grid-template-columns: 1fr;
+
+  /* The date leads its own row instead of holding a column, so the records keep
+     the full width of a phone. */
+  .timeline-day {
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
-    padding: var(--space-6) 0;
+    padding: var(--space-4) 0;
   }
 
-  /* Date and time sit on one line once the date column collapses. */
-  .timeline-when {
-    flex-direction: row;
+  .timeline-day-mark {
     align-items: baseline;
-    gap: var(--space-3);
+    flex-direction: row;
+    gap: var(--space-2);
+    text-align: start;
   }
 
-  .timeline-month time {
-    padding-top: 0;
-  }
-
-  .timeline-month > header {
-    align-items: flex-start;
-  }
-
-  .timeline-filters .actions {
-    flex-wrap: wrap;
-  }
-
-  .timeline-filter-clear {
-    margin-top: var(--space-3);
-  }
-
-  .timeline-month h3 {
-    font-size: 1.05rem;
+  .timeline-day-number {
+    font-size: var(--text-lg);
   }
 }

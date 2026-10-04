@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupActivityEvents, mergeActivityEvents } from '@diary/domain'
+import { groupActivityDays, groupActivityEvents, mergeActivityEvents } from '@diary/domain'
 import { ACTIVITY_GROUP_KINDS, ACTIVITY_KIND_RANK, activityTimelineQuerySchema } from '@diary/contracts/activity-timeline'
 import { destinationLabel, destinations, matchScore, symbolCandidate } from '../../apps/web/app/destinations'
 
@@ -49,6 +49,28 @@ describe('activity event grouping', () => {
     for (const kinds of Object.values(ACTIVITY_GROUP_KINDS)) {
       for (const kind of kinds) expect(ACTIVITY_KIND_RANK[kind]).toBeGreaterThan(0)
     }
+  })
+
+  it('collapses a month into days that keep the within-day reading order', () => {
+    const events = [
+      { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' as const },
+      { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' as const },
+      { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' as const },
+      { id: 'DIARY:2', date: '2026-05-08', kind: 'DIARY' as const },
+    ]
+    const [month] = groupActivityEvents(events)
+    expect(groupActivityDays(month!.entries)).toEqual([
+      { date: '2026-05-10', entries: [
+        { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' },
+        { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' },
+        { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' },
+      ] },
+      { date: '2026-05-08', entries: [{ id: 'DIARY:2', date: '2026-05-08', kind: 'DIARY' }] },
+    ])
+  })
+
+  it('groups nothing into nothing', () => {
+    expect(groupActivityDays([])).toEqual([])
   })
 
   it('rejects a reversed range and an oversized page', () => {

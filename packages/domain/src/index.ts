@@ -17,7 +17,7 @@ export * from './quick-template';
 export * from './quick-snippets';
 export { deriveQuickTitle, mergeQuickTemplate } from './quick-composer';
 export { mergeTimelineEntries,groupTimelineEntries,projectTimelineEntry,diaryExcerpt } from './timeline';
-export { mergeActivityEvents, groupActivityEvents } from './activity-timeline';
+export { mergeActivityEvents, groupActivityEvents, groupActivityDays } from './activity-timeline';
 export { calculatePositionSizing, positionSizingStrategies, validatePositionSizingRatios } from './position-sizing';
 export { calculateTradePlanExecution } from './trade-plan-execution';
 export type { TradePlanExecutionCalculation, TradePlanExecutionSnapshot, TradePlanExecutionTransaction } from './trade-plan-execution';
