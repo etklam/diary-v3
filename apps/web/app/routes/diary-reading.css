@@ -1,3 +1,37 @@
+/* A recorded diary: the body keeps the reading measure, and what is attached to
+   it — tags, companies, the review pointer, later evidence — moves beside the
+   body once the workspace is wide enough to hold both. */
+@media (min-width: 1100px) {
+  .diary-record {
+    display: grid;
+    max-width: 1280px;
+    grid-template-columns: minmax(0, 72ch) minmax(260px, 1fr);
+    grid-template-areas:
+      'header aside'
+      'body   aside'
+      'footer aside';
+    column-gap: var(--space-10);
+    align-items: start;
+  }
+
+  .diary-record > header { grid-area: header; }
+  .diary-record > .diary-reading-body { grid-area: body; }
+  .diary-record > .diary-reading-aside { grid-area: aside; }
+  .diary-record > footer { grid-area: footer; }
+
+  .diary-record > .diary-reading-aside > :first-child {
+    margin-top: 0;
+  }
+}
+
+.diary-reading-body > :first-child {
+  margin-top: 0;
+}
+
+.diary-reading-aside {
+  min-width: 0;
+}
+
 .diary-reading-title-row {
   display: flex;
   align-items: flex-start;

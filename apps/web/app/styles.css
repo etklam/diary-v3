@@ -255,20 +255,25 @@ button:active,
 }
 
 /* Secondary: the page's own surface, bounded by a control-contrast edge.
-   No shadow — a button is not a floating object. */
-.secondary {
+   No shadow — a button is not a floating object. `a.secondary` repeats the
+   element to outrank the shared box rule above, which is element-qualified for
+   links; without it every secondary link rendered as a filled primary. */
+.secondary,
+a.secondary {
   border-color: var(--control);
   background: var(--surface);
   color: var(--text);
 }
 
-.secondary:hover {
+.secondary:hover,
+a.secondary:hover {
   border-color: var(--text);
   background: var(--surface-sunken);
   color: var(--text);
 }
 
-.secondary:active {
+.secondary:active,
+a.secondary:active {
   background: var(--selected);
 }
 
@@ -1453,6 +1458,24 @@ main:focus-visible {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* The article editor is a writing surface: the body takes the reading measure
+   and the publication metadata sits beside it once the workspace allows. */
+.article-editor-meta {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+}
+
+.article-editor-meta > label {
+  min-width: 0;
+}
+
+.article-editor-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .article-save-result {

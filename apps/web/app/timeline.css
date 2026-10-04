@@ -1,6 +1,8 @@
+/* A data page, so it caps at the documented 1280px instead of stretching
+   across an ultrawide workspace. */
 .diary-timeline {
   width: 100%;
-  max-width: none;
+  max-width: 1280px;
 }
 
 .diary-timeline > .page-heading {

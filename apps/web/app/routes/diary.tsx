@@ -110,7 +110,7 @@ export default function DiaryPage() {
   const diaryPath = `/diaries/${id ?? ''}`;
   const reviewSchedulePath = `${diaryPath}/edit?returnTo=${encodeURIComponent(diaryPath)}#review-schedule`;
 
-  return <article className="diary-reading">
+  return <article className="diary-reading diary-record">
     {pending ? <p role="status">{t('loading')}</p> : error ? <>
       <h1>{t('readTitle')}</h1>
       <FailureNotice failure={error} />
@@ -128,9 +128,10 @@ export default function DiaryPage() {
           <Link className="button secondary" to={`/diaries/${id}/edit`}>{labels.edit}</Link>
         </div>
         {diary.createdVia && diary.createdVia !== 'WEB' && <p data-testid="diary-source">{diary.createdVia === 'API_KEY' ? (locale === 'en' ? 'Created via API key' : locale === 'zh-CN' ? '通过 API 密钥创建' : '透過 API 金鑰建立') : 'Telegram'}{diary.createdByLabel ? ` · ${diary.createdByLabel}` : ''}</p>}
-        <ul className="diary-tags" aria-label={labels.tags}>{diary.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
-        {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
       </header>
+      {/* The record itself, in its recorded order; what is attached to it and
+          what to do next move beside it on a wide screen. */}
+      <div className="diary-reading-body">
       <Markdown>{diary.content ?? ''}</Markdown>
       <section className="original-reasoning" aria-labelledby="diary-original-judgment">
         <OriginalJudgment
@@ -142,8 +143,13 @@ export default function DiaryPage() {
         />
       </section>
       {Boolean(diary.transactions?.length) && <section className="ledger-reading"><h2>{ledgerCopy[locale].title}</h2>{diary.transactions?.map(transaction => <section key={transaction.id}><h3>{transaction.symbol} · {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}</h3><dl>{(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => <div key={field}><dt>{ledgerCopy[locale][field]}</dt><dd>{field === 'tradeDate' ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZoneName: undefined }).format(new Date(transaction.tradeDate)) + ' · ' + Intl.DateTimeFormat().resolvedOptions().timeZone : field === 'emotion' && transaction.emotion && Object.hasOwn(ledgerEmotions[locale], transaction.emotion) ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en] : transaction[field] || '—'}</dd></div>)}</dl></section>)}<Link className="inline-link" to="/stocks">{ledgerCopy[locale].view}</Link></section>}
+      </div>
+      <aside className="diary-reading-aside">
+      <ul className="diary-tags" aria-label={labels.tags}>{diary.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
+      {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
       <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : `${reviewLabels.duePrefix} `}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
       <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
+      </aside>
       <footer><div className="diary-actions">{companyPath && captureReturn && <Link className="button secondary" data-testid="capture-return" to={companyPath}>{locale === 'en' ? `Return to ${captureReturn.symbol} research` : `返回 ${captureReturn.symbol} 研究`}</Link>}<button type="button" className="danger-button" onClick={() => dialog.current?.showModal()}>{labels.remove}</button><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></footer>
       <dialog ref={dialog} className="delete-dialog" aria-labelledby="delete-title"><h2 id="delete-title">{labels.confirm}</h2><p>{diary.title}</p><div className="actions"><button className="secondary" autoFocus onClick={() => dialog.current?.close()} disabled={deleting}>{labels.cancel}</button><button className="danger-button" disabled={deleting} onClick={() => void remove()}>{deleting ? t('pending') : labels.remove}</button></div></dialog>
     </>}

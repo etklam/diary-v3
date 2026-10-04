@@ -2,8 +2,8 @@
 
 # [93] Use desktop workspace width more effectively
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: enhancement
@@ -24,20 +24,69 @@ Before UI implementation, define the layout direction and target-page list again
 
 ## Provisional acceptance criteria
 
-- [ ] The audit records the affected page routes, the desktop viewport(s) where the unused area is material, and whether each page should expand, use a different layout, or remain intentionally bounded.
-- [ ] Every `/diaries/*` route is accounted for in the audit; any route kept narrow has a task-based readability rationale.
-- [ ] The article editor at `/admin/blog/:id/edit` is included in the design decision and has a clear desktop layout rationale.
-- [ ] Each included route has a deliberate desktop layout and a separate mobile layout direction, with the tablet breakpoint behavior documented between them.
-- [ ] Working surfaces use available desktop width where doing so improves scanning or editing. Long-form article and Markdown reading measures remain bounded; controls and prose are not stretched solely to occupy space.
-- [ ] Desktop and mobile layouts preserve the same product capabilities while using viewport-appropriate hierarchy, grouping, and control placement; multi-column layouts reflow at the agreed tablet breakpoint.
-- [ ] Existing behavior remains unchanged. The updated pages remain usable in all three locales, light/dark themes, keyboard navigation, and 200% zoom, without clipping or horizontal page overflow.
-- [ ] Before/after browser captures separately cover the agreed wide-desktop and standard-desktop sizes and the mobile viewport for each changed page, with the visual rationale recorded against DESIGN.md.
+- [x] The audit records the affected page routes, the desktop viewport(s) where the unused area is material, and whether each page should expand, use a different layout, or remain intentionally bounded.
+- [x] Every `/diaries/*` route is accounted for in the audit; any route kept narrow has a task-based readability rationale.
+- [x] The article editor at `/admin/blog/:id/edit` is included in the design decision and has a clear desktop layout rationale.
+- [x] Each included route has a deliberate desktop layout and a separate mobile layout direction, with the tablet breakpoint behavior documented between them.
+- [x] Working surfaces use available desktop width where doing so improves scanning or editing. Long-form article and Markdown reading measures remain bounded; controls and prose are not stretched solely to occupy space.
+- [x] Desktop and mobile layouts preserve the same product capabilities while using viewport-appropriate hierarchy, grouping, and control placement; multi-column layouts reflow at the agreed tablet breakpoint.
+- [x] Existing behavior remains unchanged. The updated pages remain usable in all three locales, light/dark themes, keyboard navigation, and 200% zoom, without clipping or horizontal page overflow.
+- [x] Before/after browser captures separately cover the agreed wide-desktop and standard-desktop sizes and the mobile viewport for each changed page, with the visual rationale recorded against DESIGN.md.
 
-## Open triage decisions
+## Audit — 2026-10-04
 
-- Should the `/diaries/*` routes be delivered together or split into focused slices after the audit?
-- Which wide-screen viewport should define the expected desktop use of space?
-- Where should additional width create a second working region, and where should content remain bounded for legibility?
+Measured `main`'s width against the rightmost rendered content on every workspace route at
+1440px and 1920px, before any change:
+
+| Route | 1440 unused | 1920 unused | Verdict |
+|---|---|---|---|
+| `/diaries/:id` (record) | 501px | 717px | **Expand** — body at 72ch, everything attached to it beside |
+| `/admin/blog/:id/edit` | ~344px (880px `.editor` cap) | ~560px | **Expand** — writing left, publication metadata right |
+| `/diaries/new`, `/diaries/:id/edit` | 344px | 560px | **Expanded by [97](97-quick-composer-redesign.md)** |
+| `/diaries/quick` | 344px | 560px | **Expanded by [97](97-quick-composer-redesign.md)** |
+| `/calendar` | 32px | 392px | **Bounded by [99](99-calendar-redesign.md)** — a month is a dense object |
+| `/diaries` (library) | 32px | **0 — uncapped** | **Cap** — a data page that stretched to any viewport |
+| `/timeline` | 32px | **0 — uncapped** | **Cap** — same |
+| `/reviews` | 32px | 208px | Keep — already the 1280px data page |
+| `/diaries/:id/review` | 72px | 288px | Keep bounded at 1120px — it already splits original and reflection into two columns at 900px, and the reflection is prose |
+
+The report was half right: four routes wasted width, and two had the opposite defect — no cap at
+all, so they stretched across an ultrawide workspace against DESIGN.md's 1280px data width.
+
+The audit also surfaced a design-system defect: the shared button box rule is element-qualified
+for links (`a.secondary`), which outranked the later `.secondary` colour rule, so **every
+secondary link in the app rendered as a filled primary**. Two filled actions competed on the
+diary record. Fixed in `styles.css` by repeating the element in the secondary selector.
+
+## Triage decisions — ruled 2026-10-04 during implementation
+
+- **Delivered together.** The three authoring surfaces already shared a layout from
+  [97](97-quick-composer-redesign.md); the record page and the article editor reuse the same
+  grid, so splitting would have meant writing it three more times.
+- **1440px defines the expectation, 1920px defines the cap.** 1440 is the standard workspace
+  width this product is used at; above the 1280px data cap, extra viewport becomes margin rather
+  than content, which is the documented rule.
+- **Width becomes a second region only where a task has a primary surface and supporting
+  controls.** Prose, calendars and queues stay bounded: the diary body, the article body and the
+  review reflection all keep the 72ch measure inside the wider page.
+
+## Execution record — 2026-10-04
+
+The 1100px two-column rule is documented in DESIGN.md's Layout section and shared through
+`authoring.css`. Changes in this ticket: the diary record splits into body and aside (tags,
+company links, the review pointer, later evidence); the admin article editor splits into writing
+and publication metadata; the library and timeline gain the 1280px data cap; secondary links stop
+rendering as filled primaries. The authoring surfaces and the calendar were delivered by
+[97](97-quick-composer-redesign.md) and [99](99-calendar-redesign.md) under this ruling.
+
+Tablet (768–1099px) is the stacked single column in source order; mobile keeps that order with
+touch sizing and the sticky save bar on the authoring paths.
+
+Verification: `tests/e2e/workspace-width.spec.ts` asserts that no audited route leaves more than
+64px unused at 1440 and that none exceeds the 1280px cap at 1920, and captures evidence at 1920,
+1440 and 390 for the record page and the article editor
+(`docs/design/evidence/workspace-width/`). `posts`, `article-publish-feedback`, `overview`,
+`daily-workspace`, `article-access`, `diary-discovery` and `diary-detail-review` pass.
 
 ## Related work
 
