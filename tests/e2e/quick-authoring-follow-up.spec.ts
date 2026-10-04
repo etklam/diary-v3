@@ -322,3 +322,27 @@ test('a submit arriving during the destination lookup is queued, not swallowed',
   await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
   await page.unroute('**/api/diaries/by-date?*')
 })
+
+test('a cold Quick load is typable before the account read and keeps what was typed', async ({ page }) => {
+  const email = `quick-cold-start-${randomUUID()}@example.test`
+  await register(page, email)
+  await signIn(page, email)
+  // A cold load with a slow account read: the writing area must be present and
+  // typable while it is in flight, and survive the shell swap that follows it.
+  await page.route('**/api/auth/me', async route => { await new Promise(resolve => setTimeout(resolve, 1500)); await route.continue() })
+  await page.goto('/diaries/quick')
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  const marker = `Typed before the account read ${randomUUID()}`
+  await content.fill(marker)
+  await expect(content).toHaveValue(marker)
+  await page.unroute('**/api/auth/me')
+  await expect.poll(async () => content.inputValue(), { timeout: 10_000 }).toBe(marker)
+  await expect(page.getByRole('button', { name: 'Create diary', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Create diary', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const href = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect((await readDiary(page, href!.split('/').at(-1)!)).content).toBe(marker)
+  // The date still comes from the account timezone once the read confirms.
+  const settings = await (await page.request.get('/api/user/settings')).json() as { settings: { timezone: string } }
+  expect(settings.settings.timezone).toBeTruthy()
+})
