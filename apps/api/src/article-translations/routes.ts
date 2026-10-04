@@ -1,5 +1,5 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
-import { articleLocaleSchema, articleTranslationActionResponseSchema, articleTranslationAdminResponseSchema, articleTranslationAiDefaultUpdateSchema, articleTranslationAiProviderSaveSchema, articleTranslationAiProviderSchema, articleTranslationAiProvidersResponseSchema, articleTranslationAiProviderUpdateSchema, articleTranslationJobRequestSchema, articleTranslationJobResponseSchema, articleTranslationEditRequestSchema, serializedIdSchema, type ArticleLocale, type ErrorCode } from '@diary/contracts'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
+import { articleLocaleSchema, articleTranslationActionResponseSchema, articleTranslationAdminResponseSchema, articleTranslationBatchRequestSchema, articleTranslationBatchResponseSchema, articleTranslationStatesQuerySchema, articleTranslationStatesResponseSchema, ARTICLE_TRANSLATION_BATCH_LIMIT, articleTranslationAiDefaultUpdateSchema, articleTranslationAiProviderSaveSchema, articleTranslationAiProviderSchema, articleTranslationAiProvidersResponseSchema, articleTranslationAiProviderUpdateSchema, articleTranslationJobRequestSchema, articleTranslationJobResponseSchema, articleTranslationEditRequestSchema, serializedIdSchema, type ArticleLocale, type ErrorCode } from '@diary/contracts'
 import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts, users, type Database } from '@diary/db'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
@@ -170,28 +170,34 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
       .orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)).limit(1)
     return adminTranslationRow(post, targetLocale, translation, latestJob)
   }
-  const queueOne = async (options: { postId: bigint; targetLocale: ArticleLocale; provider: 'edge' | 'ai'; actorId: bigint | null }) => {
+  type QueueRefusal = { outcome: 'SKIPPED_SOURCE_LOCALE' | 'NOT_FOUND' | 'PRIVACY_RESTRICTED' | 'PROVIDER_DISABLED'; message: string }
+  /**
+   * The queue policy, resolved without throwing: the single-article route maps a
+   * refusal to the HTTP failure it has always returned, and the batch route maps
+   * the same refusal to that item's own outcome.
+   */
+  const resolveQueue = async (options: { postId: bigint; targetLocale: ArticleLocale; provider: 'edge' | 'ai'; actorId: bigint | null }): Promise<{ job: Awaited<ReturnType<typeof enqueueArticleTranslationJob>> } | QueueRefusal> => {
     const post = await readPost(options.postId)
-    if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    if (post.sourceLocale === options.targetLocale) return fail(400, 'SYS_VALIDATION_ERROR', 'The source locale cannot be a translation target')
-    if (options.provider === 'edge' && post.access !== 'PUBLIC') return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'Microsoft Edge Translate can only process PUBLIC articles')
+    if (!post) return { outcome: 'NOT_FOUND', message: 'Post not found' }
+    if (post.sourceLocale === options.targetLocale) return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
+    if (options.provider === 'edge' && post.access !== 'PUBLIC') return { outcome: 'PRIVACY_RESTRICTED', message: 'Microsoft Edge Translate can only process PUBLIC articles' }
     let aiProfileIdValue: bigint | null = null
     let aiProfileName: string | null = null
     let configRevision: number | null = null
     if (options.provider === 'ai') {
       const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
-      if (!settings?.defaultProfileId) return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'Select an enabled AI provider before translating')
+      if (!settings?.defaultProfileId) return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
       const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
-      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'The selected AI provider is not configured or enabled')
-      if (post.access === 'MEMBER' && !profile.allowMemberArticles) return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'AI translation is not permitted for MEMBER articles by the current translation policy')
+      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return { outcome: 'PROVIDER_DISABLED', message: 'The selected AI provider is not configured or enabled' }
+      if (post.access === 'MEMBER' && !profile.allowMemberArticles) return { outcome: 'PRIVACY_RESTRICTED', message: 'AI translation is not permitted for MEMBER articles by the current translation policy' }
       aiProfileIdValue = profile.id
       aiProfileName = profile.name
       configRevision = profile.revision
     }
     const [runtime] = await db.select().from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1)
-    if (options.provider === 'edge' && runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now()) return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'Microsoft Edge Translate is temporarily disabled after repeated provider failures')
+    if (options.provider === 'edge' && runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now()) return { outcome: 'PROVIDER_DISABLED', message: 'Microsoft Edge Translate is temporarily disabled after repeated provider failures' }
     try {
-      return await enqueueArticleTranslationJob(db, {
+      return { job: await enqueueArticleTranslationJob(db, {
         postId: options.postId,
         targetLocale: options.targetLocale,
         provider: options.provider,
@@ -200,15 +206,21 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
         aiProfileName,
         configRevision,
         now: now(),
-      })
+      }) }
     } catch (error) {
-      if (error instanceof Error && error.message === 'BLOG_NOT_FOUND') return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_TARGET_IS_SOURCE') return fail(400, 'SYS_VALIDATION_ERROR', 'The source locale cannot be a translation target')
-      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_PROVIDER_DISABLED') return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'Select an enabled AI provider before translating')
+      if (error instanceof Error && error.message === 'BLOG_NOT_FOUND') return { outcome: 'NOT_FOUND', message: 'Post not found' }
+      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_TARGET_IS_SOURCE') return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
+      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_PROVIDER_DISABLED') return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
       throw error
     }
   }
-
+  const refusalStatus = { NOT_FOUND: [404, 'BLOG_NOT_FOUND'], SKIPPED_SOURCE_LOCALE: [400, 'SYS_VALIDATION_ERROR'], PRIVACY_RESTRICTED: [409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED'], PROVIDER_DISABLED: [409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED'] } as const
+  const queueOne = async (options: { postId: bigint; targetLocale: ArticleLocale; provider: 'edge' | 'ai'; actorId: bigint | null }) => {
+    const resolved = await resolveQueue(options)
+    if ('job' in resolved) return resolved.job
+    const [status, code] = refusalStatus[resolved.outcome]
+    return fail(status, code, resolved.message)
+  }
   app.get('/api/blog/admin/:id/translations', async c => {
     admin(c)
     const id = postId(c.req.param('id'), validationError)
@@ -413,6 +425,76 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     revision,
     updatedBy: actorId,
     updatedAt: now(),
+  })
+
+  /**
+   * Batch translation state for the Admin article list: the same status the
+   * editor shows, for several articles at once, so a group can be managed
+   * without opening each one.
+   */
+  app.get('/api/admin/article-translations/states', async c => {
+    admin(c)
+    const query = articleTranslationStatesQuerySchema.safeParse(c.req.query())
+    if (!query.success) validationError(query.error)
+    const ids = [...new Set((query.data?.ids ?? '').split(',').map(value => value.trim()).filter(Boolean))].slice(0, ARTICLE_TRANSLATION_BATCH_LIMIT)
+    const parsedIds = ids.flatMap(value => { const parsed = serializedIdSchema.safeParse(value); return parsed.success ? [BigInt(parsed.data)] : [] })
+    if (!parsedIds.length) return c.json(articleTranslationStatesResponseSchema.parse({ articles: [] }))
+    const [rows, translations, jobs] = await Promise.all([
+      db.select().from(posts).where(inArray(posts.id, parsedIds)),
+      db.select().from(postTranslations).where(inArray(postTranslations.postId, parsedIds)),
+      db.select().from(articleTranslationJobs).where(inArray(articleTranslationJobs.postId, parsedIds)).orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)),
+    ])
+    const articles = parsedIds.flatMap(id => {
+      const post = rows.find(row => row.id === id)
+      if (!post) return []
+      return [{
+        articleId: post.id.toString(),
+        title: post.title,
+        access: post.access,
+        sourceLocale: post.sourceLocale,
+        locales: (['zh-TW', 'zh-CN', 'en'] as const).filter(item => item !== post.sourceLocale).map(targetLocale => ({
+          locale: targetLocale,
+          status: adminTranslationStatus(
+            post,
+            translations.find(item => item.postId === id && item.locale === targetLocale),
+            jobs.find(item => item.postId === id && item.targetLocale === targetLocale),
+          ),
+        })),
+      }]
+    })
+    return c.json(articleTranslationStatesResponseSchema.parse({ articles }))
+  })
+
+  /**
+   * Dispatch translation for several articles at once. Every item reports its
+   * own outcome — queued, already active, skipped or refused — so a partial
+   * result can never read as "all queued". Nothing here approves, publishes or
+   * replaces a translation: this only enqueues the same reviewed job the
+   * per-article route enqueues.
+   */
+  app.post('/api/admin/article-translations/jobs', async c => {
+    const actorId = admin(c)
+    const input = await parseJson(c, articleTranslationBatchRequestSchema)
+    await consume(c, RATE_LIMIT_POLICIES.articleTranslationQueue, 'user', actorId.toString())
+    const results = []
+    for (const articleId of input.articleIds) {
+      for (const targetLocale of input.targetLocales) {
+        const resolved = await resolveQueue({ postId: BigInt(articleId), targetLocale, provider: input.provider, actorId })
+        if ('job' in resolved) {
+          results.push({
+            articleId,
+            locale: targetLocale,
+            outcome: resolved.job.deduplicated ? 'ALREADY_ACTIVE' : 'QUEUED',
+            jobId: resolved.job.id.toString(),
+            status: jobStatus(resolved.job.status),
+            message: null,
+          })
+        } else {
+          results.push({ articleId, locale: targetLocale, outcome: resolved.outcome, jobId: null, status: null, message: resolved.message })
+        }
+      }
+    }
+    return c.json(articleTranslationBatchResponseSchema.parse({ results }))
   })
 
   app.get('/api/admin/article-translations/ai-providers', async c => {

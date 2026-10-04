@@ -117,9 +117,15 @@ export {
 } from './post.js'
 export type { AutomaticTranslationAdmission, PostAccess, PostAdminDetail, PostAdminListResponse, PostPublicDetail, PostPublicListResponse, PostPublicMetadata, PostStatus, PostWriteRequest } from './post.js'
 export {
+  ARTICLE_TRANSLATION_BATCH_LIMIT,
   articleLocaleSchema,
   articleLocaleResolutionSchema,
   articleTranslationActionResponseSchema,
+  articleTranslationBatchOutcomeSchema,
+  articleTranslationBatchRequestSchema,
+  articleTranslationBatchResponseSchema,
+  articleTranslationStatesQuerySchema,
+  articleTranslationStatesResponseSchema,
   articleTranslationAdminResponseSchema,
   articleTranslationAdminRowSchema,
   articleTranslationAiDefaultUpdateSchema,

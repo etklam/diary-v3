@@ -53,6 +53,7 @@ import { diarySavedViewCreateRequestSchema, diarySavedViewDeleteResponseSchema, 
 import { diarySummaryListResponseSchema } from './diary-summary.js'
 import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-activity.js'
 import { recentDiaryTagsResponseSchema } from './diary-tags.js'
+import { articleTranslationBatchRequestSchema, articleTranslationBatchResponseSchema, articleTranslationStatesQuerySchema, articleTranslationStatesResponseSchema } from './article-translation.js'
 import { activityTimelineQuerySchema, activityTimelineResponseSchema } from './activity-timeline.js'
 import { holidayResponseSchema } from './calendar.js'
 import { diaryReviewWorkflowResponseSchema, diaryReviewWorkflowInputSchema, diaryReviewScheduleInputSchema, diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
@@ -785,6 +786,21 @@ for (const [action, operationId, description] of [
   ['unpublish', 'blogTranslationUnpublish', 'Unpublish a translation snapshot'],
 ] as const) registry.registerPath({ method: 'post', path: `/api/blog/admin/{id}/translations/{locale}/${action}`, tags: ['Blog translations'], operationId, security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema, locale: z.enum(['zh-TW', 'zh-CN', 'en']) }) }, responses: { 200: json(ArticleTranslationActionResponse, description), ...errors([400, 401, 403, 404, 409, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/blog/admin/{id}/translations/{locale}/retranslate', tags: ['Blog translations'], operationId: 'blogTranslationRetranslate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema, locale: z.enum(['zh-TW', 'zh-CN', 'en']) }), body: json(articleTranslationJobRequestSchema.pick({ provider: true }).clone(), 'Explicit provider selection') }, responses: { 200: json(ArticleTranslationJobResponse, 'Persistent translation job ID'), ...errors([400, 401, 403, 404, 409, 500]) } })
+const ArticleTranslationStatesResponse = registry.register('ArticleTranslationStatesResponse', articleTranslationStatesResponseSchema.clone())
+registry.registerPath({
+  method: 'get', path: '/api/admin/article-translations/states', tags: ['Articles'], operationId: 'articleTranslationStatesGet',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { query: articleTranslationStatesQuerySchema.clone() },
+  responses: { 200: json(ArticleTranslationStatesResponse, 'Translation state for the requested admin articles'), ...errors([400, 401, 403, 500]) },
+})
+const ArticleTranslationBatchRequest = registry.register('ArticleTranslationBatchRequest', articleTranslationBatchRequestSchema.clone())
+const ArticleTranslationBatchResponse = registry.register('ArticleTranslationBatchResponse', articleTranslationBatchResponseSchema.clone())
+registry.registerPath({
+  method: 'post', path: '/api/admin/article-translations/jobs', tags: ['Articles'], operationId: 'articleTranslationBatchJobsPost',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  request: { body: json(ArticleTranslationBatchRequest, 'Queue translation for several articles') },
+  responses: { 200: json(ArticleTranslationBatchResponse, 'Per article and locale outcome'), ...errors([400, 401, 403, 429, 500]) },
+})
 registry.registerPath({ method: 'get', path: '/api/admin/article-translations/ai-providers', tags: ['Blog translations'], operationId: 'articleTranslationAiProvidersGet', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], responses: { 200: json(ArticleTranslationAiProvidersResponse, 'Configured OpenAI-compatible translation providers without API keys'), ...errors([401, 403, 500]) } })
 registry.registerPath({ method: 'post', path: '/api/admin/article-translations/ai-providers', tags: ['Blog translations'], operationId: 'articleTranslationAiProviderCreate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { body: json(ArticleTranslationAiProviderSave, 'OpenAI-compatible Chat Completions provider profile') }, responses: { 200: json(ArticleTranslationAiProvider, 'Created provider profile without API key'), ...errors([400, 401, 403, 409, 500]) } })
 registry.registerPath({ method: 'put', path: '/api/admin/article-translations/ai-providers/{id}', tags: ['Blog translations'], operationId: 'articleTranslationAiProviderUpdate', security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }), body: json(ArticleTranslationAiProviderUpdate, 'Update provider profile at the expected revision') }, responses: { 200: json(ArticleTranslationAiProvider, 'Updated provider profile without API key'), ...errors([400, 401, 403, 404, 409, 500]) } })

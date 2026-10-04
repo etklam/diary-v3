@@ -2159,6 +2159,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/article-translations/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["articleTranslationStatesGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/article-translations/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["articleTranslationBatchJobsPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/article-translations/ai-providers": {
         parameters: {
             query?: never;
@@ -4809,6 +4841,41 @@ export interface components {
         };
         ArticleTranslationAiDefaultUpdate: {
             providerId: string | null;
+        };
+        ArticleTranslationStatesResponse: {
+            articles: {
+                articleId: string;
+                title: string;
+                /** @enum {string} */
+                access: "PUBLIC" | "MEMBER";
+                /** @enum {string} */
+                sourceLocale: "zh-TW" | "zh-CN" | "en";
+                locales: {
+                    /** @enum {string} */
+                    locale: "zh-TW" | "zh-CN" | "en";
+                    /** @enum {string} */
+                    status: "MISSING" | "QUEUED" | "TRANSLATING" | "NEEDS_REVIEW" | "READY" | "PUBLISHED" | "UNPUBLISHED" | "STALE" | "FAILED";
+                }[];
+            }[];
+        };
+        ArticleTranslationBatchRequest: {
+            articleIds: string[];
+            targetLocales: ("zh-TW" | "zh-CN" | "en")[];
+            /** @enum {string} */
+            provider: "edge" | "ai";
+        };
+        ArticleTranslationBatchResponse: {
+            results: {
+                articleId: string;
+                /** @enum {string} */
+                locale: "zh-TW" | "zh-CN" | "en";
+                /** @enum {string} */
+                outcome: "QUEUED" | "ALREADY_ACTIVE" | "SKIPPED_SOURCE_LOCALE" | "NOT_FOUND" | "PRIVACY_RESTRICTED" | "PROVIDER_DISABLED" | "FAILED";
+                jobId: string | null;
+                /** @enum {string|null} */
+                status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "STALE" | "CANCELLED" | null;
+                message: string | null;
+            }[];
         };
         AiAnalysisItem: {
             text: string;
@@ -18734,6 +18801,134 @@ export interface operations {
             };
             /** @description HTTP 409 error */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationStatesGet: {
+        parameters: {
+            query: {
+                ids: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Translation state for the requested admin articles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationStatesResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    articleTranslationBatchJobsPost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Queue translation for several articles */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArticleTranslationBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Per article and locale outcome */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleTranslationBatchResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

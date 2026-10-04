@@ -4,6 +4,7 @@ import { postAdminDetailSchema, postAdminListResponseSchema, postBulkResponseSch
 import { csrfToken, invalidateArticleCache, sessionFetch, signInPath } from '../session'
 import { useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
+import { TranslationBatch } from '../admin-translation-batch'
 import '../trade-plan.css'
 
 const copy = {
@@ -48,7 +49,9 @@ export default function AdminBlog() {
       const body = await response.json().catch(() => null)
       if (!active) return
       const parsed = postAdminListResponseSchema.safeParse(body)
-      if (response.ok && parsed.success) { setRows(parsed.data); setFailure(null); setSelected(new Set()) }
+      // A reload must not silently drop a selection the admin is still working
+      // with; only articles that left the list are deselected.
+      if (response.ok && parsed.success) { setRows(parsed.data); setFailure(null); setSelected(current => new Set([...current].filter(id => parsed.data.data.some(row => row.id === id)))) }
       else setFailure(apiFailure(body, response.status === 403 ? c.forbidden : c.connection))
     }).catch(() => { if (active) setFailure({ message: c.connection, fields: [] }) })
     return () => { active = false }
@@ -103,6 +106,7 @@ export default function AdminBlog() {
     </div>}
     {rows === null && !failure ? <p role="status">{c.loading}</p> : rows?.data.length === 0 ? <div className="empty-state"><p>{c.empty}</p></div> : rows && <>
       <div className="actions"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={allSelected} onChange={event => setSelected(event.target.checked ? new Set(rows.data.map(row => row.id)) : new Set())} />{selected.size} {c.selected}</label><button type="button" disabled={!selected.size} onClick={() => void action('/api/blog/admin/bulk-publish', 'POST', { ids: [...selected] })}>{c.bulkPublish}</button><button type="button" className="secondary" disabled={!selected.size} onClick={() => { if (window.confirm(c.confirm)) void action('/api/blog/admin/bulk-delete', 'POST', { ids: [...selected] }) }}>{c.bulkDelete}</button></div>
+      <TranslationBatch selected={[...selected]} />
       <div className="table-scroll"><table><caption>{c.title}</caption><thead><tr><th scope="col">{c.title}</th><th scope="col">{c.status}</th><th scope="col">{c.author}</th><th scope="col">{c.updated}</th><th scope="col">{c.actions}</th></tr></thead><tbody>{rows.data.map(row => <tr key={row.id}><th scope="row"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={selected.has(row.id)} onChange={event => setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(row.id); else next.delete(row.id); return next })} />{row.title}</label></th><td>{statusLabel(row.status)}</td><td>{row.author.name ?? '—'}<br /><span className="muted">{row.author.email}</span></td><td><time dateTime={row.updatedAt}>{formatDate(row.updatedAt)}</time></td><td><div className="actions"><Link className="button secondary" to={`/admin/blog/${row.id}/edit`}>{c.edit}</Link>{row.status === 'PUBLISHED' && <Link className="button secondary" to={`/articles/${encodeURIComponent(row.slug)}`}>{c.view}</Link>}{row.status === 'PUBLISHED' ? <button type="button" className="secondary" onClick={() => void action(`/api/blog/admin/${row.id}/archive`)}>{c.archive}</button> : <button type="button" onClick={() => void action(`/api/blog/admin/${row.id}/publish`)}>{c.publish}</button>}<button type="button" className="secondary danger-button" onClick={() => void action(`/api/blog/${row.id}`, 'DELETE')}>{c.remove}</button></div></td></tr>)}</tbody></table></div>
     </>}
     {failure?.code === 'AUTH_UNAUTHORIZED' && <Link to={signInPath('/admin/blog')}>Sign in</Link>}

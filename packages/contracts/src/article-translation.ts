@@ -72,6 +72,47 @@ export const articleTranslationJobResponseSchema = z.object({
   jobs: z.array(z.object({ id: serializedIdSchema, locale: articleLocaleSchema, status: translationJobStatusSchema }).strict()),
 }).strict()
 
+/** Batch translation management from the Admin article list. The bound keeps a
+ *  single dispatch to work an Admin can actually read back. */
+export const ARTICLE_TRANSLATION_BATCH_LIMIT = 20
+export const articleTranslationBatchRequestSchema = z.object({
+  articleIds: z.array(serializedIdSchema).min(1).max(ARTICLE_TRANSLATION_BATCH_LIMIT)
+    .refine(values => new Set(values).size === values.length, 'Article ids must be unique'),
+  // A mixed selection can have three different source locales between its
+  // articles, so a batch may legitimately target all three; each article still
+  // skips its own source.
+  targetLocales: z.array(articleLocaleSchema).min(1).max(3).refine(values => new Set(values).size === values.length, 'Target locales must be unique'),
+  provider: z.enum(['edge', 'ai']),
+}).strict()
+
+/** One outcome per article and locale. A batch never reports "all queued". */
+export const articleTranslationBatchOutcomeSchema = z.enum([
+  'QUEUED', 'ALREADY_ACTIVE', 'SKIPPED_SOURCE_LOCALE', 'NOT_FOUND', 'PRIVACY_RESTRICTED', 'PROVIDER_DISABLED', 'FAILED',
+])
+export const articleTranslationBatchResponseSchema = z.object({
+  results: z.array(z.object({
+    articleId: serializedIdSchema,
+    locale: articleLocaleSchema,
+    outcome: articleTranslationBatchOutcomeSchema,
+    jobId: serializedIdSchema.nullable(),
+    status: translationJobStatusSchema.nullable(),
+    message: z.string().nullable(),
+  }).strict()),
+}).strict()
+
+export const articleTranslationStatesQuerySchema = z.object({
+  ids: z.string().min(1).max(500),
+}).strict()
+export const articleTranslationStatesResponseSchema = z.object({
+  articles: z.array(z.object({
+    articleId: serializedIdSchema,
+    title: z.string(),
+    access: z.enum(['PUBLIC', 'MEMBER']),
+    sourceLocale: articleLocaleSchema,
+    locales: z.array(z.object({ locale: articleLocaleSchema, status: articleTranslationStatusSchema }).strict()),
+  }).strict()),
+}).strict()
+
 export const articleTranslationEditRequestSchema = z.object({
   title: z.string().trim().min(1).max(255),
   excerpt: z.string().trim().max(1_000).nullable(),

@@ -2,8 +2,8 @@
 
 # [92] Batch-manage and retranslate article translations
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: enhancement
@@ -22,20 +22,61 @@ Machine-generated translations must remain drafts for review. Retain the existin
 
 ## Provisional acceptance criteria
 
-- [ ] From Admin article management, an Admin can identify translation state for selected articles and explicitly request translation or retranslation for one or more target locales without opening each editor.
-- [ ] The selected provider and target locale set are clear before dispatch; merely selecting articles, changing filters, or opening the page never calls a provider.
-- [ ] Results identify the outcome for each article and locale, including queued work, already-active work, skipped work, and failures. A partial batch result does not imply that every item was queued.
-- [ ] Existing published translations remain available while a new translation is generated and reviewed. Batch translation does not approve or publish drafts, change source-article lifecycle, or bypass existing freshness checks.
-- [ ] Authorization, source-locale exclusion, provider restrictions, MEMBER-article policy, Edge circuit behavior, active-job deduplication, and AI unknown-outcome handling remain enforced for every item in a batch.
-- [ ] Synthetic-provider PostgreSQL integration tests and browser tests cover mixed article/locale outcomes, access denial, retranslation with an existing published snapshot, and a partial batch failure. No live provider or production data is used.
+- [x] From Admin article management, an Admin can identify translation state for selected articles and explicitly request translation or retranslation for one or more target locales without opening each editor.
+- [x] The selected provider and target locale set are clear before dispatch; merely selecting articles, changing filters, or opening the page never calls a provider.
+- [x] Results identify the outcome for each article and locale, including queued work, already-active work, skipped work, and failures. A partial batch result does not imply that every item was queued.
+- [x] Existing published translations remain available while a new translation is generated and reviewed. Batch translation does not approve or publish drafts, change source-article lifecycle, or bypass existing freshness checks.
+- [x] Authorization, source-locale exclusion, provider restrictions, MEMBER-article policy, Edge circuit behavior, active-job deduplication, and AI unknown-outcome handling remain enforced for every item in a batch.
+- [x] Synthetic-provider PostgreSQL integration tests and browser tests cover mixed article/locale outcomes, access denial, retranslation with an existing published snapshot, and a partial batch failure. No live provider or production data is used.
 
-## Open triage decisions
+## Triage decisions — ruled 2026-10-04 during implementation
 
-- Does “bulk management” include only queue/retranslate actions, or also translation review, publish, unpublish, and failed-job retry?
-- Does selection apply to the currently loaded page, the filtered result set, or both with an explicit “select all results” action?
-- Should retranslation preserve the provider used by the previous job, or use a provider explicitly selected for the new batch?
-- What confirmation is required before dispatching a batch of AI jobs that may incur provider cost?
-- When a selected article already has an active job or a current draft, should it be skipped, reported, or require an explicit replacement choice?
+- **Batch covers queue and retranslate only.** Review, publish, unpublish and failed-job retry stay
+  per-article: each of those requires reading a specific draft, and a bulk approve is exactly the
+  thing ADR 0017 exists to prevent.
+- **Selection is the loaded page**, through the list's existing checkboxes, capped at 20 articles
+  per dispatch. There is no "select all results": a filtered-set action would dispatch work the
+  admin never saw.
+- **Retranslation uses the provider chosen for the batch**, stated in the control and repeated in
+  the confirmation. Reusing a previous job's provider would hide which service the text goes to.
+- **An explicit confirmation dialog** names the job count and the provider, and repeats that
+  article text leaves the service and returns as a draft for review. The queue limiter stays the
+  abuse guard; the dialog is the cost guard.
+- **An article with an active job for the same source revision is reported, not replaced.** The
+  existing deduplication returns that job, and the batch reports `ALREADY_ACTIVE`. A current draft
+  is likewise left alone: nothing in this ticket overwrites a draft or a published snapshot.
+
+## Execution record — 2026-10-04
+
+Two authenticated Admin endpoints, both under the existing `/api/admin/article-translations`
+namespace so neither can be swallowed by `/api/blog/admin/:id`:
+
+- `GET …/states?ids=` — the same per-locale status the editor shows, for up to 20 articles in one
+  query. Reading state calls no provider and queues nothing.
+- `POST …/jobs` — `{ articleIds, targetLocales, provider }`, returning one outcome per article and
+  locale: `QUEUED`, `ALREADY_ACTIVE`, `SKIPPED_SOURCE_LOCALE`, `NOT_FOUND`, `PRIVACY_RESTRICTED`,
+  `PROVIDER_DISABLED` or `FAILED`.
+
+The queue policy was extracted into one non-throwing resolver shared by the per-article route and
+the batch, so authorization, source-locale exclusion, Edge's PUBLIC-only rule, the AI profile's
+`allowMemberArticles` policy, the Edge circuit and active-job deduplication are enforced
+identically for every item — and a refusal on one item cannot abort the batch. `targetLocales`
+accepts up to three, because a mixed selection can have three different source locales between its
+articles; each article still skips its own.
+
+One behaviour outside the stated scope was corrected because batch selection depends on it: the
+article list cleared the whole selection every time a list response landed, including the extra
+response each keystroke in the search field triggers, so a selection could evaporate under the
+admin's hands. It now keeps every selected article that is still in the loaded list.
+
+Verification: `tests/integration/article-translation-batch.test.ts` covers mixed outcomes in one
+batch, the MEMBER/Edge refusal, deduplication on a second dispatch, a published snapshot surviving
+a queued retranslation, admin-only access for both endpoints, and an AI dispatch with no configured
+provider refusing without calling anything. `tests/e2e/admin-article-translations.spec.ts` drives
+the Admin list end to end: selecting never dispatches, the confirmation names the provider, and the
+results list shows `Queued` beside `Not allowed for this article`. No live provider or production
+data is used. Evidence:
+`docs/design/evidence/article-publishing/translation-batch-1440.png`.
 
 ## Related work
 

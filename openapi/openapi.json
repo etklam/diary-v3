@@ -10451,6 +10451,210 @@
         ],
         "additionalProperties": false
       },
+      "ArticleTranslationStatesResponse": {
+        "type": "object",
+        "properties": {
+          "articles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "articleId": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "access": {
+                  "type": "string",
+                  "enum": [
+                    "PUBLIC",
+                    "MEMBER"
+                  ]
+                },
+                "sourceLocale": {
+                  "type": "string",
+                  "enum": [
+                    "zh-TW",
+                    "zh-CN",
+                    "en"
+                  ]
+                },
+                "locales": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "locale": {
+                        "type": "string",
+                        "enum": [
+                          "zh-TW",
+                          "zh-CN",
+                          "en"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "MISSING",
+                          "QUEUED",
+                          "TRANSLATING",
+                          "NEEDS_REVIEW",
+                          "READY",
+                          "PUBLISHED",
+                          "UNPUBLISHED",
+                          "STALE",
+                          "FAILED"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "locale",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "articleId",
+                "title",
+                "access",
+                "sourceLocale",
+                "locales"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "articles"
+        ],
+        "additionalProperties": false
+      },
+      "ArticleTranslationBatchRequest": {
+        "type": "object",
+        "properties": {
+          "articleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 19,
+              "pattern": "^[1-9]\\d*$"
+            },
+            "minItems": 1,
+            "maxItems": 20
+          },
+          "targetLocales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "zh-TW",
+                "zh-CN",
+                "en"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "edge",
+              "ai"
+            ]
+          }
+        },
+        "required": [
+          "articleIds",
+          "targetLocales",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "ArticleTranslationBatchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "articleId": {
+                  "type": "string",
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "locale": {
+                  "type": "string",
+                  "enum": [
+                    "zh-TW",
+                    "zh-CN",
+                    "en"
+                  ]
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": [
+                    "QUEUED",
+                    "ALREADY_ACTIVE",
+                    "SKIPPED_SOURCE_LOCALE",
+                    "NOT_FOUND",
+                    "PRIVACY_RESTRICTED",
+                    "PROVIDER_DISABLED",
+                    "FAILED"
+                  ]
+                },
+                "jobId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 19,
+                  "pattern": "^[1-9]\\d*$"
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "QUEUED",
+                    "RUNNING",
+                    "SUCCEEDED",
+                    "FAILED",
+                    "STALE",
+                    "CANCELLED",
+                    null
+                  ]
+                },
+                "message": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "articleId",
+                "locale",
+                "outcome",
+                "jobId",
+                "status",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "additionalProperties": false
+      },
       "AiAnalysisItem": {
         "type": "object",
         "properties": {
@@ -43426,6 +43630,174 @@
           },
           "409": {
             "description": "HTTP 409 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-translations/states": {
+      "get": {
+        "tags": [
+          "Articles"
+        ],
+        "operationId": "articleTranslationStatesGet",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "required": true,
+            "name": "ids",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Translation state for the requested admin articles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleTranslationStatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-translations/jobs": {
+      "post": {
+        "tags": [
+          "Articles"
+        ],
+        "operationId": "articleTranslationBatchJobsPost",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "Queue translation for several articles",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleTranslationBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per article and locale outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleTranslationBatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "HTTP 429 error",
             "content": {
               "application/json": {
                 "schema": {

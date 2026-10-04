@@ -35,3 +35,51 @@
 .article-translation-settings-form:focus-within h2:focus{outline:2px solid var(--focus);outline-offset:4px}
 @media(max-width:640px){.article-translation-settings-header{display:grid}.article-translation-settings-grid{grid-template-columns:1fr}.article-translation-settings-prompt{grid-column:auto}.article-translation-settings-switch{align-items:flex-start}.article-translation-settings-actions button{width:100%}}
 @media(max-width:640px){.article-translation-default-form{grid-template-columns:1fr}.article-translation-default-form button,.article-translation-provider-list-heading button{width:100%}.article-translation-provider-list-heading{align-items:stretch;flex-direction:column}.article-translation-provider-row{align-items:flex-start;flex-direction:column}.article-translation-provider-row button{width:100%}.article-translation-provider-form-heading{align-items:flex-start}.article-translation-provider-form-heading button{flex:none}}
+
+/* Batch translation management on the article list: the state table first, then
+   the controls that dispatch, then the per-item outcomes. */
+.admin-translation-batch {
+  margin-block: var(--space-6);
+}
+
+.admin-translation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.admin-translation-targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-translation-targets legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.admin-translation-targets label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.admin-translation-results {
+  margin-top: var(--space-5);
+}
+
+.admin-translation-results ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
