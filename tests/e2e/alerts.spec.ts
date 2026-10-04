@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, clickNav, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { test, expect, clickNav, selectLocale, selectTheme, signOut, openEditorSection } from '../support/e2e';
 for (const width of [1440, 390]) test(`Diary reminders navigation, series dismissal and recovery at ${width}px`, async ({ page, context }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `alerts-${randomUUID()}@example.test`, password = 'synthetic-alerts-password';
@@ -48,6 +48,7 @@ for (const width of [1440, 390]) test(`Diary reminder authoring and preservation
   await page.getByLabel('Diary date', { exact: true }).fill('2026-03-02');
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Reminder from the editor');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Revisit this reasoning.');
+  await openEditorSection(page, 'reminders');
   await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
   await page.getByLabel('Reminder message', { exact: true }).fill('Read the next report');
   await page.getByLabel('Reminder time', { exact: true }).fill('2026-03-02T12:00');
@@ -96,6 +97,7 @@ test.describe('Reminder device timezone boundaries', () => {
     await page.getByLabel('Diary date', { exact: true }).fill('2026-11-01');
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Clock change reminder');
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Synthetic clock test');
+    await openEditorSection(page, 'reminders');
     await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
     await page.getByLabel('Reminder message', { exact: true }).fill('Check at the second 01:30');
     await page.getByLabel('Reminder time', { exact: true }).fill('2026-03-08T02:30');

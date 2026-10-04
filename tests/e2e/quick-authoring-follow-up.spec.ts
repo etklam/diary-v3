@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuickOptions, selectLocale, signOut, test } from '../support/e2e'
+import { expect, openQuickDestination, openQuickOptions, selectLocale, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-quick-authoring-follow-up-password'
 const evidenceDir = 'docs/design/evidence/convenience-follow-up'
@@ -89,7 +89,7 @@ test('Quick lookup ignores a stale date response and keeps the append target aut
   })
   await page.goto(`/diaries/quick?date=${oldDate}`, { waitUntil: 'domcontentloaded' })
   await expect.poll(() => oldRequested).toBe(true)
-  await openQuickOptions(page)
+  await openQuickDestination(page)
   await page.getByLabel('Diary date', { exact: true }).fill(newDate)
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('create')
   releaseOld()
@@ -234,7 +234,7 @@ test('Quick refuses append when the device cannot persist its uncertainty marker
 })
 
 for (const width of [1440, 390]) {
-  test(`recent Quick tags preserve whole comma values and account isolation at ${width}px`, async ({ page }) => {
+  test(`recent Quick tags split separators and stay account-isolated at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await startAccount(page)
     const firstDate = `2026-10-${width === 1440 ? '16' : '17'}`
@@ -243,16 +243,16 @@ for (const width of [1440, 390]) {
     await openQuickOptions(page)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Tag source')
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Tag source body')
-    await page.getByRole('textbox', { name: 'Tags (one per line)', exact: true }).fill('research, evidence\nlong horizon')
+    await page.getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true }).fill('research, evidence\nlong horizon')
     await page.getByRole('button', { name: 'Create diary', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
     const firstHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
-    expect((await readDiary(page, firstHref!.split('/').at(-1)!)).tags).toEqual(['research, evidence', 'long horizon'])
+    expect((await readDiary(page, firstHref!.split('/').at(-1)!)).tags).toEqual(['research', 'evidence', 'long horizon'])
     await capture(page, 'quick-recent-tags', width)
 
     await page.goto(`/diaries/quick?date=${secondDate}`)
     await openQuickOptions(page)
-    const recent = page.getByRole('button', { name: 'research, evidence', exact: true })
+    const recent = page.getByRole('button', { name: 'research', exact: true })
     await expect(recent).toBeVisible()
     await recent.click()
     await expect(recent).toHaveAttribute('aria-pressed', 'true')
@@ -261,7 +261,7 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: 'Create diary', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
     const secondHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
-    expect((await readDiary(page, secondHref!.split('/').at(-1)!)).tags).toEqual(['research, evidence'])
+    expect((await readDiary(page, secondHref!.split('/').at(-1)!)).tags).toEqual(['research'])
 
     await signOut(page)
     const otherEmail = `quick-authoring-other-${randomUUID()}@example.test`
@@ -294,6 +294,7 @@ for (const width of [1440, 390]) {
 
     await saved.getByRole('button', { name: 'New note', exact: true }).click()
     await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
+    await openQuickDestination(page)
     await page.getByLabel('Diary date', { exact: true }).fill(nextDate)
     await openQuickOptions(page)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Second handoff')
@@ -306,3 +307,18 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('link', { name: 'Edit diary', exact: true })).toBeVisible()
   })
 }
+
+test('a submit arriving during the destination lookup is queued, not swallowed', async ({ page }) => {
+  await startAccount(page)
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  await expect(content).toBeVisible()
+  // The lookup note states why save is unavailable, and clears when it resolves.
+  await expect(page.getByText('Checking this date for an existing diary…', { exact: true })).toHaveCount(0)
+  await page.route('**/api/diaries/by-date?*', async route => { await new Promise(resolve => setTimeout(resolve, 2000)); await route.continue() })
+  await page.reload()
+  await content.fill('Queued save during the date lookup.')
+  await page.keyboard.press('Control+Enter')
+  await expect(page.getByText('Saving as soon as the date check finishes.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  await page.unroute('**/api/diaries/by-date?*')
+})

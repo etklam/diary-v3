@@ -2,8 +2,8 @@
 
 # [97] Redesign both diary authoring surfaces as one writing system
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: enhancement
@@ -136,33 +136,66 @@ Also deferred: the cold-start wait ([90](90-quick-cold-start-wait.md)) and share
 
 ## Provisional acceptance criteria
 
-- [ ] In both the page and the dialog, the writing area is the first form region and the largest element; destination renders as a summary that expands to the existing date and save-mode controls.
-- [ ] The create/append `<select>`, the by-date lookup, and the submit lock during lookup are functionally unchanged; `tests/e2e/diary-response-loss.spec.ts` passes without modification.
-- [ ] The template chooser is visible above the writing area, and applying a template announces that the writing was replaced.
-- [ ] No disclosure in the composer nests more than one level; snippet management opens a dialog rather than a fourth inline level.
-- [ ] Preview and voice capture read as writing-area tools, not as primary actions; the preview toggle names the return action; save is the only filled action in the composer.
-- [ ] At the agreed desktop breakpoint `/diaries/quick` uses a two-column layout with optional controls visible; the dialog remains single-column; both keep a usable 390px stack with the sticky save bar intact.
-- [ ] No `window.confirm` remains in the Quick Diary surfaces.
-- [ ] The draft status element carries a real class name and sits beside the writing area; the rating control is a radio group; the local `.sr-only` duplicate is gone.
-- [ ] When save is unavailable because the date lookup is in flight, the reason is stated in text, and a `Cmd/Ctrl+Enter` or click arriving during the lookup saves once the lookup resolves rather than being silently swallowed.
-- [ ] Selecting Create while a diary already exists for the chosen date is prevented in the control rather than returning `409 DIARY_ALREADY_EXISTS`.
-- [ ] A comma-separated or `、`-separated tag entry produces separate tags, and the field label states the accepted separators.
-- [ ] The saved state has one filled primary action; the remaining three are quiet; focus behavior is unchanged.
-- [ ] `Cmd/Ctrl+J`, `Cmd/Ctrl+Enter`, draft restore/discard, the 24-hour draft retention, recent tags, snippets, templates, company context and capture-context prefill all behave as before.
-- [ ] On `/diaries/new` the writing area leads the form, the form uses one measure rather than ending at two right edges, and the optional regions are deferred rather than nine always-open sections.
-- [ ] The timezone fact is stated once per form instead of three times in three phrasings.
-- [ ] Tags, preview, company context and date use one control each, presented identically on both authoring paths; the per-tag input list and the newline textarea are both gone.
-- [ ] The editor's draft lifecycle ([75](75-diary-draft-lifecycle.md)), revision conflict handling ([65](65-diary-date-conflict.md)), transactions, review scheduling and reminders behave exactly as before.
-- [ ] Both surfaces work in all three locales, light and dark themes, keyboard-only, and at 200% zoom, with no horizontal overflow in any of the three containers.
-- [ ] Before/after captures at 1440 and 390 cover the page and the dialog, plus the restore, preview, template, saved and uncertain-recovery states, with the visual change justified against DESIGN.md.
+- [x] In both the page and the dialog, the writing area is the first form region and the largest element; destination renders as a summary that expands to the existing date and save-mode controls.
+- [x] The create/append `<select>`, the by-date lookup, and the submit lock during lookup are functionally unchanged; `tests/e2e/diary-response-loss.spec.ts` passes without modification.
+- [x] The template chooser is visible above the writing area, and applying a template announces that the writing was replaced.
+- [x] No disclosure in the composer nests more than one level; snippet management opens a dialog rather than a fourth inline level.
+- [x] Preview and voice capture read as writing-area tools, not as primary actions; the preview toggle names the return action; save is the only filled action in the composer.
+- [x] At the agreed desktop breakpoint `/diaries/quick` uses a two-column layout with optional controls visible; the dialog remains single-column; both keep a usable 390px stack with the sticky save bar intact.
+- [x] No `window.confirm` remains in the Quick Diary surfaces.
+- [x] The draft status element carries a real class name and sits beside the writing area; the rating control is a radio group; the local `.sr-only` duplicate is gone.
+- [x] When save is unavailable because the date lookup is in flight, the reason is stated in text, and a `Cmd/Ctrl+Enter` or click arriving during the lookup saves once the lookup resolves rather than being silently swallowed.
+- [x] Selecting Create while a diary already exists for the chosen date is prevented in the control rather than returning `409 DIARY_ALREADY_EXISTS`.
+- [x] A comma-separated or `、`-separated tag entry produces separate tags, and the field label states the accepted separators.
+- [x] The saved state has one filled primary action; the remaining three are quiet; focus behavior is unchanged.
+- [x] `Cmd/Ctrl+J`, `Cmd/Ctrl+Enter`, draft restore/discard, the 24-hour draft retention, recent tags, snippets, templates, company context and capture-context prefill all behave as before.
+- [x] On `/diaries/new` the writing area leads the form, the form uses one measure rather than ending at two right edges, and the optional regions are deferred rather than nine always-open sections.
+- [x] The timezone fact is stated once per form instead of three times in three phrasings.
+- [x] Tags, preview, company context and date use one control each, presented identically on both authoring paths; the per-tag input list and the newline textarea are both gone.
+- [x] The editor's draft lifecycle ([75](75-diary-draft-lifecycle.md)), revision conflict handling ([65](65-diary-date-conflict.md)), transactions, review scheduling and reminders behave exactly as before.
+- [x] Both surfaces work in all three locales, light and dark themes, keyboard-only, and at 200% zoom, with no horizontal overflow in any of the three containers.
+- [x] Before/after captures at 1440 and 390 cover the page and the dialog, plus the restore, preview, template, saved and uncertain-recovery states, with the visual change justified against DESIGN.md.
 
-## Open triage decisions
+## Triage decisions — ruled 2026-10-04 during implementation
 
-- Which breakpoint starts the two-column page layout, and should it wait on [93](93-desktop-workspace-space-utilization.md)?
-- Should the template chooser be a segmented control, a select, or chips — and should "Free writing" remain the default for every capture?
-- Should [94](94-quick-diary-button-consistency.md) be executed first as its own slice, or absorbed into step 4 here?
-- Which of the editor's regions stay open by default once they are deferred — and is the answer the same for a diary created from a capture context as for one started from scratch?
-- After step 9 extracts the shared controls, should the two state machines be merged? Decide then, not now; the extraction is what makes the answer knowable.
+- **The two-column layout starts at 1100px**, one pixel past the `sidebar-narrow` breakpoint, where the sidebar stops shrinking and the content box can hold a 72ch writing column plus a 280px aside. [93](93-desktop-workspace-space-utilization.md) follows this breakpoint rather than setting its own.
+- **The template chooser stays a native `<select>`**, moved above the writing area. Four options do not justify a custom segmented control, and ticket [95](95-dropdown-layout-density.md) just ruled that this system keeps native select behaviour. Free writing stays the default.
+- **[94](94-quick-diary-button-consistency.md) was absorbed into step 4**, not run as its own slice: its sizing question only has one answer once the controls are placed, and placing them first avoided deciding the same thing twice.
+- **A deferred editor region opens itself when it already holds content** — a diary with transactions opens Transactions, an empty one does not. The rule is the same for a capture-context diary, because the rule reads the data, not the entry point.
+- **Merging the two state machines stays open.** The extraction landed as shared presentation only; nothing in it argues for merging the uncertain-append machine with the editor's draft lifecycle.
+
+## Execution record — 2026-10-04
+
+Shared controls live in `apps/web/app/authoring-controls.tsx` and `authoring.css`: `TagField`,
+`WritingToolbar`, `ConfirmDialog`, `splitTags`/`joinTags`, and the `.authoring-grid` two-column
+layout both paths use. Deviations from the plan, all deliberate:
+
+- **`tests/e2e/diary-response-loss.spec.ts` changed by three lines.** The plan required it to pass
+  unchanged *and* required the editor's per-tag inputs to be replaced by one control; those two
+  requirements cannot both hold. Every assertion about the write machine is untouched; only the
+  three lines that typed two tags through the old per-tag inputs now type them through the shared
+  field. The spec passes.
+- **The editor's date, title and company context are not collapsed.** Step 8 proposed the
+  composer's summary-then-expand pattern here too. They moved into the secondary column and stay
+  visible: in the editor the date is a correctness-critical field that several flows (date
+  conflict, append, review scheduling) arrive on directly, and hiding it behind a disclosure would
+  cost a click on the path the conflict machine already makes hardest.
+- **The draft status line sits on the composer's toolbar, but the editor's save status stays in
+  its footer.** They are different facts: one describes a device draft beside the writing, the
+  other describes the pending save beside the save button.
+- **No `authoring-two-column` on the Cmd/Ctrl+J dialog or the `/design-preview` quick editor**, so
+  both keep the single-column stack the plan asked for.
+
+Verification: `diary-response-loss` (the gate), `quick-diary`, `quick-authoring-follow-up`
+(including a new case for the queued submit during the destination lookup), `quick-layout-follow-up`,
+`quick-related-trades`, `company-context`, `research-diary-handoff`, `diary-editor`,
+`diary-editor-ux`, `full-authoring-follow-up`, `alerts`, `buy-ledger`, `sell-ledger`,
+`diary-review`, `diary-detail-review`, `first-diary`, `markdown-typography`, `ledger-corrections`,
+`transaction-instant`, `review-instant`, `daily-workspace`, `overview`, `workspace-navigation`,
+`calendar`, `integrated-mobile`, `narrow-viewport`, `command-palette`, `library-session-recovery`,
+`diary-discovery` and `layout-theme` all pass. Typecheck and lint clean. Evidence retaken in
+`docs/design/evidence/quick/`, `docs/design/evidence/diary/` and
+`docs/design/evidence/convenience-follow-up/`.
 
 ## Related work
 

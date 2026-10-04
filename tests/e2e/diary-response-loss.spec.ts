@@ -45,9 +45,8 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.getByLabel('Diary date', { exact: true }).fill(createDate)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('  Response loss create  ')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The committed create must be reconciled.')
-  await page.getByLabel('Tag 1', { exact: true }).fill('response-loss')
-  await page.getByRole('button', { name: 'Add tag', exact: true }).click()
-  await page.getByLabel('Tag 2', { exact: true }).fill('response-loss')
+  // One tag control for both authoring paths; duplicates still collapse on save.
+  await page.getByLabel('Tags (one per line or comma)', { exact: true }).fill('response-loss, response-loss')
 
   let createCalls = 0
   await page.route('**/api/diaries', async route => {

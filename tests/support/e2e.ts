@@ -105,9 +105,31 @@ export async function openQuick(page: Page) {
   await page.keyboard.press('Control+j');
 }
 
+async function openDisclosure(page: Page, selector: string) {
+  // The composer can still be resolving its account when a test asks for a
+  // disclosure, so wait for the element before deciding it is absent.
+  const details = page.locator(selector).first();
+  await details.waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
+  if (await details.count() === 0) return;
+  if (await details.getAttribute('open') === null) await details.locator(':scope > summary').click();
+}
+
 export async function openQuickOptions(page: Page) {
-  const options = page.locator('details.quick-options');
-  if (await options.getAttribute('open') === null) await options.locator(':scope > summary').click();
+  await openDisclosure(page, 'details.quick-options');
+}
+
+/** Destination (date and save mode) is a collapsed summary; open it to edit either. */
+export async function openQuickDestination(page: Page) {
+  await openDisclosure(page, 'details.quick-destination');
+}
+
+export async function openQuickSnippets(page: Page) {
+  await openDisclosure(page, 'details.quick-snippets');
+}
+
+/** The editor defers its optional regions; open one before filling it. */
+export async function openEditorSection(page: Page, key: 'original' | 'transactions' | 'review' | 'reminders') {
+  await openDisclosure(page, `[data-testid="editor-section-${key}"]`);
 }
 
 // Diary browsing destinations stay visible in the desktop sidebar and mobile shell.

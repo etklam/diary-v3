@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuickOptions, selectAccountLocale, selectLocale, selectTheme, signOut, test } from '../support/e2e'
+import { expect, openQuickDestination, openQuickOptions, selectAccountLocale, selectLocale, selectTheme, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-research-handoff-password'
 const captureDate = '2026-09-12'
@@ -136,8 +136,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     await page.screenshot({ path: `docs/design/evidence/research-diary-handoff/contextual-quick-${viewport.width}.png`, fullPage: true })
 
     const marker = `Company capture marker ${viewport.width} ${randomUUID()}`
-    await openQuickOptions(page)
+    await openQuickDestination(page)
     await page.getByLabel('Diary date', { exact: true }).fill(captureDate)
+    await openQuickOptions(page)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('NVDA company observation')
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill(marker)
     const totalBefore = await diaryTotal(page)
@@ -234,6 +235,7 @@ test('Quick legacy draft wins over incoming Company context, while Discard start
   }, draftKey)).toBe('MSFT legacy title')
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('MSFT legacy body')
   await expect(contextInput(page)).toHaveValue('MSFT')
+  await openQuickDestination(page)
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   await selectLocale(page, 'zh-TW')
   await selectLocale(page, 'en')
@@ -251,6 +253,7 @@ test('Quick legacy draft wins over incoming Company context, while Discard start
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
   await expect(contextInput(page)).toHaveValue('NVDA')
+  await openQuickDestination(page)
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   const fresh = `Fresh NVDA writing ${randomUUID()}`
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(fresh)
@@ -283,6 +286,7 @@ test('Quick append keeps the original Diary aggregate and rejects symbol overflo
   const totalBefore = await diaryTotal(page)
   await openQuickContext(page, '2026-09-14')
   await openQuickOptions(page)
+  await openQuickDestination(page)
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append')
   const marker = `Append marker ${randomUUID()}`
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(marker)

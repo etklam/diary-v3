@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, selectAccountLocale, selectLocale, test } from '../support/e2e'
+import { expect, openEditorSection, selectAccountLocale, selectLocale, test } from '../support/e2e'
 
 const password = 'synthetic-full-authoring-follow-up-password'
 const evidenceDir = 'docs/design/evidence/convenience-follow-up'
@@ -108,12 +108,15 @@ test('full append keeps omitted structured values and applies explicit judgment,
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Append title is destination-owned')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Structured append body')
   await page.getByRole('combobox', { name: 'Company context', exact: true }).fill('MSFT')
-  await page.getByRole('textbox', { name: 'Tag 1', exact: true }).fill('new-tag')
+  await page.getByLabel('Tags (one per line or comma)', { exact: true }).fill('new-tag')
+  await openEditorSection(page, 'original')
   await page.getByRole('textbox', { name: 'Original thesis', exact: true }).fill('Explicit appended thesis')
   await page.getByRole('textbox', { name: 'Original risk assessment', exact: true }).fill('Explicit appended risk')
   await page.getByRole('textbox', { name: 'Original execution plan', exact: true }).fill('Explicit appended execution')
+  await openEditorSection(page, 'review')
   await page.getByLabel('Review due at', { exact: true }).fill('2026-11-21T09:00')
 
+  await openEditorSection(page, 'transactions')
   await page.getByRole('button', { name: 'Add purchase', exact: true }).click()
   const transaction = page.locator('.buy-row').last()
   await transaction.getByRole('textbox', { name: 'Symbol', exact: true }).fill('MSFT')
@@ -121,6 +124,7 @@ test('full append keeps omitted structured values and applies explicit judgment,
   await transaction.getByRole('textbox', { name: 'Price per share', exact: true }).fill('110')
   await transaction.getByLabel('Trade date and time (device time)', { exact: true }).fill('2026-11-05T10:00')
 
+  await openEditorSection(page, 'reminders')
   await page.getByRole('button', { name: 'Add reminder', exact: true }).click()
   await page.getByLabel('Reminder message', { exact: true }).last().fill('Explicit appended reminder')
   await page.getByLabel('Reminder time', { exact: true }).last().fill('2026-11-11T09:00')

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { Dialog, Page } from '@playwright/test';
-import { expect, test, selectLocale } from '../support/e2e';
+import type { Page } from '@playwright/test';
+import { expect, test, selectLocale, openEditorSection } from '../support/e2e';
 
 const password = 'synthetic-editor-ux-password';
 
@@ -180,37 +180,28 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   const editPath = `${page.url()}/edit`;
 
-  // One dialog handler with an explicit answer per dialog keeps the native
-  // confirm/ blocker deterministic.
-  const dialogs: string[] = [];
-  let answer: 'accept' | 'dismiss' | null = null;
-  const handle = (dialog: Dialog) => {
-    dialogs.push(dialog.message());
-    if (answer === 'accept') void dialog.accept(); else void dialog.dismiss();
-    answer = null;
-  };
-  page.on('dialog', handle);
+  // The guard is the project dialog, not a native confirm.
+  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true });
 
   // Clean editor navigates without any dialog.
   await page.goto(editPath);
   await expect(page.getByTestId('save-status')).toHaveText('');
   await page.getByRole('link', { name: 'Diary library', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries$/);
-  expect(dialogs).toEqual([]);
+  await expect(guard).toHaveCount(0);
 
   // Dirty editor: staying keeps the entries, leaving discards them.
   await page.goto(editPath);
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, changed');
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  answer = 'dismiss';
   await page.getByRole('link', { name: 'Diary library', exact: true }).click();
+  await expect(guard).toBeVisible();
+  await guard.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Navigation guard diary, changed');
-  // The blocker's confirm is synchronous with the navigation attempt; the
-  // dialog event itself lands on the driver asynchronously, so poll for it.
-  await expect.poll(() => dialogs.length).toBe(1);
-  answer = 'accept';
   await page.getByRole('link', { name: 'Diary library', exact: true }).click();
+  await expect(guard).toBeVisible();
+  await guard.getByRole('button', { name: 'Discard and leave', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries$/);
 
   // A saved editor stops warning on future navigation.
@@ -218,8 +209,7 @@ test('dirty editors warn before internal navigation; clean editors do not', asyn
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, saved');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  expect(dialogs.length).toBe(2);
-  page.off('dialog', handle);
+  await expect(guard).toHaveCount(0);
 });
 
 test('preview round trip preserves content, dirty state, caret and scroll', async ({ page }) => {
@@ -233,10 +223,10 @@ test('preview round trip preserves content, dirty state, caret and scroll', asyn
   await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
   await editor.evaluate((element: HTMLTextAreaElement) => { element.selectionStart = 5; element.selectionEnd = 9; element.scrollTop = 120; });
   await page.getByRole('button', { name: 'Preview Markdown', exact: true }).click();
-  const previewSection = page.locator('section[aria-label="Preview Markdown"]');
+  const previewSection = page.locator('section[aria-label="Markdown preview"]');
   await expect(previewSection).toBeVisible();
   await expect(previewSection.locator('p').first()).toContainText('Paragraph line 1');
-  await page.getByRole('button', { name: 'Edit text', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to writing', exact: true }).click();
   await expect(editor).toHaveValue(content);
   expect(await editor.evaluate((element: HTMLTextAreaElement) => ({ start: element.selectionStart, top: element.scrollTop }))).toEqual({ start: 5, top: 120 });
   await expect(editor).toBeFocused();
@@ -253,11 +243,10 @@ test('device-local recovery restores unsaved writing after a reload and clears a
   await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
 
   // An interrupted in-app navigation keeps the editor and its recovery copy.
-  const navigationPrompt = page.waitForEvent('dialog');
   await page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true }).click();
-  const prompt = await navigationPrompt;
-  expect(prompt.type()).toBe('confirm');
-  await prompt.dismiss();
+  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true });
+  await expect(guard).toBeVisible();
+  await guard.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/new$/);
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Recovered reasoning that never reached the server.');
 
@@ -399,12 +388,14 @@ test('dirty clears when edits return to the confirmed server baseline', async ({
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Baseline diary');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Original reasoning.');
+  await openEditorSection(page, 'transactions');
   await page.getByRole('button', { name: 'Add purchase', exact: true }).click();
   const row = page.locator('.buy-row').first();
   await row.getByRole('textbox', { name: 'Symbol', exact: true }).fill('AAPL');
   await row.getByRole('textbox', { name: 'Quantity', exact: true }).fill('2.5');
   await row.getByRole('textbox', { name: 'Price per share', exact: true }).fill('180.25');
   await row.getByLabel('Trade date and time (device time)', { exact: true }).fill('2026-09-06T10:30');
+  await openEditorSection(page, 'reminders');
   await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
   await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price');
   await page.getByLabel('Reminder time', { exact: true }).fill('2026-09-08T09:00');
@@ -429,6 +420,7 @@ test('dirty clears when edits return to the confirmed server baseline', async ({
   await expect(page.getByTestId('save-status')).toHaveText('');
 
   // Review schedule: change then revert.
+  await openEditorSection(page, 'review');
   const review = page.getByLabel('Review due at', { exact: true });
   const serverReview = await review.inputValue();
   await review.fill('2026-09-15T10:30');

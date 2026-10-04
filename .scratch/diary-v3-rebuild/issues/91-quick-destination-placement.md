@@ -1,7 +1,7 @@
 # [91] Revisit the destination summary sitting above Quick writing
 
 Status: ruled 2026-10-04 — write first; implementation absorbed by [97](97-quick-composer-redesign.md)
-Execution: todo (in 97)
+Execution: done (delivered by 97)
 Published: 2026-10-04
 
 Type: design decision

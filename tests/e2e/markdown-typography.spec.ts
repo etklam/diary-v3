@@ -77,7 +77,7 @@ test('markdown fixture renders with the shared typography across surfaces, theme
   await expectNoPageOverflow(page);
   await cleanShot(page, `${evidence}/editor-preview-390-light.png`);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole('button',{name:'Edit text'}).click();
+  await page.getByRole('button',{name:'Back to writing'}).click();
   await page.getByRole('button',{name:'Save diary',exact:true}).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   await expect(page.getByRole('heading',{name:'投資論點',exact:true})).toBeVisible();

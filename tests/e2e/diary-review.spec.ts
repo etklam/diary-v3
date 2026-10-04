@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect,test, selectAccountLocale, selectLocale, selectTheme } from '../support/e2e';
+import { expect,test, selectAccountLocale, selectLocale, selectTheme, openEditorSection } from '../support/e2e';
 
 test.use({timezoneId:'America/New_York'});
 // Wall time (device timezone) the editor turns back into the exact instant.
@@ -16,6 +16,7 @@ for(const width of [1440,390]){
   // Out-of-band fixture writes bypass browser resource invalidation; start a fresh document.
   await page.reload();
   await page.getByLabel('Diary date',{exact:true}).fill('2026-09-07');await page.getByRole('textbox',{name:'Title',exact:true}).fill('Demand needs independent confirmation');await page.getByRole('textbox',{name:'Content',exact:true}).fill('## Evidence\n\n**Demand** still needs confirmation.');
+  await openEditorSection(page,'original');
   await page.getByRole('textbox',{name:'Original thesis',exact:true}).fill('A recovery is possible.\nWait for independent evidence.');await page.getByRole('textbox',{name:'Original risk assessment',exact:true}).fill('The sample may be too small.');await page.getByRole('textbox',{name:'Original execution plan',exact:true}).fill('Reassess after the report.');await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/\d+$/);const id=page.url().split('/').at(-1)!;
   await page.getByRole('link',{name:'Schedule review',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/edit\\?returnTo=${encodeURIComponent(`/diaries/${id}`)}#review-schedule$`));
   const dueInstant=new Date((Math.floor(Date.now()/60000)+60*24)*60000);
@@ -99,6 +100,7 @@ for(const width of [1440,390]){
   await page.getByRole('textbox',{name:'Title',exact:true}).fill('Long-form review layout');
   const longSentence='Demand evidence stayed mixed across the full observation window. ';
   await page.getByRole('textbox',{name:'Content',exact:true}).fill(`## Long evidence\n\n${longSentence.repeat(60)}\n\n${'unbroken'.padEnd(2400,'x')}`);
+  await openEditorSection(page,'original');
   await page.getByRole('textbox',{name:'Original thesis',exact:true}).fill(`${longSentence.repeat(40)}${'thesis'.padEnd(2400,'t')}`);
   await page.getByRole('textbox',{name:'Original risk assessment',exact:true}).fill(longSentence.repeat(40));
   await page.getByRole('textbox',{name:'Original execution plan',exact:true}).fill(longSentence.repeat(40));

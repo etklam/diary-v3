@@ -2,8 +2,8 @@
 
 # [94] Standardize button sizing across Quick Diary editing
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done (delivered by 97)
 Published: 2026-10-04
 
 Category: enhancement
@@ -24,12 +24,12 @@ Before UI implementation, state the visual direction in this ticket against [DES
 
 ## Provisional acceptance criteria
 
-- [ ] The audit covers the Quick Diary page and global capture dialog, including normal, restore, preview, template, snippet, error/recovery, and saved-continuation states.
-- [ ] Buttons with the same semantic role use consistent height, padding, typography, and alignment in both entry points; any compact or mobile-sticky variant has a clear documented reason.
-- [ ] Primary save remains the clear primary action. Secondary, destructive, disabled, and compact actions keep their existing semantic hierarchy and accessible states.
-- [ ] Button groups wrap or stack cleanly at mobile widths, retain usable touch targets, and do not crowd the writing area or sticky save control.
-- [ ] Keyboard focus, screen-reader names, all three locales, light/dark themes, and 200% zoom remain usable without clipping or horizontal page overflow.
-- [ ] Before/after browser captures cover `/diaries/quick` and the global dialog at desktop and mobile sizes, including long localized labels, with the visual result checked against DESIGN.md.
+- [x] The audit covers the Quick Diary page and global capture dialog, including normal, restore, preview, template, snippet, error/recovery, and saved-continuation states.
+- [x] Buttons with the same semantic role use consistent height, padding, typography, and alignment in both entry points; any compact or mobile-sticky variant has a clear documented reason.
+- [x] Primary save remains the clear primary action. Secondary, destructive, disabled, and compact actions keep their existing semantic hierarchy and accessible states.
+- [x] Button groups wrap or stack cleanly at mobile widths, retain usable touch targets, and do not crowd the writing area or sticky save control.
+- [x] Keyboard focus, screen-reader names, all three locales, light/dark themes, and 200% zoom remain usable without clipping or horizontal page overflow.
+- [x] Before/after browser captures cover `/diaries/quick` and the global dialog at desktop and mobile sizes, including long localized labels, with the visual result checked against DESIGN.md.
 
 ## Open triage decisions
 
@@ -50,3 +50,22 @@ None recorded. Resolve the size-role mapping and visual direction during triage 
 ## Comments
 
 Published 2026-10-04 from the report that the Quick edit UI has visually inconsistent button sizes. This ticket treats “Quick edit” as the Quick Diary composer on `/diaries/quick` and in the global capture dialog; the issue is marked `needs-triage` because the target states and intentional size variants need to be agreed before implementation.
+
+## Execution record — 2026-10-04
+
+Delivered inside [97](97-quick-composer-redesign.md) step 4 rather than as its own slice. The
+size system by role, now applied across the Quick Diary page and the Cmd/Ctrl+J dialog:
+
+| Role | Treatment |
+|---|---|
+| Save | the only filled button, full height |
+| Restore / discard a draft | filled + secondary, full height — a state that must interrupt |
+| Writing tools (preview, voice) | `.quiet-button.button-compact` on the toolbar bound to the textarea |
+| Snippet insert / replace | `.secondary.button-compact` |
+| Snippet management | `.quiet-button.button-compact`, opening the project dialog |
+| Template apply / replace | `.secondary.button-compact` beside the template fields |
+| Recent tag chips | `.secondary.button-compact`, `aria-pressed` for selection |
+| Saved-state actions | one filled (Open diary), the rest quiet |
+
+Mobile keeps the sticky full-width save bar, and every compact control keeps the documented 36px
+minimum. Evidence: `docs/design/evidence/quick/composer-1440.png`, `composer-390.png`.

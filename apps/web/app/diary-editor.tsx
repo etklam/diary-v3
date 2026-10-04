@@ -19,8 +19,10 @@ import { diaryResponseSchema, type CreateDiaryRequest, type DiaryResponse } from
 import { createEmptyQuickNoteTemplateData,deriveQuickTitle,generateTemplateDraft } from '@diary/domain';
 import { buildCapturePath, normalizeCaptureContext, type CaptureContext } from './capture-context';
 import { CaptureNotice } from './capture-notice';
+import { Icon } from './icons';
 import { readDraftEnvelope, useDraftLifecycle, writeDraftEnvelope } from './draft-lifecycle';
 import { useRecentTags } from './recent-tags';
+import { ConfirmDialog, TagField, WritingToolbar, authoringCopy, joinTags, splitTags } from './authoring-controls';
 export type DiaryFields={revision?:number;alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
 
 const writeRecoveryCopy = {
@@ -233,6 +235,18 @@ function editorContinuationPath(id:string,returnTo:string|null|undefined,focusSc
  return `/diaries/${id}/edit${returnTo?`?returnTo=${encodeURIComponent(returnTo)}`:''}${focusSchedule?'#review-schedule':''}`;
 }
 
+/**
+ * A deferred editor region. Eight always-open sections of equal weight made the
+ * writing one block among many; a region that already holds content opens
+ * itself, and an unused one costs a single line.
+ */
+function EditorSection({id,title,note,initialOpen,children}:{id:string;title:string;note?:string;initialOpen:boolean;children:React.ReactNode}){
+ const [open,setOpen]=useState(initialOpen);
+ return <details className="authoring-section" data-testid={`editor-section-${id}`} open={open} onToggle={event=>setOpen(event.currentTarget.open)}>
+  <summary><Icon name="chevronDown" size={16}/><span className="authoring-summary-row"><span>{title}</span>{note&&<span className="authoring-section-note">{note}</span>}</span></summary>
+  {children}
+ </details>;
+}
 export function DiaryEditor({initial,id,accountId,quick=false,captureContext,captureIssue,returnTo,focusSchedule=false}:{initial:DiaryFields;id?:string;accountId?:string;quick?:boolean;captureContext?:CaptureContext|null;captureIssue?:import('./capture-context').CaptureContextIssue|null;returnTo?:string|null;focusSchedule?:boolean}){
  const {t,locale}=useUi();const labels=diaryCopy[locale];const session=useSessionState();const sessionRef=useRef(session);sessionRef.current=session;const navigate=useNavigate();
  const captureRef=useRef(normalizeCaptureContext(captureContext));
@@ -256,11 +270,17 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  const [appendUncertain,setAppendUncertain]=useState(false);
  const contentRef=useRef<HTMLTextAreaElement>(null);const caretState=useRef<{start:number;end:number;top:number}|null>(null);const previewSectionRef=useRef<HTMLElement|null>(null);const previewVisited=useRef(false);const incomingKey=useRef(buildCapturePath('new',captureContext,initial.date));
  const [recentTags,rememberTags]=useRecentTags(accountId??'');
+ const a=authoringCopy[locale];
+ const [tagText,setTagText]=useState(()=>joinTags(editableFromDiary(initial).form.tags));
+ const pushedTags=useRef(form.tags);
+ useEffect(()=>{if(form.tags===pushedTags.current)return;pushedTags.current=form.tags;setTagText(joinTags(form.tags));},[form.tags]);
+ function changeTags(value:string){setTagText(value);const parsed=splitTags(value),tags=parsed.length?parsed:[''];pushedTags.current=tags;setForm(current=>({...current,tags}));}
  const draftValue={...sources,...(id?{baseRevision:revisionRef.current}:{}),...(captureRef.current?{captureContext:captureRef.current}:{}),...(appendUncertain?{uncertainAppend:true}: {})};
  const {flushDraft,suppressDraft}=useDraftLifecycle({key:draftKey,value:draftValue,dirty,paused:Boolean(restorable)});
  const appendLocked=appendUncertain||Boolean(restorable?.uncertainAppend);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
- useEffect(()=>{if(blocker.state==='blocked'){if(pending){blocker.reset();return;}if(window.confirm(labels.discard)){dirtyRef.current=false;blocker.proceed();}else blocker.reset();}},[blocker,labels.discard,pending]);
+ const [confirmLeave,setConfirmLeave]=useState(false);
+ useEffect(()=>{if(blocker.state!=='blocked')return;if(pending){blocker.reset();return;}setConfirmLeave(true);},[blocker,pending]);
  useEffect(()=>{const nextKey=buildCapturePath('new',captureContext,initial.date);if(nextKey===incomingKey.current)return;if(dirtyRef.current)return;incomingKey.current=nextKey;const nextContext=normalizeCaptureContext(captureContext);captureRef.current=nextContext;if(restorable)return;const next=editableFromDiary(initial);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;setBaseline(confirmed);setSaveState('idle');setError(null);},[captureContext,initial.date,restorable]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
  // Draft persistence is shared with Review for TTL, debounce, pause, flush,
@@ -373,30 +393,45 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  }
  const changes=conflictChanges();
  function toggleRecentTag(tag:string){setForm(current=>{const currentTags=current.tags.map(value=>value.trim()).filter(Boolean);const next=currentTags.includes(tag)?currentTags.filter(value=>value!==tag):[...currentTags,tag];return {...current,tags:next.length?next:['']};});}
+ const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;
  return <form onSubmit={save} aria-busy={pending}>
   <CaptureNotice context={captureContext} issue={captureIssue}/>
   {restorable&&<div className="editor-restore" role="status"><button type="button" onClick={restoreDraft}>{labels.restoreDraft}</button><button type="button" className="secondary" onClick={discardDraft}>{labels.discardDraft}</button></div>}
   <fieldset className="editor-controls" disabled={pending||appendLocked}>
-  <div className="editor-meta">{field('date',t('date'))}</div>
-  {field('title',t('diaryTitle'),'title-input')}
-  <CompanyContextInput value={stockSymbols} onChange={setStockSymbols} invalid={invalidField(error,'stockSymbols')}/>
-  <div className="editor-mode"><button type="button" className="secondary" aria-pressed={preview} onClick={togglePreview}>{preview?labels.writing:labels.preview}</button></div>
-  {preview?<section ref={previewSectionRef} tabIndex={-1} aria-label={labels.preview}><Markdown>{form.content}</Markdown></section>:<label>{t('content')}<textarea ref={contentRef} name="content" className="editor-content" rows={quick?6:13} required value={form.content} onChange={event=>change('content',event.target.value)} aria-invalid={invalidField(error,'content')} aria-describedby={error?'content-hint form-error':'content-hint'}/></label>}
-  <p id="content-hint" className="muted">{t('contentHint')}</p>
-  {!quick&&<>
-   <fieldset className="original-fields"><legend>{labels.tags}</legend>
-    {form.tags.map((tag,index)=><div className="tag-input" key={index}><label>{labels.tag} {index+1}<textarea rows={1} value={tag} maxLength={100} onChange={event=>{setForm(current=>({...current,tags:current.tags.map((value,i)=>i===index?event.target.value:value)}));}} aria-invalid={invalidField(error,'tags')} aria-describedby={error?'form-error':undefined}/></label><button type="button" className="secondary" aria-label={`${labels.removeTag} ${index+1}`} onClick={()=>{setForm(current=>({...current,tags:current.tags.filter((_,i)=>i!==index)}));}}>{labels.removeTag}</button></div>)}
-    <button type="button" className="secondary" disabled={form.tags.length>=50} onClick={()=>{setForm(current=>({...current,tags:[...current.tags,'']}));}}>{labels.addTag}</button>
-   </fieldset>
-   {recentTags.length>0&&<fieldset className="recent-tags"><legend>{labels.recentTags}</legend><div className="recent-tag-list">{recentTags.map(tag=><button type="button" className="secondary" key={tag} aria-pressed={form.tags.some(value=>value.trim()===tag)} onClick={()=>toggleRecentTag(tag)}>{tag}</button>)}</div></fieldset>}
-   <fieldset className="original-fields"><legend>{labels.original}</legend>{field('thesis',labels.thesis)}{field('risk',labels.risk)}{field('execution',labels.execution)}</fieldset>
-  </>}
-  {!quick&&<BuyTransactionFields value={transactions} pending={pending} onChange={setTransactions}/>}
-  {!quick&&<ReviewScheduling value={reviewTime} instant={reviewInstant} autoFocus={focusSchedule&&!restorable} onChange={(value,instant)=>{setReviewTime(value);setReviewInstant(instant);}}/>}
-  {!quick&&<AlertFields value={reminders} pending={pending} editing={Boolean(id)} onChange={setReminders}/>}
-  {transactionError&&<p className="error" role="alert">{transactionError}</p>}
-  {invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}
-  <FailureNotice focusField failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:error?.code==='DIARY_REVISION_CONFLICT'?writeRecoveryCopy[locale].revisionConflict:undefined}/>
+   <div className="authoring-grid">
+    <section className="authoring-writing" aria-labelledby="editor-writing-title">
+     <h2 id="editor-writing-title" className="editor-writing-title">{t('content')}</h2>
+     <WritingToolbar preview={preview} onTogglePreview={togglePreview}/>
+     {preview?<section ref={previewSectionRef} tabIndex={-1} className="authoring-preview" aria-label={a.previewRegion}><Markdown>{form.content}</Markdown></section>:<label className="editor-content-field"><span className="sr-only">{t('content')}</span><textarea ref={contentRef} name="content" className="editor-content" rows={quick?6:13} required value={form.content} onChange={event=>change('content',event.target.value)} aria-invalid={invalidField(error,'content')} aria-describedby={error?'content-hint form-error':'content-hint'}/></label>}
+     <p id="content-hint" className="muted">{t('contentHint')}</p>
+    </section>
+    <div className="authoring-aside">
+     <div className="editor-meta">{field('date',t('date'))}</div>
+     {field('title',t('diaryTitle'),'title-input')}
+     <CompanyContextInput value={stockSymbols} onChange={setStockSymbols} invalid={invalidField(error,'stockSymbols')}/>
+     {!quick&&<TagField id="editor-tags" value={tagText} onChange={changeTags} recent={recentTags} selected={form.tags.map(tag=>tag.trim()).filter(Boolean)} onToggle={toggleRecentTag} invalid={invalidField(error,'tags')} errorId={error?'form-error':undefined}/>}
+    </div>
+    {!quick&&<section className="authoring-fields editor-sections" aria-label={labels.moreRegions}>
+     <p className="muted editor-timezone">{labels.timezoneNote} {timezone}</p>
+     <EditorSection id="original" title={labels.original} initialOpen={Boolean(initial.thesis||initial.risk||initial.execution)}>
+      <div className="editor-section-body">{field('thesis',labels.thesis)}{field('risk',labels.risk)}{field('execution',labels.execution)}</div>
+     </EditorSection>
+     <EditorSection id="transactions" title={ledgerCopy[locale].title} initialOpen={Boolean(initial.transactions?.length)}>
+      <BuyTransactionFields inSection value={transactions} pending={pending} onChange={setTransactions}/>
+     </EditorSection>
+     <EditorSection id="review" title={reviewScheduleCopy[locale].review} initialOpen={Boolean(initial.reviewDueAt)||focusSchedule}>
+      <ReviewScheduling inSection value={reviewTime} instant={reviewInstant} autoFocus={focusSchedule&&!restorable} onChange={(value,instant)=>{setReviewTime(value);setReviewInstant(instant);}}/>
+     </EditorSection>
+     <EditorSection id="reminders" title={reminderCopy[locale].title} initialOpen={Boolean(initial.alerts?.length)}>
+      <AlertFields inSection value={reminders} pending={pending} editing={Boolean(id)} onChange={setReminders}/>
+     </EditorSection>
+    </section>}
+    <div className="authoring-footer">
+     {transactionError&&<p className="error" role="alert">{transactionError}</p>}
+     {invalidField(error,'transactions')&&<p className="error">{ledgerCopy[locale].oversell}</p>}
+     <FailureNotice focusField failure={error} messageOverride={dateConflict&&error?.code==='DIARY_ALREADY_EXISTS'?labels.conflictTitle:error?.code==='DIARY_REVISION_CONFLICT'?writeRecoveryCopy[locale].revisionConflict:undefined}/>
+    </div>
+   </div>
   </fieldset>
   {dateConflict&&<section className="editor-conflict" role="region" aria-labelledby="diary-conflict-title">
    <h2 id="diary-conflict-title">{labels.conflictTitle}</h2>
@@ -409,5 +444,6 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   {error?.code==='DIARY_REVISION_CONFLICT'&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadServerVersion}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadServerVersion}</button></div>}
   {recoveryState&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadLatest}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadLatest}</button><button type="button" className="secondary" onClick={discardDraft} disabled={pending}>{labels.discardDraft}</button></div>}
   <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||error?.code==='DIARY_REVISION_CONFLICT'||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div>
+  <ConfirmDialog open={confirmLeave} title={labels.discardTitle} body={labels.discard} confirmLabel={labels.discardConfirm} danger onConfirm={()=>{setConfirmLeave(false);dirtyRef.current=false;blocker.proceed?.();}} onCancel={()=>{setConfirmLeave(false);if(blocker.state==='blocked')blocker.reset();}}/>
  </form>;
 }

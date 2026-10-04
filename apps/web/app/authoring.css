@@ -1,0 +1,173 @@
+/* ---------------------------------------------------------------------------
+   Authoring: one writing system for /diaries/quick, the Cmd/Ctrl+J dialog and
+   /diaries/new. The writing area leads, its tools are attached to it, and the
+   controls that configure the diary sit beside the writing on a wide screen and
+   under it on a narrow one.
+   --------------------------------------------------------------------------- */
+
+.authoring-grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.authoring-writing,
+.authoring-fields,
+.authoring-aside {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.authoring-aside {
+  gap: 0;
+}
+
+/* The writing area is the one field that must keep the reading measure, so the
+   column carries it instead of the textarea: the form then ends at one right
+   edge instead of two. */
+@media (min-width: 1100px) {
+  .editor.authoring-two-column {
+    /* Data-page width, the documented cap for a workspace page that uses two columns. */
+    max-width: 1280px;
+  }
+
+  .authoring-two-column .authoring-grid {
+    grid-template-columns: minmax(0, 72ch) minmax(280px, 1fr);
+    grid-template-areas:
+      'writing aside'
+      'fields  aside'
+      'footer  aside';
+    gap: var(--space-6) var(--space-8);
+  }
+
+  .authoring-two-column .authoring-writing { grid-area: writing; }
+  .authoring-two-column .authoring-fields { grid-area: fields; }
+  .authoring-two-column .authoring-aside { grid-area: aside; }
+  .authoring-two-column .authoring-footer { grid-area: footer; }
+}
+
+/* Writing tools ride above the field they act on, in the same place on both
+   paths, at quiet compact weight so save stays the only filled action. */
+.writing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+}
+
+/* The voice control is a toolbar item, not a block: `contents` lets its button
+   sit in the row while its error message takes a line of its own. */
+.writing-toolbar .quick-voice {
+  display: contents;
+}
+
+.writing-toolbar .quick-voice > p {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.writing-toolbar button[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--action-strong);
+}
+
+.authoring-status {
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-align: end;
+}
+
+.authoring-status:empty {
+  display: none;
+}
+
+.authoring-status.is-error {
+  color: var(--negative);
+}
+
+.authoring-field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.authoring-field > textarea,
+.authoring-field > input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.authoring-tags {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.authoring-preview {
+  min-height: clamp(220px, 32dvh, 420px);
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+/* A deferred region: the heading is the summary, so an unused section costs one
+   line instead of a screen. Regions that already hold content open themselves. */
+.authoring-section {
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* The shared disclosure treatment: the system's own chevron (icons.tsx) rather
+   than the platform marker, so these read like the navigation disclosures. */
+.authoring-section > summary,
+.authoring-aside > details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+
+.authoring-section > summary::-webkit-details-marker,
+.authoring-aside > details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.authoring-section > summary > svg,
+.authoring-aside > details > summary > svg {
+  flex: 0 0 auto;
+  color: var(--faint);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.authoring-section[open] > summary > svg,
+.authoring-aside > details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+.authoring-summary-row {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+}
+
+.authoring-section-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}

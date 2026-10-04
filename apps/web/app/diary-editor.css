@@ -27,10 +27,38 @@
 /* Writing surface: the Markdown area is the primary control and keeps the
    reading measure. Viewport-relative floors avoid fixed pixel heights; the
    mobile action area becomes static when available viewport height is short. */
+/* The writing column carries the 72ch measure (see authoring.css), so the form
+   ends at one right edge instead of two. */
 .editor-content {
-  max-width: 72ch;
+  width: 100%;
+  box-sizing: border-box;
   min-height: clamp(360px, 55dvh, 720px);
   line-height: 1.75;
+}
+
+.editor-writing-title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.editor-content-field {
+  gap: 0;
+}
+
+.editor-sections {
+  display: grid;
+  gap: 0;
+  align-content: start;
+}
+
+.editor-timezone {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.editor-section-body {
+  display: grid;
+  gap: var(--space-5);
 }
 
 .editor-content:focus {
@@ -42,15 +70,7 @@
   font-weight: 650;
 }
 
-.editor-mode {
-  display: flex;
-  justify-content: flex-end;
-}
 
-.editor-mode button[aria-pressed='true'] {
-  border-color: var(--action);
-  color: var(--action);
-}
 
 .editor-restore {
   display: flex;

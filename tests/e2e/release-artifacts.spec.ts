@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { openQuickOptions, selectLocale } from '../support/e2e';
+import { openQuickOptions, selectLocale, openQuickDestination } from '../support/e2e';
 
 const password = 'synthetic-release-artifact-password';
 // Synthetic client identity for the register rate limiter; the release
@@ -165,8 +165,9 @@ test('built artifacts complete Company capture, append, server verification and 
   await page.goto('/stocks/NVDA');
   await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
-  await openQuickOptions(page);
+  await openQuickDestination(page);
   await page.getByLabel('Diary date', { exact: true }).fill(date);
+  await openQuickOptions(page);
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Release Company handoff');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(firstMarker);
   await page.getByRole('button', { name: 'Create diary', exact: true }).click();
@@ -188,7 +189,7 @@ test('built artifacts complete Company capture, append, server verification and 
   await expect(page).toHaveURL(/\/stocks\/NVDA$/);
   await page.getByRole('link', { name: 'Record a thought', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/quick\?symbol=NVDA&source=company$/);
-  await openQuickOptions(page);
+  await openQuickDestination(page);
   await page.getByLabel('Diary date', { exact: true }).fill(date);
   await expect(page.getByRole('combobox', { name: 'Save mode', exact: true })).toHaveValue('append');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(appendMarker);
@@ -381,7 +382,7 @@ test('built artifacts complete the diary mainline with server-verified reads', a
 
   // Same-day append keeps the original title and body; new content appears once.
   await page.goto('/diaries/quick');
-  await openQuickOptions(page);
+  await openQuickDestination(page);
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-15');
   await page.getByRole('combobox', { name: /Save mode|儲存方式|保存方式/, exact: true }).selectOption('append');
   await expect(page.getByText(/A diary exists for this date|已有日記|已有日记/)).toBeVisible();
