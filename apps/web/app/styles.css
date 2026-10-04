@@ -379,6 +379,17 @@ textarea {
   line-height: 1.7;
 }
 
+/* A native select is only ever as wide as its longest option. Stretching it to
+   the column width strands the value at one end and the platform arrow at the
+   other, so the control stops reading as a choice and starts reading as a
+   broken text field. Fields that must align inside a grid column opt back in
+   with an explicit width. */
+select {
+  width: auto;
+  max-width: 100%;
+  justify-self: start;
+}
+
 input::placeholder,
 textarea::placeholder {
   /* Placeholders are text and carry the same 4.5:1 requirement as body copy. */
@@ -1262,6 +1273,8 @@ kbd {
 }
 
 .preferences select {
+  /* The sidebar and drawer stack these three as one aligned column. */
+  width: 100%;
   min-height: 36px;
   padding: 6px 8px;
   font-size: var(--text-sm);

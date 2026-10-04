@@ -2,8 +2,8 @@
 
 # [95] Correct dropdown layout and spacing across the app
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: bug
@@ -22,19 +22,57 @@ Native `select` popup rendering is browser/platform controlled. Keep native beha
 
 ## Provisional acceptance criteria
 
-- [ ] The audit accounts for native selects and app-owned dropdown/list menus, recording representative routes, desktop/mobile context, and whether the closed control or expanded list is misaligned, misplaced, clipped, overflowing, or too spacious.
-- [ ] Confirmed patterns align with their surrounding layout; expanded menus anchor to the correct trigger and remain visible within the viewport without clipping or page overflow.
-- [ ] Control and option spacing fit the content; width and height are not forced to one value when labels, numbers, or task context require different dimensions.
-- [ ] Long option lists remain bounded and navigable, and localized labels do not clip or cause page overflow.
-- [ ] Native controls retain platform keyboard and assistive-technology behavior. Any app-owned menu supports keyboard opening, selection, dismissal, focus handling, and screen-reader semantics.
-- [ ] Mobile targets retain usable touch dimensions; desktop density improves without making choices difficult to scan or select.
-- [ ] The affected patterns are checked in all three locales and light/dark themes, including 200% zoom. Before/after captures show representative closed and expanded states on desktop and mobile, with material visual changes justified against DESIGN.md.
+- [x] The audit accounts for native selects and app-owned dropdown/list menus, recording representative routes, desktop/mobile context, and whether the closed control or expanded list is misaligned, misplaced, clipped, overflowing, or too spacious.
+- [x] Confirmed patterns align with their surrounding layout; expanded menus anchor to the correct trigger and remain visible within the viewport without clipping or page overflow.
+- [x] Control and option spacing fit the content; width and height are not forced to one value when labels, numbers, or task context require different dimensions.
+- [x] Long option lists remain bounded and navigable, and localized labels do not clip or cause page overflow.
+- [x] Native controls retain platform keyboard and assistive-technology behavior. Any app-owned menu supports keyboard opening, selection, dismissal, focus handling, and screen-reader semantics.
+- [x] Mobile targets retain usable touch dimensions; desktop density improves without making choices difficult to scan or select.
+- [x] The affected patterns are checked in all three locales and light/dark themes, including 200% zoom. Before/after captures show representative closed and expanded states on desktop and mobile, with material visual changes justified against DESIGN.md.
 
-## Open triage decisions
+## Audit — 2026-10-04
 
-- Which routes and control types demonstrate the reported misalignment most clearly?
-- Should confirmed fixes be grouped by control type or handled together across all patterns?
-- Which native selects should remain platform-native, and is any custom menu justified by a demonstrated limitation?
+Measured every `select` on 19 signed-in routes at 1440px and 390px, comparing its rendered
+width against its intrinsic (`width: max-content`) width. The cause is one global rule:
+`input, select, textarea { width: 100% }` in `styles.css`. A text field filling its column is
+correct; a select filling its column is not, because a select can only ever be as wide as its
+longest option.
+
+Worst cases found (rendered vs. intrinsic):
+
+| Route | Control | 1440px | Intrinsic |
+|---|---|---|---|
+| `/diaries` | Choose a saved view | 986px | 174px |
+| `/diaries/quick` | Writing template | 880px | 191px |
+| `/diaries/quick` | Saved snippets | 880px | 102px |
+| `/stocks/alerts` | Condition | 568px | 147px |
+| `/settings` | Account language | 480px | 102px |
+| `/settings` | Start page | 480px | 125px |
+| `/diaries` | Review status / Sort / Per page | 359 / 265 / 265px | 139 / 156 / 72px |
+| `/tools/position-sizing` | Strategy / Rounding | 307px each | 158 / 178px |
+
+At 390px the same selects spanned the full content width for as little as 72px of options.
+No clipping, anchoring or overflow defect was found in the closed controls; the problem is
+width alone. Four page stylesheets re-asserted `width: 100%` on selects inside grid forms
+(`.plan-grid`, `.market-research-controls`, `.article-translation-default-form`,
+`.article-language-settings`) and were corrected the same way.
+
+App-owned menus were reviewed separately. The command palette is already a bounded dialog with
+its own scroll region (`max-height: 70vh`), and the sidebar/drawer disclosures expand in flow,
+so neither can clip or mis-anchor. The one true popup — the public header's tool shortcuts
+panel — was anchored correctly but unbounded; it now caps at `min(320px, 100vw - 32px)` and
+`100dvh - 120px` with its own scroll, so a short window or a near-edge trigger cannot push it
+off screen.
+
+## Triage decisions — ruled 2026-10-04 during implementation
+
+- **Fixed globally, not per control type.** One rule caused every instance; fixing it per page
+  would have left the next select to be written wrong by default.
+- **Every native `select` stays native.** The audit found no behaviour a custom menu would fix,
+  and a custom menu would cost the platform's keyboard, type-ahead and assistive behaviour.
+- **One opt-back-in:** the sidebar and drawer preference column (`.preferences select`) keeps
+  `width: 100%`, because those three controls are read as one aligned list rather than as three
+  independent choices.
 
 ## Related work
 
@@ -53,3 +91,14 @@ Published 2026-10-04 from the report that dropdown-list layouts throughout the a
 > *This was generated by AI during triage.*
 
 Reporter clarification: dropdown-list layouts across the app are out of place. Expanded this issue to cover alignment, popup anchoring, clipping, overflow, and spacing. Kept `needs-triage` because representative routes and affected control types still need to be identified.
+
+## Execution record — 2026-10-04
+
+`select` now defaults to `width: auto; max-width: 100%; justify-self: start`, documented in
+DESIGN.md's Fields section. `tests/e2e/dropdown-density.spec.ts` is the regression: it asserts
+no select on `/settings`, `/diaries`, `/stocks/alerts` or `/diaries/quick` exceeds its intrinsic
+width by more than 24px at 1440px, 720px (1440 at 200% zoom) and 390px, in English and zh-TW,
+with no horizontal overflow; a second case asserts the tool shortcuts panel stays inside the
+viewport at 1440px and 1024px and returns focus to its trigger on Escape. Evidence:
+`docs/design/evidence/dropdowns/`. Re-ran `diary-list`, `narrow-viewport`, `layout-theme`,
+`quick-diary` and `integrated-mobile` — all pass.

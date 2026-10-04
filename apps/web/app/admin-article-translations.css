@@ -20,7 +20,7 @@
 .article-translation-default p,.article-translation-provider-list p{margin:.35rem 0 0}
 .article-translation-default-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem}
 .article-translation-default-form label{display:grid;gap:.45rem;min-width:0}
-.article-translation-default-form select{width:100%;min-width:0}
+.article-translation-default-form select{min-width:0}
 .article-translation-default-form button,.article-translation-provider-list-heading button,.article-translation-provider-row button,.article-translation-provider-form-heading button{min-height:2.75rem}
 .article-translation-provider-list-heading,.article-translation-provider-form-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .article-translation-provider-rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--border)}

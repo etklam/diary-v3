@@ -51,8 +51,9 @@
   min-width: 0;
 }
 
+/* Text fields fill the column so the grid reads as one aligned form; a select
+   stays the width of its own options (see the select rule in styles.css). */
 .plan-grid input,
-.plan-grid select,
 .plan-grid textarea {
   width: 100%;
   box-sizing: border-box;
@@ -669,8 +670,7 @@
 }
 
 .discipline-field > textarea,
-.discipline-field > input:not([type='checkbox']),
-.discipline-field > select {
+.discipline-field > input:not([type='checkbox']) {
   width: 100%;
   box-sizing: border-box;
 }

@@ -40,7 +40,7 @@
 }
 
 .article-language-settings select {
-  width: 100%;
+  min-width: 0;
 }
 
 .article-language-targets {

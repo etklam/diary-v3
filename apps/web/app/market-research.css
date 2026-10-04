@@ -5,7 +5,8 @@
 .market-research-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
 .market-research-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .market-research-inputs label,.market-research-controls label,.market-capture-form label{display:grid;gap:6px;color:var(--muted)}
-.market-research-inputs input,.market-research-controls input,.market-research-controls select,.market-capture-form input,.market-capture-form textarea{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+.market-research-inputs input,.market-research-controls input,.market-capture-form input,.market-capture-form textarea{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+.market-research-controls select{min-height:40px;padding:8px 10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
 .market-research-inputs input[aria-invalid=true]{border-color:var(--danger)}
 .market-research-input-actions{display:flex;align-items:end;gap:8px}
 .market-research-input-actions button{min-height:40px;white-space:nowrap}
