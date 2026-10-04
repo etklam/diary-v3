@@ -1,7 +1,7 @@
 # [85] Launch straight into capture from the installed app icon
 
-Status: ready-for-agent
-Execution: in-progress
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Type: AFK
@@ -88,3 +88,7 @@ device available here). Launcher shortcuts are not universally supported across 
 (notably unsupported in Safari/iOS PWA installs; supported in Chromium-based browsers on
 Android and desktop, and in Edge). That device/browser verification is still required before
 this ticket can be marked done.
+
+## Execution record
+
+Shipped in `83419ec`; the ticket's Execution line was left stale and is reconciled here on 2026-10-04.

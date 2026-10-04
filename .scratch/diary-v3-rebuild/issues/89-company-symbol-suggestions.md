@@ -1,7 +1,7 @@
 # [89] Suggest company symbols the account already tracks
 
-Status: ready-for-agent
-Execution: in-progress
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Type: AFK
@@ -129,3 +129,7 @@ Still needs browser evidence before this can be marked done:
 - Confirm the composite multi-symbol options filter as expected in the browsers under test; native
   `datalist` filtering differs between engines (prefix versus substring), which is why the option
   head preserves the author's raw text.
+
+## Execution record
+
+Shipped in `765e38a`; the ticket's Execution line was left stale and is reconciled here on 2026-10-04.

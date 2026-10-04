@@ -1,7 +1,7 @@
 # [87] Offer prefilled capture from holdings, watchlist and price alerts
 
-Status: ready-for-agent
-Execution: in-progress
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Type: AFK
@@ -131,3 +131,7 @@ Open design questions for a ruling:
 - The entry is icon-only beside text buttons in the watchlist and price-reminder action groups.
   Quiet styling keeps it from reading as a broken text button, but it is the first icon-only
   row control in those groups.
+
+## Execution record
+
+Shipped in `0b420fa`; the ticket's Execution line was left stale and is reconciled here on 2026-10-04.

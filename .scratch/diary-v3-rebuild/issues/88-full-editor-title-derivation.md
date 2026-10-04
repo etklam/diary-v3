@@ -1,7 +1,7 @@
 # [88] Stop requiring a title in the full Diary editor
 
-Status: ready-for-agent
-Execution: in-progress
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Type: AFK
@@ -113,3 +113,7 @@ Commands run:
 Still needs browser/API evidence (not run here): `tests/e2e/diary-response-loss.spec.ts` plus a
 new-diary save with an empty title read back through the real API, an edit that clears an
 existing title, and the three-locale derived label in the UI.
+
+## Execution record
+
+Shipped in `84207d5`; the ticket's Execution line was left stale and is reconciled here on 2026-10-04.

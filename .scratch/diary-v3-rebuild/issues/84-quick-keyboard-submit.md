@@ -1,7 +1,7 @@
 # [84] Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter
 
-Status: ready-for-agent
-Execution: in-progress
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Type: AFK
@@ -99,3 +99,7 @@ Still needs browser evidence (all remaining acceptance criteria):
 - IME: Enter mid-composition commits the candidate and does not submit, in all three locales.
   Plain Enter still inserts a newline; no fire from the title, tags or snippet fields.
 - Keyboard-only loop to the [71](71-quick-save-continuation.md) continuation state without a pointer.
+
+## Execution record
+
+Shipped in `56e1f8c`; the ticket's Execution line was left stale and is reconciled here on 2026-10-04.
