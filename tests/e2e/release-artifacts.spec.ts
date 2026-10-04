@@ -344,7 +344,7 @@ test('built artifacts complete the diary mainline with server-verified reads', a
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-15');
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Release mainline diary');
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill(`${marker} Original reasoning stands.`);
-  await page.getByRole('textbox', { name: 'Company context', exact: true }).fill('NVDA');
+  await page.getByRole('combobox', { name: 'Company context', exact: true }).fill('NVDA');
   await page.getByRole('button', { name: 'Save diary', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/\d+$/);
   const id = page.url().split('/').at(-1)!;

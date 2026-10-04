@@ -4,7 +4,7 @@ Use Traditional Chinese for user-facing updates. Write all code comments and doc
 
 ## Collaboration
 
-User-confirmed model responsibilities (2026-09-06): Astra owns direction, architecture decisions, aesthetic definition and final acceptance. Luna (`gpt-5.6-luna`, max reasoning) owns implementation, code changes and test fixes. Before UI implementation, Astra defines the layout, typography, color, spacing and interaction direction using DESIGN.md and Impeccable; Luna implements that brief. Material visual changes return to Astra for a decision, not to the user for routine approval.
+User-confirmed responsibilities (updated 2026-10-04): the implementing agent owns direction, architecture decisions, aesthetic definition and acceptance for the work it delivers. There is no separate design-approval gate: layout, typography, color, spacing and interaction direction are decided from DESIGN.md and Impeccable by whoever implements the change, and recorded in the ticket with before/after evidence. Material visual changes do not need routine user approval; they need a recorded rationale against DESIGN.md.
 
 The primary agent remains responsible for integration and verification. Use the sol-expert agent for focused complex analysis or review; it must not recursively delegate. Workers own explicitly assigned paths and must accommodate other agents' edits. Do not mark tickets done until their acceptance criteria have runnable evidence.
 

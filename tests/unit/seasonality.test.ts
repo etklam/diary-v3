@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seasonalityMonthInTimezone, seasonalityPeriodAverage, strongestSeasonalityMonths, weakestSeasonalityMonths } from '../../packages/domain/src/seasonality'
+import { seasonalityMonthData, seasonalityMonthInTimezone, seasonalityPeriodAverage, strongestSeasonalityMonths, weakestSeasonalityMonths } from '../../packages/domain/src/seasonality'
 
 describe('seasonality domain', () => {
   it('uses monthly means and stable tie ordering', () => {
@@ -13,5 +13,10 @@ describe('seasonality domain', () => {
     expect(seasonalityMonthInTimezone(now, 'Asia/Taipei')).toBe(9)
     expect(seasonalityMonthInTimezone(now, 'UTC')).toBe(8)
     expect(seasonalityMonthInTimezone(now, 'America/New_York')).toBe(8)
+  })
+
+  it('does not substitute another month when seasonal content is missing', () => {
+    expect(seasonalityMonthData(0)).toBeNull()
+    expect(seasonalityMonthData(13)).toBeNull()
   })
 })

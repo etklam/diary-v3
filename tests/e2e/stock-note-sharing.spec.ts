@@ -22,7 +22,9 @@ test('shared Stock Notes stay visible in the list and Hub until sharing is revok
     await signIn(owner, ownerEmail); await signIn(partner, partnerEmail);
     await owner.getByLabel('Partner email', { exact: true }).fill(partnerEmail);
     await owner.getByRole('button', { name: 'Invite partner', exact: true }).click();
+    await expect(owner.getByRole('status')).toContainText('Partner settings updated.');
     await partner.getByRole('button', { name: 'Refresh partners', exact: true }).click();
+    await expect(partner.getByRole('button', { name: 'Accept invitation', exact: true })).toBeVisible();
     await partner.getByRole('button', { name: 'Accept invitation', exact: true }).click();
     await owner.getByRole('button', { name: 'Refresh partners', exact: true }).click();
     const links = await (await owner.request.get(`${e2eBaseURL}/api/partners`)).json() as { links: Array<{ id: string; partner: { id: string } }> };

@@ -24,7 +24,8 @@ export function UiProvider({children}:{children:ReactNode}) {
   const [localeError,setLocaleError] = useState(false);
   const [localeAttempt,setLocaleAttempt] = useState(0);
   const [loadedRevision,setLoadedRevision] = useState<number|null>(null);
-  const localeReady = session.authenticated !== true || (loadedRevision === session.revision && !localePending && !localeError);
+  // A null session is still bootstrapping; enabling locale changes here lets account settings overwrite a guest-style update.
+  const localeReady = session.authenticated === false || (session.authenticated === true && loadedRevision === session.revision && !localePending && !localeError);
   const [ready,setReady] = useState(false);
   useEffect(()=>{setReady(true);},[]);
   const [theme,setTheme] = useState<Theme>('system');
@@ -59,7 +60,8 @@ export function UiProvider({children}:{children:ReactNode}) {
     return () => { active = false; };
   }, [session.authenticated, session.revision, localeAttempt]);
   function setLocale(value: Locale) {
-    if (!session.authenticated) { persistLocaleCookie(value); applyLocale(value); return; }
+    if (session.authenticated === null) return;
+    if (session.authenticated === false) { persistLocaleCookie(value); applyLocale(value); return; }
     if (!localeReady) return;
     const revision = session.revision;
     const active = () => currentSession.current.authenticated === true && currentSession.current.revision === revision;

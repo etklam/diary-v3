@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuick, openQuickOptions, selectLocale, test } from '../support/e2e'
+import { expect, openQuick, openQuickOptions, selectAccountLocale, selectLocale, test } from '../support/e2e'
 
 const password = 'synthetic-quick-layout-follow-up-password'
 const evidenceDir = 'docs/design/evidence/convenience-follow-up'
@@ -22,7 +22,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/quick$/)
-  await selectLocale(page, 'en')
+  await selectAccountLocale(page, 'en')
 }
 
 async function startAccount(page: Page) {
@@ -45,6 +45,12 @@ async function capture(page: Page, name: string, width: number) {
   await page.screenshot({ path: `${evidenceDir}/${name}-${width}.png`, fullPage: true })
 }
 
+async function openCapture(page: Page) {
+  await expect(page.getByTestId('sign-out')).toBeAttached()
+  await openQuick(page)
+  await expect(page.locator('dialog.capture-dialog')).toBeVisible()
+}
+
 for (const { width, height, date } of [
   { width: 1440, height: 900, date: '2026-10-24' },
   { width: 390, height: 844, date: '2026-10-25' },
@@ -53,9 +59,8 @@ for (const { width, height, date } of [
     await page.setViewportSize({ width, height })
     await startAccount(page)
     await page.goto('/diaries')
-    await openQuick(page)
+    await openCapture(page)
     const cleanDialog = page.locator('dialog.capture-dialog')
-    await expect(cleanDialog).toBeVisible()
     await expect(cleanDialog.getByRole('textbox', { name: 'Content', exact: true })).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(cleanDialog).toBeHidden()
@@ -94,10 +99,18 @@ for (const { width, height, date } of [
     await expect(recent).toHaveAttribute('aria-pressed', 'false')
     await capture(page, 'quick-recent-tags', width)
 
+    const me = await (await page.request.get('/api/auth/me')).json() as { data: { id: string } }
+    const draftKey = `diary-quick-draft:${me.data.id}`
+    const draftContent = 'Restore this unsaved Quick Diary draft.'
+    await content.fill(draftContent)
+    await expect.poll(() => page.evaluate(key => {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw).value?.content : null
+    }, draftKey)).toBe(draftContent)
+
     await page.goto('/diaries')
-    await openQuick(page)
+    await openCapture(page)
     const dialog = page.locator('dialog.capture-dialog')
-    await expect(dialog).toBeVisible()
     const restore = dialog.getByRole('button', { name: 'Restore saved draft', exact: true })
     await expect(restore).toBeFocused()
     await restore.click()

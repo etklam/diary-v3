@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect,test, selectLocale, selectTheme } from '../support/e2e';
+import { expect,test, selectAccountLocale, selectLocale, selectTheme } from '../support/e2e';
 
 test.use({timezoneId:'America/New_York'});
 // Wall time (device timezone) the editor turns back into the exact instant.
@@ -10,7 +10,7 @@ for(const width of [1440,390]){
   const email=`review-${randomUUID()}@example.test`,password='synthetic-review-password';
   expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
   await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');
-  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
+  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectAccountLocale(page, 'en');
   const headers={'x-csrf-token':(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
   expect((await page.request.put('/api/user/settings',{headers,data:{timezone:'Asia/Taipei'}})).status()).toBe(200);
   // Out-of-band fixture writes bypass browser resource invalidation; start a fresh document.
@@ -121,7 +121,7 @@ for(const width of [1440,390]){
 async function signInForDraft(page:import('playwright').Page,email:string,password:string){
  expect((await page.request.post('/api/auth/register',{data:{email,password}})).status()).toBe(200);
  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');
- await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
+ await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectAccountLocale(page, 'en');
  return {'x-csrf-token':(await page.context().cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
 }
 const reviewDraftCount=(page:import('playwright').Page)=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('review-draft:')).length);

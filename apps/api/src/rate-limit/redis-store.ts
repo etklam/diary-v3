@@ -26,6 +26,17 @@ return { 1, limit - count, 0, resetAt }
 `
 
 const DEFAULT_TIMEOUT_MS = 300
+// Remote test stores (e.g. an SSH-tunneled VPS Postgres/Redis) need a looser
+// bound than the local default; production keeps the fast-fail 300ms.
+const REMOTE_TIMEOUT_MS = 5000
+
+function resolveTimeoutMs(redisUrl: string, options: { timeoutMs?: number }): number {
+  if (options.timeoutMs !== undefined) return options.timeoutMs
+  const host = new URL(redisUrl).hostname
+  return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(host)
+    ? DEFAULT_TIMEOUT_MS
+    : REMOTE_TIMEOUT_MS
+}
 
 export function redisRateLimitKey(key: string): string {
   const digest = createHash('sha256').update(key).digest('hex')
@@ -63,7 +74,7 @@ export class RedisRateLimitStore implements RateLimitStore {
     try { parsed = new URL(redisUrl) } catch { throw new RateLimitStoreUnavailableError() }
     if (!['redis:', 'rediss:'].includes(parsed.protocol) || !parsed.hostname) throw new RateLimitStoreUnavailableError()
 
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    const timeoutMs = resolveTimeoutMs(redisUrl, options)
     // `connectTimeout` bounds the initial connection. Per-command bounds are
     // enforced by the `bounded()` wrapper, so the socket itself must stay idle:
     // a `socketTimeout` here would destroy the connection whenever Redis goes

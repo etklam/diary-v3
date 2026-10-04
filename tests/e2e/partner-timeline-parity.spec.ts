@@ -202,7 +202,12 @@ test('comparison states separate no partner, pending invitation and login return
   await page.getByRole('button', { name: 'Refresh comparison', exact: true }).click()
   await expect(page.getByText('Your partner has not shared diaries.', { exact: true })).toBeVisible()
 
+  const logoutResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/logout' && response.request().method() === 'POST',
+  )
   await signOut(page)
+  expect((await logoutResponse).status()).toBe(200)
+  await expect(page.getByTestId('sign-out')).toHaveCount(0)
   await page.goto('/partners/compare?partnerId=42&limit=40')
   await page.locator('.pair-page').getByRole('link', { name: 'Sign in', exact: true }).click()
   await page.getByLabel('Email', { exact: true }).fill(email)

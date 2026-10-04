@@ -54,6 +54,10 @@ eight recent-tag chips from [70](issues/70-recent-diary-tags.md) already cover r
 and merging the two authoring routes — the last being a maintenance argument about two
 overlapping state machines rather than an input-cost one.
 
+**All five were re-evaluated on 2026-10-04 and three no longer stand as written.** See the
+Diary authoring redesign section below and the "Re-evaluated exclusions" section in
+[97](issues/97-quick-composer-redesign.md) before citing the paragraph above.
+
 | Ticket | Title | Recorded state | Issue file |
 |---|---|---|---|
 | 84 | Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter | ready-for-agent; Execution: todo | [84-quick-keyboard-submit.md](issues/84-quick-keyboard-submit.md) |
@@ -67,6 +71,55 @@ overlapping state machines rather than an input-cost one.
 
 Suggested order: 84, 85 and 87 first — each is additive, cheap, and touches no write semantics.
 Then 86 and 88. Then 89 and 90, with 90 after 85 because the launcher shortcut is what makes
-cold-start capture a primary path. 91 needs an Astra ruling and may close as `wontfix`.
+cold-start capture a primary path. 91 is ruled inside 97 and closes as absorbed.
 
 No implementation, verification or acceptance is recorded for any of these tickets yet.
+
+## Article translation management follow-up — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 92 | Batch-manage and retranslate article translations | needs-triage; Execution: todo | [92-article-translation-bulk-management.md](issues/92-article-translation-bulk-management.md) |
+
+## Desktop workspace layout follow-up — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 93 | Use desktop workspace width more effectively | needs-triage; Execution: todo | [93-desktop-workspace-space-utilization.md](issues/93-desktop-workspace-space-utilization.md) |
+
+## Quick Diary button consistency follow-up — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 94 | Standardize button sizing across Quick Diary editing | needs-triage; Execution: todo | [94-quick-diary-button-consistency.md](issues/94-quick-diary-button-consistency.md) |
+
+## Dropdown layout density follow-up — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 95 | Reduce excess space in dropdown controls and lists | needs-triage; Execution: todo | [95-dropdown-layout-density.md](issues/95-dropdown-layout-density.md) |
+
+## Trading principles page redesign — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 96 | Rebuild the Trading principles page around reading, not managing | needs-triage; Execution: todo | [96-discipline-page-redesign.md](issues/96-discipline-page-redesign.md) |
+
+## Diary authoring redesign — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 97 | Redesign both diary authoring surfaces as one writing system | needs-triage; Execution: todo; covers /diaries/quick and /diaries/new; consumes 91 and 94 | [97-quick-composer-redesign.md](issues/97-quick-composer-redesign.md) |
+| 98 | Derive recent tag suggestions from saved diaries | needs-triage; Execution: todo | [98-recent-tags-from-saved-diaries.md](issues/98-recent-tags-from-saved-diaries.md) |
+| 99 | Redesign the Diary calendar around density and legible destinations | needs-triage; Execution: todo | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |
+
+The five findings the capture-cost review declined to file were re-evaluated on 2026-10-04 at the
+user's request. Upheld: the tag chip control, moving snippets to the server, and merging the two
+authoring routes. Overturned in part and folded into [97](issues/97-quick-composer-redesign.md):
+the submit lock (kept, but a submit arriving during the lookup is queued instead of swallowed,
+because [84](issues/84-quick-keyboard-submit.md) shipped `Cmd/Ctrl+Enter` after that ruling), the
+create/append `<select>` (kept, but stops offering the combination that can only 409), and tag
+entry (the chip control stays rejected; splitting on commas does not). Split out as its own
+ticket: recent tags, which are derived data and far cheaper than the snippets they were priced
+with. Reasoning is recorded in [97](issues/97-quick-composer-redesign.md) under
+"Re-evaluated exclusions".

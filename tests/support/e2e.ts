@@ -60,6 +60,23 @@ export async function selectLocale(page: Page, value: string) {
   await selectPreference(page, 'locale-select', 'mobile-locale-select', value);
 }
 
+export async function selectAccountLocale(page: Page, value: string) {
+  await expect(page.getByTestId('sign-out')).toBeAttached();
+  const current = await page.request.get('/api/user/settings');
+  expect(current.status()).toBe(200);
+  const currentLocale = (await current.json() as { settings: { locale: string } }).settings.locale;
+  const save = currentLocale === value ? null : page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/user/settings' && response.request().method() === 'PUT' && response.ok(),
+  );
+  await selectLocale(page, value);
+  if (save) await save;
+  await expect.poll(async () => {
+    const response = await page.request.get('/api/user/settings');
+    if (!response.ok()) return null;
+    return (await response.json() as { settings: { locale: string } }).settings.locale;
+  }).toBe(value);
+}
+
 export async function selectTheme(page: Page, value: string) {
   await selectPreference(page, 'theme-select', 'mobile-theme-select', value);
 }

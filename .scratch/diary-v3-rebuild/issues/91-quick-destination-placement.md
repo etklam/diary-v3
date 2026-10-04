@@ -1,7 +1,7 @@
 # [91] Revisit the destination summary sitting above Quick writing
 
-Status: needs-triage
-Execution: todo
+Status: ruled 2026-10-04 — write first; implementation absorbed by [97](97-quick-composer-redesign.md)
+Execution: todo (in 97)
 Published: 2026-10-04
 
 Type: design decision
@@ -16,8 +16,8 @@ summary", and its final acceptance records a passing 1440×900 and 390×844 conf
 complete textarea is in the first viewport with optional details collapsed. That acceptance is
 self-consistent and is not in dispute.
 
-Astra owns the layout decision. This ticket asks for a ruling, and should be closed as
-`wontfix` if the delivered arrangement is the intended one.
+The layout decision belongs to whoever implements the composer. This ticket asks for a ruling,
+and should be closed as `wontfix` if the delivered arrangement is the intended one.
 
 ## The observation
 
@@ -61,8 +61,29 @@ affordance, not decoration.
   `tests/e2e/diary-response-loss.spec.ts`. A capture-cost review rated that change high risk
   against a benefit of one saved glance.
 
+## Ruling — 2026-10-04
+
+**Write first.** The writing area leads the form; the destination becomes a summary line —
+date, create/append, and the existing-diary note — that expands to the current date input and
+save-mode `<select>`. The correctness affordance argued for above is preserved by keeping the
+existing-diary note in the collapsed summary, so an occupied date is still surfaced before the
+author commits words; what changes is that it stops occupying a section heading and two form
+controls ahead of the textarea.
+
+Every constraint recorded above holds: presentation only, `modeTouched`, the by-date lookup,
+the title lock and the uncertain-append protection untouched, both `data-testid` hooks
+preserved with their current meaning, and the `<select>` not removed.
+
+This does not close as `wontfix`. Execution is absorbed by
+[97](97-quick-composer-redesign.md) step 1, which carries the shared grid/gap untangling in
+`quick.css` as part of the same change set. This ticket stays as the record of the decision
+and the constraints it must respect.
+
 ## Comments
 
 Published 2026-10-04 from a capture-cost review of the two authoring paths. The review listed
 this as a refinement of delivered work rather than a defect, and recommended it be ruled on
 rather than scheduled — which is why it carries `needs-triage` instead of `ready-for-agent`.
+
+2026-10-04 ruling recorded above; the question this ticket escalated is settled and its
+implementation moves to [97](97-quick-composer-redesign.md).

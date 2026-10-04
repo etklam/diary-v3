@@ -91,3 +91,46 @@ this set and is not indexed above.
 | 89 — Suggest company symbols the account already tracks | Follow-up | ready-for-agent; Execution: todo | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
 | 90 — Remove the cold-start wait before the Quick Diary writing area | Follow-up | ready-for-agent; Execution: todo; blocked by 85 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
 | 91 — Revisit the destination summary sitting above Quick writing | Design decision | needs-triage; refines accepted work in 64 | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
+
+## Article translation management follow-up (92)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 92 — Batch-manage and retranslate article translations | Follow-up | needs-triage; Execution: todo | [92-article-translation-bulk-management.md](issues/92-article-translation-bulk-management.md) |
+
+## Desktop workspace layout follow-up (93)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 93 — Use desktop workspace width more effectively | Design follow-up | needs-triage; Execution: todo | [93-desktop-workspace-space-utilization.md](issues/93-desktop-workspace-space-utilization.md) |
+
+## Quick Diary button consistency follow-up (94)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 94 — Standardize button sizing across Quick Diary editing | Design follow-up | needs-triage; Execution: todo | [94-quick-diary-button-consistency.md](issues/94-quick-diary-button-consistency.md) |
+
+## Dropdown layout follow-up (95)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 95 — Correct dropdown layout and spacing across the app | Cross-cutting visual bug | needs-triage; Execution: todo | [95-dropdown-layout-density.md](issues/95-dropdown-layout-density.md) |
+
+## Trading principles page redesign (96)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 96 — Rebuild the Trading principles page around reading, not managing | Design follow-up | needs-triage; Execution: todo | [96-discipline-page-redesign.md](issues/96-discipline-page-redesign.md) |
+
+## Diary authoring redesign (97)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 97 — Redesign both diary authoring surfaces as one writing system | Design follow-up | needs-triage; Execution: todo; covers /diaries/quick and /diaries/new; consumes 91 and 94 | [97-quick-composer-redesign.md](issues/97-quick-composer-redesign.md) |
+| 98 — Derive recent tag suggestions from saved diaries | Follow-up | needs-triage; Execution: todo | [98-recent-tags-from-saved-diaries.md](issues/98-recent-tags-from-saved-diaries.md) |
+
+## Diary calendar redesign (99)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 99 — Redesign the Diary calendar around density and legible destinations | Design follow-up | needs-triage; Execution: todo | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |

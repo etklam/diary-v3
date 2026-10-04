@@ -1,4 +1,4 @@
-import { test, expect, selectLocale, selectTheme } from '../support/e2e';
+import { test, expect, selectAccountLocale, selectLocale, selectTheme } from '../support/e2e';
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   test(`register, sign in and persist a diary at ${viewport.width}px`, async ({ page }) => {
@@ -18,7 +18,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.getByLabel('Password', { exact: true }).fill('e2e-safe-password-123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/diaries\/new$/);
-    await selectLocale(page, 'en');
+    await selectAccountLocale(page, 'en');
     await page.getByLabel('Diary date', { exact: true }).fill('2026-09-05');
     await page.getByLabel('Title', { exact: true }).fill('Wait for evidence before increasing the position');
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The price moved, but the original thesis has not yet been confirmed.\nI will review the next earnings report before changing the position.');
@@ -39,15 +39,20 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);
     await page.goto('/design-preview');
+    await expect(page.getByTestId('sign-out')).toBeAttached();
     await page.screenshot({ path: `test-results/design-${viewport.width}.png`, fullPage: true });
     const quickTrigger = page.getByTestId('open-quick-diary');
     await quickTrigger.click();
     const dialog = page.getByTestId('quick-diary-dialog');
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel('Diary date', { exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();
     await expect(quickTrigger).toBeFocused();
     await quickTrigger.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveJSProperty('open', true);
+    await expect(dialog.getByLabel('Diary date', { exact: true })).toBeVisible();
     await dialog.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
     await dialog.getByLabel('Title', { exact: true }).fill('A question to revisit');
     await dialog.getByRole('textbox', { name: 'Content', exact: true }).fill('What would change my original view?');

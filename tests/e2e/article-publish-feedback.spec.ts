@@ -52,3 +52,33 @@ test('article management reports automatic translation admission warnings', asyn
   await expect(bulkFeedback).toContainText('Skipped translations are not queued automatically')
   await expect(bulkFeedback.getByRole('link', { name: `Bulk publish ${key}`, exact: true })).toHaveAttribute('href', `/admin/blog/${bulk.id}/edit`)
 })
+
+test('article management deletes selected articles after confirmation', async ({ page }) => {
+  const key = randomUUID()
+  expect((await page.request.post('/api/auth/login', { data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' } })).status()).toBe(200)
+  expect((await page.request.get('/api/auth/me')).status()).toBe(200)
+  const csrfToken = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')?.value ?? ''
+  const createDraft = async (title: string) => {
+    const response = await page.request.post('/api/blog', {
+      headers: { 'x-csrf-token': csrfToken },
+      data: { title, content: `Synthetic article body ${key}`, category: 'market', status: 'DRAFT', access: 'PUBLIC', sourceLocale: 'en' },
+    })
+    expect(response.status(), await response.text()).toBe(200)
+    return await response.json() as { id: string }
+  }
+  const first = await createDraft(`Bulk delete one ${key}`)
+  const second = await createDraft(`Bulk delete two ${key}`)
+  await page.goto('/admin/blog')
+  await selectLocale(page, 'en')
+
+  await page.getByRole('row').filter({ hasText: `Bulk delete one ${key}` }).getByRole('checkbox').check()
+  await page.getByRole('row').filter({ hasText: `Bulk delete two ${key}` }).getByRole('checkbox').check()
+  page.once('dialog', dialog => dialog.accept())
+  const deletion = page.waitForResponse(response => response.url().endsWith('/api/blog/admin/bulk-delete') && response.request().method() === 'POST')
+  await page.getByRole('button', { name: 'Delete selected', exact: true }).click()
+  expect((await deletion).status()).toBe(200)
+  await expect(page.getByRole('row').filter({ hasText: `Bulk delete one ${key}` })).toHaveCount(0)
+  await expect(page.getByRole('row').filter({ hasText: `Bulk delete two ${key}` })).toHaveCount(0)
+  expect((await page.request.get(`/api/blog/admin/${first.id}`)).status()).toBe(404)
+  expect((await page.request.get(`/api/blog/admin/${second.id}`)).status()).toBe(404)
+})

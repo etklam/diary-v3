@@ -22,38 +22,41 @@ async function account(page: Page) {
   return email;
 }
 
-test('password validation preserves masked inputs; changing password keeps this device signed in and requires the new password everywhere else', async ({ page, context }) => {
+test('password validation preserves masked inputs; changing password keeps this device signed in and requires the new password everywhere else', async ({ page, browser }) => {
   const email = await account(page);
-  const other = await context.newPage();
-  await other.goto('/diaries/new');
-  await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
-  const next = 'new-synthetic-security-password';
-  await page.getByLabel('Current password', { exact: true }).fill(password);
-  await page.getByLabel('New password', { exact: true }).fill(next);
-  await page.getByLabel('Confirm new password', { exact: true }).fill('mismatched-confirmation');
-  await page.getByRole('button', { name: 'Change password', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('do not match');
-  await expect(page.getByLabel('New password', { exact: true })).toHaveValue(next);
-  await expect(page.getByLabel('New password', { exact: true })).toHaveAttribute('type', 'password');
-  await page.getByLabel('Confirm new password', { exact: true }).fill(next);
-  const changed = page.waitForResponse(response => response.url().endsWith('/api/user/password'));
-  await page.getByRole('button', { name: 'Change password', exact: true }).click();
-  expect((await changed).status()).toBe(200);
-  await expect(page.getByRole('status')).toContainText('this one stays signed in');
-  await expect(page.getByLabel('Current password', { exact: true })).toHaveCount(0);
-  // This browser was re-issued a session, so its own open views keep working
-  // and a fresh private route still loads.
-  await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
-  await page.goto('/diaries/new');
-  await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
-  // Any device without those replacement credentials has to use the new password.
-  await context.clearCookies();
-  await login(page, email, password);
-  await expect(page.getByTestId('error-code')).toHaveText('AUTH_LOGIN_INVALID_CREDENTIALS');
-  await page.getByLabel('Password', { exact: true }).fill(next);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
-  await other.close();
+  const otherContext = await browser.newContext({ baseURL: new URL(page.url()).origin });
+  const other = await otherContext.newPage();
+  try {
+    await login(other, email);
+    await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+    const next = 'new-synthetic-security-password';
+    await page.getByLabel('Current password', { exact: true }).fill(password);
+    await page.getByLabel('New password', { exact: true }).fill(next);
+    await page.getByLabel('Confirm new password', { exact: true }).fill('mismatched-confirmation');
+    await page.getByRole('button', { name: 'Change password', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('do not match');
+    await expect(page.getByLabel('New password', { exact: true })).toHaveValue(next);
+    await expect(page.getByLabel('New password', { exact: true })).toHaveAttribute('type', 'password');
+    await page.getByLabel('Confirm new password', { exact: true }).fill(next);
+    const changed = page.waitForResponse(response => response.url().endsWith('/api/user/password'));
+    await page.getByRole('button', { name: 'Change password', exact: true }).click();
+    expect((await changed).status()).toBe(200);
+    await expect(page.getByRole('status')).toContainText('this one stays signed in');
+    await expect(page.getByLabel('Current password', { exact: true })).toHaveCount(0);
+    // The device that changed the password keeps the replacement session.
+    await page.goto('/diaries/new');
+    await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
+    // A separate browser context represents another device and keeps its revoked cookies.
+    await other.goto('/diaries/new');
+    await expect(other.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+    await login(other, email, password);
+    await expect(other.getByTestId('error-code')).toHaveText('AUTH_LOGIN_INVALID_CREDENTIALS');
+    await other.getByLabel('Password', { exact: true }).fill(next);
+    await other.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+  } finally {
+    await otherContext.close();
+  }
 });
 
 test('wrong current password preserves the form; all-device logout clears the form and private tabs', async ({ page, context }) => {

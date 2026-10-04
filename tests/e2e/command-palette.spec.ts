@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, selectLocale } from '../support/e2e'
+import { expect, test, selectAccountLocale, selectLocale } from '../support/e2e'
 
 const password = 'synthetic-command-palette-password'
 
@@ -11,7 +11,7 @@ async function signIn(page: import('@playwright/test').Page, email: string) {
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/timeline$/)
-  await selectLocale(page, 'en')
+  await selectAccountLocale(page, 'en')
 }
 
 /** The diary library's full-text search, reachable from any route. */
@@ -32,7 +32,15 @@ test('command palette searches diary text, reaches sidebar-less routes and opens
   }
 
   // Opened from a route that is not the diary library: that is the point.
+  const authenticatedSession = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200,
+  )
   await page.goto('/stocks')
+  await authenticatedSession
+  await expect(page.getByTestId('sign-out')).toBeAttached()
+  await expect(page.getByTestId('command-palette-trigger')).toBeVisible()
+  await expect(page.locator('dialog.palette-dialog')).toBeAttached()
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Search', exact: true })
   await expect(palette).toBeVisible()

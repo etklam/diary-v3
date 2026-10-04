@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { test, expect } from '../support/e2e'
 import { aiMutation, configureSyntheticAi, gotoAiPage, registerAiOwner } from '../support/ai-e2e'
 
+const slowTestDatabase = process.env.REMOTE_TEST_DB === '1'
+const workerWaitMs = slowTestDatabase ? 30_000 : 5_000
+const reportTextWaitMs = slowTestDatabase ? 45_000 : 15_000
+
 test('synthetic browser server dispatches a persisted report once and replays the same submission', async ({ page, browser }) => {
   const admin = await configureSyntheticAi(browser)
   try {
@@ -25,7 +29,7 @@ test('synthetic browser server dispatches a persisted report once and replays th
     const generated = await generate()
     expect(generated.status()).toBe(202)
     const report = (await generated.json()).data
-    await expect.poll(async () => (await (await page.request.get(`/api/ai/reports/${report.id}`)).json()).status).toBe('succeeded')
+    await expect.poll(async () => (await (await page.request.get(`/api/ai/reports/${report.id}`)).json()).status, { timeout: workerWaitMs }).toBe('succeeded')
     expect((await (await generate()).json()).data.id).toBe(report.id)
     const detail = await (await page.request.get(`/api/ai/reports/${report.id}`)).json()
     expect(detail.analysis.limitations).toContain('Synthetic browser fixture; no investment advice.')
@@ -61,7 +65,7 @@ test('AI report UI requires explicit consent and generation, survives refresh, a
     await page.getByTestId('ai-consent-accept').click()
     await expect(page.getByTestId('ai-generate')).toBeEnabled()
     await page.getByTestId('ai-generate').click()
-    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: 15_000 })
+    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: reportTextWaitMs })
     expect(generations).toHaveLength(1)
     await expect(page.locator('.ai-quota')).toContainText('9 of 10')
     const inclusiveEnd = new Date(`${owner.periodStart}T00:00:00Z`)
@@ -118,14 +122,18 @@ for (const failure of ['connectionreset', 'server-error'] as const) test(`AI UI 
         else await route.fulfill({ status: 503, json: { error: 'Synthetic response lost after acceptance' } })
       } else await route.continue()
     })
+    const failedSubmission = failure === 'connectionreset'
+      ? page.waitForEvent('requestfailed', request => new URL(request.url()).pathname === '/api/ai/reports' && request.method() === 'POST')
+      : page.waitForResponse(response => new URL(response.url()).pathname === '/api/ai/reports' && response.request().method() === 'POST' && response.status() === 503)
     await page.getByTestId('ai-generate').click()
+    await failedSubmission
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(page.getByTestId('ai-period-select')).toBeDisabled()
     await expect(page.getByTestId('ai-preview')).toBeDisabled()
     await selectLocale(page, 'zh-TW')
     await expect(page.getByTestId('ai-generate')).toBeEnabled()
     await page.getByTestId('ai-generate').click()
-    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: 15_000 })
+    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: reportTextWaitMs })
     expect(keys).toHaveLength(2)
     expect(keys[0]).toBeTruthy()
     expect(keys[1]).toBe(keys[0])
@@ -178,8 +186,10 @@ test('AI admin UI saves, tests and publishes current revisions without reading b
     await prompt.getByRole('button', { name: 'Save draft', exact: true }).click()
     await expect(prompt.getByRole('heading', { level: 3 })).toContainText('Draft')
     page.once('dialog', dialog => dialog.accept())
+    const promptTestResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/admin/ai/prompts/weekly/test' && response.request().method() === 'POST')
     await prompt.getByRole('button', { name: 'Paid test (synthetic data)', exact: true }).click()
-    await expect(page.getByTestId('admin-ai-prompt-test-weekly')).toContainText('summary')
+    expect((await promptTestResponse).status()).toBe(200)
+    await expect(page.getByTestId('admin-ai-prompt-test-weekly')).toContainText('summary', { timeout: reportTextWaitMs })
     page.once('dialog', dialog => dialog.accept())
     await prompt.getByRole('button', { name: 'Publish new version', exact: true }).click()
     await expect(prompt.getByRole('heading', { level: 3 })).toContainText('Published')
@@ -243,7 +253,7 @@ test('changing interface locale discards a late preview before generation', asyn
     const submitted = page.waitForRequest(request => new URL(request.url()).pathname === '/api/ai/reports' && request.method() === 'POST')
     await page.getByTestId('ai-generate').click()
     expect((await submitted).postDataJSON().locale).toBe('zh-TW')
-    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: 15_000 })
+    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: reportTextWaitMs })
   } finally { release(); await admin.close() }
 })
 
@@ -262,7 +272,7 @@ test('monthly reports remain readable after consent withdrawal and can be delete
     await page.getByTestId('ai-consent-accept').click()
     await expect(page.getByTestId('ai-generate')).toBeEnabled()
     await page.getByTestId('ai-generate').click()
-    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: 15_000 })
+    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: reportTextWaitMs })
     await expect(page.locator('.ai-report-header h2')).toContainText(`${monthStart.slice(0, 7)} · Monthly`)
     const reports = await (await page.request.get('/api/ai/reports')).json()
     expect(reports.data).toHaveLength(1)
@@ -347,7 +357,7 @@ test('a preview for a newly published recipient requires its current disclosure 
     await page.getByTestId('ai-consent-accept').click()
     await expect(page.getByTestId('ai-generate')).toBeEnabled()
     await page.getByTestId('ai-generate').click()
-    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: 15_000 })
+    await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision', { timeout: reportTextWaitMs })
   } finally { await admin.close() }
 })
 

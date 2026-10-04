@@ -320,5 +320,30 @@ test('filters, sorts and exports the current rows only', async ({ page, context 
   const localizedPng = await localizedPngDownload;
   expect(localizedPng.suggestedFilename()).toMatch(/\.png$/);
   await localizedPng.saveAs('docs/design/evidence/market-rotation/export-zh-TW.png');
+
+  await selectLocale(page, 'en');
+  await filter.selectOption('below_50d');
+  await expect(page.getByTestId('rotation-row')).toHaveCount(0);
+  await expect(page.getByText('No rows match this filter.', { exact: true })).toBeVisible();
+
+  const emptyCsvDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download CSV', exact: true }).click();
+  const emptyCsvPath = await (await emptyCsvDownload).path();
+  const emptyCsv = await readFile(emptyCsvPath!, 'utf8');
+  expect(emptyCsv).toContain('Symbol');
+  expect(emptyCsv).not.toContain('XLK');
+  expect(emptyCsv).not.toContain('XLF');
+  expect(emptyCsv).not.toContain('XLE');
+
+  await page.getByRole('button', { name: 'Copy table', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('No rows to copy. The current table is empty.');
+
+  const emptyPngDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download PNG', exact: true }).click();
+  const emptyPngPath = await (await emptyPngDownload).path();
+  const emptyPng = await readFile(emptyPngPath!);
+  expect(emptyPng.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  expect(emptyPng.readUInt32BE(16)).toBeGreaterThan(0);
+  expect(emptyPng.readUInt32BE(20)).toBeGreaterThan(0);
   expect(monitorCalls).toBe(1);
 });

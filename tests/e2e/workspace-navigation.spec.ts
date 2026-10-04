@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, selectLocale, selectTheme } from '../support/e2e'
+import { expect, test, selectAccountLocale, selectLocale, selectTheme } from '../support/e2e'
 
 const password = 'synthetic-workspace-navigation-password'
 
@@ -13,7 +13,7 @@ async function signIn(page: import('@playwright/test').Page, email: string) {
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/timeline$/)
-  await selectLocale(page, 'en')
+  await selectAccountLocale(page, 'en')
 }
 
 test('desktop workspace navigation keeps capture direct, keyboard capture independent and routes ordinary', async ({ page }) => {
@@ -218,7 +218,7 @@ test('mobile bottom navigation carries the whole diary loop without covering con
     ['en', ['Capture', 'Library', 'Timeline', 'Calendar', 'Reviews']],
   ] as const) {
     await page.setViewportSize({ width: 320, height: 640 })
-    await selectLocale(page, locale)
+    await selectAccountLocale(page, locale)
     await expect(diaryNavigation.locator('a > span:last-child')).toHaveText([...labels])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
@@ -230,12 +230,15 @@ test('mobile bottom navigation carries the whole diary loop without covering con
   await selectTheme(page, 'light')
 
   await page.goto('/')
-  await trigger.press('Enter')
+  await expect(diaryNavigation).toBeVisible()
+  await trigger.click()
+  await expect(dialog).toBeVisible()
   await dialog.getByRole('link', { name: 'Settings', exact: true }).click()
   await expect(page).toHaveURL(/\/settings$/)
 
   await page.goto('/')
-  await trigger.press('Enter')
+  await expect(diaryNavigation).toBeVisible()
+  await trigger.click()
   await expect(dialog).toBeVisible()
   await page.screenshot({ path: 'docs/design/evidence/navigation/mobile-drawer-390.png', fullPage: true })
   await dialog.getByRole('link', { name: 'Tools', exact: true }).click()
@@ -247,7 +250,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await page.setViewportSize({ width: 1440, height: 900 })
   expect((await page.request.post('/api/auth/login', { data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' } })).status()).toBe(200)
   await page.goto('/admin/blog/new')
-  await selectLocale(page, 'en')
+  await selectAccountLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
   await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
   await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'Research Studio', 'ETF catalog', 'Mail settings'])

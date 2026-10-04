@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuickOptions, selectLocale, selectTheme, signOut, test } from '../support/e2e'
+import { expect, openQuickOptions, selectAccountLocale, selectLocale, selectTheme, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-research-handoff-password'
 const captureDate = '2026-09-12'
@@ -49,7 +49,7 @@ async function signIn(page: Page, email: string, returnPath = '/diaries/new', ac
   await page.getByLabel('Password', { exact: true }).fill(accountPassword)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`${returnPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`))
-  await selectLocale(page, 'en')
+  await selectAccountLocale(page, 'en')
 }
 
 async function startAccount(page: Page, returnPath = '/diaries/new') {
@@ -97,7 +97,7 @@ function captureNotice(page: Page) {
 }
 
 function contextInput(page: Page) {
-  return page.getByRole('textbox', { name: 'Company context', exact: true })
+  return page.getByRole('combobox', { name: 'Company context', exact: true })
 }
 
 async function openCompanyAndAssertCapture(page: Page) {
@@ -413,7 +413,9 @@ test('guest Company capture preserves context through registration and login wit
   await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
   expect(await diaryTotal(page)).toBe(0)
 
+  const logout = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/logout' && response.request().method() === 'POST' && response.ok())
   await signOut(page)
+  await logout
   await page.goto('/stocks/NVDA')
   await page.getByRole('link', { name: 'Record a thought', exact: true }).click()
   await expect(page).toHaveURL('/diaries/quick?symbol=NVDA&source=company')
@@ -493,7 +495,9 @@ test('explicit cross-tab logout clears the Quick draft and isolates the next acc
   const other = await context.newPage()
   await other.goto(quickPath())
   await expect(other.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible()
+  const logout = other.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/logout' && response.ok())
   await signOut(other)
+  await logout
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-quick-draft:')).length)).toBe(0)
   await expect(page).toHaveURL(/\/login\?returnTo=/)
   await other.close()

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { expect, test, selectLocale, selectTheme } from '../support/e2e';
+import { expect, test, selectAccountLocale, selectLocale, selectTheme } from '../support/e2e';
 
 const password = 'synthetic-discovery-password';
 
@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectLocale(page, 'en');
+  await selectAccountLocale(page, 'en');
 }
 
 async function seed(page: Page, entries: Seed[]) {
@@ -247,17 +247,21 @@ test('scale: bounded pagination stays fast and requests stay batched at 120 diar
   await signIn(page, `discovery-scale-${randomUUID()}@example.test`);
   const symbols = ['NVDA', 'AAPL', 'MSFT', 'TSLA'];
   const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  for (let index = 0; index < 120; index++) {
-    expect((await page.request.post('/api/diaries', {
-      headers: { 'x-csrf-token': csrf },
-      data: {
-        date: new Date(Date.UTC(2026, 0, 1 + index)).toISOString().slice(0, 10),
-        title: `Scale diary ${index + 1} ${index % 3 === 0 ? '規模測試' : 'position'}`,
-        content: `Entry ${index + 1}. `.repeat(10),
-        stockSymbols: index % 7 === 0 ? [symbols[index % symbols.length]!] : undefined,
-        tags: index % 5 === 0 ? ['research'] : [],
-      },
-    })).status()).toBe(201);
+  for (let start = 0; start < 120; start += 12) {
+    const responses = await Promise.all(Array.from({ length: 12 }, (_, offset) => {
+      const index = start + offset;
+      return page.request.post('/api/diaries', {
+        headers: { 'x-csrf-token': csrf },
+        data: {
+          date: new Date(Date.UTC(2026, 0, 1 + index)).toISOString().slice(0, 10),
+          title: `Scale diary ${index + 1} ${index % 3 === 0 ? '規模測試' : 'position'}`,
+          content: `Entry ${index + 1}. `.repeat(10),
+          stockSymbols: index % 7 === 0 ? [symbols[index % symbols.length]!] : undefined,
+          tags: index % 5 === 0 ? ['research'] : [],
+        },
+      });
+    }));
+    for (const response of responses) expect(response.status()).toBe(201);
   }
   const listRequests: string[] = [];
   // The library pages through /api/diaries/summary; the merged timeline pages

@@ -14,6 +14,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  timeout: remoteDb ? 90_000 : 30_000,
+  expect: { timeout: remoteDb ? 20_000 : 5_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { ...(process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? { channel: 'chrome' } : {}), baseURL: e2eBaseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   webServer: [

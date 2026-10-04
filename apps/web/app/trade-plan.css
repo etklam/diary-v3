@@ -466,33 +466,35 @@
   .plan-actions { position: static; }
 }
 
-/* ---- Discipline page: a quieter, more formal reading surface ---- */
+/* ---- Discipline page: a reading surface for your own rules ---- */
 
+/* The documented reading/editor measure; the page is read far more often than
+   it is managed, so it stays bounded instead of spanning the data width. */
 .discipline-page {
-  max-width: 720px;
+  max-width: 880px;
 }
 
-.discipline-page h1 {
-  margin-bottom: var(--space-3);
-  font-size: 1.75rem;
-  letter-spacing: 0.02em;
-  text-align: center;
+.discipline-header {
+  align-items: baseline;
 }
 
-.discipline-page > .lede {
-  margin-inline: auto;
-  text-align: center;
+.discipline-count {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
 }
 
-.discipline-page > h2 {
-  margin-top: var(--space-8);
-  letter-spacing: 0.02em;
-  text-align: center;
+.discipline-status:empty {
+  display: none;
 }
 
-/* The principle text is the content of this page; give it a serif voice and real weight. */
+/* The principle text is the content of this page. DESIGN.md sanctions the serif
+   voice here as well as on the trade-plan notes: both are authored sentences a
+   person re-reads, not working figures. */
 .discipline-sentence {
   margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   font-family: var(--font-serif);
   font-size: 1.25rem;
   font-weight: 600;
@@ -506,63 +508,230 @@
   counter-reset: principle;
 }
 
-.discipline-list li {
-  padding: var(--space-6) 0;
+.discipline-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-4);
+  align-items: start;
+  padding: var(--space-5) 0;
   border-top: 1px solid var(--border);
   counter-increment: principle;
 }
 
-.discipline-list li::before {
+.discipline-row::before {
   content: counter(principle, decimal-leading-zero);
-  display: block;
-  margin-bottom: var(--space-2);
+  grid-column: 1 / -1;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
+/* Row controls are quiet by rule: they must never outweigh the sentence. */
+.discipline-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.discipline-icon-button {
+  padding: 6px;
+  min-width: 36px;
+  justify-content: center;
+}
+
+.discipline-row-editing {
+  background: var(--surface-sunken);
+}
+
+.discipline-edit,
+.discipline-edit fieldset {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.discipline-edit textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.discipline-edit .actions {
+  margin-top: var(--space-3);
+}
+
 .discipline-meta {
   margin: var(--space-2) 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
+}
+
+.discipline-locked,
+.discipline-counter {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.discipline-shortcut {
+  align-self: center;
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .discipline-draw-button {
-  display: flex;
-  width: fit-content;
-  margin: var(--space-6) auto 0;
+  margin-top: var(--space-5);
 }
 
-/* The drawn principle: a centered reading card. */
+/* The drawn principle: a sunken well bounded by a hairline. It is in-page
+   content, so it carries no elevation. */
 .discipline-draw {
   margin: var(--space-5) 0 var(--space-6);
-  padding: var(--space-8) var(--space-6);
-  border: 1px solid var(--border-strong);
+  padding: var(--space-6);
+  border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
-  text-align: center;
-}
-
-.discipline-draw::before {
-  content: '';
-  display: block;
-  width: 48px;
-  height: 1px;
-  margin: 0 auto var(--space-5);
-  background: var(--border-strong);
+  background: var(--surface-sunken);
 }
 
 .discipline-draw-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin: 0 0 var(--space-3);
   color: var(--muted);
   font-size: var(--text-xs);
+}
+
+.discipline-draw-number {
+  color: var(--text);
+  font-family: var(--font-mono);
 }
 
 .discipline-draw .discipline-sentence {
   font-size: 1.375rem;
 }
 
+.discipline-draw .actions {
+  margin-top: var(--space-5);
+}
+
+.discipline-example,
+.discipline-doomed {
+  margin: 0;
+}
+
+.discipline-example q,
+.discipline-doomed q {
+  font-family: var(--font-serif);
+  font-style: normal;
+}
+
+.discipline-add {
+  margin-top: var(--space-6);
+}
+
+/* Import and share: used rarely, so it stays behind a disclosure and splits
+   the two opposite directions into their own ruled regions. */
+.discipline-transfer {
+  margin-top: var(--space-10);
+  border-top: 1px solid var(--border-strong);
+  padding-top: var(--space-4);
+}
+
+.discipline-transfer > summary {
+  font-weight: 600;
+}
+
+.discipline-transfer-body {
+  margin-top: var(--space-6);
+}
+
+.discipline-transfer fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.discipline-fields {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* Label and control are associated with for/id rather than nesting, so an
+   assistive name never absorbs the field value; this div restores the stacking. */
+.discipline-field,
+.discipline-fields label {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.discipline-field > textarea,
+.discipline-field > input:not([type='checkbox']),
+.discipline-field > select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.discipline-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+
+.discipline-checkbox input {
+  width: var(--space-5);
+  height: var(--space-5);
+  min-height: var(--space-5);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.discipline-preview li {
+  overflow-wrap: anywhere;
+}
+
+.discipline-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.discipline-link-row label {
+  flex: 1 1 18rem;
+}
+
+@media (min-width: 768px) {
+  .discipline-row::before {
+    grid-column: auto;
+    grid-row: 1;
+    padding-top: 4px;
+  }
+
+  .discipline-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .discipline-edit,
+  .discipline-edit fieldset {
+    grid-column: 2 / -1;
+  }
+}
+
 @media (max-width: 767px) {
+  .discipline-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .discipline-row-actions {
+    justify-content: flex-start;
+  }
+
   .discipline-sentence {
     font-size: 1.125rem;
   }

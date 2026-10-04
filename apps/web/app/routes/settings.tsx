@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
@@ -23,18 +23,23 @@ export default function Settings() {
   const [failure,setFailure] = useState<Failure|null>(null);
   const [pending,setPending] = useState(false);
   const [saved,setSaved] = useState(false);
+  const settingsLoad = useRef<AbortController|null>(null);
   async function load() {
+    settingsLoad.current?.abort();
+    const controller = new AbortController();
+    settingsLoad.current = controller;
     setAuth('loading');
     try {
-      const result = await api.GET('/api/user/settings');
+      const result = await api.GET('/api/user/settings',{signal:controller.signal});
+      if (controller.signal.aborted) return;
       if (result.response.ok && result.data) {
         const settings = result.data.settings;
         setForm({ ...settings, name:settings.name??'', expectedMonthlyTrades:String(settings.expectedMonthlyTrades) });
         setAuth('ready');
       } else setAuth(result.response.status===401?'unauthorized':'error');
-    } catch { setAuth('error'); }
+    } catch { if (!controller.signal.aborted) setAuth('error'); }
   }
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{void load();return()=>{settingsLoad.current?.abort();};},[]);
   function update<K extends keyof FormValues>(key:K,value:FormValues[K]) {
     setForm(current=>current?{...current,[key]:value}:current); setSaved(false);
   }

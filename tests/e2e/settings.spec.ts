@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { test, expect, selectAccountLocale, selectLocale, selectTheme, signOut } from '../support/e2e';
 test.use({timezoneId:'America/Los_Angeles'});
 const password='synthetic-preferences-password';
 async function account(page:Page) {
@@ -12,7 +12,7 @@ async function account(page:Page) {
   await page.getByLabel('Password',{exact:true}).fill(password);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
   await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectLocale(page, 'en');
+  await selectAccountLocale(page, 'en');
   await expect(page.locator('html')).toHaveAttribute('lang','en');
   await page.goto('/settings');
   await expect(page.getByLabel('Name',{exact:true})).toBeVisible();
@@ -101,7 +101,10 @@ test('invalid timezone keeps unsaved values and marks the field; saved settings 
   await account(page);
   await page.getByLabel('Name',{exact:true}).fill('Unsaved preference');
   await page.getByLabel('Date timezone',{exact:true}).fill('Unknown/Timezone');
+  await expect(page.getByLabel('Name',{exact:true})).toHaveValue('Unsaved preference');
+  const rejected = page.waitForResponse(response=>new URL(response.url()).pathname==='/api/user/settings'&&response.request().method()==='PUT');
   await page.getByRole('button',{name:'Save preferences',exact:true}).click();
+  expect((await rejected).status()).toBe(400);
   await expect(page.getByTestId('error-code')).toHaveText('SYS_VALIDATION_ERROR');
   await expect(page.getByLabel('Date timezone',{exact:true})).toHaveAttribute('aria-invalid','true');
   await expect(page.getByLabel('Name',{exact:true})).toHaveValue('Unsaved preference');

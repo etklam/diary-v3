@@ -314,6 +314,10 @@ button.danger-button:disabled {
   background: var(--surface);
 }
 
+button.quiet-button:disabled {
+  background: transparent;
+}
+
 /* Compact action for toolbars and inline rows; still a 36px touch target. */
 .button-compact {
   min-height: 36px;

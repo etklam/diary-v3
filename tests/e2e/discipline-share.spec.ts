@@ -1,5 +1,10 @@
 import { e2eBaseURL, test, expect, selectLocale, selectTheme } from '../support/e2e';
 import { createDisciplineShare, disciplineShareUrl } from '@diary/contracts/discipline-share';
+/** Import and share sit behind a collapsed disclosure; open it before using either direction. */
+async function openTransfer(page: import('@playwright/test').Page) {
+ const details = page.getByRole('region', { name: 'Import and share', exact: true }).locator('details');
+ if (await details.evaluate(node => !(node as HTMLDetailsElement).open)) await details.locator('summary').click();
+}
 test('public discipline share renders without JavaScript and safely exposes OG metadata', async ({ browser, request }) => {
  const share = createDisciplineShare([{ content: '原則 😀 <script>unsafe()</script> & risk', order: 0 }], { title: '公開原則 & <標題>', author: '作者'.repeat(30), description: 'Shared intentionally' }, '2026-01-01T00:00:00Z');
  const url = disciplineShareUrl(share, e2eBaseURL);
@@ -32,6 +37,7 @@ test('file preview imports and exported download roundtrips into public sharing'
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const source = createDisciplineShare([{ content: '紀律 😀 & risk', order: 0 }, { content: 'Second principle', order: 1 }], {}, '2026-01-01T00:00:00Z');
+ await openTransfer(page);
  await page.getByLabel('Choose JSON file').setInputFiles({ name: 'principles.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
  await expect(page.getByRole('heading', { name: 'Principles to import: 2', exact: true })).toBeVisible();
  await expect(page.getByTestId('principle')).toHaveCount(0);
@@ -43,14 +49,19 @@ test('file preview imports and exported download roundtrips into public sharing'
  const stream = await file.createReadStream(); const chunks = []; for await (const chunk of stream!) chunks.push(chunk); const exported = JSON.parse(Buffer.concat(chunks).toString('utf8'));
  expect(exported.disciplines.map((row: { content: string }) => row.content)).toEqual(source.disciplines.map(row => row.content)); expect(exported.author).toBe('Anonymous');
  await page.getByTestId('principle').first().getByRole('button', { name: 'Edit', exact: true }).click();
- await page.getByLabel('Principle', { exact: true }).fill('Updated after first export'); await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+ await page.getByTestId('principle').first().getByRole('textbox', { name: 'Edit principle 01', exact: true }).fill('Updated after first export');
+ await page.getByTestId('principle').first().getByRole('button', { name: 'Save changes', exact: true }).click();
  await expect(page.getByTestId('principle').first()).toContainText('Updated after first export');
  await expect(page.getByLabel('Public share link', { exact: true })).toHaveCount(0);
  await page.getByRole('button', { name: 'Prepare export', exact: true }).click(); await expect(page.getByLabel('Public share link', { exact: true })).toBeVisible();
  const link = await page.getByLabel('Public share link', { exact: true }).inputValue(); await page.goto(link); await expect(page.getByRole('heading', { name: 'Shared risk rules', exact: true })).toBeVisible(); await expect(page.locator('article li').first()).toHaveText('Updated after first export');
  await page.getByRole('link', { name: 'Preview import', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Principles to import: 2', exact: true })).toBeVisible();
- await page.getByRole('combobox', { name: 'Import and share', exact: true }).selectOption('replace');
- page.once('dialog', dialog => dialog.accept()); await page.getByRole('button', { name: 'Import principles', exact: true }).click(); await expect(page.getByTestId('principle')).toHaveCount(2); await expect(page).toHaveURL(/\/discipline$/);
+ await page.getByRole('combobox', { name: 'Import mode', exact: true }).selectOption('replace');
+ await page.getByRole('button', { name: 'Import principles', exact: true }).click();
+ const replace = page.getByRole('dialog', { name: 'Replace every stored principle?', exact: true });
+ await expect(replace).toContainText('This cannot be undone.');
+ await replace.getByRole('button', { name: 'Replace all', exact: true }).click();
+ await expect(page.getByTestId('principle')).toHaveCount(2); await expect(page).toHaveURL(/\/discipline$/);
 });
 
 test('a lost import response reconciles committed rows without duplicating a retry', async ({ page }) => {
@@ -60,6 +71,7 @@ test('a lost import response reconciles committed rows without duplicating a ret
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/discipline$/); await selectLocale(page, 'en');
  const source = createDisciplineShare([{ content: 'Commit before the response arrives', order: 0 }, { content: 'Keep the recovery path explicit', order: 1 }], {}, '2026-01-01T00:00:00Z');
+ await openTransfer(page);
  await page.getByLabel('Choose JSON file').setInputFiles({ name: 'uncertain.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) });
  await expect(page.getByRole('heading', { name: 'Principles to import: 2', exact: true })).toBeVisible();
  let dropped = false;
@@ -86,7 +98,10 @@ test('guest import survives sign-in and changing locale preserves edited preview
  await selectLocale(page, 'en'); await expect(page.getByRole('heading', { name: 'Principles to import: 1', exact: true })).toBeVisible();
  const changed = JSON.stringify({ ...source, disciplines: [{ content: 'Edited before import', order: 0 }] });
  await page.getByLabel('Share JSON', { exact: true }).fill(changed);
- page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Diary library', exact: true }).click(); await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
+ await page.getByRole('link', { name: 'Diary library', exact: true }).click();
+ const discard = page.getByRole('dialog', { name: 'Discard your unsaved principle?', exact: true });
+ await expect(discard).toBeVisible(); await discard.getByRole('button', { name: 'Keep writing', exact: true }).click();
+ await expect(page).toHaveURL(/\/discipline\?import=/); await expect(page.getByLabel('Share JSON', { exact: true })).toHaveValue(changed);
  await selectLocale(page, 'zh-TW'); await expect(page.getByLabel('分享 JSON', { exact: true })).toHaveValue(changed);
  await page.getByRole('button', { name: '預覽匯入', exact: true }).click(); await page.getByRole('button', { name: '匯入紀律', exact: true }).click();
  await expect(page.getByTestId('principle')).toHaveText(/Edited before import/); await expect(page).toHaveURL(/\/discipline$/);
@@ -121,6 +136,7 @@ for (const width of [1440, 390]) test(`sharing remains readable and clipboard de
  await page.request.post('/api/discipline', { headers, data: { content: 'Review the original evidence before increasing risk. 原則與理由。' } });
  await page.reload();
  if (width === 390) await selectTheme(page, 'dark');
+ await openTransfer(page);
  await page.getByLabel('Share title', { exact: true }).fill('Principles for the next decision'); await page.getByRole('button', { name: 'Prepare export', exact: true }).click();
  const link = page.getByLabel('Public share link', { exact: true }); await expect(link).toBeVisible(); const url = await link.inputValue();
  await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new DOMException('Synthetic denial', 'NotAllowedError'); } } }); });

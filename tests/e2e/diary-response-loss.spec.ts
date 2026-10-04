@@ -1,13 +1,17 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect, selectLocale } from '../support/e2e'
+import { test, expect, selectAccountLocale } from '../support/e2e'
 
 test('Diary create can retry when the write fails before commit', async ({ page }) => {
   const email = `diary-precommit-loss-${randomUUID()}@example.test`
   const password = 'synthetic-diary-precommit-loss-password'
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
   expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
+  const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200)
+  const settingsReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200)
   await page.goto('/diaries/new')
-  await selectLocale(page, 'en')
+  await Promise.all([sessionReady, settingsReady])
+  await selectAccountLocale(page, 'en')
+  await expect(page.getByTestId('locale-select')).toHaveValue('en')
   await page.getByLabel('Diary date', { exact: true }).fill('2026-09-09')
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Precommit retry')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The first write never reaches the API.')
@@ -32,8 +36,12 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 
+  const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200)
+  const settingsReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200)
   await page.goto('/diaries/new')
-  await selectLocale(page, 'en')
+  await Promise.all([sessionReady, settingsReady])
+  await selectAccountLocale(page, 'en')
+  await expect(page.getByTestId('locale-select')).toHaveValue('en')
   await page.getByLabel('Diary date', { exact: true }).fill(createDate)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('  Response loss create  ')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The committed create must be reconciled.')
