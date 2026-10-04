@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuickDestination, openQuickOptions, selectLocale, signOut, test } from '../support/e2e'
+import { expect, openQuickDestination, openQuickOptions, selectAccountLocale, selectLocale, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-quick-authoring-follow-up-password'
 const evidenceDir = 'docs/design/evidence/convenience-follow-up'
@@ -379,4 +379,39 @@ test('tag suggestions follow the account to a device that never wrote a diary', 
   } finally {
     await fresh.close()
   }
+})
+
+test('a shared link, title and excerpt arrive in the Quick writing area', async ({ page }) => {
+  const email = `quick-share-target-${randomUUID()}@example.test`
+  await register(page, email)
+  // Signed out first: the share must survive the sign-in return path.
+  const shared = `/diaries/quick?title=${encodeURIComponent('Filing summary')}&text=${encodeURIComponent('Revenue grew without new debt.')}&url=${encodeURIComponent('https://example.test/filing')}`
+  await page.context().clearCookies()
+  await page.goto(shared)
+  await selectLocale(page, 'en')
+  await page.getByRole('link', { name: 'Sign in', exact: true }).first().click()
+  await expect(page).toHaveURL(/\/login\?returnTo=/)
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/quick\?/)
+  await selectAccountLocale(page, 'en')
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  await expect(content).toHaveValue('Filing summary\nhttps://example.test/filing\n\nRevenue grew without new debt.')
+
+  // The author's own reaction is what the diary is for; both are saved.
+  await content.fill(`${await content.inputValue()}\n\nMy reaction: wait for the next quarter.`)
+  await page.getByRole('button', { name: 'Create diary', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const href = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  const saved = await readDiary(page, href!.split('/').at(-1)!)
+  expect(saved.content).toContain('https://example.test/filing')
+  expect(saved.content).toContain('My reaction: wait for the next quarter.')
+
+  // A hostile or empty share degrades to an ordinary empty capture.
+  await page.goto(`/diaries/quick?url=${encodeURIComponent('javascript:alert(1)')}&date=2026-10-30`)
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
+  await openQuickDestination(page)
+  await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-10-30')
 })

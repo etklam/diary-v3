@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   CAPTURE_QUERY_MAX_LENGTH,
+  CAPTURE_SHARE_LIMITS,
+  CAPTURE_SHARE_QUERY_MAX_LENGTH,
   buildCapturePath,
   buildCompanyPath,
+  composeSharedContent,
   parseCaptureContext,
   safeCaptureReturnPath,
 } from '../../apps/web/app/capture-context';
@@ -58,5 +61,50 @@ describe('research diary capture context', () => {
     expect(safeCaptureReturnPath('/diaries/quick?symbol=NVDA&source=company#unsafe')).toBeNull();
     expect(safeCaptureReturnPath('/diaries/quick?symbol=NVDA&source=company\n')).toBeNull();
     expect(safeCaptureReturnPath('/diaries/quick?symbol=%E0%A4%A&source=company')).toBeNull();
+  });
+});
+
+describe('web share target handoff', () => {
+  it('accepts a shared title, text and url and composes one plain-text seed', () => {
+    const parsed = parseCaptureContext('?title=Filing+summary&text=Revenue+grew&url=https%3A%2F%2Fexample.test%2Ffiling');
+    expect(parsed).toEqual({
+      context: null,
+      share: { title: 'Filing summary', text: 'Revenue grew', url: 'https://example.test/filing' },
+      issue: null,
+    });
+    expect(composeSharedContent(parsed.share)).toBe('Filing summary\nhttps://example.test/filing\n\nRevenue grew');
+  });
+
+  it('keeps a share beside the company handoff and a date', () => {
+    const parsed = parseCaptureContext('?symbol=nvda&source=company&date=2026-09-12&url=https%3A%2F%2Fexample.test%2Fa');
+    expect(parsed.context).toEqual({ source: 'company', symbol: 'NVDA' });
+    expect(parsed.date).toBe('2026-09-12');
+    expect(parsed.share).toEqual({ url: 'https://example.test/a' });
+    expect(parsed.issue).toBeNull();
+  });
+
+  it('degrades hostile, empty and oversized shares to an ordinary capture', () => {
+    // A share sheet that puts the link in `text` still yields the source line.
+    expect(parseCaptureContext('?text=https%3A%2F%2Fexample.test%2Fb').share).toEqual({ text: 'https://example.test/b', url: 'https://example.test/b' });
+    expect(composeSharedContent(parseCaptureContext('?text=https%3A%2F%2Fexample.test%2Fb').share)).toBe('https://example.test/b');
+    expect(parseCaptureContext('?url=javascript%3Aalert(1)').share).toBeUndefined();
+    expect(parseCaptureContext('?title=%20%20&text=').share).toBeUndefined();
+    expect(parseCaptureContext('?title=a%00b').share).toEqual({ title: 'ab' });
+    expect(parseCaptureContext(`?text=${'x'.repeat(CAPTURE_SHARE_LIMITS.text + 50)}`).share?.text).toHaveLength(CAPTURE_SHARE_LIMITS.text);
+    expect(parseCaptureContext(`?text=${'x'.repeat(CAPTURE_SHARE_QUERY_MAX_LENGTH + 10)}`).issue).toBe('query-too-long');
+    // Markdown and HTML arrive as literal text; the writing area and the
+    // Markdown renderer decide what they mean, not the parser.
+    expect(parseCaptureContext('?text=%3Cscript%3Ealert(1)%3C%2Fscript%3E').share).toEqual({ text: '<script>alert(1)</script>' });
+    expect(parseCaptureContext('?title=NVDA&title=AAPL').issue).toBe('duplicate-query');
+    expect(parseCaptureContext('?url=https%3A%2F%2Fexample.test&accountId=1').issue).toBe('unknown-query');
+  });
+
+  it('round-trips a share through the sign-in return path', () => {
+    const share = { title: 'Filing summary', text: 'Revenue grew', url: 'https://example.test/filing' };
+    const path = buildCapturePath('quick', null, '2026-09-12', share);
+    expect(path).toContain('title=Filing+summary');
+    expect(parseCaptureContext(path.slice(path.indexOf('?'))).share).toEqual(share);
+    expect(safeCaptureReturnPath(path)).toBe(path);
+    expect(safeCaptureReturnPath(`/diaries/new?url=${encodeURIComponent('javascript:alert(1)')}`)).toBe('/diaries/new');
   });
 });

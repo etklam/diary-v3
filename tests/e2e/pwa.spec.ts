@@ -5,7 +5,11 @@ test('installs static shell metadata without caching private API responses', asy
   const manifest = await page.request.get('/manifest.webmanifest')
   expect(manifest.ok()).toBe(true)
   expect(manifest.headers()['content-type']).toContain('application/manifest+json')
-  expect(await manifest.json()).toMatchObject({ start_url: '/', scope: '/', display: 'standalone' })
+  expect(await manifest.json()).toMatchObject({
+    start_url: '/', scope: '/', display: 'standalone',
+    // The share sheet sends title, text and url straight into Quick Diary.
+    share_target: { action: '/diaries/quick', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
+  })
 
   await page.setViewportSize({ width: 1440, height: 900 })
   for (const path of ['/', '/about', '/guide']) {
