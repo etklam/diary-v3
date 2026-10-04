@@ -2,8 +2,8 @@
 
 # [98] Derive recent tag suggestions from saved diaries
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: enhancement
@@ -31,19 +31,42 @@ Serve recent tag suggestions from the account's saved diaries so the same sugges
 
 ## Provisional acceptance criteria
 
-- [ ] Recent tag suggestions appear on a device that has never saved a diary for that account.
-- [ ] The returned tags belong only to the signed-in account; an integration test covers cross-account isolation.
-- [ ] A failed or slow suggestions request leaves writing, tagging and saving fully usable, falling back to the device list.
-- [ ] Saving a diary still surfaces its tags as suggestions immediately, without a round trip.
-- [ ] Signing out clears the device fallback so the next account on that device sees no stale suggestions.
-- [ ] Both consumers — the Quick composer and the full editor — keep their current presentation and the eight-item cap.
-- [ ] Existing tag behavior, storage of `diaries.tags`, and the diary contracts are otherwise unchanged.
+- [x] Recent tag suggestions appear on a device that has never saved a diary for that account.
+- [x] The returned tags belong only to the signed-in account; an integration test covers cross-account isolation.
+- [x] A failed or slow suggestions request leaves writing, tagging and saving fully usable, falling back to the device list.
+- [x] Saving a diary still surfaces its tags as suggestions immediately, without a round trip.
+- [x] Signing out clears the device fallback so the next account on that device sees no stale suggestions.
+- [x] Both consumers — the Quick composer and the full editor — keep their current presentation and the eight-item cap.
+- [x] Existing tag behavior, storage of `diaries.tags`, and the diary contracts are otherwise unchanged.
 
-## Open triage decisions
+## Triage decisions — ruled 2026-10-04 during implementation
 
-- Ordering: most recently used, most frequently used, or recency weighted by frequency?
-- Should the limit stay at eight once the source is the whole account rather than one device?
-- Should snippets follow later, or remain device-local by design with clearer copy saying so?
+- **Ordering is most recently used**, by the diary date the tag last appeared on, with the diary id
+  and then the tag itself breaking ties so the list is deterministic. Frequency would surface a
+  habit the account has moved on from, which is the defect this ticket exists to fix.
+- **The limit stays at eight.** It is a row of chips beside a writing area, not a browsing surface;
+  the cap belongs to the presentation, and the contract documents it as such.
+- **Snippets stay device-local.** They are authored content with no server copy, which is the cost
+  asymmetry that justified splitting this ticket out in the first place.
+
+## Execution record — 2026-10-04
+
+`GET /api/diaries/recent-tags` returns the account's eight most recently used distinct tags,
+derived from `diaries.tags` with no new table, migration or write path. It is registered before
+`/api/diaries/:id` so the literal segment is not swallowed, and blank tags are excluded in SQL.
+
+`useRecentTags` reads it once per account and replaces the device cache with the result, so a
+device that has never written a diary starts with the account's real tags and an offline mount
+starts from the last known list. `rememberRecentTags` still writes locally after each save, so a
+save surfaces its own tags without a round trip. A failed or slow read changes nothing. Explicit
+sign-out already clears `diary-recent-tags:` keys in `clearPrivateSession`, so a shared device
+does not leak the previous account's fallback.
+
+Verification: `tests/integration/diary-recent-tags.test.ts` covers ordering, the blank-tag
+exclusion, the eight-item bound, cross-account isolation and the 401 for a guest;
+`tests/e2e/quick-authoring-follow-up.spec.ts` covers a second device seeing the suggestions with
+no local cache and a failed suggestions read leaving writing and saving usable. `quick-layout`,
+`quick-diary` and `diary-editor` keep their presentation.
 
 ## Related work
 

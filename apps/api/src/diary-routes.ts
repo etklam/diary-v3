@@ -29,6 +29,7 @@ import {
 } from './app-context.js'
 import { createDiary, deleteDiary, serializeDiary, updateDiary } from './diary.js'
 import { diaryActivity } from './diary-activity.js'
+import { recentDiaryTags } from './diary-tags.js'
 import { listDiaries, listDiarySummaries } from './diary-list.js'
 import { readDiaryByDate, readDiaryDetail } from './diary-read.js'
 import { DiaryStockLimitError } from './diary-stocks.js'
@@ -98,6 +99,14 @@ export function registerDiaryRoutes(app: Hono<AppEnv>, dependencies: {
     const query = diaryByDateQuerySchema.safeParse(c.req.query())
     if (!query.success) validationError(query.error)
     return c.json(await readDiaryByDate(db, query.data.date, BigInt(session.id)), 200)
+  })
+
+  // Tag suggestions for both authoring paths; registered before
+  // '/api/diaries/:id' so the parameterized route never swallows the literal.
+  app.get('/api/diaries/recent-tags', async (c) => {
+    const session = c.get('user')
+    if (!session) fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    return c.json(await recentDiaryTags(db, BigInt(session.id)))
   })
 
   // Summary discovery feed; registered before '/api/diaries/:id' so the

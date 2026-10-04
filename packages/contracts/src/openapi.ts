@@ -52,6 +52,7 @@ import { diaryListQuerySchema, diaryListResponseSchema } from './diary-list.js'
 import { diarySavedViewCreateRequestSchema, diarySavedViewDeleteResponseSchema, diarySavedViewListResponseSchema, diarySavedViewUpdateRequestSchema, diarySavedViewSchema } from './diary-saved-view.js'
 import { diarySummaryListResponseSchema } from './diary-summary.js'
 import { diaryActivityQuerySchema, diaryActivityResponseSchema } from './diary-activity.js'
+import { recentDiaryTagsResponseSchema } from './diary-tags.js'
 import { activityTimelineQuerySchema, activityTimelineResponseSchema } from './activity-timeline.js'
 import { holidayResponseSchema } from './calendar.js'
 import { diaryReviewWorkflowResponseSchema, diaryReviewWorkflowInputSchema, diaryReviewScheduleInputSchema, diaryReviewResponseSchema, structuredReviewInputSchema } from './review.js'
@@ -353,6 +354,13 @@ registry.registerPath({
   method: 'delete', path: '/api/diaries/saved-views/{id}', tags: ['Diaries'], operationId: 'diarySavedViewDelete',
   security: [{ accessTokenCookie: [] }, { bearerAuth: [] }], request: { params: z.object({ id: serializedIdSchema }) },
   responses: { 200: json(DiarySavedViewDeleteResponse, 'Deleted owner saved diary view'), ...errors([400, 401, 404, 500]) },
+})
+
+const RecentDiaryTagsResponse = registry.register('RecentDiaryTagsResponse', recentDiaryTagsResponseSchema.clone())
+registry.registerPath({
+  method: 'get', path: '/api/diaries/recent-tags', tags: ['Diaries'], operationId: 'diariesRecentTagsGet',
+  security: [{ accessTokenCookie: [] }, { bearerAuth: [] }],
+  responses: { 200: json(RecentDiaryTagsResponse, 'Tags most recently used by the signed-in account'), ...errors([401, 500]) },
 })
 
 registry.registerPath({

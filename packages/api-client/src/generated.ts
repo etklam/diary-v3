@@ -455,6 +455,22 @@ export interface paths {
         patch: operations["diarySavedViewUpdate"];
         trace?: never;
     };
+    "/api/diaries/recent-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diariesRecentTagsGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/diaries/activity": {
         parameters: {
             query?: never;
@@ -3893,6 +3909,9 @@ export interface components {
             reviewSummary?: string | null;
             reviewLearning?: string | null;
             reviewAdjustment?: string | null;
+        };
+        RecentDiaryTagsResponse: {
+            tags: string[];
         };
         ActivityTimelineResponse: {
             data: ({
@@ -8352,6 +8371,44 @@ export interface operations {
             };
             /** @description HTTP 409 error */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diariesRecentTagsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tags most recently used by the signed-in account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentDiaryTagsResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

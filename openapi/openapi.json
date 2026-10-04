@@ -5658,6 +5658,24 @@
         ],
         "additionalProperties": false
       },
+      "RecentDiaryTagsResponse": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "maxItems": 8
+          }
+        },
+        "required": [
+          "tags"
+        ],
+        "additionalProperties": false
+      },
       "ActivityTimelineResponse": {
         "type": "object",
         "properties": {
@@ -20751,6 +20769,54 @@
           },
           "404": {
             "description": "HTTP 404 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/recent-tags": {
+      "get": {
+        "tags": [
+          "Diaries"
+        ],
+        "operationId": "diariesRecentTagsGet",
+        "security": [
+          {
+            "accessTokenCookie": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tags most recently used by the signed-in account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentDiaryTagsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401 error",
             "content": {
               "application/json": {
                 "schema": {

@@ -346,3 +346,37 @@ test('a cold Quick load is typable before the account read and keeps what was ty
   const settings = await (await page.request.get('/api/user/settings')).json() as { settings: { timezone: string } }
   expect(settings.settings.timezone).toBeTruthy()
 })
+
+test('tag suggestions follow the account to a device that never wrote a diary', async ({ page, browser }) => {
+  const email = `quick-account-tags-${randomUUID()}@example.test`
+  await register(page, email)
+  await signIn(page, email)
+  await page.goto('/diaries/quick?date=2026-10-26')
+  await openQuickOptions(page)
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Account tag source')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Account tag body')
+  await page.getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true }).fill('portfolio, conviction')
+  await page.getByRole('button', { name: 'Create diary', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+
+  // A second device for the same account: no local cache, same suggestions.
+  const fresh = await browser.newContext()
+  try {
+    const second = await fresh.newPage()
+    await signIn(second, email)
+    await second.goto('/diaries/quick?date=2026-10-27')
+    await openQuickOptions(second)
+    expect(await second.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-recent-tags:')).length)).toBeGreaterThanOrEqual(0)
+    await expect(second.getByRole('button', { name: 'portfolio', exact: true })).toBeVisible()
+    await expect(second.getByRole('button', { name: 'conviction', exact: true })).toBeVisible()
+    // A failed suggestions read leaves writing and saving usable.
+    await second.route('**/api/diaries/recent-tags', route => route.abort('failed'))
+    await second.goto('/diaries/quick?date=2026-10-28')
+    const content = second.getByRole('textbox', { name: 'Content', exact: true })
+    await content.fill('Suggestions are optional.')
+    await second.getByRole('button', { name: 'Create diary', exact: true }).click()
+    await expect(second.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  } finally {
+    await fresh.close()
+  }
+})
