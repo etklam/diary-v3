@@ -1,35 +1,83 @@
 .diary-calendar {
   width: 100%;
-  max-width: none;
+  max-width: 1280px;
 }
 
 .diary-calendar > header {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
+/* One control bar carries the month, the month's figures and the policy
+   footnote, so nothing stands between the heading and the grid but this. */
 .calendar-controls {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-5);
-  margin-bottom: var(--space-8);
-  padding: var(--space-5) 0;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-4) var(--space-8);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) 0;
   border-block: 1px solid var(--border);
 }
 
-.calendar-controls label {
-  max-width: 240px;
+.calendar-month-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
 }
 
-.calendar-summary {
+.calendar-month-control input {
+  width: auto;
+}
+
+.calendar-month-control label {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.calendar-month-control .actions {
+  gap: var(--space-2);
+}
+
+.calendar-figures {
   display: flex;
-  gap: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.calendar-figures div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.calendar-figures dt {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.calendar-figures dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.calendar-policy {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-xs);
 }
 
 .calendar-warning {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
+}
+
+/* A month is a dense object: the grid reads as one block instead of stretching
+   to the data-page width. */
+.calendar-month {
+  max-width: 760px;
 }
 
 .calendar-weekdays,
@@ -39,21 +87,20 @@
 }
 
 .calendar-weekdays {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--text-xs);
   text-align: center;
 }
 
 .calendar-grid {
-  margin-bottom: var(--space-6);
   border-top: 1px solid var(--border);
   border-left: 1px solid var(--border);
 }
 
 .calendar-grid > button,
 .calendar-grid > span {
-  min-height: 100px;
+  min-height: 72px;
   border: 0;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -62,72 +109,177 @@
   color: var(--text);
 }
 
-.calendar-grid > button {
+.calendar-day {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: var(--space-3);
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  text-align: start;
+}
+
+.calendar-day-number {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.calendar-day-marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-height: 18px;
+}
+
+.calendar-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+
+/* The three destinations read differently: a written day is filled and leads
+   with its diary mark, a day of trades or reviews is outlined, and an empty day
+   shows its capture affordance on hover and focus. */
+.calendar-day.has-diary {
+  background: var(--selected);
+}
+
+.calendar-day.has-diary .calendar-mark.is-diary {
+  color: var(--action);
+}
+
+.calendar-day.has-diary .calendar-day-number {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.calendar-day.has-activity {
+  box-shadow: inset 2px 0 0 var(--rule-strong);
+}
+
+.calendar-capture {
+  display: inline-flex;
+  color: var(--action);
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+
+.calendar-day:hover .calendar-capture,
+.calendar-day:focus-visible .calendar-capture {
+  opacity: 1;
+}
+
+.calendar-day:hover {
+  background: var(--surface-sunken);
+}
+
+.calendar-day.has-diary:hover {
+  background: var(--action-tint);
 }
 
 .calendar-grid > button[aria-current="date"] {
   box-shadow: inset 0 0 0 2px var(--action);
 }
 
-.calendar-grid .recorded {
-  background: var(--selected);
-}
-
-.calendar-marker {
-  color: var(--action);
-  font-size: 0.75rem;
-}
-
-.calendar-trades,
-/* A day can hold trades or completed reviews without holding a diary; both
-   marks are secondary to the diary dot, and the day opens its timeline. */
-.calendar-reviews {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
 .calendar-grid .holiday,
-.heatmap-week .holiday {
+.heatmap-day.holiday {
   background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--rule-strong) 5px, var(--rule-strong) 6px);
+}
+
+.calendar-empty {
+  margin-top: var(--space-5);
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-4);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.calendar-legend-holiday {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inset);
+  background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--rule-strong) 5px, var(--rule-strong) 6px);
+}
+
+.calendar-legend-swatch {
+  width: 14px;
+  height: 14px;
 }
 
 .calendar-heatmap {
   margin-top: var(--space-8);
-  padding-top: var(--space-7);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--border);
 }
 
+.calendar-heatmap h2 {
+  margin-bottom: var(--space-2);
+}
+
+.calendar-heatmap > p {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* 53 weeks fit at desktop without a scroll; the region keeps its focusable
+   scroll only where the viewport genuinely cannot hold a year. */
 .heatmap-scroll {
   max-width: 100%;
-  padding: var(--space-1) 0 var(--space-3);
+  padding: var(--space-1) 0 var(--space-2);
   overflow-x: auto;
 }
 
+.heatmap-scroll:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.heatmap-months,
 .heatmap-weeks {
   display: flex;
-  gap: var(--space-1);
+  gap: 2px;
   width: max-content;
+}
+
+.heatmap-months {
+  margin-bottom: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+
+.heatmap-months > span {
+  width: 13px;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .heatmap-week {
   display: grid;
-  /* Audit UI-070: 28px cells keep the year-at-a-glance density while giving
-     touch a workable target inside the horizontally scrolled strip. */
-  grid-template-rows: repeat(7, 28px);
-  gap: var(--space-1);
+  grid-template-rows: repeat(7, 13px);
+  gap: 2px;
 }
 
 .heatmap-week button,
 .heatmap-week > span {
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
+  width: 13px;
+  height: 13px;
+  min-height: 13px;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-inset);
@@ -138,38 +290,60 @@
   visibility: hidden;
 }
 
-.heatmap-week .recorded {
-  background-color: var(--action);
+/* The ramp is the ink action colour at four steps — never the market palette,
+   so a busy day cannot read as a gain or a loss. */
+.heatmap-day.level-1 {
+  background-color: color-mix(in oklab, var(--action) 30%, var(--surface));
 }
 
-.calendar-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  color: var(--muted);
-  font-size: 0.875rem;
+.heatmap-day.level-2 {
+  background-color: color-mix(in oklab, var(--action) 60%, var(--surface));
+}
+
+.heatmap-day.level-3 {
+  background-color: var(--action);
 }
 
 @media (max-width: 767px) {
   .calendar-controls {
     align-items: flex-start;
     flex-direction: column;
+    gap: var(--space-3);
   }
 
   .calendar-grid > button,
   .calendar-grid > span {
-    min-height: 74px;
+    min-height: 56px;
   }
 
-  .calendar-grid > button {
-    padding: 7px;
+  .calendar-day {
+    padding: 6px;
   }
 
-  .calendar-summary {
-    gap: var(--space-5);
+  /* Touch has no hover: the capture mark stays visible but quiet, and comes
+     forward on focus. */
+  .calendar-capture {
+    opacity: 0.45;
+  }
+
+  .calendar-day:focus-visible .calendar-capture {
+    opacity: 1;
+  }
+
+  /* The strip scrolls at this width anyway, so cells keep a tappable size. */
+  .heatmap-week {
+    grid-template-rows: repeat(7, 24px);
+  }
+
+  .heatmap-week button,
+  .heatmap-week > span,
+  .heatmap-months > span {
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
   }
 
   .calendar-weekdays {
-    font-size: 0.75rem;
+    font-size: var(--text-2xs);
   }
 }

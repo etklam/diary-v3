@@ -34,7 +34,7 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
   const holidayRequests: string[] = [];
   page.on('request', request => { if (request.url().includes('/api/holidays')) holidayRequests.push(request.url()); });
   await page.goto('/calendar');
-  await expect(page.getByRole('heading', { name: 'April 2026', exact: true })).toBeVisible();
+  await expect(page.locator('.calendar-grid')).toHaveAttribute('aria-label', /April 2026/);
   expect(holidayRequests).toEqual([]);
   await expect(page.getByTestId('coverage')).toHaveText('5%');
   await expect(page.locator('.calendar-grid [aria-current=date]')).toHaveAttribute('data-date', width === 1440 ? '2026-04-06' : '2026-04-05');
@@ -42,6 +42,7 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
   await expect(page.locator('[data-heatdate]')).toHaveCount(371);
   const latest = await page.locator(`[data-heatdate="${width === 1440 ? '2026-04-06' : '2026-04-05'}"]`).boundingBox();
   expect(latest!.x + latest!.width).toBeLessThanOrEqual(width);
+  await expect(page.locator('.calendar-grid button[tabindex="0"]')).toHaveCount(1);
   await page.locator('.calendar-grid [data-date="2026-04-04"]').focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('.calendar-grid [data-date="2026-04-05"]')).toBeFocused();
@@ -50,17 +51,28 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
 
   await expect(page.locator('.calendar-grid [data-date="2026-04-03"]')).toHaveClass(/holiday/);
   await expect(page.locator('.calendar-grid [data-date="2026-04-03"]')).toHaveAccessibleName(/US market closed/);
-  await expect(page.locator('.calendar-grid [data-date="2026-04-04"]')).toHaveClass(/recorded/);
+  await expect(page.locator('.calendar-grid [data-date="2026-04-04"]')).toHaveClass(/has-diary/);
   await expect(page.locator('.calendar-grid [data-date="2026-04-04"]')).toHaveClass(/holiday/);
+  await expect(page.locator('.calendar-grid [data-date="2026-04-04"]')).toHaveAccessibleName(/Opens the diary for this day/);
+  await expect(page.locator('.calendar-grid [data-date="2026-04-07"]')).toHaveClass(/is-empty/);
+  await expect(page.locator('.calendar-grid [data-date="2026-04-07"]')).toHaveAccessibleName(/Starts a quick diary for this day/);
+  // 2026-04-04 holds a diary and one trade: weight 2 sits on the first level.
+  await expect(page.locator('[data-heatdate="2026-04-04"]')).toHaveClass(/level-1/);
+  await expect(page.locator('[data-heatdate="2026-04-01"]')).toHaveClass(/level-0/);
   await expect(page.locator('[data-heatdate="2026-04-04"]')).toHaveAccessibleName(/US market closed/);
   await expect(page.getByText('US market weekends and full closures excluded; early-close half-days remain eligible', { exact: true })).toBeVisible();
 
+  const activityRequests: string[] = [];
+  page.on('request', request => { if (request.url().includes('/api/diaries/activity')) activityRequests.push(new URL(request.url()).searchParams.get('dateFrom') ?? ''); });
   await page.getByRole('button', { name: 'Previous month', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'March 2026', exact: true })).toBeVisible();
+  await expect(page.locator('.calendar-grid')).toHaveAttribute('aria-label', /March 2026/);
   await expect(page.getByText('No diaries recorded this month.', { exact: true })).toBeVisible();
   await expect(page.locator('[data-heatdate="2026-04-03"]')).toHaveAccessibleName(/US market closed/);
+  // Paging a month costs one request for that month; the year range stays put.
+  await expect.poll(() => activityRequests).toEqual(['2026-03-01']);
   await page.getByRole('button', { name: 'Today', exact: true }).click();
   await expect(page.getByTestId('coverage')).toHaveText('5%');
+  await expect.poll(() => activityRequests).toEqual(['2026-03-01', '2026-04-01']);
   await page.locator('.calendar-grid [data-date="2026-04-04"]').click();
   await expect(page).toHaveURL(new RegExp(`/diaries/${weekendDiaryId}$`));
   await page.goto('/calendar');
@@ -69,7 +81,7 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
   await expect(page.getByLabel('Diary date', { exact: true })).toHaveValue('2026-04-07');
   await page.goto('/calendar');
   await page.getByLabel('Month', { exact: true }).fill('2024-03');
-  await expect(page.getByRole('heading', { name: 'March 2024', exact: true })).toBeVisible();
+  await expect(page.locator('.calendar-grid')).toHaveAttribute('aria-label', /March 2024/);
   await expect(page.getByTestId('coverage')).toHaveText('—');
   await expect(page.getByText('US market closure data is available for 2025–2028 only. Coverage is unavailable for this month; diary dates remain accessible.', { exact: true })).toBeVisible();
   await expect(page.locator('[data-heatdate="2026-04-03"]')).toHaveAccessibleName(/US market closed/);
@@ -80,7 +92,7 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
   await page.screenshot({ path: `.impeccable/review/calendar-market-${width}.png`, fullPage: true });
   await page.clock.setFixedTime(new Date('2025-06-10T15:00:00Z'));
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'June 2025', exact: true })).toBeVisible();
+  await expect(page.locator('.calendar-grid')).toHaveAttribute('aria-label', /June 2025/);
   await expect(page.getByTestId('coverage')).toHaveText('0%');
   await expect(page.getByText('This 371-day range includes an unsupported year. No partial US market closure exclusions are applied.', { exact: true })).toBeVisible();
   await expect(page.locator('.calendar-grid [data-date="2025-06-07"]')).toHaveClass(/holiday/);
@@ -112,6 +124,8 @@ for (const width of [1440, 390]) test(`Calendar uses US market closures for both
     await expect(page.getByTestId('mobile-menu')).toBeFocused();
   }
   if (width === 390) await selectTheme(page, 'dark');
+  await expect(page.locator('.calendar-grid [data-date]').first()).toBeVisible();
+  await expect(page.locator('[data-heatdate]')).toHaveCount(371);
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }); });
   await page.screenshot({ path: `.impeccable/review/calendar-${width}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);

@@ -2,8 +2,8 @@
 
 # [99] Redesign the Diary calendar around density and legible destinations
 
-Status: needs-triage
-Execution: todo
+Status: accepted
+Execution: done
 Published: 2026-10-04
 
 Category: enhancement
@@ -79,20 +79,20 @@ Delivered as one change set, in this order.
 
 ## Provisional acceptance criteria
 
-- [ ] At most one control bar and one header separate the page heading from the grid; the month is stated once.
-- [ ] Month cells are dense enough that a month reads as a single object, and the grid does not stretch to the full data-page width.
-- [ ] Every mark a cell can display appears in the visible legend, and marks come from `icons.tsx` rather than raw glyphs.
-- [ ] Days with a diary, days with only trades or reviews, and empty days are visually distinct, and each cell announces its destination to assistive technology and to sighted users.
-- [ ] The year view shows a full year without horizontal scrolling at desktop widths, carries month labels, and keeps a focusable scroll region where it must scroll.
-- [ ] The year strip encodes levels from the activity counts, its legend states what each level means, and the "371 days" figure is not user-facing copy.
-- [ ] The level ramp uses no market-direction colors, so a high-activity day cannot read as a gain or a loss.
-- [ ] The month grid is a single tab stop with arrow-key movement, matching the year strip; Home/End behavior is unchanged.
-- [ ] Changing month issues one request for that month and does not refetch the year range.
-- [ ] Coverage states its denominator or is removed; the unsupported-year warnings and "not computed" states are unchanged.
-- [ ] An empty month renders `.empty-state` with a next action.
-- [ ] Holiday hatching, timezone handling, US equity calendar semantics and all three destinations behave exactly as before.
-- [ ] The page works in all three locales, light and dark themes, keyboard-only, and at 200% zoom with no horizontal page overflow.
-- [ ] `docs/design/evidence/calendar/` captures are retaken against the current visual system, with the visual change justified against DESIGN.md.
+- [x] At most one control bar and one header separate the page heading from the grid; the month is stated once.
+- [x] Month cells are dense enough that a month reads as a single object, and the grid does not stretch to the full data-page width.
+- [x] Every mark a cell can display appears in the visible legend, and marks come from `icons.tsx` rather than raw glyphs.
+- [x] Days with a diary, days with only trades or reviews, and empty days are visually distinct, and each cell announces its destination to assistive technology and to sighted users.
+- [x] The year view shows a full year without horizontal scrolling at desktop widths, carries month labels, and keeps a focusable scroll region where it must scroll.
+- [x] The year strip encodes levels from the activity counts, its legend states what each level means, and the "371 days" figure is not user-facing copy.
+- [x] The level ramp uses no market-direction colors, so a high-activity day cannot read as a gain or a loss.
+- [x] The month grid is a single tab stop with arrow-key movement, matching the year strip; Home/End behavior is unchanged.
+- [x] Changing month issues one request for that month and does not refetch the year range.
+- [x] Coverage states its denominator or is removed; the unsupported-year warnings and "not computed" states are unchanged.
+- [x] An empty month renders `.empty-state` with a next action.
+- [x] Holiday hatching, timezone handling, US equity calendar semantics and all three destinations behave exactly as before.
+- [x] The page works in all three locales, light and dark themes, keyboard-only, and at 200% zoom with no horizontal page overflow.
+- [x] `docs/design/evidence/calendar/` captures are retaken against the current visual system, with the visual change justified against DESIGN.md.
 
 ## Settled during triage
 
@@ -100,11 +100,36 @@ Delivered as one change set, in this order.
 
 **The year strip encodes real levels.** Ruled 2026-10-04. Binary presence wastes the strip's only extra channel over the month grid, and `DiaryActivityDay` already carries `diaryId`, `transactionCount` and `reviewCount`, so the data costs nothing to obtain. Step 4 therefore drops the presence framing and the "Past 371 days" heading in favor of a levelled year view with a legend that states what each level means. The level scale itself — which counts feed it and how many steps — is the remaining implementation detail; keep it to at most four steps so the ramp stays readable, and keep it clear of the market palette per DESIGN.md.
 
-## Open triage decisions
+## Triage decisions — ruled 2026-10-04 during implementation
 
-- Which counts feed the level, and how many steps the ramp uses.
-- Does a day with only trades or reviews deserve its own mark in the month grid, given it opens a different destination?
-- Should coverage stay at all, or be replaced by the two raw figures it is derived from?
+- **The level is `diary + transactionCount + reviewCount`, in four steps:** 0, 1–2, 3–5, 6+. Three
+  non-zero steps stay distinguishable at a 13px cell; more would encode a precision the eye cannot
+  read. The ramp is the ink action colour at 30%, 60% and 100% over the surface — no market hue.
+- **A day with only trades or reviews keeps its own treatment**, because it opens a different
+  destination: an inset edge on the cell plus the trade and review marks, against the filled
+  background a written day gets.
+- **Coverage stays and states its denominator**: `10% of 30 eligible days`, beside the recorded-day
+  count it is derived from. A percentage whose denominator is stated is a usable figure; the
+  objection was to the bare number, not to the measure.
+
+## Execution record — 2026-10-04
+
+Delivered in one change set. The page keeps its 1280px container, but the month grid is bounded to
+760px so a month reads as one object, and the year strip uses the remaining width. Grid cells are
+72px (56px on touch) instead of 100px/74px, and year cells 13px (24px on touch, where the strip
+scrolls anyway and the target must stay tappable).
+
+Deviations from the plan: the month name is not a heading at all — it labels the grid region
+(`aria-label`) and appears once in the month input — because a heading that repeats a control is
+exactly what step 1 removed. `chevronLeft`/`chevronRight` were added to `icons.tsx` for the month
+buttons; the diary, trade and review marks reuse `book`, `briefcase` and `check` from the existing
+family.
+
+Verification: `tests/e2e/calendar.spec.ts` passes at 1440 and 390 in both themes, with added
+coverage for the three destinations, the levelled year strip, the single tab stop, and an assertion
+that paging a month issues exactly one request for that month and never refetches the year range.
+Typecheck and lint clean. Evidence retaken: `.impeccable/review/calendar-1440.png`,
+`calendar-390.png`, `calendar-market-1440.png`, `calendar-market-390.png`.
 
 ## Related work
 
