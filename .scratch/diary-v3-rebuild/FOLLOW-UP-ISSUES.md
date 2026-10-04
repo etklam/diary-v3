@@ -130,3 +130,14 @@ decisions taken during implementation, any deviation from its own plan, and the 
 it. The design-review set (95, 96, 97, 99, 93) also updated DESIGN.md where it changed a rule:
 sanctioned serif surfaces, select sizing, the authoring system, the calendar recipe, and the
 1100px two-column rule for working surfaces.
+
+## Follow-up found during this sequence — 2026-10-04
+
+| Ticket | Title | Recorded state | Issue file |
+|---|---|---|---|
+| 100 | Confirming the session destroys every page's unsaved state | needs-triage; Execution: todo | [100-shell-swap-destroys-page-state.md](issues/100-shell-swap-destroys-page-state.md) |
+
+Found while implementing [90](issues/90-quick-cold-start-wait.md): the public → private shell swap
+remounts everything under `main`, so a cold load discards component state, focus and scroll on
+every route. 90 works around it for the composer; the cause is a root-layout question that touches
+every page, so it is filed rather than fixed there.
