@@ -134,3 +134,49 @@ this set and is not indexed above.
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
 | 99 — Redesign the Diary calendar around density and legible destinations | Design follow-up | needs-triage; Execution: todo | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |
+
+## Whole-app page score follow-up (101–114)
+
+Filed 2026-10-06 from the [whole-app UI page score](../../docs/design/ui-page-score-2026-10-06.md),
+which scored all 69 route states against DESIGN.md and PRODUCT.md from fresh captures.
+App-level heuristic score: 29/40. Six pages scored below 55 and are redesigns; the rest of
+the set is cross-cutting consistency work and four focused reworks.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | needs-triage; Execution: todo | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
+| 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | needs-triage; Execution: todo | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
+| 103 — Split AI administration into task-scoped views | Design follow-up | needs-triage; Execution: todo | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
+| 104 — Rebuild the admin accounts page around a readable table | Design follow-up | needs-triage; Execution: todo | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
+| 105 — Make strategy performance readable at low cardinality | Design follow-up | needs-triage; Execution: todo | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
+| 106 — Reduce the Watchlist row to a readable company | Design follow-up | needs-triage; Execution: todo | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
+| 107 — AI reports denied, empty and first-run states | Design follow-up | needs-triage; Execution: todo | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |
+| 108 — Rebuild Diary reminders as a usable page | Design follow-up | needs-triage; Execution: todo | [108-diary-reminders-page.md](issues/108-diary-reminders-page.md) |
+| 109 — Design the authentication pages | Design follow-up | needs-triage; Execution: todo | [109-authentication-pages-design.md](issues/109-authentication-pages-design.md) |
+| 110 — Section the company research page into legible jobs | Design follow-up | needs-triage; Execution: todo | [110-company-research-page-sections.md](issues/110-company-research-page-sections.md) |
+| 111 — Fix the trade plan execution comparison region | Design follow-up | needs-triage; Execution: todo | [111-trade-plan-execution-comparison.md](issues/111-trade-plan-execution-comparison.md) |
+| 112 — Standardize empty states and list sections | Cross-cutting visual bug | needs-triage; Execution: todo | [112-empty-states-and-list-sections.md](issues/112-empty-states-and-list-sections.md) |
+| 113 — Correct the research tool pages | Design follow-up | needs-triage; Execution: todo | [113-research-tool-page-corrections.md](issues/113-research-tool-page-corrections.md) |
+| 114 — Quiet the article management rows and size its columns | Design follow-up | needs-triage; Execution: todo | [114-admin-article-list-rows.md](issues/114-admin-article-list-rows.md) |
+
+Recommended order from the review: 101 first (highest visibility per unit of effort, and a
+credibility problem), then 102 (four fixes of two lines or less), then the redesigns
+103–106, then 107–111, then 112–114.
+
+### Scored but not filed
+
+Pages that scored in the 60s and were inspected but not broken down in enough detail to
+specify a ticket honestly: `/admin/research/:id` (67), `/admin/etf` (66),
+`/admin/article-translations` (64), `/admin/blog/new` and `/admin/blog/:id/edit` (63),
+`/partners` (64, partly covered by 112), `/etf/watchlist` (62, partly covered by 112),
+`/stocks/:symbol/thesis` (64, its checkbox defect is in 102), `/stocks` Holdings (66, its
+formatting is in 101). These need a closer pass before they become tickets rather than
+being invented now.
+
+Two findings were deliberately left unfiled pending a ruling and are recorded in
+[112](issues/112-empty-states-and-list-sections.md)'s Observation: the duplicate
+"Quick diary" primary action, which may be intentional and may already belong to
+[94](issues/94-quick-diary-button-consistency.md); and navigation depth, where the sidebar
+holds 1,745px of content and leaves Settings, Sign out and Preferences below its own fold
+at 1440×1080 — an IA question that interacts with the standing capture → read → review
+priority.

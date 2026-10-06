@@ -141,3 +141,33 @@ Found while implementing [90](issues/90-quick-cold-start-wait.md): the public �
 remounts everything under `main`, so a cold load discards component state, focus and scroll on
 every route. 90 works around it for the composer; the cause is a root-layout question that touches
 every page, so it is filed rather than fixed there.
+
+## Whole-app page score — 2026-10-06
+
+A full UI review scored all 69 reachable route states against DESIGN.md and PRODUCT.md.
+Captures were retaken from the current tree because every committed capture set predates
+the 2026-10-02 "Ledger" redesign and the 2026-10-06 home rebuild. Report:
+[ui-page-score-2026-10-06.md](../../docs/design/ui-page-score-2026-10-06.md).
+
+Fourteen tickets filed, 101–114, indexed in [ISSUES.md](ISSUES.md). Six pages scored below
+55 (`/admin/ai` 38, `/admin/users` 44, `/strategy-performance` 46, `/stocks/watchlist` 48,
+`/reviews/ai-reports` 50, `/alerts` 52); the weak pages cluster almost entirely in admin
+and in the chart/data surfaces, which are the areas DESIGN.md has no page recipe for.
+Every page that does have a recipe scored 84–90.
+
+The deterministic detector returned two findings across ~130 files, one of them a false
+positive, so none of this is anti-pattern drift — it is scope and consistency. The two
+cross-cutting tickets (101 money/date formatting, 112 empty states and list sections) cover
+more surface than all the page redesigns combined.
+
+Two review findings did not survive verification and were discarded rather than filed:
+the trade-plan detail page appearing to render labels without inputs, and its Save footer
+appearing mid-form. Both were full-page screenshot stitching artifacts on a 2,392px page,
+disproved by DOM measurement and by source order at `routes/trade-plan.tsx:594-601`.
+`/trade-plans/:id` was rescored from 60 to 68 as a result, and
+[111](issues/111-trade-plan-execution-comparison.md) records them as explicit
+non-defects so they are not rediscovered from the same capture.
+
+One page in the set is genuinely unassessed: `/tools/market-rotation` had no seeded
+snapshot, so only its empty state was scored. [113](issues/113-research-tool-page-corrections.md)
+makes capturing it populated a prerequisite for touching it.
