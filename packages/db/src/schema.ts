@@ -1554,3 +1554,905 @@ export const mailAdminAuditEvents = pgTable('mail_admin_audit_event', {
   check('mail_admin_audit_action_nonempty', sql`length(btrim(${table.action})) > 0`),
   check('mail_admin_audit_config_revision_positive', sql`${table.configRevision} is null or ${table.configRevision} > 0`),
 ])
+
+// SEC manager identity is independent of the user-facing editorial profile.
+export const institutionalManagers = pgTable('institutional_managers', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  cik: varchar('cik', { length: 10 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('institutional_managers_cik_unique').on(table.cik),
+  check('institutional_managers_cik_canonical', sql`${table.cik} ~ '^[0-9]{10}$' and ${table.cik} <> '0000000000'`),
+])
+
+export const gurus = pgTable('gurus', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  slug: varchar('slug', { length: 80 }).notNull(),
+  name: varchar('name', { length: 200 }).notNull(),
+  managerName: varchar('manager_name', { length: 200 }).notNull(),
+  description: text('description'),
+  investmentPhilosophy: text('investment_philosophy'),
+  styleTags: text('style_tags').array().default(sql`'{}'::text[]`).notNull(),
+  managerType: varchar('manager_type', { length: 80 }),
+  website: varchar('website', { length: 2048 }),
+  country: varchar('country', { length: 2 }),
+  imageUrl: varchar('image_url', { length: 2048 }),
+  securityNotes: text('security_notes'),
+  featured: boolean('featured').default(false).notNull(),
+  active: boolean('active').default(true).notNull(),
+  directoryOrder: integer('directory_order').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('gurus_slug_unique').on(table.slug),
+  unique('gurus_manager_unique').on(table.managerId),
+  index('gurus_created_idx').on(table.createdAt.desc(), table.id.desc()),
+  index('gurus_visibility_idx').on(table.active, table.featured, table.createdAt.desc(), table.id.desc()),
+  index('gurus_directory_order_idx').on(table.active, table.directoryOrder, table.name),
+  check('gurus_slug_valid', sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and ${table.slug} not in ('consensus', 'activity', 'stocks', 'sectors', 'compare', 'notifications')`),
+  check('gurus_name_nonempty', sql`length(btrim(${table.name})) > 0`),
+  check('gurus_manager_name_nonempty', sql`length(btrim(${table.managerName})) > 0`),
+  check('gurus_country_valid', sql`${table.country} is null or ${table.country} ~ '^[A-Z]{2}$'`),
+])
+
+export const guruFollowers = pgTable('guru_followers', {
+  guruId: bigint('guru_id', { mode: 'bigint' }).notNull().references(() => gurus.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  primaryKey({ columns: [table.guruId, table.userId] }),
+  index('guru_followers_user_idx').on(table.userId, table.guruId),
+])
+
+export const institutionalFilingStatus = pgEnum('institutional_filing_status', [
+  'PENDING', 'DOWNLOADED', 'PARSED', 'PARTIAL', 'READY', 'ERROR', 'SUPERSEDED',
+])
+
+export const institutionalManagerDiscovery = pgTable('institutional_manager_discovery', {
+  managerId: bigint('manager_id', { mode: 'bigint' }).primaryKey().references(() => institutionalManagers.id, { onDelete: 'cascade' }),
+  lastCheckAt: timestamp('last_check_at', { withTimezone: true, mode: 'date' }),
+  lastSuccessAt: timestamp('last_success_at', { withTimezone: true, mode: 'date' }),
+  nextCheckAt: timestamp('next_check_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  status: varchar('status', { length: 16 }).default('PENDING').notNull(),
+  lastErrorCode: varchar('last_error_code', { length: 80 }),
+  leaseToken: varchar('lease_token', { length: 128 }),
+  leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true, mode: 'date' }),
+  workerId: varchar('worker_id', { length: 128 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('institutional_manager_discovery_due_idx').on(table.nextCheckAt, table.managerId),
+  check('institutional_manager_discovery_status_valid', sql`${table.status} in ('PENDING', 'RUNNING', 'READY', 'STALE', 'ERROR')`),
+  check('institutional_manager_discovery_lease_consistent', sql`(${table.leaseToken} is null and ${table.leaseExpiresAt} is null and ${table.workerId} is null) or (${table.leaseToken} is not null and ${table.leaseExpiresAt} is not null and ${table.workerId} is not null)`),
+])
+
+export const secRequestSchedulerState = pgTable('sec_request_scheduler_state', {
+  singleton: integer('singleton').primaryKey(),
+  nextAllowedAt: timestamp('next_allowed_at', { withTimezone: true, mode: 'date' }).notNull(),
+  requestCount: bigint('request_count', { mode: 'bigint' }).default(sql`0`).notNull(),
+  failureCount: bigint('failure_count', { mode: 'bigint' }).default(sql`0`).notNull(),
+  lastRequestAt: timestamp('last_request_at', { withTimezone: true, mode: 'date' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  check('sec_request_scheduler_singleton_check', sql`${table.singleton} = 1`),
+  check('sec_request_scheduler_counts_nonnegative', sql`${table.requestCount} >= 0 and ${table.failureCount} >= 0`),
+])
+
+export const institutionalFilings = pgTable('institutional_filings', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  accession: varchar('accession', { length: 20 }).notNull(),
+  form: varchar('form', { length: 16 }).notNull(),
+  filingDate: date('filing_date', { mode: 'string' }).notNull(),
+  filedAt: timestamp('filed_at', { withTimezone: true, mode: 'date' }),
+  periodEnd: date('period_end', { mode: 'string' }),
+  isAmendment: boolean('is_amendment').default(false).notNull(),
+  amendmentNumber: integer('amendment_number'),
+  amendmentType: varchar('amendment_type', { length: 32 }),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  rawMetadata: jsonb('raw_metadata').$type<Record<string, unknown>>().default({}).notNull(),
+  status: institutionalFilingStatus('status').default('PENDING').notNull(),
+  parserVersion: varchar('parser_version', { length: 32 }),
+  discoveredAt: timestamp('discovered_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  ingestedAt: timestamp('ingested_at', { withTimezone: true, mode: 'date' }),
+  parsedRowCount: integer('parsed_row_count'),
+  rejectedRowCount: integer('rejected_row_count').default(0).notNull(),
+  mappingCoverage: numeric('mapping_coverage', { precision: 5, scale: 2 }),
+  errorCode: varchar('error_code', { length: 80 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('institutional_filings_manager_accession_unique').on(table.managerId, table.accession),
+  index('institutional_filings_period_idx').on(table.managerId, table.periodEnd, table.filingDate),
+  index('institutional_filings_status_idx').on(table.status, table.updatedAt),
+  check('institutional_filings_accession_valid', sql`${table.accession} ~ '^[0-9]{10}-[0-9]{2}-[0-9]{6}$'`),
+  check('institutional_filings_form_valid', sql`${table.form} in ('13F-HR', '13F-HR/A')`),
+  check('institutional_filings_counts_nonnegative', sql`${table.rejectedRowCount} >= 0 and (${table.parsedRowCount} is null or ${table.parsedRowCount} >= 0)`),
+  check('institutional_filings_mapping_coverage_valid', sql`${table.mappingCoverage} is null or ${table.mappingCoverage} between 0 and 100`),
+])
+
+export const institutionalFilingDocuments = pgTable('institutional_filing_documents', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  filingId: bigint('filing_id', { mode: 'bigint' }).notNull().references(() => institutionalFilings.id, { onDelete: 'cascade' }),
+  basename: varchar('basename', { length: 255 }).notNull(),
+  documentType: varchar('document_type', { length: 80 }),
+  description: text('description'),
+  isPrimary: boolean('is_primary').default(false).notNull(),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  contentLength: bigint('content_length', { mode: 'bigint' }),
+  downloadedAt: timestamp('downloaded_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  unique('institutional_filing_documents_filing_basename_unique').on(table.filingId, table.basename),
+  check('institutional_filing_documents_length_nonnegative', sql`${table.contentLength} is null or ${table.contentLength} >= 0`),
+])
+
+export const institutionalFilingArtifacts = pgTable('institutional_filing_artifacts', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  documentId: bigint('document_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingDocuments.id, { onDelete: 'cascade' }),
+  artifactRef: varchar('artifact_ref', { length: 600 }).notNull(),
+  contentSha256: varchar('content_sha256', { length: 64 }).notNull(),
+  rawContent: text('raw_content'),
+  contentLength: bigint('content_length', { mode: 'bigint' }).notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true, mode: 'date' }).notNull(),
+  fetchedReason: varchar('fetched_reason', { length: 24 }).default('initial').notNull(),
+  retainUntil: timestamp('retain_until', { withTimezone: true, mode: 'date' }),
+  supersedesArtifactId: bigint('supersedes_artifact_id', { mode: 'bigint' }).references((): AnyPgColumn => institutionalFilingArtifacts.id, { onDelete: 'restrict' }),
+}, table => [
+  unique('institutional_filing_artifacts_document_digest_unique').on(table.documentId, table.contentSha256),
+  unique('institutional_filing_artifacts_ref_unique').on(table.artifactRef),
+  unique('institutional_filing_artifacts_id_document_unique').on(table.id, table.documentId),
+  index('institutional_filing_artifacts_document_time_idx').on(table.documentId, table.fetchedAt.desc()),
+  check('institutional_filing_artifacts_digest_valid', sql`${table.contentSha256} ~ '^[a-f0-9]{64}$'`),
+  check('institutional_filing_artifacts_refetch_reason_valid', sql`${table.fetchedReason} in ('initial', 'reprocess-refetch')`),
+  check('institutional_filing_artifacts_content_retention', sql`${table.rawContent} is not null or ${table.retainUntil} is not null`),
+  check('institutional_filing_artifacts_length_nonnegative', sql`${table.contentLength} >= 0`),
+])
+
+export const institutionalFilingArtifactFetches = pgTable('institutional_filing_artifact_fetches', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  documentId: bigint('document_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingDocuments.id, { onDelete: 'cascade' }),
+  sourceArtifactId: bigint('source_artifact_id', { mode: 'bigint' }).notNull(),
+  artifactId: bigint('artifact_id', { mode: 'bigint' }).notNull(),
+  operationKey: varchar('operation_key', { length: 128 }).notNull(),
+  contentSha256: varchar('content_sha256', { length: 64 }).notNull(),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  contentLength: bigint('content_length', { mode: 'bigint' }).notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true, mode: 'date' }).notNull(),
+  fetchedReason: varchar('fetched_reason', { length: 24 }).default('reprocess-refetch').notNull(),
+}, table => [
+  unique('institutional_filing_artifact_fetches_operation_key_unique').on(table.operationKey),
+  index('institutional_filing_artifact_fetches_document_time_idx').on(table.documentId, table.fetchedAt.desc(), table.id.desc()),
+  foreignKey({
+    name: 'institutional_filing_artifact_fetches_source_document_fk',
+    columns: [table.sourceArtifactId, table.documentId],
+    foreignColumns: [institutionalFilingArtifacts.id, institutionalFilingArtifacts.documentId],
+  }).onDelete('restrict'),
+  foreignKey({
+    name: 'institutional_filing_artifact_fetches_result_document_fk',
+    columns: [table.artifactId, table.documentId],
+    foreignColumns: [institutionalFilingArtifacts.id, institutionalFilingArtifacts.documentId],
+  }).onDelete('restrict'),
+  check('institutional_filing_artifact_fetches_digest_valid', sql`${table.contentSha256} ~ '^[a-f0-9]{64}$'`),
+  check('institutional_filing_artifact_fetches_source_https', sql`${table.sourceUrl} like 'https://%'`),
+  check('institutional_filing_artifact_fetches_length_nonnegative', sql`${table.contentLength} >= 0`),
+  check('institutional_filing_artifact_fetches_reason_valid', sql`${table.fetchedReason} = 'reprocess-refetch'`),
+  check('institutional_filing_artifact_fetches_operation_key_nonempty', sql`length(btrim(${table.operationKey})) > 0`),
+])
+
+export const institutional13fHoldings = pgTable('institutional_13f_holdings', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  filingId: bigint('filing_id', { mode: 'bigint' }).notNull().references(() => institutionalFilings.id, { onDelete: 'cascade' }),
+  documentId: bigint('document_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingDocuments.id, { onDelete: 'cascade' }),
+  artifactId: bigint('artifact_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingArtifacts.id, { onDelete: 'restrict' }),
+  rowNumber: integer('row_number').notNull(),
+  issuer: text('issuer').notNull(),
+  titleOfClass: varchar('title_of_class', { length: 160 }).notNull(),
+  cusip: varchar('cusip', { length: 32 }),
+  figi: varchar('figi', { length: 32 }),
+  reportedValue: numeric('reported_value', { precision: 32, scale: 8 }).notNull(),
+  reportedValueUnit: varchar('reported_value_unit', { length: 32 }).notNull(),
+  valueUnitSource: varchar('value_unit_source', { length: 120 }).notNull(),
+  quantity: numeric('quantity', { precision: 32, scale: 8 }).notNull(),
+  quantityType: varchar('quantity_type', { length: 8 }).notNull(),
+  putCall: varchar('put_call', { length: 8 }),
+  investmentDiscretion: varchar('investment_discretion', { length: 32 }),
+  otherManagers: text('other_managers').array().default(sql`'{}'::text[]`).notNull(),
+  votingAuthority: jsonb('voting_authority').$type<Record<string, string | null>>().default({}).notNull(),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  rawRow: text('raw_row').notNull(),
+  warnings: text('warnings').array().default(sql`'{}'::text[]`).notNull(),
+  parserVersion: varchar('parser_version', { length: 32 }).notNull(),
+  ingestedAt: timestamp('ingested_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  unique('institutional_13f_holdings_document_row_unique').on(table.documentId, table.rowNumber),
+  index('institutional_13f_holdings_filing_idx').on(table.filingId, table.rowNumber),
+  index('institutional_13f_holdings_cusip_idx').on(table.cusip),
+  check('institutional_13f_holdings_row_positive', sql`${table.rowNumber} > 0`),
+  check('institutional_13f_holdings_quantity_type_valid', sql`${table.quantityType} in ('SH', 'PRN')`),
+  check('institutional_13f_holdings_put_call_valid', sql`${table.putCall} is null or ${table.putCall} in ('PUT', 'CALL')`),
+  check('institutional_13f_holdings_numeric_nonnegative', sql`${table.reportedValue} >= 0 and ${table.quantity} >= 0`),
+])
+
+// Institutional securities use stable IDs; ticker is only one dated identifier.
+export const institutionalSecurityStatus = pgEnum('institutional_security_status', ['ACTIVE', 'DELISTED'])
+export const institutionalSecurityIdentifierType = pgEnum('institutional_security_identifier_type', ['CUSIP', 'FIGI', 'TICKER'])
+export const institutionalHoldingMappingStatus = pgEnum('institutional_holding_mapping_status', ['MATCHED', 'AMBIGUOUS', 'UNRESOLVED', 'MANUAL_OVERRIDE'])
+export const institutionalSecurityIdentityEventType = pgEnum('institutional_security_identity_event_type', [
+  'TICKER_CHANGE', 'MERGER', 'SPIN_OFF', 'DELISTING', 'STOCK_SPLIT', 'SHARE_CLASS_CONTINUITY',
+])
+export const institutionalSecurityMappingRefreshStatus = pgEnum('institutional_security_mapping_refresh_status', ['PENDING', 'RUNNING', 'COMPLETE'])
+
+export const institutionalSecurities = pgTable('institutional_securities', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  issuer: text('issuer').notNull(),
+  titleOfClass: varchar('title_of_class', { length: 160 }).notNull(),
+  exchange: varchar('exchange', { length: 32 }),
+  securityType: varchar('security_type', { length: 80 }).notNull(),
+  sector: varchar('sector', { length: 120 }),
+  industry: varchar('industry', { length: 160 }),
+  status: institutionalSecurityStatus('status').default('ACTIVE').notNull(),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  sourceVerifiedBy: bigint('source_verified_by', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'restrict' }),
+  sourceVerifiedAt: timestamp('source_verified_at', { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('institutional_securities_search_idx').on(table.status, table.id),
+  check('institutional_securities_issuer_nonempty', sql`length(btrim(${table.issuer})) > 0`),
+  check('institutional_securities_title_nonempty', sql`length(btrim(${table.titleOfClass})) > 0`),
+  check('institutional_securities_type_nonempty', sql`length(btrim(${table.securityType})) > 0`),
+  check('institutional_securities_source_https', sql`${table.sourceUrl} like 'https://%'`),
+])
+
+export const institutionalSecurityIdentifiers = pgTable('institutional_security_identifiers', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  supersedesIdentifierId: bigint('supersedes_identifier_id', { mode: 'bigint' }).references((): AnyPgColumn => institutionalSecurityIdentifiers.id, { onDelete: 'restrict' }),
+  type: institutionalSecurityIdentifierType('type').notNull(),
+  value: varchar('value', { length: 32 }).notNull(),
+  validFrom: date('valid_from', { mode: 'string' }).notNull(),
+  validTo: date('valid_to', { mode: 'string' }),
+  sourceUrl: varchar('source_url', { length: 2048 }).notNull(),
+  sourceVerifiedBy: bigint('source_verified_by', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'restrict' }),
+  sourceVerifiedAt: timestamp('source_verified_at', { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('institutional_security_identifiers_identity_unique').on(table.securityId, table.type, table.value, table.validFrom),
+  uniqueIndex('institutional_security_identifiers_supersedes_unique').on(table.supersedesIdentifierId).where(sql`${table.supersedesIdentifierId} is not null`),
+  index('institutional_security_identifiers_lookup_idx').on(table.type, table.value, table.validFrom, table.validTo),
+  index('institutional_security_identifiers_security_idx').on(table.securityId, table.type, table.validFrom),
+  check('institutional_security_identifiers_value_nonempty', sql`length(btrim(${table.value})) > 0`),
+  check('institutional_security_identifiers_date_range_valid', sql`${table.validTo} is null or ${table.validTo} >= ${table.validFrom}`),
+  check('institutional_security_identifiers_source_https', sql`${table.sourceUrl} like 'https://%'`),
+  check('institutional_security_identifiers_format_valid', sql`
+    (${table.type} = 'CUSIP' and ${table.value} ~ '^[A-Z0-9*@#]{9}$') or
+    (${table.type} = 'FIGI' and ${table.value} ~ '^[A-Z0-9]{12}$') or
+    (${table.type} = 'TICKER' and ${table.value} ~ '^[A-Z0-9][A-Z0-9.-]{0,14}$')
+  `),
+])
+
+export const institutionalHoldingSecurityMappings = pgTable('institutional_holding_security_mappings', {
+  holdingId: bigint('holding_id', { mode: 'bigint' }).primaryKey().references(() => institutional13fHoldings.id, { onDelete: 'cascade' }),
+  status: institutionalHoldingMappingStatus('status').notNull(),
+  securityId: bigint('security_id', { mode: 'bigint' }).references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  reason: varchar('reason', { length: 80 }).notNull(),
+  candidateSecurityIds: text('candidate_security_ids').array().default(sql`'{}'::text[]`).notNull(),
+  algorithmVersion: varchar('algorithm_version', { length: 40 }).notNull(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true, mode: 'date' }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('institutional_holding_security_mappings_security_idx').on(table.securityId, table.status),
+  index('institutional_holding_security_mappings_status_idx').on(table.status, table.resolvedAt),
+  check('institutional_holding_security_mappings_security_state', sql`(${table.status} in ('MATCHED', 'MANUAL_OVERRIDE') and ${table.securityId} is not null) or (${table.status} in ('AMBIGUOUS', 'UNRESOLVED') and ${table.securityId} is null)`),
+  check('institutional_holding_security_mappings_algorithm_nonempty', sql`length(btrim(${table.algorithmVersion})) > 0`),
+])
+
+// Overrides and identity events are append-only audit records. Corrections link to prior rows.
+export const institutionalSecurityMappingOverrides = pgTable('institutional_security_mapping_overrides', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  holdingId: bigint('holding_id', { mode: 'bigint' }).notNull().references(() => institutional13fHoldings.id, { onDelete: 'cascade' }),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  version: integer('version').notNull(),
+  actorUserId: bigint('actor_user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'restrict' }),
+  reason: text('reason').notNull(),
+  evidenceUrl: varchar('evidence_url', { length: 2048 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  supersedesOverrideId: bigint('supersedes_override_id', { mode: 'bigint' }).references((): AnyPgColumn => institutionalSecurityMappingOverrides.id, { onDelete: 'restrict' }),
+}, table => [
+  unique('institutional_security_mapping_overrides_version_unique').on(table.holdingId, table.version),
+  uniqueIndex('institutional_security_mapping_overrides_supersedes_unique').on(table.supersedesOverrideId).where(sql`${table.supersedesOverrideId} is not null`),
+  index('institutional_security_mapping_overrides_holding_time_idx').on(table.holdingId, table.createdAt.desc(), table.id.desc()),
+  check('institutional_security_mapping_overrides_version_positive', sql`${table.version} > 0`),
+  check('institutional_security_mapping_overrides_reason_nonempty', sql`length(btrim(${table.reason})) > 0`),
+  check('institutional_security_mapping_overrides_source_https', sql`${table.evidenceUrl} like 'https://%'`),
+])
+
+export const institutionalSecurityIdentityEvents = pgTable('institutional_security_identity_events', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  kind: institutionalSecurityIdentityEventType('kind').notNull(),
+  fromSecurityId: bigint('from_security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  toSecurityId: bigint('to_security_id', { mode: 'bigint' }).references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  effectiveOn: date('effective_on', { mode: 'string' }).notNull(),
+  newTicker: varchar('new_ticker', { length: 32 }),
+  newSharesPerOldShare: numeric('new_shares_per_old_share', { precision: 24, scale: 12 }),
+  comparable: boolean('comparable').notNull(),
+  reason: text('reason').notNull(),
+  evidenceUrl: varchar('evidence_url', { length: 2048 }).notNull(),
+  actorUserId: bigint('actor_user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'restrict' }),
+  verifiedAt: timestamp('verified_at', { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  supersedesEventId: bigint('supersedes_event_id', { mode: 'bigint' }).references((): AnyPgColumn => institutionalSecurityIdentityEvents.id, { onDelete: 'restrict' }),
+}, table => [
+  uniqueIndex('institutional_security_identity_events_supersedes_unique').on(table.supersedesEventId).where(sql`${table.supersedesEventId} is not null`),
+  index('institutional_security_identity_events_from_idx').on(table.fromSecurityId, table.effectiveOn, table.id),
+  index('institutional_security_identity_events_to_idx').on(table.toSecurityId, table.effectiveOn, table.id),
+  check('institutional_security_identity_events_reason_nonempty', sql`length(btrim(${table.reason})) > 0`),
+  check('institutional_security_identity_events_source_https', sql`${table.evidenceUrl} like 'https://%'`),
+  check('institutional_security_identity_events_semantics', sql`
+    (${table.kind} = 'TICKER_CHANGE' and ${table.toSecurityId} = ${table.fromSecurityId} and ${table.newTicker} is not null and ${table.newSharesPerOldShare} is null and ${table.comparable}) or
+    (${table.kind} = 'STOCK_SPLIT' and ${table.toSecurityId} = ${table.fromSecurityId} and ${table.newTicker} is null and ${table.newSharesPerOldShare} > 0 and ${table.comparable}) or
+    (${table.kind} = 'SHARE_CLASS_CONTINUITY' and ${table.toSecurityId} is not null and ${table.toSecurityId} <> ${table.fromSecurityId} and ${table.newTicker} is null and ${table.newSharesPerOldShare} > 0 and ${table.comparable}) or
+    (${table.kind} in ('MERGER', 'SPIN_OFF') and ${table.toSecurityId} is not null and ${table.toSecurityId} <> ${table.fromSecurityId} and ${table.newTicker} is null and ${table.newSharesPerOldShare} is null and not ${table.comparable}) or
+    (${table.kind} = 'DELISTING' and ${table.toSecurityId} is null and ${table.newTicker} is null and ${table.newSharesPerOldShare} is null and not ${table.comparable})
+  `),
+])
+
+export const institutionalSecurityMappingRefreshJobs = pgTable('institutional_security_mapping_refresh_jobs', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  status: institutionalSecurityMappingRefreshStatus('status').default('PENDING').notNull(),
+  lastFilingId: bigint('last_filing_id', { mode: 'bigint' }).default(sql`0`).notNull(),
+  processedFilingCount: integer('processed_filing_count').default(0).notNull(),
+  leaseToken: varchar('lease_token', { length: 128 }),
+  leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true, mode: 'date' }),
+  lastError: varchar('last_error', { length: 160 }),
+  createdBy: bigint('created_by', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  index('institutional_security_mapping_refresh_jobs_queue_idx').on(table.status, table.id),
+  check('institutional_security_mapping_refresh_jobs_cursor_nonnegative', sql`${table.lastFilingId} >= 0 and ${table.processedFilingCount} >= 0`),
+  check('institutional_security_mapping_refresh_jobs_lease_consistent', sql`(${table.leaseToken} is null and ${table.leaseExpiresAt} is null) or (${table.leaseToken} is not null and ${table.leaseExpiresAt} is not null)`),
+  check('institutional_security_mapping_refresh_jobs_state_valid', sql`
+    (${table.status} = 'PENDING' and ${table.leaseToken} is null and ${table.leaseExpiresAt} is null and ${table.completedAt} is null) or
+    (${table.status} = 'RUNNING' and ${table.leaseToken} is not null and ${table.leaseExpiresAt} is not null and ${table.completedAt} is null) or
+    (${table.status} = 'COMPLETE' and ${table.leaseToken} is null and ${table.leaseExpiresAt} is null and ${table.completedAt} is not null)
+  `),
+])
+
+// Effective contents are immutable; publication and period quality have separate lifecycle rows.
+export const institutionalEffectiveSnapshots = pgTable('institutional_effective_snapshots', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  replayKey: varchar('replay_key', { length: 64 }).notNull(),
+  snapshotHash: varchar('snapshot_hash', { length: 64 }).notNull(),
+  sourceManifestHash: varchar('source_manifest_hash', { length: 64 }).notNull(),
+  resolverVersion: varchar('resolver_version', { length: 40 }).notNull(),
+  holdingCount: integer('holding_count').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  unique('institutional_effective_snapshots_replay_unique').on(table.managerId, table.periodEnd, table.replayKey),
+  unique('institutional_effective_snapshots_identity_unique').on(table.id, table.managerId, table.periodEnd),
+  check('institutional_effective_snapshots_hash_valid', sql`${table.replayKey} ~ '^[a-f0-9]{64}$' and ${table.snapshotHash} ~ '^[a-f0-9]{64}$' and ${table.sourceManifestHash} ~ '^[a-f0-9]{64}$'`),
+  check('institutional_effective_snapshots_count_nonnegative', sql`${table.holdingCount} >= 0`),
+])
+
+export const institutionalEffectiveSnapshotSources = pgTable('institutional_effective_snapshot_sources', {
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull().references(() => institutionalEffectiveSnapshots.id, { onDelete: 'restrict' }),
+  ordinal: integer('ordinal').notNull(),
+  filingId: bigint('filing_id', { mode: 'bigint' }).notNull().references(() => institutionalFilings.id, { onDelete: 'restrict' }),
+  accession: varchar('accession', { length: 20 }).notNull(),
+  operation: varchar('operation', { length: 24 }).notNull(),
+  amendmentNumber: integer('amendment_number'),
+  parserVersion: varchar('parser_version', { length: 32 }).notNull(),
+  sourceManifest: jsonb('source_manifest').$type<Record<string, unknown>>().notNull(),
+}, table => [
+  primaryKey({ columns: [table.snapshotId, table.ordinal] }),
+  unique('institutional_effective_snapshot_sources_filing_unique').on(table.snapshotId, table.filingId),
+  check('institutional_effective_snapshot_sources_operation_valid', sql`(${table.operation} = 'ORIGINAL' and ${table.amendmentNumber} is null) or (${table.operation} in ('RESTATEMENT', 'ADD_NEW_HOLDINGS') and ${table.amendmentNumber} > 0)`),
+  check('institutional_effective_snapshot_sources_ordinal_nonnegative', sql`${table.ordinal} >= 0`),
+])
+
+export const institutionalEffectiveHoldings = pgTable('institutional_effective_holdings', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull().references(() => institutionalEffectiveSnapshots.id, { onDelete: 'restrict' }),
+  ordinal: integer('ordinal').notNull(),
+  sourceFilingId: bigint('source_filing_id', { mode: 'bigint' }).notNull().references(() => institutionalFilings.id, { onDelete: 'restrict' }),
+  sourceDocumentId: bigint('source_document_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingDocuments.id, { onDelete: 'restrict' }),
+  sourceArtifactId: bigint('source_artifact_id', { mode: 'bigint' }).notNull().references(() => institutionalFilingArtifacts.id, { onDelete: 'restrict' }),
+  // Parsed rows may be replaced during reprocessing, so this durable identity uses accession/document/row/digest/version instead of their transient row ID.
+  sourceRowKey: varchar('source_row_key', { length: 64 }).notNull(),
+  sourceRowNumber: integer('source_row_number').notNull(),
+  securityId: bigint('security_id', { mode: 'bigint' }).references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  mappingStatus: institutionalHoldingMappingStatus('mapping_status').notNull(),
+  mappingVersion: varchar('mapping_version', { length: 40 }).notNull(),
+  issuer: text('issuer').notNull(),
+  titleOfClass: varchar('title_of_class', { length: 160 }).notNull(),
+  cusip: varchar('cusip', { length: 32 }),
+  figi: varchar('figi', { length: 32 }),
+  reportedValue: numeric('reported_value', { precision: 32, scale: 8 }).notNull(),
+  reportedValueUnit: varchar('reported_value_unit', { length: 32 }).notNull(),
+  quantity: numeric('quantity', { precision: 32, scale: 8 }).notNull(),
+  quantityType: varchar('quantity_type', { length: 8 }).notNull(),
+  putCall: varchar('put_call', { length: 8 }),
+  sourceData: jsonb('source_data').$type<Record<string, unknown>>().notNull(),
+}, table => [
+  unique('institutional_effective_holdings_ordinal_unique').on(table.snapshotId, table.ordinal),
+  unique('institutional_effective_holdings_source_row_unique').on(table.snapshotId, table.sourceRowKey),
+  check('institutional_effective_holdings_row_valid', sql`${table.ordinal} >= 0 and ${table.sourceRowNumber} > 0 and ${table.sourceRowKey} ~ '^[a-f0-9]{64}$'`),
+  check('institutional_effective_holdings_quantity_valid', sql`${table.reportedValue} >= 0 and ${table.quantity} >= 0 and ${table.quantityType} in ('SH', 'PRN')`),
+  check('institutional_effective_holdings_mapping_valid', sql`(${table.mappingStatus} in ('MATCHED', 'MANUAL_OVERRIDE') and ${table.securityId} is not null) or (${table.mappingStatus} in ('AMBIGUOUS', 'UNRESOLVED') and ${table.securityId} is null)`),
+])
+
+export const institutionalEffectiveSnapshotPublications = pgTable('institutional_effective_snapshot_publications', {
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).primaryKey(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull(),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  status: varchar('status', { length: 16 }).notNull(),
+  active: boolean('active').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  foreignKey({ columns: [table.snapshotId, table.managerId, table.periodEnd], foreignColumns: [institutionalEffectiveSnapshots.id, institutionalEffectiveSnapshots.managerId, institutionalEffectiveSnapshots.periodEnd] }).onDelete('restrict'),
+  uniqueIndex('institutional_effective_snapshot_publications_active_unique').on(table.managerId, table.periodEnd).where(sql`${table.active} and ${table.status} = 'READY'`),
+  check('institutional_effective_snapshot_publications_state_valid', sql`(${table.active} and ${table.status} = 'READY') or (not ${table.active} and ${table.status} = 'SUPERSEDED')`),
+])
+
+export const institutionalEffectivePeriodStates = pgTable('institutional_effective_period_states', {
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  status: varchar('status', { length: 16 }).notNull(),
+  reason: varchar('reason', { length: 80 }),
+  sourceManifestHash: varchar('source_manifest_hash', { length: 64 }).notNull(),
+  checkedAt: timestamp('checked_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.managerId, table.periodEnd] }),
+  check('institutional_effective_period_states_status_valid', sql`${table.status} in ('READY', 'PARTIAL', 'ERROR')`),
+  check('institutional_effective_period_states_reason_valid', sql`(${table.status} = 'READY' and ${table.reason} is null) or (${table.status} <> 'READY' and ${table.reason} is not null)`),
+])
+
+// Producer outbox: analytics and AI consumers track their own delivery checkpoints.
+export const institutionalSnapshotChangeEvents = pgTable('institutional_snapshot_change_events', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull(),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull(),
+  previousSnapshotId: bigint('previous_snapshot_id', { mode: 'bigint' }),
+  eventType: varchar('event_type', { length: 32 }).default('EFFECTIVE_SNAPSHOT_CHANGED').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  foreignKey({ columns: [table.snapshotId, table.managerId, table.periodEnd], foreignColumns: [institutionalEffectiveSnapshots.id, institutionalEffectiveSnapshots.managerId, institutionalEffectiveSnapshots.periodEnd] }).onDelete('restrict'),
+  foreignKey({ columns: [table.previousSnapshotId, table.managerId, table.periodEnd], foreignColumns: [institutionalEffectiveSnapshots.id, institutionalEffectiveSnapshots.managerId, institutionalEffectiveSnapshots.periodEnd] }).onDelete('restrict'),
+  index('institutional_snapshot_change_events_delivery_idx').on(table.id, table.managerId, table.periodEnd),
+  check('institutional_snapshot_change_events_type_valid', sql`${table.eventType} in ('EFFECTIVE_SNAPSHOT_CHANGED', 'EFFECTIVE_PERIOD_STATE_CHANGED')`),
+  check('institutional_snapshot_change_events_distinct', sql`${table.previousSnapshotId} is null or ${table.previousSnapshotId} <> ${table.snapshotId}`),
+])
+
+export const institutionalEffectiveSnapshotRebuildRequests = pgTable('institutional_effective_snapshot_rebuild_requests', {
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  requestedRevision: bigint('requested_revision', { mode: 'bigint' }).default(sql`1`).notNull(),
+  processedRevision: bigint('processed_revision', { mode: 'bigint' }).default(sql`0`).notNull(),
+  requestedAt: timestamp('requested_at', { withTimezone: true, mode: 'date' }).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 80 }),
+}, table => [
+  primaryKey({ columns: [table.managerId, table.periodEnd] }),
+  index('institutional_effective_snapshot_rebuild_requests_due_idx').on(table.nextAttemptAt, table.managerId, table.periodEnd),
+  check('institutional_effective_snapshot_rebuild_requests_revision_valid', sql`${table.requestedRevision} > 0 and ${table.processedRevision} >= 0 and ${table.processedRevision} <= ${table.requestedRevision}`),
+])
+
+export const guruQuarterAnalytics = pgTable('guru_quarter_analytics', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull().references(() => institutionalEffectiveSnapshots.id, { onDelete: 'restrict' }),
+  previousSnapshotId: bigint('previous_snapshot_id', { mode: 'bigint' }).references(() => institutionalEffectiveSnapshots.id, { onDelete: 'restrict' }),
+  analyticsVersion: varchar('analytics_version', { length: 40 }).notNull(),
+  inputHash: varchar('input_hash', { length: 64 }).notNull(),
+  contextHash: varchar('context_hash', { length: 64 }).notNull(),
+  status: varchar('status', { length: 16 }).notNull(),
+  comparisonStatus: varchar('comparison_status', { length: 40 }).notNull(),
+  reportedValueUsd: numeric('reported_value_usd', { precision: 32, scale: 8 }).notNull(),
+  holdingCount: integer('holding_count').notNull(),
+  sourceRowCount: integer('source_row_count').notNull(),
+  mappedRowCount: integer('mapped_row_count').notNull(),
+  mappingCoveragePercent: numeric('mapping_coverage_percent', { precision: 12, scale: 8 }).notNull(),
+  topOneConcentrationPercent: numeric('top_one_concentration_percent', { precision: 12, scale: 8 }).notNull(),
+  topFiveConcentrationPercent: numeric('top_five_concentration_percent', { precision: 12, scale: 8 }).notNull(),
+  topTenConcentrationPercent: numeric('top_ten_concentration_percent', { precision: 12, scale: 8 }).notNull(),
+  hhi: numeric('hhi', { precision: 16, scale: 4 }).notNull(),
+  disclosedWeightTurnoverPercent: numeric('disclosed_weight_turnover_percent', { precision: 12, scale: 8 }),
+  turnoverBand: varchar('turnover_band', { length: 10 }),
+  turnoverUnavailableReason: varchar('turnover_unavailable_reason', { length: 48 }),
+  newCount: integer('new_count').notNull(),
+  strongAddCount: integer('strong_add_count').notNull(),
+  addCount: integer('add_count').notNull(),
+  unchangedCount: integer('unchanged_count').notNull(),
+  reduceCount: integer('reduce_count').notNull(),
+  strongReduceCount: integer('strong_reduce_count').notNull(),
+  exitCount: integer('exit_count').notNull(),
+  result: jsonb('result').$type<Record<string, unknown>>(),
+  calculatedAt: timestamp('calculated_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  unique('guru_quarter_analytics_manager_period_version_unique').on(table.managerId, table.periodEnd, table.analyticsVersion),
+  index('guru_quarter_analytics_period_idx').on(table.periodEnd, table.managerId),
+  check('guru_quarter_analytics_hash_valid', sql`${table.inputHash} ~ '^[a-f0-9]{64}$' and ${table.contextHash} ~ '^[a-f0-9]{64}$'`),
+  check('guru_quarter_analytics_status_valid', sql`${table.status} in ('READY', 'PARTIAL', 'ERROR')`),
+  check('guru_quarter_analytics_result_state_valid', sql`(${table.status} = 'READY' and ${table.result} is not null) or (${table.status} <> 'READY' and ${table.result} is null)`),
+  check('guru_quarter_analytics_counts_valid', sql`${table.holdingCount} >= 0 and ${table.sourceRowCount} >= 0 and ${table.mappedRowCount} >= 0 and ${table.mappedRowCount} <= ${table.sourceRowCount} and ${table.newCount} >= 0 and ${table.strongAddCount} >= 0 and ${table.addCount} >= 0 and ${table.unchangedCount} >= 0 and ${table.reduceCount} >= 0 and ${table.strongReduceCount} >= 0 and ${table.exitCount} >= 0`),
+  check('guru_quarter_analytics_turnover_valid', sql`(${table.turnoverBand} is null or ${table.turnoverBand} in ('LOW', 'MODERATE', 'HIGH')) and ((${table.disclosedWeightTurnoverPercent} is null and ${table.turnoverBand} is null) or (${table.disclosedWeightTurnoverPercent} is not null and ${table.turnoverUnavailableReason} is null))`),
+])
+
+export const guruHoldingChanges = pgTable('guru_holding_changes', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  analyticsId: bigint('analytics_id', { mode: 'bigint' }).notNull().references(() => guruQuarterAnalytics.id, { onDelete: 'cascade' }),
+  positionKey: varchar('position_key', { length: 256 }).notNull(),
+  securityId: bigint('security_id', { mode: 'bigint' }).references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  ticker: varchar('ticker', { length: 32 }),
+  company: text('company').notNull(),
+  action: varchar('action', { length: 20 }).notNull(),
+  quantityType: varchar('quantity_type', { length: 8 }).notNull(),
+  putCall: varchar('put_call', { length: 8 }),
+  previousQuantity: numeric('previous_quantity', { precision: 32, scale: 8 }),
+  comparablePreviousQuantity: numeric('comparable_previous_quantity', { precision: 32, scale: 8 }),
+  currentQuantity: numeric('current_quantity', { precision: 32, scale: 8 }),
+  quantityChange: numeric('quantity_change', { precision: 32, scale: 8 }).notNull(),
+  quantityChangePercent: numeric('quantity_change_percent', { precision: 20, scale: 8 }),
+  quantityAdjustmentFactor: numeric('quantity_adjustment_factor', { precision: 24, scale: 12 }),
+  corporateActionEventIds: text('corporate_action_event_ids').array().default(sql`'{}'::text[]`).notNull(),
+  previousWeightPercent: numeric('previous_weight_percent', { precision: 12, scale: 8 }),
+  currentWeightPercent: numeric('current_weight_percent', { precision: 12, scale: 8 }),
+  weightChangePercentagePoints: numeric('weight_change_percentage_points', { precision: 12, scale: 8 }),
+  previousRank: integer('previous_rank'),
+  currentRank: integer('current_rank'),
+  rankChange: integer('rank_change'),
+  previousReportedValueUsd: numeric('previous_reported_value_usd', { precision: 32, scale: 8 }),
+  currentReportedValueUsd: numeric('current_reported_value_usd', { precision: 32, scale: 8 }),
+  reportedValueChangeUsd: numeric('reported_value_change_usd', { precision: 32, scale: 8 }),
+}, table => [
+  unique('guru_holding_changes_analytics_position_unique').on(table.analyticsId, table.positionKey),
+  index('guru_holding_changes_stock_idx').on(table.securityId, table.action, table.analyticsId),
+  check('guru_holding_changes_action_valid', sql`${table.action} in ('NEW', 'STRONG_ADD', 'ADD', 'UNCHANGED', 'REDUCE', 'STRONG_REDUCE', 'EXIT')`),
+  check('guru_holding_changes_exposure_valid', sql`${table.quantityType} in ('SH', 'PRN') and (${table.putCall} is null or ${table.putCall} in ('PUT', 'CALL'))`),
+])
+
+export const guruThemeMappings = pgTable('guru_theme_mappings', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  themeKey: varchar('theme_key', { length: 80 }).notNull(),
+  themeName: varchar('theme_name', { length: 120 }).notNull(),
+  version: integer('version').notNull(),
+  source: varchar('source', { length: 32 }).notNull(),
+  sourceReference: varchar('source_reference', { length: 500 }),
+  active: boolean('active').default(true).notNull(),
+  createdBy: bigint('created_by', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  unique('guru_theme_mappings_security_theme_version_unique').on(table.securityId, table.themeKey, table.version),
+  uniqueIndex('guru_theme_mappings_active_unique').on(table.securityId, table.themeKey).where(sql`${table.active}`),
+  index('guru_theme_mappings_active_theme_idx').on(table.active, table.themeKey, table.securityId),
+  check('guru_theme_mappings_theme_key_valid', sql`${table.themeKey} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+  check('guru_theme_mappings_name_nonempty', sql`length(btrim(${table.themeName})) > 0`),
+  check('guru_theme_mappings_version_positive', sql`${table.version} > 0`),
+  check('guru_theme_mappings_source_valid', sql`${table.source} in ('ADMIN', 'RESEARCH_METADATA')`),
+])
+
+export const guruConsensusSnapshots = pgTable('guru_consensus_snapshots', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  consensusVersion: varchar('consensus_version', { length: 40 }).notNull(),
+  inputHash: varchar('input_hash', { length: 64 }).notNull(),
+  contextHash: varchar('context_hash', { length: 64 }).notNull(),
+  themeMappingHash: varchar('theme_mapping_hash', { length: 64 }).notNull(),
+  activeManagerCount: integer('active_manager_count').notNull(),
+  readyManagerCount: integer('ready_manager_count').notNull(),
+  partialManagerCount: integer('partial_manager_count').notNull(),
+  errorManagerCount: integer('error_manager_count').notNull(),
+  supersededManagerCount: integer('superseded_manager_count').notNull(),
+  pendingManagerCount: integer('pending_manager_count').notNull(),
+  noFilingManagerCount: integer('no_filing_manager_count').notNull(),
+  comparableManagerCount: integer('comparable_manager_count').notNull(),
+  previousReadyManagerCount: integer('previous_ready_manager_count').notNull(),
+  sourceRowCount: integer('source_row_count').notNull(),
+  mappedRowCount: integer('mapped_row_count').notNull(),
+  mappingCoveragePercent: numeric('mapping_coverage_percent', { precision: 12, scale: 8 }),
+  calculatedAt: timestamp('calculated_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  unique('guru_consensus_snapshots_period_version_unique').on(table.periodEnd, table.consensusVersion),
+  index('guru_consensus_snapshots_period_idx').on(table.periodEnd.desc(), table.id.desc()),
+  check('guru_consensus_snapshots_hash_valid', sql`${table.inputHash} ~ '^[a-f0-9]{64}$' and ${table.contextHash} ~ '^[a-f0-9]{64}$' and ${table.themeMappingHash} ~ '^[a-f0-9]{64}$'`),
+  check('guru_consensus_snapshots_counts_valid', sql`${table.activeManagerCount} >= 0 and ${table.readyManagerCount} >= 0 and ${table.partialManagerCount} >= 0 and ${table.errorManagerCount} >= 0 and ${table.supersededManagerCount} >= 0 and ${table.pendingManagerCount} >= 0 and ${table.noFilingManagerCount} >= 0 and ${table.comparableManagerCount} >= 0 and ${table.previousReadyManagerCount} >= 0 and ${table.sourceRowCount} >= 0 and ${table.mappedRowCount} >= 0 and ${table.mappedRowCount} <= ${table.sourceRowCount}`),
+  check('guru_consensus_snapshots_coverage_valid', sql`${table.mappingCoveragePercent} is null or ${table.mappingCoveragePercent} between 0 and 100`),
+])
+
+export const guruStockConsensus = pgTable('guru_stock_consensus', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull().references(() => guruConsensusSnapshots.id, { onDelete: 'cascade' }),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  ticker: varchar('ticker', { length: 32 }),
+  company: text('company').notNull(),
+  sector: varchar('sector', { length: 120 }),
+  industry: varchar('industry', { length: 160 }),
+  currentHolderCount: integer('current_holder_count').notNull(),
+  comparableCurrentHolderCount: integer('comparable_current_holder_count').notNull(),
+  previousHolderCount: integer('previous_holder_count').notNull(),
+  holderCountChange: integer('holder_count_change').notNull(),
+  newBuyerCount: integer('new_buyer_count').notNull(),
+  addCount: integer('add_count').notNull(),
+  unchangedCount: integer('unchanged_count').notNull(),
+  reduceCount: integer('reduce_count').notNull(),
+  exitCount: integer('exit_count').notNull(),
+  netBuyerCount: integer('net_buyer_count').notNull(),
+  actionManagerCount: integer('action_manager_count').notNull(),
+  quantityChangeSampleCount: integer('quantity_change_sample_count').notNull(),
+  averageQuantityChangePercent: numeric('average_quantity_change_percent', { precision: 20, scale: 8 }),
+  medianQuantityChangePercent: numeric('median_quantity_change_percent', { precision: 20, scale: 8 }),
+  aggregateWeightPercent: numeric('aggregate_weight_percent', { precision: 20, scale: 8 }).notNull(),
+  averagePortfolioWeightPercent: numeric('average_portfolio_weight_percent', { precision: 20, scale: 8 }),
+  weightBreadthPercent: numeric('weight_breadth_percent', { precision: 12, scale: 8 }).notNull(),
+  classification: varchar('classification', { length: 20 }),
+  quarterTrend: varchar('quarter_trend', { length: 20 }).notNull(),
+}, table => [
+  unique('guru_stock_consensus_snapshot_security_unique').on(table.snapshotId, table.securityId),
+  index('guru_stock_consensus_holders_idx').on(table.snapshotId, table.currentHolderCount.desc(), table.ticker),
+  index('guru_stock_consensus_net_buyers_idx').on(table.snapshotId, table.netBuyerCount.desc(), table.currentHolderCount.desc()),
+  index('guru_stock_consensus_exits_idx').on(table.snapshotId, table.exitCount.desc(), table.currentHolderCount.desc()),
+  index('guru_stock_consensus_weight_idx').on(table.snapshotId, table.aggregateWeightPercent.desc()),
+  index('guru_stock_consensus_holder_change_idx').on(table.snapshotId, table.holderCountChange.desc()),
+  check('guru_stock_consensus_counts_valid', sql`${table.currentHolderCount} >= 0 and ${table.comparableCurrentHolderCount} >= 0 and ${table.previousHolderCount} >= 0 and ${table.newBuyerCount} >= 0 and ${table.addCount} >= 0 and ${table.unchangedCount} >= 0 and ${table.reduceCount} >= 0 and ${table.exitCount} >= 0 and ${table.actionManagerCount} >= 0 and ${table.quantityChangeSampleCount} >= 0`),
+  check('guru_stock_consensus_classification_valid', sql`${table.classification} is null or ${table.classification} in ('ACCUMULATION', 'NEUTRAL', 'DISTRIBUTION')`),
+  check('guru_stock_consensus_trend_valid', sql`${table.quarterTrend} in ('RISING', 'STABLE', 'FALLING', 'UNAVAILABLE')`),
+])
+
+export const guruSectorConsensus = pgTable('guru_sector_consensus', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).notNull().references(() => guruConsensusSnapshots.id, { onDelete: 'cascade' }),
+  dimension: varchar('dimension', { length: 16 }).notNull(),
+  dimensionKey: varchar('dimension_key', { length: 160 }).notNull(),
+  name: varchar('name', { length: 160 }).notNull(),
+  currentHolderCount: integer('current_holder_count').notNull(),
+  buyerCount: integer('buyer_count').notNull(),
+  sellerCount: integer('seller_count').notNull(),
+  newPositionCount: integer('new_position_count').notNull(),
+  exitCount: integer('exit_count').notNull(),
+  addCount: integer('add_count').notNull(),
+  reduceCount: integer('reduce_count').notNull(),
+  allocationManagerCount: integer('allocation_manager_count').notNull(),
+  aggregateWeightPercent: numeric('aggregate_weight_percent', { precision: 20, scale: 8 }).notNull(),
+  comparableCurrentAggregateWeightPercent: numeric('comparable_current_aggregate_weight_percent', { precision: 20, scale: 8 }).notNull(),
+  previousAggregateWeightPercent: numeric('previous_aggregate_weight_percent', { precision: 20, scale: 8 }),
+  aggregateWeightChangePoints: numeric('aggregate_weight_change_points', { precision: 20, scale: 8 }),
+  holderBreadthPercent: numeric('holder_breadth_percent', { precision: 12, scale: 8 }).notNull(),
+  allocationCoveragePercent: numeric('allocation_coverage_percent', { precision: 12, scale: 8 }).notNull(),
+  direction: varchar('direction', { length: 16 }),
+}, table => [
+  unique('guru_sector_consensus_snapshot_dimension_key_unique').on(table.snapshotId, table.dimension, table.dimensionKey),
+  index('guru_sector_consensus_dimension_idx').on(table.snapshotId, table.dimension, table.name),
+  index('guru_sector_consensus_direction_idx').on(table.snapshotId, table.dimension, table.direction),
+  check('guru_sector_consensus_dimension_valid', sql`${table.dimension} in ('SECTOR', 'INDUSTRY', 'THEME')`),
+  check('guru_sector_consensus_counts_valid', sql`${table.currentHolderCount} >= 0 and ${table.buyerCount} >= 0 and ${table.sellerCount} >= 0 and ${table.newPositionCount} >= 0 and ${table.exitCount} >= 0 and ${table.addCount} >= 0 and ${table.reduceCount} >= 0 and ${table.allocationManagerCount} >= 0`),
+  check('guru_sector_consensus_direction_valid', sql`${table.direction} is null or ${table.direction} in ('INCREASING', 'STABLE', 'REDUCING')`),
+  check('guru_sector_consensus_coverage_valid', sql`${table.holderBreadthPercent} between 0 and 100 and ${table.allocationCoveragePercent} between 0 and 100`),
+])
+
+export const guruAnalyticsEventDeliveries = pgTable('guru_analytics_event_deliveries', {
+  eventId: bigint('event_id', { mode: 'bigint' }).primaryKey().references(() => institutionalSnapshotChangeEvents.id, { onDelete: 'restrict' }),
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 96 }),
+  processedAt: timestamp('processed_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  index('guru_analytics_event_deliveries_due_idx').on(table.processedAt, table.nextAttemptAt, table.eventId),
+  check('guru_analytics_event_deliveries_attempt_valid', sql`${table.attemptCount} >= 0`),
+])
+
+export const guruConsensusRebuildRequests = pgTable('guru_consensus_rebuild_requests', {
+  periodEnd: date('period_end', { mode: 'string' }).primaryKey(),
+  requestedRevision: bigint('requested_revision', { mode: 'bigint' }).default(sql`1`).notNull(),
+  processedRevision: bigint('processed_revision', { mode: 'bigint' }).default(sql`0`).notNull(),
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 96 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  index('guru_consensus_rebuild_requests_due_idx').on(table.processedRevision, table.nextAttemptAt, table.periodEnd),
+  check('guru_consensus_rebuild_requests_revision_valid', sql`${table.requestedRevision} > 0 and ${table.processedRevision} >= 0 and ${table.processedRevision} <= ${table.requestedRevision}`),
+  check('guru_consensus_rebuild_requests_attempt_valid', sql`${table.attemptCount} >= 0`),
+])
+
+// A member's private watch on one security's Guru activity. Follower and watcher
+// identities never leave these rows; aggregate counts are read separately.
+export const guruStockWatches = pgTable('guru_stock_watches', {
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  primaryKey({ columns: [table.userId, table.securityId] }),
+  index('guru_stock_watches_security_idx').on(table.securityId, table.userId),
+])
+
+export const guruNotificationPreferences = pgTable('guru_notification_preferences', {
+  userId: bigint('user_id', { mode: 'bigint' }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  newFiling: boolean('new_filing').default(true).notNull(),
+  newPosition: boolean('new_position').default(true).notNull(),
+  exitedPosition: boolean('exited_position').default(true).notNull(),
+  strongAdd: boolean('strong_add').default(true).notNull(),
+  strongReduce: boolean('strong_reduce').default(true).notNull(),
+  newStockHolder: boolean('new_stock_holder').default(true).notNull(),
+  consensusChange: boolean('consensus_change').default(false).notNull(),
+  minWeightPercent: numeric('min_weight_percent', { precision: 12, scale: 8 }),
+  minQuantityChangePercent: numeric('min_quantity_change_percent', { precision: 20, scale: 8 }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, table => [
+  check('guru_notification_preferences_thresholds_valid', sql`(${table.minWeightPercent} is null or ${table.minWeightPercent} >= 0) and (${table.minQuantityChangePercent} is null or ${table.minQuantityChangePercent} >= 0)`),
+])
+
+// The dedupe key is the idempotency boundary: a retried delivery job inserts the
+// same key and is discarded instead of notifying twice.
+export const guruNotifications = pgTable('guru_notifications', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  eventType: varchar('event_type', { length: 24 }).notNull(),
+  dedupeKey: varchar('dedupe_key', { length: 320 }).notNull(),
+  guruId: bigint('guru_id', { mode: 'bigint' }).references(() => gurus.id, { onDelete: 'cascade' }),
+  securityId: bigint('security_id', { mode: 'bigint' }).references(() => institutionalSecurities.id, { onDelete: 'cascade' }),
+  periodEnd: date('period_end', { mode: 'string' }),
+  payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  readAt: timestamp('read_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  unique('guru_notifications_user_dedupe_unique').on(table.userId, table.dedupeKey),
+  index('guru_notifications_inbox_idx').on(table.userId, table.createdAt.desc(), table.id.desc()),
+  index('guru_notifications_unread_idx').on(table.userId, table.id.desc()).where(sql`${table.readAt} is null`),
+  check('guru_notifications_event_type_valid', sql`${table.eventType} in ('NEW_FILING', 'NEW_POSITION', 'EXITED_POSITION', 'STRONG_ADD', 'STRONG_REDUCE', 'NEW_STOCK_HOLDER', 'CONSENSUS_CHANGE')`),
+])
+
+export const guruNotificationEventDeliveries = pgTable('guru_notification_event_deliveries', {
+  eventId: bigint('event_id', { mode: 'bigint' }).primaryKey().references(() => institutionalSnapshotChangeEvents.id, { onDelete: 'restrict' }),
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 96 }),
+  processedAt: timestamp('processed_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  index('guru_notification_event_deliveries_due_idx').on(table.processedAt, table.nextAttemptAt, table.eventId),
+  check('guru_notification_event_deliveries_attempt_valid', sql`${table.attemptCount} >= 0`),
+])
+
+export const guruNotificationConsensusDeliveries = pgTable('guru_notification_consensus_deliveries', {
+  snapshotId: bigint('snapshot_id', { mode: 'bigint' }).primaryKey().references(() => guruConsensusSnapshots.id, { onDelete: 'cascade' }),
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 96 }),
+  processedAt: timestamp('processed_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  index('guru_notification_consensus_deliveries_due_idx').on(table.processedAt, table.nextAttemptAt, table.snapshotId),
+  check('guru_notification_consensus_deliveries_attempt_valid', sql`${table.attemptCount} >= 0`),
+])
+
+// A decision-time snapshot. The row is insert-only so a later rebuild cannot
+// change what the author saw when they recorded the decision.
+export const diaryGuruSnapshots = pgTable('diary_guru_snapshots', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  diaryId: bigint('diary_id', { mode: 'bigint' }).notNull().references(() => diaries.id, { onDelete: 'cascade' }),
+  userId: bigint('user_id', { mode: 'bigint' }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  securityId: bigint('security_id', { mode: 'bigint' }).notNull().references(() => institutionalSecurities.id, { onDelete: 'restrict' }),
+  symbol: varchar('symbol', { length: 32 }).notNull(),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  contextVersion: varchar('context_version', { length: 40 }).notNull(),
+  consensusVersion: varchar('consensus_version', { length: 40 }),
+  consensusSnapshotId: bigint('consensus_snapshot_id', { mode: 'bigint' }).references(() => guruConsensusSnapshots.id, { onDelete: 'set null' }),
+  holderCount: integer('holder_count').notNull(),
+  snapshot: jsonb('snapshot').$type<Record<string, unknown>>().notNull(),
+  capturedAt: timestamp('captured_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  unique('diary_guru_snapshots_diary_security_period_unique').on(table.diaryId, table.securityId, table.periodEnd),
+  index('diary_guru_snapshots_owner_idx').on(table.userId, table.diaryId, table.id.desc()),
+  check('diary_guru_snapshots_holder_count_nonnegative', sql`${table.holderCount} >= 0`),
+])
+
+// Interpretation is stored apart from the prepared facts it was generated from.
+// Every row keeps the structured input, its hash, and the effective prompt so a
+// published analysis stays auditable after analytics or prompts move on.
+export const guruAnalysisRuns = pgTable('guru_analysis_runs', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  managerId: bigint('manager_id', { mode: 'bigint' }).notNull().references(() => institutionalManagers.id, { onDelete: 'restrict' }),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  analyticsId: bigint('analytics_id', { mode: 'bigint' }).notNull().references(() => guruQuarterAnalytics.id, { onDelete: 'restrict' }),
+  analyticsVersion: varchar('analytics_version', { length: 40 }).notNull(),
+  analyticsContextHash: varchar('analytics_context_hash', { length: 64 }).notNull(),
+  consensusSnapshotId: bigint('consensus_snapshot_id', { mode: 'bigint' }).references(() => guruConsensusSnapshots.id, { onDelete: 'set null' }),
+  consensusVersion: varchar('consensus_version', { length: 40 }),
+  contextVersion: varchar('context_version', { length: 40 }).notNull(),
+  schemaVersion: varchar('schema_version', { length: 40 }).notNull(),
+  inputHash: varchar('input_hash', { length: 64 }).notNull(),
+  context: jsonb('context').$type<Record<string, unknown>>().notNull(),
+  promptKey: varchar('prompt_key', { length: 100 }).notNull(),
+  promptSource: varchar('prompt_source', { length: 16 }).notNull(),
+  promptSystemVersion: varchar('prompt_system_version', { length: 40 }).notNull(),
+  promptOverrideVersionId: bigint('prompt_override_version_id', { mode: 'bigint' }).references(() => sharedPromptVersions.id, { onDelete: 'restrict' }),
+  promptTemplateHash: varchar('prompt_template_hash', { length: 64 }).notNull(),
+  providerConfigVersionId: bigint('provider_config_version_id', { mode: 'bigint' }).references(() => aiProviderConfigVersions.id, { onDelete: 'restrict' }),
+  model: varchar('model', { length: 200 }),
+  attemptId: bigint('attempt_id', { mode: 'bigint' }).references(() => aiReportAttempts.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 16 }).notNull(),
+  sourceState: varchar('source_state', { length: 16 }).default('current').notNull(),
+  reason: varchar('reason', { length: 16 }).notNull(),
+  result: jsonb('result').$type<Record<string, unknown>>(),
+  errorCode: varchar('error_code', { length: 80 }),
+  workerId: varchar('worker_id', { length: 128 }),
+  leaseToken: varchar('lease_token', { length: 128 }),
+  leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true, mode: 'date' }),
+  heartbeatAt: timestamp('heartbeat_at', { withTimezone: true, mode: 'date' }),
+  startedAt: timestamp('started_at', { withTimezone: true, mode: 'date' }),
+  dispatchedAt: timestamp('dispatched_at', { withTimezone: true, mode: 'date' }),
+  finishedAt: timestamp('finished_at', { withTimezone: true, mode: 'date' }),
+  reservationBucketMonth: date('reservation_bucket_month', { mode: 'string' }).notNull(),
+  reservationCostCents: integer('reservation_cost_cents').default(0).notNull(),
+  inputTokens: integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  estimatedCostCents: integer('estimated_cost_cents'),
+  latencyMs: integer('latency_ms'),
+  providerRequestId: varchar('provider_request_id', { length: 200 }),
+  requestedByUserId: bigint('requested_by_user_id', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
+  invalidatedAt: timestamp('invalidated_at', { withTimezone: true, mode: 'date' }),
+  invalidationReason: varchar('invalidation_reason', { length: 80 }),
+  queuedAt: timestamp('queued_at', { withTimezone: true, mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+}, table => [
+  uniqueIndex('guru_analysis_runs_active_unique').on(table.managerId, table.periodEnd).where(sql`${table.status} in ('queued', 'running')`),
+  index('guru_analysis_runs_latest_idx').on(table.managerId, table.periodEnd.desc(), table.id.desc()),
+  index('guru_analysis_runs_reuse_idx').on(table.managerId, table.periodEnd, table.inputHash, table.promptKey),
+  index('guru_analysis_runs_queue_idx').on(table.status, table.queuedAt, table.id),
+  check('guru_analysis_runs_hash_valid', sql`${table.inputHash} ~ '^[a-f0-9]{64}$' and ${table.analyticsContextHash} ~ '^[a-f0-9]{64}$' and ${table.promptTemplateHash} ~ '^[a-f0-9]{64}$'`),
+  check('guru_analysis_runs_status_valid', sql`${table.status} in ('queued', 'running', 'succeeded', 'failed', 'cancelled')`),
+  check('guru_analysis_runs_source_state_valid', sql`${table.sourceState} in ('current', 'invalidated')`),
+  check('guru_analysis_runs_reason_valid', sql`${table.reason} in ('INITIAL', 'REGENERATION')`),
+  check('guru_analysis_runs_prompt_source_valid', sql`(${table.promptSource} = 'system-default' and ${table.promptOverrideVersionId} is null) or (${table.promptSource} = 'override' and ${table.promptOverrideVersionId} is not null)`),
+  check('guru_analysis_runs_result_state_valid', sql`(${table.status} = 'succeeded' and ${table.result} is not null) or (${table.status} <> 'succeeded' and ${table.result} is null)`),
+  check('guru_analysis_runs_terminal_valid', sql`(${table.status} in ('succeeded', 'failed', 'cancelled')) = (${table.finishedAt} is not null)`),
+  check('guru_analysis_runs_lease_valid', sql`(${table.status} = 'running' and ${table.leaseToken} is not null and ${table.leaseExpiresAt} is not null) or (${table.status} <> 'running' and ${table.leaseToken} is null and ${table.leaseExpiresAt} is null)`),
+  check('guru_analysis_runs_invalidation_valid', sql`(${table.sourceState} = 'current' and ${table.invalidatedAt} is null and ${table.invalidationReason} is null) or (${table.sourceState} = 'invalidated' and ${table.invalidatedAt} is not null and ${table.invalidationReason} is not null)`),
+])
+
+// Invalidation is its own auditable consumer of the snapshot outbox. It never
+// generates; regeneration stays an explicit, budget-checked admin request.
+export const guruAnalysisEventDeliveries = pgTable('guru_analysis_event_deliveries', {
+  eventId: bigint('event_id', { mode: 'bigint' }).primaryKey().references(() => institutionalSnapshotChangeEvents.id, { onDelete: 'restrict' }),
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }).notNull(),
+  lastError: varchar('last_error', { length: 96 }),
+  processedAt: timestamp('processed_at', { withTimezone: true, mode: 'date' }),
+}, table => [
+  index('guru_analysis_event_deliveries_due_idx').on(table.processedAt, table.nextAttemptAt, table.eventId),
+  check('guru_analysis_event_deliveries_attempt_valid', sql`${table.attemptCount} >= 0`),
+])
+
+export const sharedPromptVersions = pgTable('shared_prompt_version', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  key: varchar('prompt_key', { length: 100 }).notNull(),
+  revision: integer('revision').notNull(),
+  name: varchar('name', { length: 120 }).notNull(),
+  template: text('template').notNull(),
+  legacyPromptId: bigint('legacy_prompt_id', { mode: 'bigint' }).references(() => aiPromptVersions.id, { onDelete: 'restrict' }),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+  createdBy: bigint('created_by', { mode: 'bigint' }).references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  unique('shared_prompt_version_key_revision').on(table.key, table.revision),
+  unique('shared_prompt_version_key_id').on(table.key, table.id),
+  check('shared_prompt_version_revision_positive', sql`${table.revision} > 0`),
+  check('shared_prompt_version_template_valid', sql`length(btrim(${table.template})) > 0 and length(${table.template}) <= 12000`),
+])
+
+export const sharedPromptStates = pgTable('shared_prompt_state', {
+  key: varchar('prompt_key', { length: 100 }).primaryKey(),
+  revision: integer('revision').notNull().default(0),
+  activeVersionId: bigint('active_version_id', { mode: 'bigint' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  foreignKey({ name: 'shared_prompt_state_active_version_fk', columns: [table.key, table.activeVersionId], foreignColumns: [sharedPromptVersions.key, sharedPromptVersions.id] }),
+  check('shared_prompt_state_revision_nonnegative', sql`${table.revision} >= 0`),
+])

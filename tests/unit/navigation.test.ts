@@ -12,7 +12,7 @@ describe('workspace navigation ownership', () => {
     ['/tools', 'tools'], ['/tools/sec-filings/123/0000000000-00-000000', 'tools'], ['/etf/watchlist', 'tools'],
     ['/settings', 'settings'], ['/settings/security', 'settings'], ['/settings/api-keys', 'settings'],
     ['/admin/blog', 'adminBlog'], ['/admin/blog/new', 'adminBlog'], ['/admin/blog/42/edit', 'adminBlog'],
-    ['/admin/users', 'adminUsers'], ['/admin/etf', 'adminEtf'],
+    ['/admin/users', 'adminUsers'], ['/admin/gurus', 'adminGurus'], ['/admin/gurus/42', 'adminGurus'], ['/admin/etf', 'adminEtf'],
     ['/diaries/42/review/', 'reviews'], ['/partners/compare/', 'timeline'], ['/stocks/watchlist/', 'watchlist'],
     ['/stocks/NVDA/', 'marketResearch'], ['/trade-plans/42/', 'tradePlans'],
   ] as const)('maps %s to exactly %s', (path, owner) => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router'
+import { Link, useOutletContext } from 'react-router'
 import type { ShellOutletContext } from '../root'
 import {
   aiAccessItemSchema,
@@ -17,6 +17,7 @@ import { z } from 'zod'
 import { api, useUi } from '../ui'
 import { useSessionState } from '../session'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
+import { promptCopy } from './admin-prompts-copy'
 import { adminAiCopy } from '../ai-copy'
 import './admin-ai.css'
 
@@ -519,6 +520,7 @@ export default function AdminAi() {
 
       <section className="admin-ai-section" aria-labelledby="admin-ai-prompts">
         <h2 id="admin-ai-prompts">{c.sectionPrompts}</h2>
+        <p><Link to="/admin/ai/prompts">{promptCopy[locale].title}</Link></p>
         {!promptDrafts ? <p role="status">{t('loading')}</p> : <div className="admin-ai-prompts">
           {(['weekly', 'monthly'] as const).map(type => <form key={type} className="admin-ai-prompt" onSubmit={event => { event.preventDefault(); void promptAction(type, 'draft') }} data-testid={`admin-ai-prompt-${type}`}>
             <h3>{type === 'weekly' ? c.promptWeekly : c.promptMonthly} {promptStatus[type] ? statusBadge(promptStatus[type]!) : null}</h3>

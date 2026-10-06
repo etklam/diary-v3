@@ -35,6 +35,10 @@ interface ClientOptions {
   minIntervalMs?: number
   timeoutMs?: number
   streamTimeoutMs?: number
+  sharedScheduler?: {
+    start<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<{ response: Promise<T> }>
+    recordResult(success: boolean): Promise<void>
+  }
 }
 
 interface SecResponse {
@@ -105,7 +109,7 @@ export class SecEdgarClient {
     }
     this.fetchFn = options.fetchFn ?? fetch
     this.sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
-    this.queue = new SecRequestQueue({ minIntervalMs: options.minIntervalMs, sleep: this.sleep })
+    this.queue = new SecRequestQueue({ minIntervalMs: options.minIntervalMs, sleep: this.sleep, sharedScheduler: options.sharedScheduler })
     this.timeoutMs = options.timeoutMs ?? 15_000
     this.streamTimeoutMs = options.streamTimeoutMs ?? 60_000
   }

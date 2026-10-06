@@ -239,6 +239,7 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
       idempotencyKeyHash: 'b'.repeat(64),
       normalizedRequestHash: 'c'.repeat(64),
       status: 'queued',
+      createdAt: new Date('2026-09-05T12:00:00.000Z'),
       reservationBucketMonth: '2026-09-01',
       reservationCostCents: 5,
     }).returning({ id: aiReports.id })

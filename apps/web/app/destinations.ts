@@ -4,13 +4,13 @@ import { TOOLS } from './tool-shell'
 /** One label per destination, shared by the sidebar and the command palette. */
 export const workspaceCopy = {
   'zh-TW': {
-    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', achievements: '個人成就與目標', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理', researchStudio: '研究工作室', adminEmail: '電郵設定',
+    overview: '總覽', diaryLibrary: '日記庫', timeline: '時間軸', calendar: '日曆', reviewQueue: '複盤隊列', aiReports: 'AI 報告', tradePlans: '交易計劃', holdings: '持倉', watchlist: '關注清單', marketResearch: '行情研究', tools: '工具', diaryManagement: '日記管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易紀律', diaryReminders: '日記提醒', priceReminders: '價格提醒', achievements: '個人成就與目標', publicArticles: '公開文章', settings: '設定', adminAi: 'AI 報告管理', adminGurus: '投資大師管理', adminInstitutional: '機構持倉映射', adminInstitutionalOperations: '機構資料運維', researchStudio: '研究工作室', adminEmail: '電郵設定',
   },
   'zh-CN': {
-    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', achievements: '个人成就与目标', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理', researchStudio: '研究工作室', adminEmail: '邮件设置',
+    overview: '总览', diaryLibrary: '日记库', timeline: '时间轴', calendar: '日历', reviewQueue: '复盘队列', aiReports: 'AI 报告', tradePlans: '交易计划', holdings: '持仓', watchlist: '关注清单', marketResearch: '行情研究', tools: '工具', diaryManagement: '日记管理', tradeManagement: '交易管理', partners: '伙伴管理', principles: '交易纪律', diaryReminders: '日记提醒', priceReminders: '价格提醒', achievements: '个人成就与目标', publicArticles: '公开文章', settings: '设置', adminAi: 'AI 报告管理', adminGurus: '投资大师管理', adminInstitutional: '机构持仓映射', adminInstitutionalOperations: '机构数据运维', researchStudio: '研究工作室', adminEmail: '邮件设置',
   },
   en: {
-    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', achievements: 'Achievements and goals', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration', researchStudio: 'Research Studio', adminEmail: 'Mail settings',
+    overview: 'Overview', diaryLibrary: 'Diary library', timeline: 'Timeline', calendar: 'Calendar', reviewQueue: 'Review queue', aiReports: 'AI reports', tradePlans: 'Trade plans', holdings: 'Holdings', watchlist: 'Watchlist', marketResearch: 'Market research', tools: 'Tools', diaryManagement: 'Diary management', tradeManagement: 'Trade management', partners: 'Partner management', principles: 'Trading principles', diaryReminders: 'Diary reminders', priceReminders: 'Price reminders', achievements: 'Achievements and goals', publicArticles: 'Public articles', settings: 'Settings', adminAi: 'AI administration', adminGurus: 'Guru management', adminInstitutional: 'Institutional mappings', adminInstitutionalOperations: 'Institutional operations', researchStudio: 'Research Studio', adminEmail: 'Mail settings',
   },
 } as const
 
@@ -20,15 +20,15 @@ export type Destination = { path: string; label: string; icon: IconName; admin?:
 const extraCopy = {
   'zh-TW': {
     performance: '策略表現', etfWatchlist: 'ETF 關注清單', apiKeys: 'API 金鑰', security: '帳戶安全',
-    partnerCompare: '伙伴對照', guide: '使用說明', about: '關於',
+    partnerCompare: '伙伴對照', guide: '使用說明', about: '關於', gurus: '投資大師',
   },
   'zh-CN': {
     performance: '策略表现', etfWatchlist: 'ETF 关注清单', apiKeys: 'API 密钥', security: '账户安全',
-    partnerCompare: '伙伴对照', guide: '使用说明', about: '关于',
+    partnerCompare: '伙伴对照', guide: '使用说明', about: '关于', gurus: '投资大师',
   },
   en: {
     performance: 'Strategy performance', etfWatchlist: 'ETF watchlist', apiKeys: 'API keys', security: 'Account security',
-    partnerCompare: 'Partner comparison', guide: 'Guide', about: 'About',
+    partnerCompare: 'Partner comparison', guide: 'Guide', about: 'About', gurus: 'Guru portfolios',
   },
 } as const
 
@@ -53,6 +53,11 @@ export function destinations(locale: Locale): Destination[] {
     { path: '/partners', label: c.partners, icon: 'users' },
     { path: '/partners/compare', label: e.partnerCompare, icon: 'users' },
     { path: '/stocks', label: c.holdings, icon: 'briefcase' },
+    { path: '/gurus', label: e.gurus, icon: 'layers' },
+    { path: '/gurus/notifications', label: locale === 'en' ? 'Guru alerts' : locale === 'zh-CN' ? '大师提醒' : '大師提醒', icon: 'bell' },
+    { path: '/gurus/consensus', label: locale === 'en' ? 'Guru consensus' : locale === 'zh-CN' ? '大师共识' : '大師共識', icon: 'layers' },
+    { path: '/gurus/stocks', label: locale === 'en' ? 'Most-owned stocks' : locale === 'zh-CN' ? '大师持仓排行' : '大師持倉排行', icon: 'layers' },
+    { path: '/gurus/sectors', label: locale === 'en' ? 'Guru sector direction' : locale === 'zh-CN' ? '大师板块方向' : '大師板塊方向', icon: 'layers' },
     { path: '/stocks/watchlist', label: c.watchlist, icon: 'star' },
     { path: '/stocks/alerts', label: c.priceReminders, icon: 'bell' },
     { path: '/strategy-performance', label: e.performance, icon: 'chart' },
@@ -70,6 +75,9 @@ export function destinations(locale: Locale): Destination[] {
     { path: '/about', label: e.about, icon: 'compass' },
     { path: '/admin/blog', label: locale === 'en' ? 'Article management' : '文章管理', icon: 'fileText', admin: true },
     { path: '/admin/users', label: locale === 'en' ? 'User management' : locale === 'zh-CN' ? '用户管理' : '用戶管理', icon: 'users', admin: true },
+    { path: '/admin/gurus', label: c.adminGurus, icon: 'layers', admin: true },
+    { path: '/admin/institutional', label: c.adminInstitutionalOperations, icon: 'layers', admin: true },
+    { path: '/admin/institutional/mappings', label: c.adminInstitutional, icon: 'layers', admin: true },
     { path: '/admin/ai', label: c.adminAi, icon: 'compass', admin: true },
     { path: '/admin/research', label: c.researchStudio, icon: 'chart', admin: true },
     { path: '/admin/etf', label: locale === 'en' ? 'ETF catalog' : locale === 'zh-CN' ? 'ETF 目录管理' : 'ETF 目錄管理', icon: 'layers', admin: true },

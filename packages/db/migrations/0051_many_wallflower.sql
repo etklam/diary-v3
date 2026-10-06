@@ -1,0 +1,5 @@
+ALTER TABLE "institutional_security_mapping_refresh_jobs" ADD CONSTRAINT "institutional_security_mapping_refresh_jobs_state_valid" CHECK (
+    ("institutional_security_mapping_refresh_jobs"."status" = 'PENDING' and "institutional_security_mapping_refresh_jobs"."lease_token" is null and "institutional_security_mapping_refresh_jobs"."lease_expires_at" is null and "institutional_security_mapping_refresh_jobs"."completed_at" is null) or
+    ("institutional_security_mapping_refresh_jobs"."status" = 'RUNNING' and "institutional_security_mapping_refresh_jobs"."lease_token" is not null and "institutional_security_mapping_refresh_jobs"."lease_expires_at" is not null and "institutional_security_mapping_refresh_jobs"."completed_at" is null) or
+    ("institutional_security_mapping_refresh_jobs"."status" = 'COMPLETE' and "institutional_security_mapping_refresh_jobs"."lease_token" is null and "institutional_security_mapping_refresh_jobs"."lease_expires_at" is null and "institutional_security_mapping_refresh_jobs"."completed_at" is not null)
+  );

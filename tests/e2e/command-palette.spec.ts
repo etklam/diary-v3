@@ -135,3 +135,78 @@ test('review badge counts overdue and due-today reviews in both shells', async (
   await expect(sidebarReviews.locator('.nav-badge')).toHaveText('1')
   await expect(sidebarReviews).toHaveAccessibleName(/1 waiting for review/)
 })
+
+test('command palette resolves Guru and company names to institutional research', async ({ page }) => {
+  test.setTimeout(60_000)
+  const investorProfile = {
+    name: 'Warren Buffett', managerName: 'Berkshire Hathaway', slug: 'warren-buffett', description: null,
+    investmentPhilosophy: null, styleTags: ['Value'], managerType: 'Public Company', website: null, country: 'US', imageUrl: null, featured: true,
+  }
+  const latest = {
+    periodEnd: '2026-06-30', filedAt: '2026-08-14T12:00:00.000Z', status: 'READY', reportedValueUsd: '1000000000',
+    holdingCount: 25, topFiveConcentrationPercent: '45', topTenConcentrationPercent: '70', hhi: '1250', turnoverPercent: '12',
+    turnoverBand: 'LOW', actionCounts: { new: 1, add: 2, reduce: 1, exit: 0 }, largestPosition: null, topHoldings: [], sectorAllocation: [],
+  }
+  const stock = {
+    securityId: '9001', ticker: 'SYN', company: 'Synthetic Systems', sector: 'Technology', industry: 'Software',
+    currentHolderCount: 4, comparableCurrentHolderCount: 3, previousHolderCount: 3, holderCountChange: 1,
+    newBuyerCount: 1, addCount: 2, unchangedCount: 1, reduceCount: 0, exitCount: 0, netBuyerCount: 3,
+    actionManagerCount: 4, quantityChangeSampleCount: 3, averageQuantityChangePercent: '12.5', medianQuantityChangePercent: '5',
+    aggregateWeightPercent: '48', averagePortfolioWeightPercent: '12', weightBreadthPercent: '100', classification: 'ACCUMULATION', quarterTrend: 'RISING',
+  }
+  await page.route(/\/api\/gurus(?:\?.*)?$/, async route => {
+    const search = new URL(route.request().url()).searchParams.get('search')?.toLowerCase() ?? ''
+    const data = `${investorProfile.name} ${investorProfile.managerName}`.toLowerCase().includes(search)
+      ? [{ profile: investorProfile, cik: '0001067983', directoryOrder: 1, followerCount: 0, followedByMe: false, latest }]
+      : []
+    await route.fulfill({ json: { data, pagination: { page: 1, limit: 6, total: data.length, totalPages: data.length ? 1 : 0 }, facets: { styles: ['Value'], managerTypes: ['Public Company'], sectors: ['Technology'] } } })
+  })
+  await page.route(/\/api\/gurus\/stocks(?:\?.*)?$/, async route => {
+    const search = new URL(route.request().url()).searchParams.get('search')?.toLowerCase() ?? ''
+    const items = stock.company.toLowerCase().includes(search) || stock.ticker.toLowerCase().includes(search) ? [stock] : []
+    await route.fulfill({ json: { data: {
+      period: {
+        periodEnd: '2026-06-30', activeManagerCount: 5, readyManagerCount: 4, partialManagerCount: 1, errorManagerCount: 0,
+        supersededManagerCount: 0, pendingManagerCount: 0, noFilingManagerCount: 0, comparableManagerCount: 3,
+        previousReadyManagerCount: 3, sourceRowCount: 12, mappedRowCount: 12, mappingCoveragePercent: '100', quarterCoveragePercent: '80', source: 'SEC Form 13F',
+      }, periods: [], ranking: 'most-held', items, pagination: { page: 1, limit: 6, total: items.length, totalPages: items.length ? 1 : 0 },
+    } } })
+  })
+  await page.route('**/api/stocks/SYN/gurus*', async route => route.fulfill({ json: { data: {
+    summary: {
+      symbol: 'SYN', mappingStatus: 'MATCHED', securityId: '9001', company: 'Synthetic Systems', sector: 'Technology', industry: 'Software',
+      periodEnd: '2026-06-30', dataStatus: 'READY', calculatedAt: '2026-07-02T12:00:00.000Z', contextHash: 'a'.repeat(64),
+      activeGuruCount: 5, readyGuruCount: 4, quarterCoveragePercent: '80', mappingCoveragePercent: '100', currentHolderCount: 4,
+      averagePortfolioWeightPercent: '12', weightBreadthPercent: '100', newBuyerCount: 1, addCount: 2, reduceCount: 0, exitCount: 0,
+      netBuyerCount: 3, classification: 'ACCUMULATION', source: 'SEC Form 13F',
+    }, currentHolders: [], latestMoves: [], history: [],
+  } } }))
+
+  const email = `palette-guru-${randomUUID()}@example.test`
+  await signIn(page, email)
+  await page.keyboard.press('ControlOrMeta+k')
+  const palette = page.getByRole('dialog', { name: 'Search', exact: true })
+  const field = palette.getByRole('combobox')
+  await field.fill('Warren Buffett')
+  const namedGuru = palette.getByRole('option').filter({ hasText: 'Warren Buffett' })
+  await expect(namedGuru).toBeVisible()
+  await palette.getByRole('button', { name: 'Close' }).click()
+  await expect(palette).toBeHidden()
+
+  await page.getByTestId('command-palette-trigger').click()
+  await field.fill('Berkshire')
+  const guru = palette.getByRole('option').filter({ hasText: 'Warren Buffett' })
+  await expect(guru).toBeVisible()
+  await guru.click()
+  await expect(page).toHaveURL(/\/gurus\/warren-buffett$/)
+
+  await page.goto('/timeline')
+  await page.getByTestId('command-palette-trigger').click()
+  await palette.getByRole('combobox').fill('Synthetic Systems')
+  const company = palette.getByRole('option').filter({ hasText: 'Synthetic Systems' })
+  await expect(company).toBeVisible()
+  await company.click()
+  await expect(page).toHaveURL(/\/stocks\/SYN\/gurus$/)
+  await expect(page.getByRole('heading', { name: 'SYN · Guru ownership' })).toBeVisible()
+  await expect(page.getByRole('note')).toContainText('13F holdings are delayed')
+})

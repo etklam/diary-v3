@@ -96,6 +96,54 @@ export {
 export type { AiAccessItem, AiAdminRuntimeUpdate, AiPromptVersion, AiProviderDraft, AiProviderSettings } from './admin-ai.js'
 
 export { calendarDateSchema, MAX_SERIALIZED_ID, serializedIdSchema, utcInstantSchema } from './common.js'
+export * from './shared-prompts.js'
+export {
+  guruResearchQuerySchema,
+  guruResearchHoldingSchema,
+  guruResearchQuarterSchema,
+  guruPortfolioResponseSchema,
+  guruChangesResponseSchema,
+  guruHistoryResponseSchema,
+  guruPositionHistoryQuerySchema,
+  guruPositionHistoryResponseSchema,
+  guruFilingsResponseSchema,
+  guruActivityQuerySchema,
+  guruActivityResponseSchema,
+} from './guru-research.js'
+export type { GuruResearchQuery, GuruActivityQuery } from './guru-research.js'
+export {
+  guruConsensusPeriodSchema,
+  guruStockConsensusSchema,
+  guruSectorConsensusSchema,
+  guruConsensusQuerySchema,
+  guruStockRankingSchema,
+  guruStocksQuerySchema,
+  guruStocksExportQuerySchema,
+  guruSectorsQuerySchema,
+  guruConsensusResponseSchema,
+  guruStocksResponseSchema,
+  guruSectorsResponseSchema,
+} from './guru-consensus.js'
+export type { GuruConsensusQuery, GuruStocksQuery, GuruStocksExportQuery, GuruSectorsQuery } from './guru-consensus.js'
+export {
+  guruComparisonQuerySchema,
+  guruComparisonManagerStatusSchema,
+  guruComparisonManagerSchema,
+  guruComparisonMemberSchema,
+  guruComparisonPositionSchema,
+  guruComparisonMoveSchema,
+  guruComparisonOpposingActionSchema,
+  guruComparisonResponseSchema,
+} from './guru-comparison.js'
+export type { GuruComparisonQuery, GuruComparisonManager, GuruComparisonPosition, GuruComparisonMove } from './guru-comparison.js'
+export {
+  stockGuruHistoryPointSchema,
+  stockGuruHolderSchema,
+  stockGuruSummarySchema,
+  stockGuruResearchResponseSchema,
+  stockGuruResearchQuerySchema,
+} from './stock-gurus.js'
+export type { StockGuruHistoryPoint, StockGuruHolder, StockGuruSummary, StockGuruResearchQuery } from './stock-gurus.js'
 export {
   automaticTranslationAdmissionSchema,
   postAdminDetailSchema,
@@ -222,6 +270,12 @@ export {
   adminUserRoleUpdateRequestSchema,
 } from './admin-users.js'
 export type { AdminDiary, AdminStats, AdminUserListItem } from './admin-users.js'
+export * from './admin-gurus.js'
+export * from './gurus.js'
+export * from './admin-institutional.js'
+export * from './admin-institutional-operations.js'
+export * from './guru-analysis.js'
+export * from './guru-notifications.js'
 export {
   accountEmailMutationResponseSchema,
   accountEmailRequestSchema,
@@ -289,6 +343,11 @@ export const errorCodes = [
   'ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE',
   'ADMIN_EMAIL_SETTINGS_INVALID',
   'USER_NOT_FOUND',
+  'GURU_NOT_FOUND',
+  'GURU_SLUG_CONFLICT',
+  'GURU_CIK_CONFLICT',
+  'GURU_ANALYSIS_UNAVAILABLE',
+  'INSTITUTIONAL_IDENTITY_CONFLICT',
   'SYS_INTERNAL_ERROR',
   'ROTATION_BATCH_BUSY',
   'SYS_EXTERNAL_SERVICE_ERROR',

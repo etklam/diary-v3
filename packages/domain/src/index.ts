@@ -10,6 +10,7 @@ export * from './ai-reports/period';
 export * from './ai-reports/context';
 export * from './us-equity-calendar';
 export * from './research-studio';
+export * from './guru-consensus';
 
 export * from './quick-types';
 export * from './quick-localization';

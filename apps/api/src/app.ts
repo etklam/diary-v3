@@ -51,9 +51,20 @@ import { registerTradePlanRoutes } from './trade-plans.js'
 import { createNagerHolidayProvider, registerHolidayRoutes, type HolidayProvider } from './holidays.js'
 import { registerSecFilingRoutes } from './sec-filings.js'
 import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
+import { createPostgresSecSharedScheduler } from './sec-edgar/postgres-scheduler.js'
 import { registerAdminUserRoutes } from './admin-users.js'
+import { registerAdminGuruRoutes } from './admin-gurus.js'
+import { registerGuruRoutes } from './gurus.js'
+import { registerGuruResearchRoutes } from './guru-research.js'
+import { registerGuruConsensusRoutes } from './guru-consensus-routes.js'
+import { registerGuruComparisonRoutes } from './guru-comparison-routes.js'
+import { registerAdminSecurityMappingRoutes } from './institutional/admin-security-mapping.js'
+import { registerGuruAnalysisRoutes } from './guru-analysis/routes.js'
+import { registerAdminInstitutionalOperationRoutes } from './institutional/admin-operations.js'
+import { registerGuruNotificationRoutes } from './guru-notifications/routes.js'
 import { registerAiReportRoutes } from './ai-reports/routes.js'
 import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
+import { registerSharedPromptRoutes } from './shared-prompts/routes.js'
 import { AiReportService } from './ai-reports/report-service.js'
 import type { AiTransport } from './ai-reports/outbound-policy.js'
 import { registerAchievementRoutes } from './achievements.js'
@@ -371,7 +382,7 @@ export function createApp({
     validationError,
   })
   registerSecFilingRoutes(app, {
-    service: secFilings ?? createSecEdgarService(config.secUserAgent ?? ''),
+    service: secFilings ?? createSecEdgarService(config.secUserAgent ?? '', undefined, createPostgresSecSharedScheduler(db)),
     consume: consumeRateLimit,
     clientIp: (c) => clientIp(c, config.trustProxy),
     fail,
@@ -415,9 +426,21 @@ export function createApp({
   registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, logger, fail, validationError, parseJson, consume: consumeRateLimit, clientIp: c => clientIp(c, config.trustProxy) })
   registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson, consume: consumeRateLimit })
   registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
+  registerAdminGuruRoutes(app, { db, now, fail, validationError, parseJson })
+  registerGuruResearchRoutes(app, { db, fail, validationError })
+  registerGuruConsensusRoutes(app, { db, fail, validationError })
+  registerGuruComparisonRoutes(app, { db, now, fail, validationError })
+  // Reserved Guru paths are registered before the slug route so a literal path
+  // can never be shadowed by a profile slug.
+  registerGuruNotificationRoutes(app, { db, now, fail, validationError, parseJson })
+  registerGuruAnalysisRoutes(app, { db, now, fail, validationError, parseJson })
+  registerGuruRoutes(app, { db, now, fail, validationError })
+  registerAdminSecurityMappingRoutes(app, { db, now, fail, validationError, parseJson })
+  registerAdminInstitutionalOperationRoutes(app, { db, now, fail, validationError, parseJson })
   const aiReportService = new AiReportService({ db, now })
   registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson, consume: consumeRateLimit })
   registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
+  registerSharedPromptRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
   const accountEmailLifecycle = registerAccountEmailPublicRoutes(app, {
     db,
     webOrigin: config.webOrigin,

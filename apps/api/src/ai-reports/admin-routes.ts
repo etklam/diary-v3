@@ -59,7 +59,7 @@ import { listAiAccess, updateAiAccess } from './access.js'
 
 type ReportType = 'weekly' | 'monthly'
 
-const syntheticContext = (reportType: ReportType) => ({
+export const syntheticContext = (reportType: ReportType) => ({
   period: {
     periodType: reportType,
     periodStart: reportType === 'monthly' ? '2026-01-01' : '2026-01-05',
@@ -91,7 +91,7 @@ interface AdminDependencies {
   transport?: AiTransport
 }
 
-function mapProviderError(error: unknown): { status: number; code: ErrorCode; message: string } {
+export function mapProviderError(error: unknown): { status: number; code: ErrorCode; message: string } {
   if (error instanceof Error && error.message === 'AI_ADMIN_REVISION_CONFLICT') return { status: 409, code: 'AI_ADMIN_REVISION_CONFLICT', message: 'The settings changed; reload and retry the synthetic test' }
   if (error instanceof z.ZodError) return { status: 502, code: 'AI_OUTPUT_INVALID', message: 'The provider returned an invalid response' }
   if (error instanceof AiProviderError) {
@@ -144,7 +144,7 @@ function providerToConfig(row: typeof aiProviderConfigVersions.$inferSelect) {
   }
 }
 
-function estimateCost(row: typeof aiProviderConfigVersions.$inferSelect, usage: { inputTokens?: number | null; outputTokens?: number | null } | null): number | null {
+export function estimateCost(row: typeof aiProviderConfigVersions.$inferSelect, usage: { inputTokens?: number | null; outputTokens?: number | null } | null): number | null {
   if (!usage || usage.inputTokens === null || usage.inputTokens === undefined || usage.outputTokens === null || usage.outputTokens === undefined) return null
   if (row.inputPricePerMillionCents === null || row.outputPricePerMillionCents === null) return null
   const input = Math.ceil(usage.inputTokens * row.inputPricePerMillionCents / 1_000_000)
@@ -163,7 +163,7 @@ function monthFor(value: Date): string {
 }
 
 /** Admit a manual test before opening a provider connection. */
-async function admitAdminAttempt(
+export async function admitAdminAttempt(
   db: Database,
   provider: typeof aiProviderConfigVersions.$inferSelect,
   actorUserId: bigint,
@@ -219,7 +219,7 @@ async function admitAdminAttempt(
   })
 }
 
-async function settleAdminAttempt(
+export async function settleAdminAttempt(
   db: Database,
   input: {
     reservation: AdminAttemptReservation
@@ -279,14 +279,14 @@ async function cancelOwnerJobsInTransaction(tx: Pick<Database, 'select' | 'updat
   }
 }
 
-async function currentProvider(db: Database) {
+export async function currentProvider(db: Database) {
   const [runtime] = await db.select({ id: aiRuntimeState.activeProviderConfigId }).from(aiRuntimeState).where(eq(aiRuntimeState.singleton, 'default')).limit(1)
   if (!runtime?.id) return null
   const [row] = await db.select().from(aiProviderConfigVersions).where(eq(aiProviderConfigVersions.id, runtime.id)).limit(1)
   return row ?? null
 }
 
-async function runSyntheticTest(
+export async function runSyntheticTest(
   provider: typeof aiProviderConfigVersions.$inferSelect,
   template: string,
   reportType: ReportType,

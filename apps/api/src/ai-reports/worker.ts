@@ -46,9 +46,8 @@ async function assertDispatchStillAdmissible(db: Database, row: typeof aiReports
   if (!runtime?.generationEnabled || runtime.activeProviderConfigId !== row.providerConfigVersionId) throw new AiReportServiceError('AI_CONFIG_CHANGED', 409)
   const [provider] = await db.select().from(aiProviderConfigVersions).where(and(eq(aiProviderConfigVersions.id, row.providerConfigVersionId!), eq(aiProviderConfigVersions.status, 'published'))).limit(1)
   if (!provider) throw new AiReportServiceError('AI_CONFIG_CHANGED', 409)
-  const activePromptId = row.reportType === 'weekly' ? runtime.activeWeeklyPromptId : runtime.activeMonthlyPromptId
-  const [prompt] = await db.select({ id: aiPromptVersions.id }).from(aiPromptVersions).where(and(eq(aiPromptVersions.id, row.promptVersionId!), eq(aiPromptVersions.status, 'published'))).limit(1)
-  if (!prompt || activePromptId !== row.promptVersionId) throw new AiReportServiceError('AI_CONFIG_CHANGED', 409)
+  const [prompt] = await db.select({ id: aiPromptVersions.id }).from(aiPromptVersions).where(and(eq(aiPromptVersions.id, row.promptVersionId!), eq(aiPromptVersions.reportType, row.reportType), eq(aiPromptVersions.status, 'published'))).limit(1)
+  if (!prompt) throw new AiReportServiceError('AI_CONFIG_CHANGED', 409)
   const [access] = await db.select().from(aiUserAccess).where(eq(aiUserAccess.userId, row.userId)).limit(1)
   if (!access?.enabled) throw new AiReportServiceError('AI_ACCESS_DENIED', 403)
   const [consent] = await db.select().from(aiUserConsents).where(eq(aiUserConsents.userId, row.userId)).limit(1)

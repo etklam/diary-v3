@@ -1,0 +1,2 @@
+ALTER TABLE "gurus" DROP CONSTRAINT "gurus_slug_valid";--> statement-breakpoint
+ALTER TABLE "gurus" ADD CONSTRAINT "gurus_slug_valid" CHECK ("gurus"."slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and "gurus"."slug" not in ('consensus', 'activity', 'stocks', 'sectors', 'compare', 'notifications'));

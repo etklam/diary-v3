@@ -38,6 +38,8 @@
     "start:api": "node --env-file-if-exists=.env dist/api/server.js",
     "ai:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/ai-report-worker-cli.ts",
     "article-translations:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/article-translation-worker-cli.ts",
+    "guru-sec:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/guru-13f-worker-cli.ts",
+    "guru-analysis:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/guru-analysis-worker-cli.ts",
     "mail:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/account-email-worker-cli.ts",
     "research:worker": "node --env-file-if-exists=.env --import tsx apps/api/src/research-worker-cli.ts",
     "market:rotation": "node --env-file-if-exists=.env --import tsx apps/api/src/rotation-cli.ts",
@@ -48,6 +50,8 @@
     "market:state:prod": "node dist/api/market-state.js",
     "research:worker:prod": "node dist/api/research-worker.js",
     "article-translations:worker:prod": "node dist/api/article-translation-worker.js",
+    "guru-sec:worker:prod": "node dist/api/guru-13f-worker.js",
+    "guru-analysis:worker:prod": "node dist/api/guru-analysis-worker.js",
     "mail:worker:prod": "node dist/api/mail-worker.js",
     "research:retention:prod": "node dist/api/research-retention.js"
   },

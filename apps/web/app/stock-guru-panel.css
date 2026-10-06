@@ -1,0 +1,57 @@
+.stock-guru-panel,
+.stock-guru-page { max-width: 1200px; }
+.stock-guru-panel { margin: var(--space-8) 0; padding-top: var(--space-5); border-top: 1px solid var(--rule-strong); }
+.stock-guru-page { width: min(1200px, 100%); margin: 0 auto; padding: var(--space-8) var(--page-gutter) var(--space-12); }
+.stock-guru-page > header { display: flex; align-items: end; justify-content: space-between; gap: var(--space-5); padding-bottom: var(--space-6); border-bottom: 1px solid var(--rule-strong); }
+.stock-guru-page > header h1 { margin: var(--space-3) 0 0; font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl)); letter-spacing: var(--tracking-title); }
+.stock-guru-page > header p { margin: var(--space-2) 0 0; color: var(--muted); }
+.stock-guru-page > header a { color: var(--action); }
+.stock-guru-page > header > span,
+.stock-guru-heading > span { color: var(--muted); font-size: var(--text-xs); }
+.stock-guru-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.stock-guru-heading h2 { margin: 0; font-size: var(--text-lg); }
+.stock-guru-source { margin: 0 0 var(--space-4); color: var(--muted); font-size: var(--text-xs); }
+.stock-guru-state,
+.stock-guru-disclosure { margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); background: var(--muted-surface); font-size: var(--text-sm); }
+.stock-guru-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4) var(--space-6); margin: var(--space-5) 0; }
+.stock-guru-metrics dt { color: var(--muted); font-size: var(--text-sm); }
+.stock-guru-metrics dd { margin: var(--space-1) 0 0; font-family: var(--font-mono); font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.stock-guru-detail-link { display: inline-block; margin-top: var(--space-3); color: var(--action); text-underline-offset: 4px; }
+.stock-guru-toolbar { display: flex; align-items: end; justify-content: space-between; gap: var(--space-5); margin: var(--space-6) 0; }
+.stock-guru-toolbar label { display: grid; gap: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
+.stock-guru-toolbar select { min-width: 180px; min-height: 42px; padding: 0 var(--space-3); border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font: inherit; }
+.stock-guru-toolbar p { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.stock-guru-section { margin-top: var(--space-8); padding-top: var(--space-5); border-top: 1px solid var(--rule-strong); }
+.stock-guru-section h2 { margin: 0 0 var(--space-4); font-size: var(--text-lg); }
+.stock-guru-chart { display: grid; gap: var(--space-2); }
+.stock-guru-chart-head { display: grid; grid-template-columns: 100px minmax(90px, 1fr) 44px 92px 68px; gap: var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--rule); color: var(--muted); font-size: var(--text-xs); }
+.stock-guru-chart-row { display: grid; grid-template-columns: 100px minmax(90px, 1fr) 44px 92px 68px; align-items: center; gap: var(--space-3); min-height: 36px; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.stock-guru-chart-row time,
+.stock-guru-chart-row > span { color: var(--muted); }
+.stock-guru-chart-row strong { font-family: var(--font-mono); font-weight: var(--weight-medium); }
+.stock-guru-bar-track { height: 10px; background: var(--surface-sunken); }
+.stock-guru-bar-track span { display: block; height: 100%; background: var(--action); }
+.stock-guru-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.stock-guru-table-wrap table { width: 100%; min-width: 680px; border-collapse: collapse; }
+.stock-guru-table-wrap th,
+.stock-guru-table-wrap td { padding: var(--space-3); border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.stock-guru-table-wrap thead th { background: var(--surface-sunken); font-size: var(--text-sm); }
+.stock-guru-table-wrap tbody th { font-weight: var(--weight-medium); }
+.stock-guru-table-wrap tbody th small { display: block; margin-top: var(--space-1); color: var(--muted); font-weight: var(--weight-normal); }
+.stock-guru-table-wrap a { color: var(--action); }
+.stock-guru-table-wrap td { font-variant-numeric: tabular-nums; }
+.stock-guru-moves { margin: 0; padding: 0; list-style: none; }
+.stock-guru-moves li { display: grid; grid-template-columns: 1fr 160px 120px; gap: var(--space-4); align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--rule); }
+.stock-guru-moves li a { color: var(--text); }
+.stock-guru-moves li span { color: var(--muted); }
+.stock-guru-moves li strong { font-family: var(--font-mono); font-weight: var(--weight-medium); text-align: right; }
+
+@media (max-width: 760px) {
+  .stock-guru-page > header { align-items: start; flex-direction: column; }
+  .stock-guru-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stock-guru-toolbar { align-items: stretch; flex-direction: column; }
+  .stock-guru-chart-row { grid-template-columns: 80px minmax(45px, 1fr) 32px 74px 48px; gap: var(--space-2); font-size: var(--text-xs); }
+  .stock-guru-chart-head { grid-template-columns: 80px minmax(45px, 1fr) 32px 74px 48px; gap: var(--space-2); font-size: 0.6875rem; }
+  .stock-guru-moves li { grid-template-columns: 1fr auto; }
+  .stock-guru-moves li strong { grid-column: 2; }
+}

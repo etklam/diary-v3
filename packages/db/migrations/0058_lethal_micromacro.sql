@@ -1,0 +1,2 @@
+ALTER TABLE "institutional_snapshot_change_events" DROP CONSTRAINT "institutional_snapshot_change_events_type_valid";--> statement-breakpoint
+ALTER TABLE "institutional_snapshot_change_events" ADD CONSTRAINT "institutional_snapshot_change_events_type_valid" CHECK ("institutional_snapshot_change_events"."event_type" in ('EFFECTIVE_SNAPSHOT_CHANGED', 'EFFECTIVE_PERIOD_STATE_CHANGED'));

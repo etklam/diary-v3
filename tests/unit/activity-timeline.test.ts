@@ -104,7 +104,7 @@ describe('command palette matching', () => {
     const paths = new Set(destinations('en').map(destination => destination.path))
     for (const path of [
       '/strategy-performance', '/etf/watchlist', '/settings/api-keys', '/settings/security',
-      '/partners/compare', '/tools/sec-filings', '/tools/position-sizing',
+      '/partners/compare', '/tools/sec-filings', '/tools/position-sizing', '/admin/gurus',
     ]) expect(paths).toContain(path)
   })
 

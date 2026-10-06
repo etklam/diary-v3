@@ -1,0 +1,24 @@
+.admin-prompts { width: min(100%, 72ch); }
+.admin-prompts .page-heading { display: block; margin-bottom: var(--space-5); }
+.admin-prompts .panel { border-top: 1px solid var(--rule); padding-block: var(--space-5); margin-bottom: 0; }
+.admin-prompts .panel > :last-child { margin-top: 0; }
+.admin-prompts .button-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.admin-prompts .page-heading p { max-width: 72ch; }
+.admin-prompt-controls { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr); gap: var(--space-4); }
+.admin-prompts label { display: grid; gap: var(--space-2); min-width: 0; }
+.admin-prompt-editor { display: grid; gap: var(--space-3); }
+.admin-prompt-editor textarea { min-height: 240px; line-height: 1.65; font-weight: 400; resize: vertical; }
+.admin-prompt-editor textarea[readonly] { background: var(--surface-sunken); }
+.admin-prompt-editor code { display: inline-block; margin-inline-end: var(--space-2); }
+.admin-prompt-state { margin-block: var(--space-4); }
+.admin-prompt-lifecycle { border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.admin-prompts details { border-top: 1px solid var(--border); padding-block: var(--space-3); }
+.admin-prompts summary { cursor: pointer; font-weight: 600; }
+.admin-prompts pre { max-height: 400px; max-width: 100%; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-sunken); padding: var(--space-3); margin-block: var(--space-3) 0; }
+.admin-prompt-playground dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-4); }
+.admin-prompt-playground dd { margin: 0; overflow-wrap: anywhere; }
+.admin-prompt-audit { padding: 0; list-style: none; }
+.admin-prompt-audit li { display: grid; gap: var(--space-1); border-bottom: 1px solid var(--border); padding-block: var(--space-3); }
+.admin-prompt-audit time { color: var(--muted); font-size: .875rem; font-family: var(--font-mono); }
+.admin-prompt-dialog { max-width: min(560px, calc(100vw - 32px)); }
+@media (max-width: 620px) { .admin-prompt-controls { grid-template-columns: 1fr; } .admin-prompt-playground dl { grid-template-columns: 1fr; } }

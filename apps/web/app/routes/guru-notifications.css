@@ -1,0 +1,223 @@
+.guru-notifications-page {
+  width: min(880px, 100%);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-gutter) var(--space-12);
+}
+
+.guru-notifications-page > section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+}
+
+.guru-notifications-page h2 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-xl);
+}
+
+.guru-notifications-page h2 + .lede {
+  margin-top: calc(var(--space-4) * -1 + var(--space-2));
+}
+
+.guru-notifications-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.guru-notifications-header h1 {
+  margin: 0;
+}
+
+.guru-notifications-header > a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.guru-notifications-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-2) var(--space-5);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.guru-notifications-toggles label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.guru-notifications-thresholds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.guru-notifications-thresholds label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.guru-notifications-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.guru-notifications-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.guru-notifications-chips li {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  font-size: var(--text-sm);
+}
+
+.guru-notifications-inbox-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.guru-notifications-inbox-heading h2 {
+  margin: 0;
+  margin-right: auto;
+}
+
+.guru-notifications-list {
+  display: grid;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guru-notifications-list > li {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.guru-notifications-list > li.is-unread {
+  background: var(--surface-sunken);
+}
+
+.guru-notifications-list > li > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.guru-notifications-list > li > div:first-child span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.guru-notifications-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.guru-stock-watch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.guru-stock-watch [role='alert'] {
+  color: var(--tint-warn-text);
+  font-size: var(--text-xs);
+}
+
+.diary-guru-snapshots {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--rule);
+}
+
+.diary-guru-snapshots h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.diary-guru-snapshot-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.diary-guru-snapshot-form label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.diary-guru-snapshot-list {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diary-guru-snapshot-list > li {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.diary-guru-snapshot-list dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+
+.diary-guru-snapshot-list dt {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.diary-guru-snapshot-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.diary-guru-snapshot-source {
+  margin-top: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 760px) {
+  .guru-notifications-header {
+    display: grid;
+  }
+
+  .guru-notifications-toggles {
+    grid-template-columns: 1fr;
+  }
+}

@@ -50,9 +50,15 @@
     "./sec-filings": "./src/sec-filings.ts",
     "./post": "./src/post.ts",
     "./admin-users": "./src/admin-users.ts",
+    "./admin-gurus": "./src/admin-gurus.ts",
+    "./admin-institutional": "./src/admin-institutional.ts",
+    "./admin-institutional-operations": "./src/admin-institutional-operations.ts",
     "./ai-reports": "./src/ai-reports.ts",
     "./admin-ai": "./src/admin-ai.ts",
     "./account-email": "./src/account-email.ts",
-    "./research-studio": "./src/research-studio.ts"
+    "./research-studio": "./src/research-studio.ts",
+    "./shared-prompts": "./src/shared-prompts.ts",
+    "./guru-analysis": "./src/guru-analysis.ts",
+    "./guru-notifications": "./src/guru-notifications.ts"
   }
 }

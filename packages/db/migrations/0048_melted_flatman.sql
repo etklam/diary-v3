@@ -1,0 +1,2 @@
+ALTER TABLE "institutional_manager_discovery" DROP CONSTRAINT "institutional_manager_discovery_status_valid";--> statement-breakpoint
+ALTER TABLE "institutional_manager_discovery" ADD CONSTRAINT "institutional_manager_discovery_status_valid" CHECK ("institutional_manager_discovery"."status" in ('PENDING', 'RUNNING', 'READY', 'STALE', 'ERROR'));

@@ -28,9 +28,12 @@ const EXACT_RETURN_PATHS = new Set([
   // Account.
   '/settings', '/settings/api-keys', '/settings/security',
   // Administration.
-  '/admin/etf', '/admin/users', '/admin/ai', '/admin/email-settings',
+  '/admin/etf', '/admin/users', '/admin/gurus', '/admin/ai', '/admin/ai/prompts', '/admin/email-settings',
+  '/admin/institutional', '/admin/institutional/mappings',
   '/admin/article-translations', '/admin/research', '/admin/research/new',
   '/admin/research/settings', '/admin/blog', '/admin/blog/new',
+  // Guru research surfaces. Each one is a reading destination a member returns to.
+  '/gurus', '/gurus/activity', '/gurus/consensus', '/gurus/stocks', '/gurus/sectors', '/gurus/compare', '/gurus/notifications',
 ]);
 
 /**
@@ -50,6 +53,10 @@ const PATTERN_RETURN_PATHS: readonly RegExp[] = [
   /^\/stocks\/[A-Za-z0-9.]{1,32}(?:\/thesis)?$/,
   /^\/tools\/sec-filings\/\d{1,10}\/\d{10}-\d{2}-\d{6}$/,
   /^\/admin\/research\/[^/]+$/,
+  /^\/admin\/gurus\/[1-9]\d*$/,
+  /^\/admin\/institutional\/filings\/[1-9]\d*$/,
+  /^\/gurus\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/(?:portfolio|changes|history|filings|analysis))?$/,
+  /^\/stocks\/[A-Za-z0-9.]{1,32}\/gurus$/,
   /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/,
 ];
 

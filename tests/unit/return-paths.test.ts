@@ -85,6 +85,8 @@ describe('administration return destinations', () => {
   it('keeps filter state for an allowlisted administration path', () => {
     expect(safeAuthReturnPath('/admin/blog?status=draft&page=2')).toBe('/admin/blog?status=draft&page=2')
     expect(safeAuthReturnPath('/admin/users')).toBe('/admin/users')
+    expect(safeAuthReturnPath('/admin/gurus')).toBe('/admin/gurus')
+    expect(safeAuthReturnPath('/admin/gurus/42?tab=overview')).toBe('/admin/gurus/42?tab=overview')
     expect(safeAuthReturnPath('/admin/email-settings')).toBe('/admin/email-settings')
     expect(safeAuthReturnPath('/admin/blog#section')).toBe('/admin/blog')
   })

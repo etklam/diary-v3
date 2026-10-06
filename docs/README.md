@@ -17,7 +17,7 @@ Reviewed against repository source on 2026-09-27. The product is **Trade basic**
 ## Document authority and status
 
 - **Current guides:** README, PRODUCT, DESIGN, architecture, feature guides, and runbooks describe source behavior and operating requirements. A review date is not a new runtime verification claim.
-- **Approved scope and decisions:** the [original plan](../PLAN.md), [immutable rebuild PRD](../.scratch/diary-v3-rebuild/PRD.md), separately approved extensions, and ADRs explain intent and constraints. Initial planning status is historical. Later implementation-status notes do not rewrite a decision's original rationale.
+- **Approved scope and decisions:** the [original plan](../PLAN.md), [immutable rebuild PRD](../.scratch/diary-v3-rebuild/PRD.md), [Guru Portfolio extension](../.scratch/guru-portfolio/PRD.md), and ADRs explain intent and constraints. Initial planning status is historical. Later implementation-status notes do not rewrite a decision's original rationale.
 - **Dated evidence:** acceptance reports, audit reports, design reviews, smoke logs, and screenshots prove only their recorded revision, environment, and scope. Preserve results and limitations; link newer evidence instead of replacing old counts.
 - **Frozen parity inputs:** the [sanitized source archive and manifest](parity/README.md) are the reference for ordinary parity work. Do not substitute the live diary-vue checkout or silently refresh the baseline.
 
@@ -31,6 +31,8 @@ The original core rebuild and subsequent numbered tickets have local acceptance.
 | Public and Member articles | [Product access model](../PRODUCT.md#article-access-model), [rollout boundary](../ops/k8s/production/README.md#article-access-release-boundary) |
 | Article translations | [Translation guide](article-translations.md), [search decision](adr/0016-public-article-translation-search.md), [automatic admission](adr/0017-automatic-translation-admission.md) |
 | Manual AI reports | [AI Reports V1](features/ai-reports-v1.md), [ADR-0014](adr/0014-manual-ai-reports.md), [runbook](runbooks/ai-reports.md) |
+| Shared AI prompt registry | [Shared prompt management](shared-prompt-management.md), [design brief](design/shared-prompt-management-brief.md) |
+| Guru portfolios and institutional research | [Guru Portfolio extension](../.scratch/guru-portfolio/PRD.md), [portfolio analytics](institutional-analytics.md), [consensus and sector rules](guru-consensus.md), [portfolio-history ticket](../.scratch/guru-portfolio/issues/07-portfolio-history-activity.md), [research design brief](design/guru-research-brief.md), [intelligence design brief](design/guru-intelligence-brief.md), [AI analysis](guru-analysis.md), [institutional operations](institutional-operations.md), [follows, alerts and journal context](guru-follow-notifications.md) |
 | Admin research | [Research Studio](features/research-studio.md), [ADR-0015](adr/0015-research-studio.md), [method bundle](research-method/README.md), [source-use review](research-method/source-policy-review.md) |
 | Account email | [Verification, recovery, and SMTP runbook](runbooks/account-email.md) |
 | Abuse controls | [Memory/Redis rate limiting](runbooks/rate-limiting.md) |

@@ -13,6 +13,7 @@ import { buildSecUrls, SecEdgarClient } from './client.js'
 import { SecProviderError } from './errors.js'
 import { throwIfAborted, withAbort } from './abort.js'
 import { canonicalizeCik, normalizeTickerQuery, parseAccession, parseDocumentBasename } from './validation.js'
+import type { SecSharedScheduler } from './postgres-scheduler.js'
 
 export interface SecClientLike {
   getJson<T>(url: string, signal?: AbortSignal): Promise<T>
@@ -143,13 +144,13 @@ export class SecEdgarService {
     return { detail: detail.value, document, url: buildSecUrls.document(cik, accession, safeBasename) }
   }
 
-  async openDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; response: Response }> {
+  async openDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string; response: Response }> {
     throwIfAborted(signal)
     if (!this.client.getStream) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC streaming client unavailable', 503, true)
     const resolved = await this.getDocument(cik, accession, basename, signal)
     throwIfAborted(signal)
     const response = await this.client.getStream(resolved.url, signal)
-    return { detail: resolved.detail, document: resolved.document, response }
+    return { detail: resolved.detail, document: resolved.document, url: resolved.url, response }
   }
 
   private async awaitCache<T>(promise: Promise<SecCacheResult<T>>, signal?: AbortSignal): Promise<SecCacheResult<T>> {
@@ -323,9 +324,9 @@ export class SecEdgarService {
   }
 }
 
-export function createSecEdgarService(userAgent: string, fetchFn?: typeof fetch): SecEdgarService {
+export function createSecEdgarService(userAgent: string, fetchFn?: typeof fetch, sharedScheduler?: SecSharedScheduler): SecEdgarService {
   if (!userAgent.trim() || !userAgent.includes('@')) return createUnavailableSecEdgarService()
-  return new SecEdgarService(new SecEdgarClient({ userAgent, fetchFn }))
+  return new SecEdgarService(new SecEdgarClient({ userAgent, fetchFn, sharedScheduler }))
 }
 
 export function createSecFixtureService(client: SecClientLike): SecEdgarService {

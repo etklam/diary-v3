@@ -5,6 +5,7 @@ import { claimNextAiReport, admitAiReportDispatch } from '../../apps/api/src/ai-
 import { purgeExpiredAiReportBodies, runAiReportOnce } from '../../apps/api/src/ai-reports/worker'
 import { encryptAiSecret } from '../../apps/api/src/ai-reports/secrets'
 import { updateGenerationEnabled } from '../../apps/api/src/ai-reports/settings'
+import { actOnSharedPrompt, saveSharedPrompt, writePromptAudit } from '../../apps/api/src/shared-prompts/service'
 import { AiProviderError, type AiTransport } from '../../apps/api/src/ai-reports/outbound-policy'
 import { provisionTestDatabase } from '../support/database'
 
@@ -75,6 +76,26 @@ describe('AI durable jobs with disposable PostgreSQL', () => {
     expect(await bucket()).toMatchObject([{ consumed: 1, reserved: 0 }])
     await database.pool.query('update ai_user_access set enabled=false where user_id=$1', [owner])
     await expect(service.generate(owner, key, input)).rejects.toMatchObject({ code: 'AI_ACCESS_DENIED' })
+  })
+
+  it('continues queued and running reports on their pinned prompt after registry activation and disable', async () => {
+    const queued = await queue()
+    const pinned = (await database.pool.query('select p.id,p.template from ai_report r join ai_prompt_version p on p.id=r.prompt_version_id where r.id=$1', [queued.data.id])).rows[0]
+    const saved = await saveSharedPrompt(database.db, { key: 'ai-report.weekly', expectedRevision: 0, name: 'Replacement', template: 'Replacement guidance for new reports only.', actorUserId: owner, now: clock })
+    await writePromptAudit(database.db, { key: 'ai-report.weekly', actorUserId: owner, action: 'test.passed', versionId: BigInt(saved.id), now: clock })
+    await actOnSharedPrompt(database.db, { key: 'ai-report.weekly', action: 'activate', expectedRevision: 1, versionId: saved.id, actorUserId: owner, now: clock })
+    expect((await database.pool.query('select status,prompt_version_id from ai_report where id=$1', [queued.data.id])).rows[0]).toEqual({ status: 'queued', prompt_version_id: pinned.id })
+    const transport = vi.fn(async request => {
+      const messages = (request.body as { messages: Array<{ content: string }> }).messages
+      expect(messages[0]?.content).toContain(pinned.template.split('{{')[0])
+      expect(messages[0]?.content).not.toContain('Replacement guidance for new reports only.')
+      await actOnSharedPrompt(database.db, { key: 'ai-report.weekly', action: 'disable', expectedRevision: 2, actorUserId: owner, now: clock })
+      expect((await database.pool.query('select status from ai_report where id=$1', [queued.data.id])).rows[0].status).toBe('running')
+      return response()
+    })
+    expect(await worker(transport)).toMatchObject({ status: 'succeeded' })
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect((await database.pool.query('select prompt_version_id from ai_report where id=$1', [queued.data.id])).rows[0].prompt_version_id).toBe(pinned.id)
   })
 
   it('deduplicates concurrent same-key submissions and rejects another active job', async () => {

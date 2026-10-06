@@ -29,6 +29,7 @@ import {
 } from '@diary/contracts/ai-reports'
 import { buildReportContext, readReportContext, type ReportContextBuildResult, type ReportContextLimits } from './context.js'
 import { decryptAiSecret, encryptAiSecret } from './secrets.js'
+import { resolveReportPromptInTransaction } from '../shared-prompts/service.js'
 import { buildAiMessages } from './prompt-renderer.js'
 import { recordUserQuotaUsage, releaseUserQuota, reserveUserQuota, readUserQuota } from './quota.js'
 import { cancelAiReport, deleteAiReport, lockAiGlobal, lockAiOwner } from './job-store.js'
@@ -113,9 +114,11 @@ async function currentProvider(db: Database) {
   return provider ?? null
 }
 
-async function currentPrompt(db: Database, reportType: 'weekly' | 'monthly') {
-  const [prompt] = await db.select().from(aiPromptVersions).where(and(eq(aiPromptVersions.reportType, reportType), eq(aiPromptVersions.status, 'published'))).orderBy(desc(aiPromptVersions.id)).limit(1)
-  return prompt ?? null
+async function currentPrompt(db: Database, reportType: 'weekly' | 'monthly', now: Date) {
+  return db.transaction(async tx => {
+    await lockAiGlobal(tx)
+    return resolveReportPromptInTransaction(tx, reportType, now)
+  })
 }
 
 export class AiReportService {
@@ -222,7 +225,7 @@ export class AiReportService {
     if (!access?.enabled) throw new AiReportServiceError('AI_ACCESS_DENIED', 403)
     const [runtime] = await this.db.select().from(aiRuntimeState).where(eq(aiRuntimeState.singleton, 'default')).limit(1)
     const provider = await currentProvider(this.db)
-    const prompt = await currentPrompt(this.db, request.periodType)
+    const prompt = await currentPrompt(this.db, request.periodType, previewNow)
     const [consent] = await this.db.select().from(aiUserConsents).where(eq(aiUserConsents.userId, userId)).limit(1)
     const workerAvailable = Boolean(runtime?.workerHeartbeatAt && previewNow.getTime() - runtime.workerHeartbeatAt.getTime() <= this.workerFreshnessMs)
     const quota = await readUserQuota(this.db, { userId, bucketMonth: bucketMonth(previewNow), monthlyQuota: (await this.db.select({ monthlyQuota: aiUserAccess.monthlyQuota }).from(aiUserAccess).where(eq(aiUserAccess.userId, userId)).limit(1))[0]?.monthlyQuota ?? 0 })
@@ -270,7 +273,7 @@ export class AiReportService {
       const [provider] = runtime.activeProviderConfigId
         ? await tx.select().from(aiProviderConfigVersions).where(and(eq(aiProviderConfigVersions.id, runtime.activeProviderConfigId), eq(aiProviderConfigVersions.status, 'published'))).limit(1)
         : []
-      const [prompt] = await tx.select().from(aiPromptVersions).where(and(eq(aiPromptVersions.reportType, request.periodType), eq(aiPromptVersions.status, 'published'))).orderBy(desc(aiPromptVersions.id)).limit(1)
+      const prompt = await resolveReportPromptInTransaction(tx, request.periodType, now)
       if (!provider?.encryptedApiKey || !prompt) throw new AiReportServiceError('AI_NOT_CONFIGURED', 503)
       const [consent] = await tx.select().from(aiUserConsents).where(eq(aiUserConsents.userId, userId)).for('update')
       if (!aiConsentIsValid(consent, provider.recipientRevision)) throw new AiReportServiceError('AI_CONSENT_REQUIRED', 403)

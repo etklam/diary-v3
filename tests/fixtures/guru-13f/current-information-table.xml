@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<informationTable>
+  <infoTable>
+    <nameOfIssuer>Synthetic Current Holdings</nameOfIssuer>
+    <titleOfClass>COM</titleOfClass>
+    <cusip>987654321</cusip>
+    <value>85000000</value>
+    <shrsOrPrnAmt><sshPrnamt>250000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt>
+    <putCall>Call</putCall>
+    <investmentDiscretion>SOLE</investmentDiscretion>
+    <votingAuthority><Sole>250000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+  </infoTable>
+</informationTable>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import type { LedgerTransactionResponse } from '@diary/contracts/ledger';
 import { Evidence } from '../evidence';
+import { DiaryGuruSnapshots } from '../diary-guru-snapshot';
 import { companyContextCopy } from '../company-context-input';
 import { reviewScheduleCopy } from '../review-scheduling';
 import { ledgerCopy, ledgerEmotions } from '../ledger-copy';
@@ -149,6 +150,7 @@ export default function DiaryPage() {
       {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
       <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : `${reviewLabels.duePrefix} `}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
       <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
+      <DiaryGuruSnapshots diaryId={diary.id} symbols={diary.stockSymbols ?? []} />
       </aside>
       <footer><div className="diary-actions">{companyPath && captureReturn && <Link className="button secondary" data-testid="capture-return" to={companyPath}>{locale === 'en' ? `Return to ${captureReturn.symbol} research` : `返回 ${captureReturn.symbol} 研究`}</Link>}<button type="button" className="danger-button" onClick={() => dialog.current?.showModal()}>{labels.remove}</button><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></footer>
       <dialog ref={dialog} className="delete-dialog" aria-labelledby="delete-title"><h2 id="delete-title">{labels.confirm}</h2><p>{diary.title}</p><div className="actions"><button className="secondary" autoFocus onClick={() => dialog.current?.close()} disabled={deleting}>{labels.cancel}</button><button className="danger-button" disabled={deleting} onClick={() => void remove()}>{deleting ? t('pending') : labels.remove}</button></div></dialog>

@@ -1,0 +1,2 @@
+ALTER TABLE "institutional_filings" ADD COLUMN "mapping_coverage" numeric(5, 2);--> statement-breakpoint
+ALTER TABLE "institutional_filings" ADD CONSTRAINT "institutional_filings_mapping_coverage_valid" CHECK ("institutional_filings"."mapping_coverage" is null or "institutional_filings"."mapping_coverage" between 0 and 100);

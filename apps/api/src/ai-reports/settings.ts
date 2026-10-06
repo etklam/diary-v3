@@ -12,6 +12,7 @@ import type { AiProviderDraft } from '@diary/contracts/admin-ai'
 import { defaultAiPrompts, validateAiTemplate } from './prompt-renderer.js'
 import { encryptAiSecret } from './secrets.js'
 import { validateBaseUrl } from './outbound-policy.js'
+import { mirrorLegacyPromptPublication } from '../shared-prompts/legacy.js'
 import { lockAiGlobal, lockAiOwner } from './job-store.js'
 import { recordUserQuotaUsage, releaseUserQuota } from './quota.js'
 import { releaseGlobalAiBudget, settleGlobalAiBudget } from './budget.js'
@@ -474,11 +475,10 @@ export async function publishPrompt(db: Database, input: { reportType: ReportTyp
       .where(and(eq(aiAdminAuditEvents.action, 'prompt.test.passed'), eq(aiAdminAuditEvents.targetId, draft.id.toString())))
       .orderBy(desc(aiAdminAuditEvents.id)).limit(1)
     if (!test) throw new Error('AI_PROMPT_TEST_REQUIRED')
-    const oldPromptId = input.reportType === 'weekly' ? runtime.activeWeeklyPromptId : runtime.activeMonthlyPromptId
     const [row] = await tx.update(aiPromptVersions).set({ status: 'published', publishedAt: input.now }).where(eq(aiPromptVersions.id, draft.id)).returning()
     if (!row) throw new Error('AI_ADMIN_REVISION_CONFLICT')
     await tx.update(aiRuntimeState).set({ ...(input.reportType === 'weekly' ? { activeWeeklyPromptId: row.id } : { activeMonthlyPromptId: row.id }), updatedAt: input.now }).where(eq(aiRuntimeState.singleton, 'default'))
-    if (oldPromptId && oldPromptId !== row.id) await cancelPendingFor(tx, eq(aiReports.promptVersionId, oldPromptId), input.now)
+    await mirrorLegacyPromptPublication(tx, row, input.actorUserId, input.now)
     await writeAudit(tx, { actorUserId: input.actorUserId, action: 'prompt.publish', targetType: 'prompt', targetId: row.id.toString(), summary: `Prompt ${input.reportType} published`, createdAt: input.now })
     return row
   })

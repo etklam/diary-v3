@@ -15,6 +15,10 @@ import type { MetaDescriptor, MetaFunction } from 'react-router'
  * just to learn its own origin.
  */
 const PUBLIC_PAGE_META = {
+  '/gurus': {
+    title: 'Guru portfolios',
+    description: 'Discover tracked investment managers through prepared 13F portfolio analytics, disclosed changes, and shared holdings.',
+  },
   '/tools': {
     title: 'Tools',
     description: 'Public calculators and market research: position sizing, financial freedom, ETF research, market rotation, relative value, seasonality, and SEC filings.',

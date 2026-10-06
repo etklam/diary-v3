@@ -59,7 +59,7 @@ function usePageScrollLock(locked: boolean) {
   }, [locked])
 }
 
-export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'tools' | 'articles' | 'achievements' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminAi' | 'adminResearch' | 'adminEtf' | 'adminEmail' | null
+export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'gurus' | 'tools' | 'articles' | 'achievements' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminGurus' | 'adminInstitutional' | 'adminAi' | 'adminResearch' | 'adminEtf' | 'adminEmail' | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
@@ -74,6 +74,7 @@ export function navigationOwner(pathname: string): NavigationOwner {
   if (path === '/stocks/watchlist') return 'watchlist'
   if (path === '/stocks/alerts') return 'priceReminders'
   if (path === '/stocks' || path === '/strategy-performance') return 'holdings'
+  if (path === '/gurus' || path.startsWith('/gurus/')) return 'gurus'
   if (path === '/trade-plans' || path.startsWith('/trade-plans/')) return 'tradePlans'
   if (path === '/discipline' || path.startsWith('/discipline/')) return 'discipline'
   if (/^\/stocks\/[^/]+(?:\/thesis)?$/.test(path)) return 'marketResearch'
@@ -83,6 +84,8 @@ export function navigationOwner(pathname: string): NavigationOwner {
   if (path === '/achievements') return 'achievements'
   if (path === '/admin/blog' || path.startsWith('/admin/blog/')) return 'adminBlog'
   if (path === '/admin/users' || path.startsWith('/admin/users/')) return 'adminUsers'
+  if (path === '/admin/gurus' || path.startsWith('/admin/gurus/')) return 'adminGurus'
+  if (path === '/admin/institutional' || path.startsWith('/admin/institutional/')) return 'adminInstitutional'
   if (path === '/admin/ai' || path.startsWith('/admin/ai/')) return 'adminAi'
   if (path === '/admin/research' || path.startsWith('/admin/research/')) return 'adminResearch'
   if (path === '/admin/etf' || path.startsWith('/admin/etf/')) return 'adminEtf'
@@ -174,6 +177,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
     <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}><h2 id={`${idPrefix}-investing`}>{sections.investing}</h2><div className="nav-group-links">
       {link('/stocks', c.holdings, 'briefcase', 'holdings')}
       {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
+      {link('/gurus', label(locale, { en: 'Guru portfolios', 'zh-CN': '投资大师', 'zh-TW': '投資大師' }), 'layers', 'gurus')}
       {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
     </div><details className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
       <summary><Icon name="chevronDown" />{c.tradeManagement}</summary>
@@ -197,6 +201,8 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
       {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
+      {link('/admin/gurus', label(locale, { en: 'Guru management', 'zh-CN': '投资大师管理', 'zh-TW': '投資大師管理' }), 'layers', 'adminGurus')}
+      {link('/admin/institutional/mappings', label(locale, { en: 'Institutional mappings', 'zh-CN': '机构持仓映射', 'zh-TW': '機構持倉映射' }), 'layers', 'adminInstitutional')}
       {link('/admin/ai', c.adminAi, 'compass', 'adminAi')}
       {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}

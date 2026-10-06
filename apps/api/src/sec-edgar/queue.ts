@@ -7,6 +7,10 @@ interface QueueOptions {
   maxQueued?: number
   now?: () => number
   sleep?: (ms: number) => Promise<void>
+  sharedScheduler?: {
+    start<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<{ response: Promise<T> }>
+    recordResult(success: boolean): Promise<void>
+  }
 }
 
 interface QueueWaiter {
@@ -26,6 +30,7 @@ export class SecRequestQueue {
   private readonly maxQueued: number
   private readonly now: () => number
   private readonly sleep: (ms: number) => Promise<void>
+  private readonly sharedScheduler?: QueueOptions['sharedScheduler']
 
   constructor(options: QueueOptions = {}) {
     this.concurrency = options.concurrency ?? 2
@@ -33,6 +38,7 @@ export class SecRequestQueue {
     this.maxQueued = options.maxQueued ?? 200
     this.now = options.now ?? Date.now
     this.sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
+    this.sharedScheduler = options.sharedScheduler
   }
 
   async run<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -40,7 +46,15 @@ export class SecRequestQueue {
     try {
       await this.waitForStartSlot(signal)
       throwIfAborted(signal)
-      return await operation()
+      try {
+        const scheduled = this.sharedScheduler ? await this.sharedScheduler.start(operation, signal) : { response: operation() }
+        const result = await scheduled.response
+        await this.sharedScheduler?.recordResult(!(result instanceof Response) || result.ok).catch(() => undefined)
+        return result
+      } catch (error) {
+        await this.sharedScheduler?.recordResult(false).catch(() => undefined)
+        throw error
+      }
     } finally {
       this.release()
     }

@@ -1,0 +1,3 @@
+ALTER TABLE "guru_quarter_analytics" DROP CONSTRAINT "guru_quarter_analytics_hash_valid";--> statement-breakpoint
+ALTER TABLE "guru_quarter_analytics" ADD COLUMN "context_hash" varchar(64) NOT NULL;--> statement-breakpoint
+ALTER TABLE "guru_quarter_analytics" ADD CONSTRAINT "guru_quarter_analytics_hash_valid" CHECK ("guru_quarter_analytics"."input_hash" ~ '^[a-f0-9]{64}$' and "guru_quarter_analytics"."context_hash" ~ '^[a-f0-9]{64}$');

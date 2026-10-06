@@ -3,6 +3,7 @@ import { buildCapturePath, captureContextForCompanySymbol } from '../capture-con
 import { StockNotes } from '../stock-notes';
 import { stockSymbolSchema } from '@diary/contracts/watchlist';
 import { Evidence } from '../evidence';
+import { StockGuruPanel } from '../stock-guru-panel';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { marketSymbolSchema, type MarketQuote, type MarketHistorical, type MarketRange } from '@diary/contracts/market';
@@ -55,6 +56,7 @@ export default function CompanyMarket(){
     <form className="market-lookup" onSubmit={lookup}><label>{text.symbol}<input value={input} onChange={event=>setInput(event.target.value)} required maxLength={32} autoCapitalize="characters" spellCheck={false} aria-invalid={inputError||!symbol||undefined} aria-describedby={inputError||!symbol?'symbol-error':undefined}/></label><button type="submit">{text.open}</button></form>
     {(inputError||!symbol)&&<p id="symbol-error" className="error" role="alert">{text.invalid}</p>}
     {stockSymbolSchema.safeParse(symbol).success&&session.authenticated===true&&<CompanyContext key={`context-${symbol}`} symbol={symbol}/>}
+    {stockSymbolSchema.safeParse(symbol).success&&<StockGuruPanel key={`guru-context-${symbol}`} symbol={symbol}/>}
     {symbol&&<><section className="market-section" aria-labelledby="market-quote-title"><div className="market-heading"><h2 id="market-quote-title">{text.quote}</h2><button type="button" className="secondary" disabled={quote.pending} onClick={()=>void loadQuote(true)}>{quote.pending?t('loading'):text.refresh}</button></div>
       {quote.pending?<p role="status">{t('loading')}</p>:quote.error?<FailureNotice failure={quoteFailure} id="quote-error"/>:quote.data&&<>
         {quote.source==='stale'&&<p role="status" className="market-stale">{text.stale}</p>}

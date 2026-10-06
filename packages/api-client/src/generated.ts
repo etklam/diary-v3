@@ -1504,6 +1504,779 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/gurus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin session required. Literal case-insensitive name, manager label, slug, and CIK search. Newest profiles first; editorial fields are separate from SEC manager identity. */
+        get: operations["adminGurusList"];
+        put?: never;
+        /** @description Admin session required. Creates an editorial profile and a unique SEC manager identity atomically; CIK is stored as ten digits. */
+        post: operations["adminGuruCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/gurus/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["adminGuruGet"];
+        /** @description Admin session required. Replaces editable profile fields and CIK atomically. */
+        put: operations["adminGuruUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public Guru discovery backed by prepared portfolio analytics. Follower identities are never returned. */
+        get: operations["guruDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public editorial profile and prepared SEC-derived portfolio summary, with reported period and filing source metadata. */
+        get: operations["guruOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Quarter-aware holdings and filters from the active effective snapshot and prepared holding changes. */
+        get: operations["guruPortfolio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Deterministic quarter actions calculated from comparable reported share counts. */
+        get: operations["guruChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every ingested quarter with its data-quality state and prepared portfolio analytics. */
+        get: operations["guruHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/position-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Historical reported quantity, value, weight, rank and action for one stable position identity. */
+        get: operations["guruPositionHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/filings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Filing state and SEC source lineage, including amendment operations and source documents. */
+        get: operations["guruFilings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepared platform activity from each active Guru’s latest ready quarter, or a selected quarter. */
+        get: operations["guruActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/consensus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepared cross-Guru stock breadth and deterministic buyer/seller classification with quarter coverage. */
+        get: operations["guruConsensus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Compare two to five active Gurus using current effective SEC portfolios, prepared analytics, and deterministic holding actions. */
+        get: operations["guruCompare"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stocks/{symbol}/gurus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Guest-accessible stock Guru ownership and history backed by prepared consensus snapshots. Queued quarters suppress stale metrics. */
+        get: operations["stockGuruResearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/stocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepared stock rankings by ownership breadth, adds, reductions, exits, aggregate portfolio weight, and quarter trend. */
+        get: operations["guruStocks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/stocks.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CSV export of prepared consensus stock rows with report period and coverage context. */
+        get: operations["guruStocksExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/sectors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepared sector, industry, and explicitly mapped theme allocation and action direction. */
+        get: operations["guruSectors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/portfolio.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CSV export of the filtered prepared holdings with report period and SEC source lineage. */
+        get: operations["guruPortfolioExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/changes.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CSV export of deterministic quarter changes with report period and SEC source lineage. */
+        get: operations["guruChangesExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/position-history.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CSV export of a position’s quarter history with report period and SEC source lineage. */
+        get: operations["guruPositionHistoryExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Prepared structured facts and, when generated, the auditable AI interpretation for one reported quarter. Facts and interpretation are separate fields and the code-owned 13F disclosures are always present. */
+        get: operations["guruAnalysis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/gurus/{id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only generation history with prompt, provider, token and invalidation provenance. */
+        get: operations["adminGuruAnalysisList"];
+        put?: never;
+        /** @description Admin-only generation or explicit regeneration for one prepared quarter. An unchanged structured input and prompt version reuse the existing result instead of spending budget. */
+        post: operations["adminGuruAnalysisRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/prompt-registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only immutable system defaults and versioned database overrides for supported AI modules. */
+        get: operations["sharedPromptRegistryList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/prompt-registry/{key}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only immutable new prompt version. Variables and immutable guardrails are validated by the server. */
+        post: operations["sharedPromptVersionSave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/prompt-registry/{key}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only create, duplicate, activate, rollback, archive, or disable an override using optimistic revision checks. */
+        post: operations["sharedPromptVersionAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/prompt-registry/{key}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only immutable audit events for prompt changes, activation, rollback, archive, and tests. */
+        get: operations["sharedPromptAuditList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/prompt-registry/{key}/playground": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only rendered prompt preview or quota-accounted synthetic test. The response marks test usage separately from production. */
+        post: operations["sharedPromptPlayground"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/{slug}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Signed-in user action. Following is private; the response returns only the aggregate follower count and the caller’s follow state. */
+        put: operations["guruFollow"];
+        post?: never;
+        /** @description Signed-in user action. Removes only the caller’s private follow. */
+        delete: operations["guruUnfollow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Signed-in member. Returns the caller’s own notification settings, followed Gurus and watched stocks. Other members’ follows are never returned. */
+        get: operations["guruNotificationPreferencesRead"];
+        /** @description Signed-in member. Each event type can be enabled or disabled, and meaningful-change thresholds accept a portfolio weight and/or a reported quantity-change percentage. */
+        put: operations["guruNotificationPreferencesUpdate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Signed-in member inbox of delivered Guru events. Deliveries are idempotent, so a retried job never produces a duplicate row. */
+        get: operations["guruNotificationList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gurus/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Signed-in member. Marks the listed notifications, or every unread notification, as read. */
+        post: operations["guruNotificationMarkRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stocks/{symbol}/guru-watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Signed-in member. Returns only the caller’s own watch state for a stock’s Guru activity. */
+        get: operations["guruStockWatchRead"];
+        /** @description Signed-in member. Watches a stock’s Guru activity. The ticker must resolve to exactly one tracked security. */
+        put: operations["guruStockWatchAdd"];
+        post?: never;
+        /** @description Signed-in member. Removes only the caller’s watch. */
+        delete: operations["guruStockWatchRemove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diaries/{id}/guru-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Signed-in owner. Decision-time Guru context attached to one diary entry. */
+        get: operations["diaryGuruSnapshotList"];
+        put?: never;
+        /** @description Signed-in owner. Attaches the prepared Guru holder count, actions and weights the author saw. The stored snapshot is immutable: later quarters and analytics rebuilds cannot change it, and generated prose is never part of it. */
+        post: operations["diaryGuruSnapshotCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only operational state: SEC scheduler fairness counters, queue depths, processing versions, and per-manager discovery, filing, quarter, mapping, and AI counts. */
+        get: operations["adminInstitutionalOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/filings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only filing index filtered by Guru, state, reported quarter, or literal accession/CIK/name search. */
+        get: operations["adminInstitutionalFilingList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/filings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only filing inspector: documents, preserved raw artifacts, parsed rows with their mapping state, the effective snapshot and its amendment sources, and the prepared analytics row. */
+        get: operations["adminInstitutionalFilingDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/gurus/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only. Brings the next SEC discovery check forward. Repeating it cannot stack jobs and never interrupts a held worker lease. */
+        post: operations["adminInstitutionalSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/filings/{id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only. Returns one filing to the ingestion queue and reuses its preserved raw artifacts; parsed rows are replaced, never deleted without a replacement. */
+        post: operations["adminInstitutionalReprocess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/gurus/{id}/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only. Requests one more effective-snapshot rebuild revision for a reported quarter, which republishes analytics and consensus downstream. */
+        post: operations["adminInstitutionalRebuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only diagnostics download. It reports processing versions, scheduler state, queue depths, and per-manager counts, and redacts provider credentials, raw filing content, AI text, and user identities. */
+        get: operations["adminInstitutionalDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/securities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only securities master search. Identity is independent of ticker; identifiers carry validity dates and source provenance. */
+        get: operations["adminInstitutionalSecuritiesList"];
+        put?: never;
+        /** @description Admin-only. Creates an independent security identity with a manually verified primary-source URL and exact dated CUSIP/FIGI/ticker identifiers, then starts a resumable mapping refresh job for matching historical filings. */
+        post: operations["adminInstitutionalSecurityCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/securities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["adminInstitutionalSecurityGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only exact-identifier mapping queue. Omitting status shows unresolved and ambiguous holdings; status=MANUAL_OVERRIDE shows prior audited decisions. Search can match the accession; an exact unique accession also returns filing coverage. */
+        get: operations["adminInstitutionalMappingsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/mappings/{holdingId}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only append-only manual mapping. Each correction supersedes the preceding override and preserves its actor, timestamp, evidence and reason. */
+        post: operations["adminInstitutionalMappingOverride"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/mappings/refresh-jobs/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Admin-only resumable refresh of existing filings affected by a new exact security identifier. Processing is cursor-based, idempotent, bounded to 50 filings per call, and preserves manual overrides. */
+        post: operations["adminInstitutionalMappingRefreshJobRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutional/securities/{id}/identity-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only immutable corporate-action audit history; evidence URLs are manually verified issuer or SEC sources. */
+        get: operations["adminInstitutionalIdentityEventsList"];
+        put?: never;
+        /** @description Admin-only append-only identity event. Ticker changes keep one security ID; splits and class continuity require conversion ratios; mergers and spin-offs remain non-comparable; delisting has no successor. */
+        post: operations["adminInstitutionalIdentityEventCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{id}/role": {
         parameters: {
             query?: never;
@@ -3189,7 +3962,7 @@ export interface components {
             statusMessage: string;
             data: {
                 /** @enum {string} */
-                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "GOAL_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "INVESTMENT_THESIS_REVISION_CONFLICT" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
+                code: "AUTH_LOGIN_INVALID_CREDENTIALS" | "AUTH_NO_REFRESH_TOKEN" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" | "AUTH_TOKEN_NOT_FOUND" | "AUTH_TOKEN_REVOKED" | "AUTH_UNAUTHORIZED" | "AUTH_FORBIDDEN" | "ETF_NOT_FOUND" | "ETF_ALREADY_IN_WATCHLIST" | "AUTH_API_KEY_SCOPE_DENIED" | "AUTH_RATE_LIMITED" | "AUTH_EMAIL_SERVICE_DISABLED" | "AUTH_EMAIL_VERIFICATION_REQUIRED" | "AUTH_EMAIL_TOKEN_INVALID" | "AUTH_EMAIL_TOKEN_EXPIRED" | "CSRF_FAILED" | "DIARY_NOT_FOUND" | "DIARY_REVISION_CONFLICT" | "ACHIEVEMENT_NOT_FOUND" | "GOAL_NOT_FOUND" | "ALERT_NOT_FOUND" | "PRICE_ALERT_NOT_FOUND" | "DISCIPLINE_NOT_FOUND" | "DIARY_ALREADY_EXISTS" | "TRADE_PLAN_NOT_FOUND" | "WATCHLIST_ITEM_NOT_FOUND" | "INVESTMENT_THESIS_NOT_FOUND" | "INVESTMENT_THESIS_NOT_ACTIVE" | "INVESTMENT_THESIS_REVISION_CONFLICT" | "STOCK_NOTE_NOT_FOUND" | "STOCK_NOTE_ACCESS_DENIED" | "PARTNER_LINK_ACCESS_DENIED" | "PARTNER_LINK_NOT_FOUND" | "PARTNER_LINK_ALREADY_EXISTS" | "PARTNER_LINK_PENDING" | "USER_EMAIL_EXISTS" | "ADMIN_EMAIL_CONFIG_CONFLICT" | "ADMIN_EMAIL_TEST_REQUIRED" | "ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE" | "ADMIN_EMAIL_SETTINGS_INVALID" | "USER_NOT_FOUND" | "GURU_NOT_FOUND" | "GURU_SLUG_CONFLICT" | "GURU_CIK_CONFLICT" | "GURU_ANALYSIS_UNAVAILABLE" | "INSTITUTIONAL_IDENTITY_CONFLICT" | "SYS_INTERNAL_ERROR" | "ROTATION_BATCH_BUSY" | "SYS_EXTERNAL_SERVICE_ERROR" | "SYS_VALIDATION_ERROR" | "SYS_NOT_FOUND" | "BLOG_NOT_FOUND" | "ARTICLE_TRANSLATION_NOT_FOUND" | "ARTICLE_TRANSLATION_SOURCE_STALE" | "ARTICLE_TRANSLATION_REVIEW_REQUIRED" | "ARTICLE_TRANSLATION_NOT_PUBLISHED" | "ARTICLE_TRANSLATION_PROVIDER_DISABLED" | "ARTICLE_TRANSLATION_PRIVACY_RESTRICTED" | "ARTICLE_TRANSLATION_JOB_NOT_FOUND" | "ARTICLE_TRANSLATION_UNAVAILABLE" | "SEC_CONFIG_MISSING" | "SEC_VALIDATION_ERROR" | "SEC_COMPANY_NOT_FOUND" | "SEC_FILING_NOT_FOUND" | "SEC_DOCUMENT_NOT_FOUND" | "SEC_UPSTREAM_RATE_LIMITED" | "SEC_UPSTREAM_UNAVAILABLE" | "SEC_UPSTREAM_INVALID_RESPONSE" | "SEC_QUEUE_FULL" | "SEC_UNSAFE_REDIRECT" | "SEC_FILE_TOO_LARGE" | "SEC_PACKAGE_LIMIT_EXCEEDED" | "SEC_RATE_LIMITED" | "AI_REPORTS_DISABLED" | "AI_NOT_CONFIGURED" | "AI_ACCESS_DENIED" | "AI_CONSENT_REQUIRED" | "AI_CONFIG_CHANGED" | "AI_PREVIEW_CHANGED" | "AI_REPORT_NO_DATA" | "AI_REPORT_CONTEXT_TOO_LARGE" | "AI_REPORT_ALREADY_RUNNING" | "AI_QUOTA_EXCEEDED" | "AI_PROVIDER_RATE_LIMITED" | "AI_PROVIDER_UNAVAILABLE" | "AI_PROVIDER_TIMEOUT" | "AI_PROVIDER_OUTCOME_UNKNOWN" | "AI_UNSAFE_ENDPOINT" | "AI_OUTPUT_INVALID" | "AI_CANCELLED" | "AI_PROMPT_INVALID" | "AI_REPORT_INVALID_PERIOD" | "AI_REPORT_FUTURE_PERIOD" | "AI_REPORT_INVALID_TIMEZONE" | "AI_INVALID_TIMEZONE" | "AI_SOURCE_INVALIDATED" | "AI_WORKER_UNAVAILABLE" | "AI_IDEMPOTENCY_CONFLICT" | "AI_ADMIN_REVISION_CONFLICT" | "RESEARCH_DISABLED" | "RESEARCH_GENERATION_DISABLED" | "RESEARCH_NOT_FOUND" | "RESEARCH_UNSUPPORTED_INSTRUMENT" | "RESEARCH_METHOD_INCOMPLETE" | "RESEARCH_EVIDENCE_INVALID" | "RESEARCH_EVIDENCE_STALE" | "RESEARCH_REVISION_CONFLICT" | "RESEARCH_REVISION_NOT_APPROVED" | "RESEARCH_QA_FAILED" | "RESEARCH_IDEMPOTENCY_CONFLICT" | "RESEARCH_PROVIDER_NOT_CONFIGURED" | "RESEARCH_BUDGET_EXCEEDED" | "RESEARCH_OUTCOME_UNKNOWN" | "RESEARCH_ARTICLE_FRESHNESS" | "RESEARCH_ARTICLE_NOT_APPROVED" | "RESEARCH_ARTICLE_PROVENANCE" | "RESEARCH_PROVIDER_ERROR" | "RESEARCH_PROVIDER_UNAVAILABLE" | "RESEARCH_PROVIDER_TIMEOUT" | "RESEARCH_OUTPUT_INVALID" | "RESEARCH_PRIVATE_DATA_SENTINEL" | "RESEARCH_DISPATCH_NOT_AUTHORIZED" | "RESEARCH_DISPATCH_EXPIRED" | "RESEARCH_SOURCE_POLICY_BLOCKED" | "RESEARCH_INPUT_TOO_LARGE" | "RESEARCH_SYNTHETIC_NOT_ALLOWED";
                 details: {
                     field?: string;
                     message?: string;
@@ -3768,6 +4541,2636 @@ export interface components {
                         transactionCount: number;
                     }[];
                 };
+            };
+        };
+        AdminGuruResponse: {
+            data: {
+                id: string;
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    /** @default null */
+                    description: string | null;
+                    /** @default null */
+                    investmentPhilosophy: string | null;
+                    /** @default [] */
+                    styleTags: string[];
+                    /** @default null */
+                    managerType: string | null;
+                    /**
+                     * Format: uri
+                     * @default null
+                     */
+                    website: string | null;
+                    /** @default null */
+                    country: string | null;
+                    /**
+                     * Format: uri
+                     * @default null
+                     */
+                    imageUrl: string | null;
+                    /** @default null */
+                    securityNotes: string | null;
+                    /** @default false */
+                    featured: boolean;
+                    /** @default true */
+                    active: boolean;
+                    /** @default 0 */
+                    directoryOrder: number;
+                };
+                manager: {
+                    id: string;
+                    cik: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                };
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            };
+        };
+        AdminGuruListResponse: {
+            data: {
+                id: string;
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    /** @default null */
+                    description: string | null;
+                    /** @default null */
+                    investmentPhilosophy: string | null;
+                    /** @default [] */
+                    styleTags: string[];
+                    /** @default null */
+                    managerType: string | null;
+                    /**
+                     * Format: uri
+                     * @default null
+                     */
+                    website: string | null;
+                    /** @default null */
+                    country: string | null;
+                    /**
+                     * Format: uri
+                     * @default null
+                     */
+                    imageUrl: string | null;
+                    /** @default null */
+                    securityNotes: string | null;
+                    /** @default false */
+                    featured: boolean;
+                    /** @default true */
+                    active: boolean;
+                    /** @default 0 */
+                    directoryOrder: number;
+                };
+                manager: {
+                    id: string;
+                    cik: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                };
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
+        GuruDirectoryResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                cik: string;
+                directoryOrder: number;
+                followerCount: number;
+                followedByMe: boolean;
+                latest: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                };
+            }[];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+            facets: {
+                styles: string[];
+                managerTypes: string[];
+                sectors: string[];
+            };
+        };
+        GuruOverviewResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                cik: string;
+                followerCount: number;
+                followedByMe: boolean;
+                latest: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                };
+                latestMoves: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    previousQuantity: string | null;
+                    currentQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    currentWeightPercent: string | null;
+                    previousRank: number | null;
+                    currentRank: number | null;
+                }[];
+                history: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                }[];
+                source: {
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                };
+                /** @enum {string} */
+                aiSummaryState: "NOT_GENERATED" | "PENDING" | "READY" | "ERROR";
+            };
+        };
+        GuruFollowResponse: {
+            data: {
+                following: boolean;
+                followerCount: number;
+            };
+        };
+        GuruPortfolioResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                quarter: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                    mappingCoveragePercent: string | null;
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                };
+                periods: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                    mappingCoveragePercent: string | null;
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                }[];
+                holdings: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+            };
+        };
+        GuruChangesResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                quarter: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                    mappingCoveragePercent: string | null;
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                };
+                periods: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                    mappingCoveragePercent: string | null;
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                }[];
+                newPositions: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                increasedPositions: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                reducedPositions: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                exitedPositions: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                largestWeightChanges: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                largestRankChanges: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    industry: string | null;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    previousQuantity: string | null;
+                    quantityChange: string;
+                    quantityChangePercent: string | null;
+                    previousWeightPercent: string | null;
+                    weightChangePercentagePoints: string | null;
+                    previousRank: number | null;
+                    rankChange: number | null;
+                    sources: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+            };
+        };
+        GuruHistoryResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                periods: {
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topFiveConcentrationPercent: string | null;
+                    topTenConcentrationPercent: string | null;
+                    hhi: string | null;
+                    turnoverPercent: string | null;
+                    /** @enum {string|null} */
+                    turnoverBand: "LOW" | "MODERATE" | "HIGH" | null;
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    largestPosition: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    } | null;
+                    topHoldings: {
+                        positionKey: string;
+                        securityId: string | null;
+                        ticker: string | null;
+                        company: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        quantity: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                        rank: number;
+                    }[];
+                    sectorAllocation: {
+                        name: string;
+                        reportedValueUsd: string;
+                        weightPercent: string;
+                    }[];
+                    mappingCoveragePercent: string | null;
+                    accession: string | null;
+                    /** @enum {string|null} */
+                    form: "13F-HR" | "13F-HR/A" | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                }[];
+            };
+        };
+        GuruPositionHistoryResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                positionKey: string;
+                ticker: string | null;
+                company: string;
+                history: {
+                    periodEnd: string;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantity: string | null;
+                    reportedValueUsd: string | null;
+                    weightPercent: string | null;
+                    rank: number | null;
+                    source: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+            };
+        };
+        GuruFilingsResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                    description: string | null;
+                    investmentPhilosophy: string | null;
+                    styleTags: string[];
+                    managerType: string | null;
+                    /** Format: uri */
+                    website: string | null;
+                    country: string | null;
+                    /** Format: uri */
+                    imageUrl: string | null;
+                    featured: boolean;
+                };
+                filings: {
+                    accession: string;
+                    periodEnd: string | null;
+                    /** @enum {string} */
+                    form: "13F-HR" | "13F-HR/A";
+                    filingDate: string;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                    amendmentNumber: number | null;
+                    amendmentType: string | null;
+                    parserVersion: string | null;
+                    mappingCoveragePercent: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    documents: {
+                        basename: string;
+                        documentType: string | null;
+                        description: string | null;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                    effectiveOperations: {
+                        /** @enum {string} */
+                        operation: "ORIGINAL" | "RESTATEMENT" | "ADD_NEW_HOLDINGS";
+                        parserVersion: string;
+                    }[];
+                }[];
+            };
+        };
+        GuruActivityResponse: {
+            data: {
+                items: {
+                    guru: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        description: string | null;
+                        investmentPhilosophy: string | null;
+                        styleTags: string[];
+                        managerType: string | null;
+                        /** Format: uri */
+                        website: string | null;
+                        country: string | null;
+                        /** Format: uri */
+                        imageUrl: string | null;
+                        featured: boolean;
+                    };
+                    periodEnd: string;
+                    ticker: string | null;
+                    company: string;
+                    sector: string | null;
+                    /** @enum {string} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                    quantityChangePercent: string | null;
+                    currentWeightPercent: string | null;
+                    previousWeightPercent: string | null;
+                    source: {
+                        accession: string;
+                        /** Format: uri */
+                        sourceUrl: string;
+                    }[];
+                }[];
+                pagination: {
+                    page: number;
+                    limit: number;
+                    total: number;
+                    totalPages: number;
+                };
+            };
+        };
+        GuruComparisonResponse: {
+            data: {
+                periodEnd: string | null;
+                /** @enum {string} */
+                source: "SEC Form 13F";
+                selectedGuruCount: number;
+                readyGuruCount: number;
+                managers: {
+                    profile: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        description: string | null;
+                        investmentPhilosophy: string | null;
+                        styleTags: string[];
+                        managerType: string | null;
+                        /** Format: uri */
+                        website: string | null;
+                        country: string | null;
+                        /** Format: uri */
+                        imageUrl: string | null;
+                        featured: boolean;
+                    };
+                    /** @enum {string} */
+                    status: "READY" | "PARTIAL" | "ERROR" | "SUPERSEDED" | "PENDING" | "NO_FILING";
+                    reportedValueUsd: string | null;
+                    holdingCount: number | null;
+                    topTenConcentrationPercent: string | null;
+                    turnoverPercent: string | null;
+                    sectorAllocation: {
+                        name: string;
+                        weightPercent: string;
+                    }[];
+                    actionCounts: {
+                        new: number;
+                        add: number;
+                        reduce: number;
+                        exit: number;
+                    };
+                    source: {
+                        /** @enum {string|null} */
+                        form: "13F-HR" | "13F-HR/A" | null;
+                        accession: string | null;
+                        /** Format: date-time */
+                        filedAt: string | null;
+                        /** Format: uri */
+                        sourceUrl: string | null;
+                    };
+                }[];
+                positions: {
+                    positionKey: string;
+                    securityId: string;
+                    ticker: string | null;
+                    company: string;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    heldByCount: number;
+                    readyGuruCount: number;
+                    selectedGuruCount: number;
+                    /** @enum {string} */
+                    commonOrUnique: "COMMON" | "UNIQUE";
+                    members: {
+                        guruSlug: string;
+                        guruName: string;
+                        /** @enum {string|null} */
+                        action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                        currentQuantity: string | null;
+                        previousQuantity: string | null;
+                        reportedValueUsd: string | null;
+                        weightPercent: string | null;
+                        previousWeightPercent: string | null;
+                        currentRank: number | null;
+                    }[];
+                }[];
+                commonHoldings: {
+                    positionKey: string;
+                    securityId: string;
+                    ticker: string | null;
+                    company: string;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    heldByCount: number;
+                    readyGuruCount: number;
+                    selectedGuruCount: number;
+                    /** @enum {string} */
+                    commonOrUnique: "COMMON" | "UNIQUE";
+                    members: {
+                        guruSlug: string;
+                        guruName: string;
+                        /** @enum {string|null} */
+                        action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                        currentQuantity: string | null;
+                        previousQuantity: string | null;
+                        reportedValueUsd: string | null;
+                        weightPercent: string | null;
+                        previousWeightPercent: string | null;
+                        currentRank: number | null;
+                    }[];
+                }[];
+                uniqueHoldings: {
+                    positionKey: string;
+                    securityId: string;
+                    ticker: string | null;
+                    company: string;
+                    securityType: string | null;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    heldByCount: number;
+                    readyGuruCount: number;
+                    selectedGuruCount: number;
+                    /** @enum {string} */
+                    commonOrUnique: "COMMON" | "UNIQUE";
+                    members: {
+                        guruSlug: string;
+                        guruName: string;
+                        /** @enum {string|null} */
+                        action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                        currentQuantity: string | null;
+                        previousQuantity: string | null;
+                        reportedValueUsd: string | null;
+                        weightPercent: string | null;
+                        previousWeightPercent: string | null;
+                        currentRank: number | null;
+                    }[];
+                }[];
+                quarterMoves: {
+                    positionKey: string;
+                    securityId: string | null;
+                    ticker: string | null;
+                    company: string;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                    members: {
+                        guruSlug: string;
+                        guruName: string;
+                        /** @enum {string|null} */
+                        action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                        currentQuantity: string | null;
+                        previousQuantity: string | null;
+                        reportedValueUsd: string | null;
+                        weightPercent: string | null;
+                        previousWeightPercent: string | null;
+                        currentRank: number | null;
+                    }[];
+                }[];
+                opposingActions: {
+                    positionKey: string;
+                    securityId: string;
+                    ticker: string | null;
+                    company: string;
+                    members: {
+                        guruSlug: string;
+                        guruName: string;
+                        /** @enum {string|null} */
+                        action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                        currentQuantity: string | null;
+                        previousQuantity: string | null;
+                        reportedValueUsd: string | null;
+                        weightPercent: string | null;
+                        previousWeightPercent: string | null;
+                        currentRank: number | null;
+                    }[];
+                }[];
+                periods: string[];
+            };
+        };
+        GuruAnalysisResponse: {
+            data: {
+                profile: {
+                    name: string;
+                    managerName: string;
+                    slug: string;
+                };
+                periodEnd: string | null;
+                /** @enum {string} */
+                state: "NOT_GENERATED" | "QUEUED" | "RUNNING" | "READY" | "STALE" | "FAILED" | "BLOCKED_BY_COVERAGE";
+                coverage: {
+                    /** @enum {string} */
+                    quarterStatus: "PENDING" | "READY" | "PARTIAL" | "ERROR";
+                    mappingCoveragePercent: string | null;
+                    comparisonStatus: string | null;
+                    consensusAvailable: boolean;
+                    historyQuarterCount: number;
+                    notes: string[];
+                };
+                facts: {
+                    id: string;
+                    label: string;
+                    value: string;
+                }[];
+                analysis: {
+                    executiveSummary: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    portfolioDirection: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    convictionPositions: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    newPositions: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    increasedPositions: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    reducedPositions: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    exitedPositions: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    sectorAndThemeChange: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    concentrationChange: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    turnoverInterpretation: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    historicalContext: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    consensusContext: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    risks: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    takeaways: {
+                        text: string;
+                        /** @enum {string} */
+                        kind: "fact" | "interpretation";
+                        factRefs: string[];
+                        positionKeys: string[];
+                    }[];
+                    caveatIds: ("DELAYED_QUARTER_END" | "TRADE_DATES_UNKNOWN" | "SHORT_POSITIONS_UNDISCLOSED" | "DERIVATIVES_MAY_BE_ABSENT" | "CONFIDENTIAL_TREATMENT" | "VALUE_CHANGE_IS_NOT_A_TRADE" | "NOT_A_COMPLETE_PORTFOLIO")[];
+                } | null;
+                caveats: {
+                    /** @enum {string} */
+                    id: "DELAYED_QUARTER_END" | "TRADE_DATES_UNKNOWN" | "SHORT_POSITIONS_UNDISCLOSED" | "DERIVATIVES_MAY_BE_ABSENT" | "CONFIDENTIAL_TREATMENT" | "VALUE_CHANGE_IS_NOT_A_TRADE" | "NOT_A_COMPLETE_PORTFOLIO";
+                    text: string;
+                }[];
+                provenance: {
+                    runId: string;
+                    periodEnd: string;
+                    /** @enum {string} */
+                    status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+                    /** @enum {string} */
+                    sourceState: "current" | "invalidated";
+                    /** @enum {string} */
+                    reason: "INITIAL" | "REGENERATION";
+                    schemaVersion: string;
+                    contextVersion: string;
+                    analyticsVersion: string;
+                    consensusVersion: string | null;
+                    inputHash: string;
+                    promptKey: string;
+                    /** @enum {string} */
+                    promptSource: "system-default" | "override";
+                    promptSystemVersion: string;
+                    promptOverrideVersionId: string | null;
+                    provider: string | null;
+                    model: string | null;
+                    inputTokens: number | null;
+                    outputTokens: number | null;
+                    latencyMs: number | null;
+                    errorCode: string | null;
+                    /** Format: date-time */
+                    queuedAt: string;
+                    /** Format: date-time */
+                    generatedAt: string | null;
+                } | null;
+                history: {
+                    runId: string;
+                    periodEnd: string;
+                    /** @enum {string} */
+                    status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+                    /** @enum {string} */
+                    sourceState: "current" | "invalidated";
+                    /** @enum {string} */
+                    reason: "INITIAL" | "REGENERATION";
+                    schemaVersion: string;
+                    contextVersion: string;
+                    analyticsVersion: string;
+                    consensusVersion: string | null;
+                    inputHash: string;
+                    promptKey: string;
+                    /** @enum {string} */
+                    promptSource: "system-default" | "override";
+                    promptSystemVersion: string;
+                    promptOverrideVersionId: string | null;
+                    provider: string | null;
+                    model: string | null;
+                    inputTokens: number | null;
+                    outputTokens: number | null;
+                    latencyMs: number | null;
+                    errorCode: string | null;
+                    /** Format: date-time */
+                    queuedAt: string;
+                    /** Format: date-time */
+                    generatedAt: string | null;
+                }[];
+                source: {
+                    accession: string | null;
+                    periodEnd: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                };
+            };
+        };
+        AdminGuruAnalysisResponse: {
+            data: {
+                run: {
+                    runId: string;
+                    periodEnd: string;
+                    /** @enum {string} */
+                    status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+                    /** @enum {string} */
+                    sourceState: "current" | "invalidated";
+                    /** @enum {string} */
+                    reason: "INITIAL" | "REGENERATION";
+                    schemaVersion: string;
+                    contextVersion: string;
+                    analyticsVersion: string;
+                    consensusVersion: string | null;
+                    inputHash: string;
+                    promptKey: string;
+                    /** @enum {string} */
+                    promptSource: "system-default" | "override";
+                    promptSystemVersion: string;
+                    promptOverrideVersionId: string | null;
+                    provider: string | null;
+                    model: string | null;
+                    inputTokens: number | null;
+                    outputTokens: number | null;
+                    latencyMs: number | null;
+                    errorCode: string | null;
+                    /** Format: date-time */
+                    queuedAt: string;
+                    /** Format: date-time */
+                    generatedAt: string | null;
+                    requestedByUserId: string | null;
+                    attemptId: string | null;
+                    /** Format: date-time */
+                    invalidatedAt: string | null;
+                    invalidationReason: string | null;
+                };
+                reused: boolean;
+            };
+        };
+        AdminGuruAnalysisListResponse: {
+            data: {
+                runId: string;
+                periodEnd: string;
+                /** @enum {string} */
+                status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+                /** @enum {string} */
+                sourceState: "current" | "invalidated";
+                /** @enum {string} */
+                reason: "INITIAL" | "REGENERATION";
+                schemaVersion: string;
+                contextVersion: string;
+                analyticsVersion: string;
+                consensusVersion: string | null;
+                inputHash: string;
+                promptKey: string;
+                /** @enum {string} */
+                promptSource: "system-default" | "override";
+                promptSystemVersion: string;
+                promptOverrideVersionId: string | null;
+                provider: string | null;
+                model: string | null;
+                inputTokens: number | null;
+                outputTokens: number | null;
+                latencyMs: number | null;
+                errorCode: string | null;
+                /** Format: date-time */
+                queuedAt: string;
+                /** Format: date-time */
+                generatedAt: string | null;
+                requestedByUserId: string | null;
+                attemptId: string | null;
+                /** Format: date-time */
+                invalidatedAt: string | null;
+                invalidationReason: string | null;
+            }[];
+        };
+        AdminInstitutionalOverviewResponse: {
+            data: {
+                scheduler: {
+                    /** Format: date-time */
+                    nextAllowedAt: string | null;
+                    /** Format: date-time */
+                    lastRequestAt: string | null;
+                    requestCount: string;
+                    failureCount: string;
+                };
+                queues: {
+                    filingsPending: number;
+                    filingsPartial: number;
+                    filingsError: number;
+                    snapshotRebuildsPending: number;
+                    analyticsEventsPending: number;
+                    analyticsEventsFailed: number;
+                    consensusRebuildsPending: number;
+                    mappingRefreshJobsPending: number;
+                    unresolvedMappings: number;
+                    ambiguousMappings: number;
+                    partialQuarters: number;
+                    errorQuarters: number;
+                    analysisQueued: number;
+                    analysisRunning: number;
+                    analysisFailed: number;
+                    analysisInvalidated: number;
+                };
+                versions: {
+                    parser: string;
+                    resolver: string;
+                    securityMapping: string;
+                    analytics: string;
+                    consensus: string;
+                    analysisContext: string;
+                    analysisSchema: string;
+                };
+                managers: {
+                    guruId: string | null;
+                    managerId: string;
+                    slug: string | null;
+                    name: string | null;
+                    managerName: string | null;
+                    cik: string;
+                    active: boolean;
+                    discovery: {
+                        /** @enum {string|null} */
+                        status: "PENDING" | "RUNNING" | "READY" | "STALE" | "ERROR" | null;
+                        /** Format: date-time */
+                        lastCheckAt: string | null;
+                        /** Format: date-time */
+                        lastSuccessAt: string | null;
+                        /** Format: date-time */
+                        nextCheckAt: string | null;
+                        lastErrorCode: string | null;
+                        leaseHeld: boolean;
+                    };
+                    filings: {
+                        total: number;
+                        pending: number;
+                        downloaded: number;
+                        parsed: number;
+                        partial: number;
+                        ready: number;
+                        error: number;
+                        superseded: number;
+                    };
+                    latestFiling: {
+                        id: string;
+                        accession: string;
+                        form: string;
+                        periodEnd: string | null;
+                        /** Format: date-time */
+                        filedAt: string | null;
+                        /** @enum {string} */
+                        status: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                        errorCode: string | null;
+                    } | null;
+                    quarters: {
+                        ready: number;
+                        partial: number;
+                        error: number;
+                    };
+                    mappingCoveragePercent: string | null;
+                    analysis: {
+                        queued: number;
+                        running: number;
+                        succeeded: number;
+                        failed: number;
+                        invalidated: number;
+                    };
+                }[];
+            };
+        };
+        AdminInstitutionalFilingListResponse: {
+            data: {
+                id: string;
+                managerId: string;
+                guruId: string | null;
+                guruSlug: string | null;
+                guruName: string | null;
+                cik: string;
+                accession: string;
+                form: string;
+                filingDate: string;
+                /** Format: date-time */
+                filedAt: string | null;
+                periodEnd: string | null;
+                /** @enum {string} */
+                status: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                isAmendment: boolean;
+                amendmentNumber: number | null;
+                amendmentType: string | null;
+                parserVersion: string | null;
+                parsedRowCount: number | null;
+                rejectedRowCount: number;
+                mappingCoverage: string | null;
+                errorCode: string | null;
+                /** Format: uri */
+                sourceUrl: string;
+                /** Format: date-time */
+                discoveredAt: string;
+                /** Format: date-time */
+                ingestedAt: string | null;
+                /** Format: date-time */
+                updatedAt: string;
+            }[];
+            pagination: {
+                limit: number;
+                offset: number;
+                total: number;
+            };
+        };
+        AdminInstitutionalFilingDetailResponse: {
+            data: {
+                filing: {
+                    id: string;
+                    managerId: string;
+                    guruId: string | null;
+                    guruSlug: string | null;
+                    guruName: string | null;
+                    cik: string;
+                    accession: string;
+                    form: string;
+                    filingDate: string;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    periodEnd: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                    isAmendment: boolean;
+                    amendmentNumber: number | null;
+                    amendmentType: string | null;
+                    parserVersion: string | null;
+                    parsedRowCount: number | null;
+                    rejectedRowCount: number;
+                    mappingCoverage: string | null;
+                    errorCode: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    /** Format: date-time */
+                    discoveredAt: string;
+                    /** Format: date-time */
+                    ingestedAt: string | null;
+                    /** Format: date-time */
+                    updatedAt: string;
+                };
+                documents: {
+                    id: string;
+                    basename: string;
+                    documentType: string | null;
+                    description: string | null;
+                    isPrimary: boolean;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    contentLength: string | null;
+                    /** Format: date-time */
+                    downloadedAt: string | null;
+                    artifacts: {
+                        id: string;
+                        artifactRef: string;
+                        contentSha256: string;
+                        contentLength: string;
+                        /** Format: date-time */
+                        fetchedAt: string;
+                        fetchedReason: string;
+                        /** Format: date-time */
+                        retainUntil: string | null;
+                        rawContentRetained: boolean;
+                        supersedesArtifactId: string | null;
+                    }[];
+                }[];
+                parsedRows: {
+                    total: number;
+                    sample: {
+                        id: string;
+                        rowNumber: number;
+                        issuer: string;
+                        titleOfClass: string;
+                        cusip: string | null;
+                        figi: string | null;
+                        quantity: string;
+                        /** @enum {string} */
+                        quantityType: "SH" | "PRN";
+                        /** @enum {string|null} */
+                        putCall: "PUT" | "CALL" | null;
+                        reportedValue: string;
+                        reportedValueUnit: string;
+                        valueUnitSource: string;
+                        warnings: string[];
+                        parserVersion: string;
+                        /** @enum {string|null} */
+                        mappingStatus: "MATCHED" | "AMBIGUOUS" | "UNRESOLVED" | "MANUAL_OVERRIDE" | null;
+                        securityId: string | null;
+                    }[];
+                };
+                effective: {
+                    snapshot: {
+                        id: string;
+                        periodEnd: string;
+                        snapshotHash: string;
+                        replayKey: string;
+                        sourceManifestHash: string;
+                        resolverVersion: string;
+                        holdingCount: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                    } | null;
+                    publication: {
+                        status: string;
+                        active: boolean;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    } | null;
+                    periodState: {
+                        status: string;
+                        reason: string | null;
+                        /** Format: date-time */
+                        checkedAt: string;
+                    } | null;
+                    sources: {
+                        ordinal: number;
+                        filingId: string;
+                        accession: string;
+                        operation: string;
+                        amendmentNumber: number | null;
+                        parserVersion: string;
+                    }[];
+                };
+                amendments: {
+                    id: string;
+                    accession: string;
+                    form: string;
+                    isAmendment: boolean;
+                    amendmentNumber: number | null;
+                    amendmentType: string | null;
+                    /** Format: date-time */
+                    filedAt: string | null;
+                    /** @enum {string} */
+                    status: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                    operation: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                }[];
+                analytics: {
+                    status: string;
+                    analyticsVersion: string;
+                    mappingCoveragePercent: string;
+                    holdingCount: number;
+                    comparisonStatus: string;
+                    /** Format: date-time */
+                    calculatedAt: string;
+                } | null;
+            };
+        };
+        AdminInstitutionalJobResponse: {
+            data: {
+                /** @enum {string} */
+                jobType: "FILING_DISCOVERY" | "FILING_REPROCESS" | "ANALYTICS_REBUILD";
+                jobId: string;
+                /** @enum {string} */
+                status: "QUEUED" | "ALREADY_QUEUED" | "RUNNING";
+                managerId: string;
+                filingId: string | null;
+                periodEnd: string | null;
+                revision: string | null;
+                /** Format: date-time */
+                requestedAt: string;
+                detail: string;
+            };
+        };
+        AdminInstitutionalDiagnosticsResponse: {
+            /** Format: date-time */
+            generatedAt: string;
+            versions: {
+                parser: string;
+                resolver: string;
+                securityMapping: string;
+                analytics: string;
+                consensus: string;
+                analysisContext: string;
+                analysisSchema: string;
+            };
+            scheduler: {
+                /** Format: date-time */
+                nextAllowedAt: string | null;
+                /** Format: date-time */
+                lastRequestAt: string | null;
+                requestCount: string;
+                failureCount: string;
+            };
+            queues: {
+                filingsPending: number;
+                filingsPartial: number;
+                filingsError: number;
+                snapshotRebuildsPending: number;
+                analyticsEventsPending: number;
+                analyticsEventsFailed: number;
+                consensusRebuildsPending: number;
+                mappingRefreshJobsPending: number;
+                unresolvedMappings: number;
+                ambiguousMappings: number;
+                partialQuarters: number;
+                errorQuarters: number;
+                analysisQueued: number;
+                analysisRunning: number;
+                analysisFailed: number;
+                analysisInvalidated: number;
+            };
+            managers: {
+                cik: string;
+                slug: string | null;
+                active: boolean;
+                /** @enum {string|null} */
+                discoveryStatus: "PENDING" | "RUNNING" | "READY" | "STALE" | "ERROR" | null;
+                /** Format: date-time */
+                lastCheckAt: string | null;
+                /** Format: date-time */
+                lastSuccessAt: string | null;
+                lastErrorCode: string | null;
+                filings: {
+                    total: number;
+                    partial: number;
+                    error: number;
+                };
+                quarters: {
+                    ready: number;
+                    partial: number;
+                    error: number;
+                };
+                analysis: {
+                    queued: number;
+                    running: number;
+                    failed: number;
+                    invalidated: number;
+                };
+            }[];
+            redactions: string[];
+        };
+        GuruNotificationPreferencesResponse: {
+            data: {
+                preferences: {
+                    newFiling: boolean;
+                    newPosition: boolean;
+                    exitedPosition: boolean;
+                    strongAdd: boolean;
+                    strongReduce: boolean;
+                    newStockHolder: boolean;
+                    consensusChange: boolean;
+                    minWeightPercent: string | null;
+                    minQuantityChangePercent: string | null;
+                };
+                followedGurus: {
+                    slug: string;
+                    name: string;
+                }[];
+                watchedStocks: {
+                    securityId: string;
+                    symbol: string | null;
+                    company: string;
+                }[];
+            };
+        };
+        GuruNotificationListResponse: {
+            data: {
+                id: string;
+                /** @enum {string} */
+                eventType: "NEW_FILING" | "NEW_POSITION" | "EXITED_POSITION" | "STRONG_ADD" | "STRONG_REDUCE" | "NEW_STOCK_HOLDER" | "CONSENSUS_CHANGE";
+                guru: {
+                    slug: string;
+                    name: string;
+                } | null;
+                symbol: string | null;
+                company: string | null;
+                periodEnd: string | null;
+                detail: {
+                    action: string | null;
+                    quantityChangePercent: string | null;
+                    weightPercent: string | null;
+                    holderCount: number | null;
+                    previousHolderCount: number | null;
+                    /** @enum {string|null} */
+                    classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                    /** @enum {string|null} */
+                    previousClassification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                    accession: string | null;
+                    /** Format: uri */
+                    sourceUrl: string | null;
+                };
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                readAt: string | null;
+            }[];
+            unreadCount: number;
+        };
+        GuruNotificationReadResponse: {
+            data: {
+                updated: number;
+                unreadCount: number;
+            };
+        };
+        GuruStockWatchResponse: {
+            data: {
+                watching: boolean;
+                symbol: string;
+                securityId: string;
+            };
+        };
+        DiaryGuruSnapshotResponse: {
+            data: {
+                id: string;
+                diaryId: string;
+                symbol: string;
+                periodEnd: string;
+                holderCount: number;
+                contextVersion: string;
+                consensusVersion: string | null;
+                /** Format: date-time */
+                capturedAt: string;
+                context: {
+                    contextVersion: string;
+                    /** @enum {string} */
+                    source: "prepared-institutional-analytics";
+                    symbol: string;
+                    company: string;
+                    periodEnd: string;
+                    consensus: {
+                        holderCount: number;
+                        previousHolderCount: number;
+                        newBuyerCount: number;
+                        addCount: number;
+                        reduceCount: number;
+                        exitCount: number;
+                        netBuyerCount: number;
+                        averagePortfolioWeightPercent: string | null;
+                        aggregateWeightPercent: string;
+                        /** @enum {string|null} */
+                        classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                        /** @enum {string} */
+                        quarterTrend: "RISING" | "STABLE" | "FALLING" | "UNAVAILABLE";
+                        eligibleManagerCount: number;
+                        readyManagerCount: number;
+                    } | null;
+                    holders: {
+                        guruSlug: string;
+                        guruName: string;
+                        action: string | null;
+                        weightPercent: string | null;
+                        quantity: string | null;
+                        rank: number | null;
+                    }[];
+                    sectors: {
+                        /** @enum {string} */
+                        dimension: "SECTOR" | "INDUSTRY" | "THEME";
+                        name: string;
+                        /** @enum {string|null} */
+                        direction: "INCREASING" | "STABLE" | "REDUCING" | null;
+                        aggregateWeightPercent: string;
+                        aggregateWeightChangePoints: string | null;
+                    }[];
+                };
+            };
+            reused: boolean;
+        };
+        DiaryGuruSnapshotListResponse: {
+            data: {
+                id: string;
+                diaryId: string;
+                symbol: string;
+                periodEnd: string;
+                holderCount: number;
+                contextVersion: string;
+                consensusVersion: string | null;
+                /** Format: date-time */
+                capturedAt: string;
+                context: {
+                    contextVersion: string;
+                    /** @enum {string} */
+                    source: "prepared-institutional-analytics";
+                    symbol: string;
+                    company: string;
+                    periodEnd: string;
+                    consensus: {
+                        holderCount: number;
+                        previousHolderCount: number;
+                        newBuyerCount: number;
+                        addCount: number;
+                        reduceCount: number;
+                        exitCount: number;
+                        netBuyerCount: number;
+                        averagePortfolioWeightPercent: string | null;
+                        aggregateWeightPercent: string;
+                        /** @enum {string|null} */
+                        classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                        /** @enum {string} */
+                        quarterTrend: "RISING" | "STABLE" | "FALLING" | "UNAVAILABLE";
+                        eligibleManagerCount: number;
+                        readyManagerCount: number;
+                    } | null;
+                    holders: {
+                        guruSlug: string;
+                        guruName: string;
+                        action: string | null;
+                        weightPercent: string | null;
+                        quantity: string | null;
+                        rank: number | null;
+                    }[];
+                    sectors: {
+                        /** @enum {string} */
+                        dimension: "SECTOR" | "INDUSTRY" | "THEME";
+                        name: string;
+                        /** @enum {string|null} */
+                        direction: "INCREASING" | "STABLE" | "REDUCING" | null;
+                        aggregateWeightPercent: string;
+                        aggregateWeightChangePoints: string | null;
+                    }[];
+                };
+            }[];
+        };
+        StockGuruResearchResponse: {
+            data: {
+                summary: {
+                    symbol: string;
+                    /** @enum {string} */
+                    mappingStatus: "MATCHED" | "AMBIGUOUS" | "UNRESOLVED";
+                    securityId: string | null;
+                    company: string | null;
+                    sector: string | null;
+                    industry: string | null;
+                    periodEnd: string | null;
+                    /** @enum {string} */
+                    dataStatus: "READY" | "PENDING" | "UNAVAILABLE";
+                    /** Format: date-time */
+                    calculatedAt: string | null;
+                    contextHash: string | null;
+                    activeGuruCount: number | null;
+                    readyGuruCount: number | null;
+                    quarterCoveragePercent: string | null;
+                    mappingCoveragePercent: string | null;
+                    currentHolderCount: number | null;
+                    averagePortfolioWeightPercent: string | null;
+                    weightBreadthPercent: string | null;
+                    newBuyerCount: number | null;
+                    addCount: number | null;
+                    reduceCount: number | null;
+                    exitCount: number | null;
+                    netBuyerCount: number | null;
+                    /** @enum {string|null} */
+                    classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                    /** @enum {string} */
+                    source: "SEC Form 13F";
+                };
+                currentHolders: {
+                    profile: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        description: string | null;
+                        investmentPhilosophy: string | null;
+                        styleTags: string[];
+                        managerType: string | null;
+                        /** Format: uri */
+                        website: string | null;
+                        country: string | null;
+                        /** Format: uri */
+                        imageUrl: string | null;
+                        featured: boolean;
+                    };
+                    /** @enum {string|null} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                    quantity: string | null;
+                    quantityChangePercent: string | null;
+                    weightPercent: string | null;
+                    previousWeightPercent: string | null;
+                    source: {
+                        accession: string | null;
+                        /** @enum {string|null} */
+                        form: "13F-HR" | "13F-HR/A" | null;
+                        /** Format: date-time */
+                        filedAt: string | null;
+                        /** Format: uri */
+                        sourceUrl: string | null;
+                    };
+                }[];
+                latestMoves: {
+                    profile: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        description: string | null;
+                        investmentPhilosophy: string | null;
+                        styleTags: string[];
+                        managerType: string | null;
+                        /** Format: uri */
+                        website: string | null;
+                        country: string | null;
+                        /** Format: uri */
+                        imageUrl: string | null;
+                        featured: boolean;
+                    };
+                    /** @enum {string|null} */
+                    action: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT" | null;
+                    quantity: string | null;
+                    quantityChangePercent: string | null;
+                    weightPercent: string | null;
+                    previousWeightPercent: string | null;
+                    source: {
+                        accession: string | null;
+                        /** @enum {string|null} */
+                        form: "13F-HR" | "13F-HR/A" | null;
+                        /** Format: date-time */
+                        filedAt: string | null;
+                        /** Format: uri */
+                        sourceUrl: string | null;
+                    };
+                }[];
+                history: {
+                    periodEnd: string;
+                    /** @enum {string} */
+                    status: "READY" | "PENDING" | "UNAVAILABLE";
+                    activeGuruCount: number | null;
+                    readyGuruCount: number | null;
+                    quarterCoveragePercent: string | null;
+                    mappingCoveragePercent: string | null;
+                    holderCount: number | null;
+                    weightBreadthPercent: string | null;
+                    averagePortfolioWeightPercent: string | null;
+                    netBuyerCount: number | null;
+                    /** @enum {string|null} */
+                    classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                }[];
+            };
+        };
+        SharedPromptListResponse: {
+            data: {
+                systemDefault: {
+                    /** @enum {string} */
+                    key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+                    systemVersion: string;
+                    template: string;
+                    guardrails: string;
+                    allowedVariables: string[];
+                    outputSchema: {
+                        [key: string]: unknown;
+                    };
+                    modelSettings: {
+                        /** @enum {string} */
+                        thinking: "disabled";
+                        maxOutputTokens: number;
+                    };
+                    sampleInput: {
+                        [key: string]: unknown;
+                    };
+                };
+                revision: number;
+                activeVersionId: string | null;
+                /** @enum {string} */
+                effectiveSource: "system-default" | "override";
+                versions: {
+                    id: string;
+                    /** @enum {string} */
+                    key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+                    revision: number;
+                    name: string;
+                    template: string;
+                    legacyPromptId: string | null;
+                    /** Format: date-time */
+                    archivedAt: string | null;
+                    createdBy: string | null;
+                    /** Format: date-time */
+                    createdAt: string;
+                }[];
+            }[];
+        };
+        SharedPromptVersionResponse: {
+            id: string;
+            /** @enum {string} */
+            key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            revision: number;
+            name: string;
+            template: string;
+            legacyPromptId: string | null;
+            /** Format: date-time */
+            archivedAt: string | null;
+            createdBy: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        SharedPromptPlaygroundResponse: {
+            /** @enum {string} */
+            key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            systemVersion: string;
+            /** @enum {string} */
+            source: "system-default" | "override";
+            versionId: string | null;
+            sampleInput: {
+                [key: string]: unknown;
+            };
+            variables: {
+                [key: string]: string;
+            };
+            renderedPrompts: {
+                /** @enum {string} */
+                role: "system" | "user";
+                content: string;
+            }[];
+            outputSchema: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            validation: "not-run" | "passed";
+            provider: string | null;
+            model: string | null;
+            output?: unknown;
+            usage: {
+                /** @enum {string} */
+                scope: "test";
+                attemptId: string | null;
+                inputTokens: number | null;
+                outputTokens: number | null;
+                latencyMs: number | null;
+            };
+        };
+        SharedPromptAuditResponse: {
+            data: {
+                id: string;
+                actorUserId: string | null;
+                action: string;
+                versionId: string | null;
+                summary: string;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+        };
+        AdminInstitutionalSecurityResponse: {
+            data: {
+                id: string;
+                issuer: string;
+                titleOfClass: string;
+                exchange: string | null;
+                securityType: string;
+                sector: string | null;
+                industry: string | null;
+                /** @enum {string} */
+                status: "ACTIVE" | "DELISTED";
+                /** Format: uri */
+                sourceUrl: string;
+                sourceVerifiedBy: string;
+                /** Format: date-time */
+                sourceVerifiedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+                identifiers: {
+                    id: string;
+                    supersedesIdentifierId: string | null;
+                    /** @enum {string} */
+                    type: "CUSIP" | "FIGI" | "TICKER";
+                    value: string;
+                    validFrom: string;
+                    validTo: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    sourceVerifiedBy: string;
+                    /** Format: date-time */
+                    sourceVerifiedAt: string;
+                }[];
+            };
+        };
+        AdminInstitutionalSecurityCreateResponse: {
+            data: {
+                id: string;
+                issuer: string;
+                titleOfClass: string;
+                exchange: string | null;
+                securityType: string;
+                sector: string | null;
+                industry: string | null;
+                /** @enum {string} */
+                status: "ACTIVE" | "DELISTED";
+                /** Format: uri */
+                sourceUrl: string;
+                sourceVerifiedBy: string;
+                /** Format: date-time */
+                sourceVerifiedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+                identifiers: {
+                    id: string;
+                    supersedesIdentifierId: string | null;
+                    /** @enum {string} */
+                    type: "CUSIP" | "FIGI" | "TICKER";
+                    value: string;
+                    validFrom: string;
+                    validTo: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    sourceVerifiedBy: string;
+                    /** Format: date-time */
+                    sourceVerifiedAt: string;
+                }[];
+            };
+            mappingRefreshJob: {
+                id: string;
+                securityId: string;
+                /** @enum {string} */
+                status: "PENDING" | "RUNNING" | "COMPLETE";
+                lastFilingId: string | null;
+                processedFilingCount: number;
+                lastBatchProcessed: number;
+                lastError: string | null;
+                /** Format: date-time */
+                updatedAt: string;
+                /** Format: date-time */
+                completedAt: string | null;
+            };
+        };
+        AdminInstitutionalSecurityListResponse: {
+            data: {
+                id: string;
+                issuer: string;
+                titleOfClass: string;
+                exchange: string | null;
+                securityType: string;
+                sector: string | null;
+                industry: string | null;
+                /** @enum {string} */
+                status: "ACTIVE" | "DELISTED";
+                /** Format: uri */
+                sourceUrl: string;
+                sourceVerifiedBy: string;
+                /** Format: date-time */
+                sourceVerifiedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+                identifiers: {
+                    id: string;
+                    supersedesIdentifierId: string | null;
+                    /** @enum {string} */
+                    type: "CUSIP" | "FIGI" | "TICKER";
+                    value: string;
+                    validFrom: string;
+                    validTo: string | null;
+                    /** Format: uri */
+                    sourceUrl: string;
+                    sourceVerifiedBy: string;
+                    /** Format: date-time */
+                    sourceVerifiedAt: string;
+                }[];
+            }[];
+            pagination: {
+                limit: number;
+                offset: number;
+                total: number;
+            };
+        };
+        AdminInstitutionalMappingListResponse: {
+            data: {
+                holding: {
+                    id: string;
+                    filingId: string;
+                    accession: string;
+                    periodEnd: string | null;
+                    issuer: string;
+                    titleOfClass: string;
+                    cusip: string | null;
+                    figi: string | null;
+                    quantity: string;
+                    /** @enum {string} */
+                    quantityType: "SH" | "PRN";
+                    reportedValue: string;
+                    /** @enum {string|null} */
+                    putCall: "PUT" | "CALL" | null;
+                };
+                resolution: {
+                    /** @enum {string} */
+                    status: "MATCHED" | "AMBIGUOUS" | "UNRESOLVED" | "MANUAL_OVERRIDE";
+                    securityId: string | null;
+                    reason: string;
+                    candidateSecurityIds: string[];
+                    algorithmVersion: string;
+                    /** Format: date-time */
+                    resolvedAt: string;
+                };
+                security: {
+                    id: string;
+                    issuer: string;
+                    titleOfClass: string;
+                    exchange: string | null;
+                    securityType: string;
+                    sector: string | null;
+                    industry: string | null;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "DELISTED";
+                    /** Format: uri */
+                    sourceUrl: string;
+                    sourceVerifiedBy: string;
+                    /** Format: date-time */
+                    sourceVerifiedAt: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                    identifiers: {
+                        id: string;
+                        supersedesIdentifierId: string | null;
+                        /** @enum {string} */
+                        type: "CUSIP" | "FIGI" | "TICKER";
+                        value: string;
+                        validFrom: string;
+                        validTo: string | null;
+                        /** Format: uri */
+                        sourceUrl: string;
+                        sourceVerifiedBy: string;
+                        /** Format: date-time */
+                        sourceVerifiedAt: string;
+                    }[];
+                } | null;
+                candidates: {
+                    id: string;
+                    issuer: string;
+                    titleOfClass: string;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "DELISTED";
+                    identifiers: {
+                        id: string;
+                        supersedesIdentifierId: string | null;
+                        /** @enum {string} */
+                        type: "CUSIP" | "FIGI" | "TICKER";
+                        value: string;
+                        validFrom: string;
+                        validTo: string | null;
+                        /** Format: uri */
+                        sourceUrl: string;
+                        sourceVerifiedBy: string;
+                        /** Format: date-time */
+                        sourceVerifiedAt: string;
+                    }[];
+                }[];
+                override: {
+                    id: string;
+                    version: number;
+                    actorUserId: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    reason: string;
+                    supersedesOverrideId: string | null;
+                } | null;
+                /** @description Append-only mapping overrides, ordered by version descending (newest first). */
+                overrideHistory: {
+                    id: string;
+                    version: number;
+                    actorUserId: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    reason: string;
+                    supersedesOverrideId: string | null;
+                }[];
+            }[];
+            pagination: {
+                limit: number;
+                offset: number;
+                total: number;
+            };
+            filing: {
+                id: string;
+                accession: string;
+                periodEnd: string | null;
+                status: string;
+                mappingCoverage: string | null;
+                parsedRowCount: number | null;
+            } | null;
+        };
+        AdminInstitutionalMappingOverrideResponse: {
+            data: {
+                holdingId: string;
+                /** @enum {string} */
+                status: "MANUAL_OVERRIDE";
+                security: {
+                    id: string;
+                    issuer: string;
+                    titleOfClass: string;
+                    exchange: string | null;
+                    securityType: string;
+                    sector: string | null;
+                    industry: string | null;
+                    /** @enum {string} */
+                    status: "ACTIVE" | "DELISTED";
+                    /** Format: uri */
+                    sourceUrl: string;
+                    sourceVerifiedBy: string;
+                    /** Format: date-time */
+                    sourceVerifiedAt: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    updatedAt: string;
+                    identifiers: {
+                        id: string;
+                        supersedesIdentifierId: string | null;
+                        /** @enum {string} */
+                        type: "CUSIP" | "FIGI" | "TICKER";
+                        value: string;
+                        validFrom: string;
+                        validTo: string | null;
+                        /** Format: uri */
+                        sourceUrl: string;
+                        sourceVerifiedBy: string;
+                        /** Format: date-time */
+                        sourceVerifiedAt: string;
+                    }[];
+                };
+                override: {
+                    id: string;
+                    version: number;
+                    actorUserId: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    reason: string;
+                    supersedesOverrideId: string | null;
+                };
+            };
+        };
+        AdminInstitutionalIdentityEventResponse: {
+            data: {
+                id: string;
+                /** @enum {string} */
+                kind: "TICKER_CHANGE" | "MERGER" | "SPIN_OFF" | "DELISTING" | "STOCK_SPLIT" | "SHARE_CLASS_CONTINUITY";
+                fromSecurityId: string;
+                toSecurityId: string | null;
+                effectiveOn: string;
+                newTicker: string | null;
+                newSharesPerOldShare: string | null;
+                comparable: boolean;
+                reason: string;
+                /** Format: uri */
+                evidenceUrl: string;
+                actorUserId: string;
+                /** Format: date-time */
+                verifiedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                supersedesEventId: string | null;
+            };
+        };
+        AdminInstitutionalIdentityEventListResponse: {
+            data: {
+                id: string;
+                /** @enum {string} */
+                kind: "TICKER_CHANGE" | "MERGER" | "SPIN_OFF" | "DELISTING" | "STOCK_SPLIT" | "SHARE_CLASS_CONTINUITY";
+                fromSecurityId: string;
+                toSecurityId: string | null;
+                effectiveOn: string;
+                newTicker: string | null;
+                newSharesPerOldShare: string | null;
+                comparable: boolean;
+                reason: string;
+                /** Format: uri */
+                evidenceUrl: string;
+                actorUserId: string;
+                /** Format: date-time */
+                verifiedAt: string;
+                /** Format: date-time */
+                createdAt: string;
+                supersedesEventId: string | null;
+            }[];
+            pagination: {
+                limit: number;
+                offset: number;
+                total: number;
+            };
+        };
+        AdminInstitutionalMappingRefreshJobResponse: {
+            data: {
+                id: string;
+                securityId: string;
+                /** @enum {string} */
+                status: "PENDING" | "RUNNING" | "COMPLETE";
+                lastFilingId: string | null;
+                processedFilingCount: number;
+                lastBatchProcessed: number;
+                lastError: string | null;
+                /** Format: date-time */
+                updatedAt: string;
+                /** Format: date-time */
+                completedAt: string | null;
             };
         };
         AuthCapabilities: {
@@ -15356,6 +18759,3848 @@ export interface operations {
             };
             /** @description HTTP 403 error */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGurusList: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string;
+                active?: "true" | "false";
+                featured?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated Guru profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGuruCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Guru editorial profile and positive CIK */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    profile: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        /** @default null */
+                        description?: string | null;
+                        /** @default null */
+                        investmentPhilosophy?: string | null;
+                        /** @default [] */
+                        styleTags?: string[];
+                        /** @default null */
+                        managerType?: string | null;
+                        /**
+                         * Format: uri
+                         * @default null
+                         */
+                        website?: string | null;
+                        /** @default null */
+                        country?: string | null;
+                        /**
+                         * Format: uri
+                         * @default null
+                         */
+                        imageUrl?: string | null;
+                        /** @default null */
+                        securityNotes?: string | null;
+                        /** @default false */
+                        featured?: boolean;
+                        /** @default true */
+                        active?: boolean;
+                        /** @default 0 */
+                        directoryOrder?: number;
+                    };
+                    manager: {
+                        cik: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Created Guru profile */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGuruGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru editorial profile and manager identity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGuruUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Replacement profile and manager CIK */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    profile: {
+                        name: string;
+                        managerName: string;
+                        slug: string;
+                        /** @default null */
+                        description?: string | null;
+                        /** @default null */
+                        investmentPhilosophy?: string | null;
+                        /** @default [] */
+                        styleTags?: string[];
+                        /** @default null */
+                        managerType?: string | null;
+                        /**
+                         * Format: uri
+                         * @default null
+                         */
+                        website?: string | null;
+                        /** @default null */
+                        country?: string | null;
+                        /**
+                         * Format: uri
+                         * @default null
+                         */
+                        imageUrl?: string | null;
+                        /** @default null */
+                        securityNotes?: string | null;
+                        /** @default false */
+                        featured?: boolean;
+                        /** @default true */
+                        active?: boolean;
+                        /** @default 0 */
+                        directoryOrder?: number;
+                    };
+                    manager: {
+                        cik: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Updated Guru profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruDirectory: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string;
+                style?: string;
+                managerType?: string;
+                sector?: string;
+                featured?: "true" | "false";
+                sort?: "custom" | "concentration" | "turnover" | "activity" | "latest_filing" | "followers" | "az";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered and sorted Guru directory */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruDirectoryResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru overview and prepared portfolio context */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruOverviewResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruPortfolio: {
+        parameters: {
+            query?: {
+                period?: string;
+                search?: string;
+                sector?: string;
+                securityType?: string;
+                quantityType?: "SH" | "PRN";
+                action?: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                newOnly?: "true" | "false";
+                increasedOnly?: "true" | "false";
+                reducedOnly?: "true" | "false";
+                sort?: "rank" | "weight" | "value" | "change";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prepared Guru quarter holdings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruPortfolioResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruChanges: {
+        parameters: {
+            query?: {
+                period?: string;
+                search?: string;
+                sector?: string;
+                securityType?: string;
+                quantityType?: "SH" | "PRN";
+                action?: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                newOnly?: "true" | "false";
+                increasedOnly?: "true" | "false";
+                reducedOnly?: "true" | "false";
+                sort?: "rank" | "weight" | "value" | "change";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categorized quarter changes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruChangesResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prepared portfolio history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruHistoryResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruPositionHistory: {
+        parameters: {
+            query: {
+                positionKey: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru position history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruPositionHistoryResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruFilings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru filing records and sources */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruFilingsResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruActivity: {
+        parameters: {
+            query?: {
+                guru?: string;
+                symbol?: string;
+                sector?: string;
+                period?: string;
+                action?: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                minWeight?: string;
+                minChangePercent?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filtered Guru activity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruActivityResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruConsensus: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                period?: string;
+                search?: string;
+                sector?: string;
+                classification?: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION";
+                sort?: "net-buyers" | "most-held" | "most-added" | "most-reduced" | "largest-weight" | "rising" | "falling";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prepared Guru consensus rankings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            period: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            };
+                            periods: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            }[];
+                            items: {
+                                securityId: string;
+                                ticker: string | null;
+                                company: string;
+                                sector: string | null;
+                                industry: string | null;
+                                currentHolderCount: number;
+                                comparableCurrentHolderCount: number;
+                                previousHolderCount: number;
+                                holderCountChange: number;
+                                newBuyerCount: number;
+                                addCount: number;
+                                unchangedCount: number;
+                                reduceCount: number;
+                                exitCount: number;
+                                netBuyerCount: number;
+                                actionManagerCount: number;
+                                quantityChangeSampleCount: number;
+                                averageQuantityChangePercent: string | null;
+                                medianQuantityChangePercent: string | null;
+                                aggregateWeightPercent: string;
+                                averagePortfolioWeightPercent: string | null;
+                                weightBreadthPercent: string;
+                                /** @enum {string|null} */
+                                classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                                /** @enum {string} */
+                                quarterTrend: "RISING" | "STABLE" | "FALLING" | "UNAVAILABLE";
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruCompare: {
+        parameters: {
+            query: {
+                slugs: string;
+                period?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quarter-aware Guru comparison */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruComparisonResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    stockGuruResearch: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path: {
+                symbol: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stock-level Guru holders, activity and history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockGuruResearchResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruStocks: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                period?: string;
+                search?: string;
+                sector?: string;
+                ranking?: "most-held" | "most-added" | "most-reduced" | "most-new" | "most-exited" | "largest-weight" | "fastest-rising" | "fastest-falling";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prepared Guru stock rankings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            period: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            };
+                            periods: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            }[];
+                            /** @enum {string} */
+                            ranking: "most-held" | "most-added" | "most-reduced" | "most-new" | "most-exited" | "largest-weight" | "fastest-rising" | "fastest-falling";
+                            items: {
+                                securityId: string;
+                                ticker: string | null;
+                                company: string;
+                                sector: string | null;
+                                industry: string | null;
+                                currentHolderCount: number;
+                                comparableCurrentHolderCount: number;
+                                previousHolderCount: number;
+                                holderCountChange: number;
+                                newBuyerCount: number;
+                                addCount: number;
+                                unchangedCount: number;
+                                reduceCount: number;
+                                exitCount: number;
+                                netBuyerCount: number;
+                                actionManagerCount: number;
+                                quantityChangeSampleCount: number;
+                                averageQuantityChangePercent: string | null;
+                                medianQuantityChangePercent: string | null;
+                                aggregateWeightPercent: string;
+                                averagePortfolioWeightPercent: string | null;
+                                weightBreadthPercent: string;
+                                /** @enum {string|null} */
+                                classification: "ACCUMULATION" | "NEUTRAL" | "DISTRIBUTION" | null;
+                                /** @enum {string} */
+                                quarterTrend: "RISING" | "STABLE" | "FALLING" | "UNAVAILABLE";
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruStocksExport: {
+        parameters: {
+            query?: {
+                period?: string;
+                search?: string;
+                sector?: string;
+                ranking?: "most-held" | "most-added" | "most-reduced" | "most-new" | "most-exited" | "largest-weight" | "fastest-rising" | "fastest-falling";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV consensus stock export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruSectors: {
+        parameters: {
+            query?: {
+                period?: string;
+                dimension?: "SECTOR" | "INDUSTRY" | "THEME";
+                search?: string;
+                direction?: "INCREASING" | "STABLE" | "REDUCING";
+                sort?: "direction" | "buyers" | "weight-change" | "aggregate-weight" | "holders";
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prepared Guru sector intelligence */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            period: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            };
+                            periods: {
+                                periodEnd: string;
+                                activeManagerCount: number;
+                                readyManagerCount: number;
+                                partialManagerCount: number;
+                                errorManagerCount: number;
+                                supersededManagerCount: number;
+                                pendingManagerCount: number;
+                                noFilingManagerCount: number;
+                                comparableManagerCount: number;
+                                previousReadyManagerCount: number;
+                                sourceRowCount: number;
+                                mappedRowCount: number;
+                                mappingCoveragePercent: string | null;
+                                quarterCoveragePercent: string | null;
+                                /** @enum {string} */
+                                source: "SEC Form 13F";
+                            }[];
+                            /** @enum {string} */
+                            dimension: "SECTOR" | "INDUSTRY" | "THEME";
+                            items: {
+                                /** @enum {string} */
+                                dimension: "SECTOR" | "INDUSTRY" | "THEME";
+                                dimensionKey: string;
+                                name: string;
+                                currentHolderCount: number;
+                                buyerCount: number;
+                                sellerCount: number;
+                                newPositionCount: number;
+                                exitCount: number;
+                                addCount: number;
+                                reduceCount: number;
+                                allocationManagerCount: number;
+                                aggregateWeightPercent: string;
+                                comparableCurrentAggregateWeightPercent: string;
+                                previousAggregateWeightPercent: string | null;
+                                aggregateWeightChangePoints: string | null;
+                                holderBreadthPercent: string;
+                                allocationCoveragePercent: string;
+                                /** @enum {string|null} */
+                                direction: "INCREASING" | "STABLE" | "REDUCING" | null;
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruPortfolioExport: {
+        parameters: {
+            query?: {
+                period?: string;
+                search?: string;
+                sector?: string;
+                securityType?: string;
+                quantityType?: "SH" | "PRN";
+                action?: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                newOnly?: "true" | "false";
+                increasedOnly?: "true" | "false";
+                reducedOnly?: "true" | "false";
+                sort?: "rank" | "weight" | "value" | "change";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV holdings export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruChangesExport: {
+        parameters: {
+            query?: {
+                period?: string;
+                search?: string;
+                sector?: string;
+                securityType?: string;
+                quantityType?: "SH" | "PRN";
+                action?: "NEW" | "STRONG_ADD" | "ADD" | "UNCHANGED" | "REDUCE" | "STRONG_REDUCE" | "EXIT";
+                newOnly?: "true" | "false";
+                increasedOnly?: "true" | "false";
+                reducedOnly?: "true" | "false";
+                sort?: "rank" | "weight" | "value" | "change";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV quarter changes export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruPositionHistoryExport: {
+        parameters: {
+            query: {
+                positionKey: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV position history export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruAnalysis: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru quarter facts, analysis state and generation provenance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruAnalysisResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGuruAnalysisList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guru analysis runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruAnalysisListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminGuruAnalysisRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Quarter and generation mode */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    periodEnd: string;
+                    /** @enum {string} */
+                    mode: "generate" | "regenerate";
+                };
+            };
+        };
+        responses: {
+            /** @description Reused existing analysis */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruAnalysisResponse"];
+                };
+            };
+            /** @description Queued analysis run */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGuruAnalysisResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sharedPromptRegistryList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prompt defaults and override versions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedPromptListResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sharedPromptVersionSave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            };
+            cookie?: never;
+        };
+        /** @description Versioned prompt template */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    name: string;
+                    template: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved prompt version */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedPromptVersionResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sharedPromptVersionAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            };
+            cookie?: never;
+        };
+        /** @description Prompt lifecycle action */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "create-from-default" | "duplicate" | "activate" | "rollback" | "archive" | "disable";
+                    expectedRevision: number;
+                    versionId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated active version or empty override state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+                        revision: number;
+                        name: string;
+                        template: string;
+                        legacyPromptId: string | null;
+                        /** Format: date-time */
+                        archivedAt: string | null;
+                        createdBy: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                    } | null;
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sharedPromptAuditList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prompt lifecycle audit history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedPromptAuditResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sharedPromptPlayground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "ai-report.weekly" | "ai-report.monthly" | "guru.analysis";
+            };
+            cookie?: never;
+        };
+        /** @description Prompt preview or test */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    versionId?: string;
+                    /** @enum {string} */
+                    mode: "preview" | "test";
+                };
+            };
+        };
+        responses: {
+            /** @description Rendered prompts and validation/test output */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedPromptPlaygroundResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 429 error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 502 error */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 503 error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruFollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Follow state and aggregate follower count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruFollowResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruUnfollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Follow state and aggregate follower count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruFollowResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruNotificationPreferencesRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notification settings and private watch lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruNotificationPreferencesResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruNotificationPreferencesUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Notification settings */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    newFiling: boolean;
+                    newPosition: boolean;
+                    exitedPosition: boolean;
+                    strongAdd: boolean;
+                    strongReduce: boolean;
+                    newStockHolder: boolean;
+                    consensusChange: boolean;
+                    /** @default null */
+                    minWeightPercent?: string | null;
+                    /** @default null */
+                    minQuantityChangePercent?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated notification settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruNotificationPreferencesResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruNotificationList: {
+        parameters: {
+            query?: {
+                limit?: number;
+                unreadOnly?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivered notifications and unread count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruNotificationListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruNotificationMarkRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Notification identifiers, or an empty object for all */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    ids?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Updated and remaining unread counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruNotificationReadResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruStockWatchRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                symbol: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private watch state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruStockWatchResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruStockWatchAdd: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                symbol: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private watch state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruStockWatchResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    guruStockWatchRemove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                symbol: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private watch state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuruStockWatchResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diaryGuruSnapshotList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attached decision snapshots */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryGuruSnapshotListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    diaryGuruSnapshotCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Stock symbol and optional reported quarter */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    symbol: string;
+                    periodEnd?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Existing snapshot for this stock and quarter */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryGuruSnapshotResponse"];
+                };
+            };
+            /** @description Captured snapshot */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiaryGuruSnapshotResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Institutional operations overview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalOverviewResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalFilingList: {
+        parameters: {
+            query?: {
+                guruId?: string;
+                status?: "PENDING" | "DOWNLOADED" | "PARSED" | "PARTIAL" | "READY" | "ERROR" | "SUPERSEDED";
+                periodEnd?: string;
+                search?: string;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filings and ingestion state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalFilingListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalFilingDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Filing lineage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalFilingDetailResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Already queued or running */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description Discovery queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalReprocess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Already queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description Reprocess queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalRebuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Reported quarter end */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    periodEnd: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Rebuild already pending */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description Rebuild queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Diagnostics export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalDiagnosticsResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalSecuritiesList: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Securities and dated identifiers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalSecurityListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalSecurityCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Security master record and dated identifiers */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    issuer: string;
+                    titleOfClass: string;
+                    /** @default null */
+                    exchange?: string | null;
+                    securityType: string;
+                    /** @default null */
+                    sector?: string | null;
+                    /** @default null */
+                    industry?: string | null;
+                    /**
+                     * @default ACTIVE
+                     * @enum {string}
+                     */
+                    status?: "ACTIVE";
+                    /** Format: uri */
+                    sourceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    identifiers: {
+                        /** @enum {string} */
+                        type: "CUSIP" | "FIGI" | "TICKER";
+                        value: string;
+                        validFrom: string;
+                        /** @default null */
+                        validTo?: string | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created security and mapping refresh job state */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalSecurityCreateResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalSecurityGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Security master record and complete dated identifier history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalSecurityResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalMappingsList: {
+        parameters: {
+            query?: {
+                status?: "MATCHED" | "AMBIGUOUS" | "UNRESOLVED" | "MANUAL_OVERRIDE";
+                filingId?: string;
+                search?: string;
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holding resolutions, candidates, override audit and optional filing coverage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalMappingListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalMappingOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holdingId: string;
+            };
+            cookie?: never;
+        };
+        /** @description Security identity and manually verified source */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    securityId: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved manual mapping and immutable override audit */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalMappingOverrideResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalMappingRefreshJobRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current refresh job state and batch size */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalMappingRefreshJobResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalIdentityEventsList: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Identity events for the security */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalIdentityEventListResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 500 error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    adminInstitutionalIdentityEventCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Corporate-action event with manually verified issuer or SEC source */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "TICKER_CHANGE";
+                    newTicker: string;
+                } | {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "MERGER";
+                    relatedSecurityId: string;
+                } | {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "SPIN_OFF";
+                    relatedSecurityId: string;
+                } | {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "DELISTING";
+                } | {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "STOCK_SPLIT";
+                    newSharesPerOldShare: string;
+                } | {
+                    effectiveOn: string;
+                    reason: string;
+                    /** Format: uri */
+                    evidenceUrl: string;
+                    /** @enum {boolean} */
+                    confirmPrimarySource: true;
+                    supersedesEventId?: string | null;
+                    /** @enum {string} */
+                    kind: "SHARE_CLASS_CONTINUITY";
+                    relatedSecurityId: string;
+                    /** @enum {boolean} */
+                    comparable: true;
+                    newSharesPerOldShare: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved immutable identity event */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInstitutionalIdentityEventResponse"];
+                };
+            };
+            /** @description HTTP 400 error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 401 error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 403 error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 404 error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description HTTP 409 error */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
