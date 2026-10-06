@@ -44,15 +44,19 @@ export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: numb
 }
 
 /**
- * "Trade basic" monogram: white geometric T/b on the action-colour tile.
- * The same geometry feeds favicon.svg and the PWA icons in public/, so the
- * brand stays identical across app, tab and installed-app surfaces.
+ * "Trade basic" mark: a T-account on the action-colour tile — the ledger's top
+ * rule, the divider descending from it, and one posting written in each column.
+ * It is the brand initial and the oldest form of what this product is, so the
+ * mark carries the same meaning as "The Ledger" north star in DESIGN.md.
+ *
+ * Four strokes and no counters, which is what keeps it legible at the 16px
+ * favicon size where the previous T/b monogram's bowl filled in. The same
+ * geometry feeds favicon.svg and the PWA icons in public/, so the brand stays
+ * identical across app, tab and installed-app surfaces.
  */
 export function BrandMark({ size = 30 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false" className="brand-mark">
     <rect x="1.5" y="1.5" width="29" height="29" rx="8" className="brand-mark-tile" />
-    <path d="M6 7.6h11.6v3.5h-4v13.3H10V11.1H6Z" className="brand-mark-letter" />
-    <path d="M17.4 9H21v15.4h-3.6Z" className="brand-mark-letter" />
-    <path fillRule="evenodd" clipRule="evenodd" d="M21.7 15.4a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2.6a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8Z" className="brand-mark-letter" />
+    <path d="M4.5 8h23v3.6h-23zM14.2 8h3.6v16h-3.6zM6 15.2h5.6v3.6H6zM20.4 20.4h5.6v3.6h-5.6z" className="brand-mark-letter" />
   </svg>
 }
