@@ -14,6 +14,7 @@ import { CommandPalette, CommandPaletteTrigger } from './command-palette';
 import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
 import { pageTitle } from './page-title';
+import { isAdminPath, shellChrome } from './shell-chrome';
 
 export const meta: MetaFunction = () => [{ title: 'Trade basic — Investment decision diary' }];
 
@@ -127,9 +128,7 @@ function Shell() {
   const compactPreferences = <PreferencesControls compact/>;
   const mobilePreferences = <PreferencesControls mobile/>;
   const role = viewer?.role ?? null;
-  const publicContentPath = location.pathname === '/about' || location.pathname === '/guide' || location.pathname === '/articles' || location.pathname.startsWith('/articles/') || location.pathname === '/blog' || location.pathname.startsWith('/blog/');
-  const guestPublicPath = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/register/complete' || location.pathname === '/forgot-password' || location.pathname === '/reset-password' || location.pathname === '/tools' || location.pathname.startsWith('/tools/');
-  const adminPath = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const adminPath = isAdminPath(location.pathname);
   useEffect(() => {
     if (!adminPath) return;
     if (session.authenticated === false) {
@@ -140,37 +139,6 @@ function Shell() {
     }
     if (session.authenticated === true && viewer?.role === 'USER') navigate('/', { replace: true });
   }, [adminPath, location.pathname, location.search, navigate, session.authenticated, viewer?.role]);
-  if (loginPath && session.authenticated === true) return <>
-    <a className="skip" href="#main">{t('skip')}</a>
-    <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
-  </>;
-  if (publicContentPath || (guestPublicPath && session.authenticated !== true)) return <>
-    <a className="skip" href="#main">{t('skip')}</a>
-    <div className="public-shell">
-      <header className="public-header">
-        <Link className="brand" to="/"><BrandMark size={34} /><span className="brand-name"><strong>Trade</strong> basic</span></Link>
-        <nav className="public-nav" aria-label={t('navigation')}><PublicNavLinks /></nav>
-        <div className="public-actions">
-          {compactPreferences}
-          {session.authenticated === true ? <>
-            {role === 'ADMIN' && <Link className="public-admin-link" to="/admin/blog">{publicSession.manage}</Link>}
-            <Link className="button secondary public-login" to="/">{publicSession.workspace}</Link>
-          </> : <><Link className="button secondary public-login" to="/login">{t('login')}</Link><Link className="button public-register" to="/register">{t('register')}</Link></>}
-          <PublicMenu preferences={mobilePreferences} authenticated={session.authenticated} role={role} />
-        </div>
-      </header>
-      <main id="main" tabIndex={-1}><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
-      <footer className="public-footer">
-        <div className="public-footer-inner">
-          <div className="public-footer-brand"><BrandMark size={24} /><span className="brand-name"><strong>Trade</strong> basic</span></div>
-          <nav aria-label={t('navigation')}>
-            <PublicNavLinks disclosure={false} />
-            {session.authenticated === true ? <Link to="/">{publicSession.workspace}</Link> : <Link to="/login">{t('login')}</Link>}
-          </nav>
-        </div>
-      </footer>
-    </div>
-  </>;
   // An administration path renders only for a confirmed ADMIN. Every other
   // case — still resolving, signed out, or a USER — waits here while the effect
   // above redirects: a USER goes home, a signed-out visitor goes to sign-in.
@@ -179,35 +147,71 @@ function Shell() {
   // explanation was unreachable as a resting state, so it only ever flashed
   // before the redirect landed. Each admin route still reports its own
   // authorization failure for the data it owns.
-  if (adminPath && viewer?.role !== 'ADMIN') return <>
+  const chrome = shellChrome(location.pathname, session.authenticated, role);
+  if (chrome === 'pending') return <>
     <a className="skip" href="#main">{t('skip')}</a>
     <main id="main" tabIndex={-1}><p role="status">{t('loading')}</p></main>
   </>;
+  const publicChrome = chrome === 'public';
+  // Both shells render from this one tree. `main` and the `Outlet` inside it
+  // hold the same position in either branch, so confirming the session swaps
+  // the chrome around the routed content and React reconciles the content
+  // itself: a half-typed note, an open disclosure, focus and scroll all survive.
+  // Only the surrounding chrome — header and footer, or sidebar, palette and
+  // diary navigation — is mounted and unmounted.
   return <>
     <a className="skip" href="#main">{t('skip')}</a>
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
-        <div className="desktop-quick-entry"><QuickEntry/></div>
-        {/* Search sits above the list because the route count exceeds what any
-            sidebar can hold; the list below is the always-visible subset. */}
-        <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
-        <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
-        {/* Language, theme and market colour change about twice a year, so they
-            sit behind a disclosure and stop spending ~120px of standing
-            sidebar height; sign-out stays directly reachable. */}
-        <div className="desktop-preferences">
-          {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
-          <details className="desktop-preferences-disclosure">
-            <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>
-            {preferences}
-          </details>
-        </div>
-        <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
-      </aside>
-      <main id="main" className={wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}><ForegroundReminders/><PwaStatus/><Outlet context={{ authenticated: session.authenticated, viewer }} key={session.revision} /></main>
-      <CommandPalette role={role} />
-      <DiaryNavigation />
+    <div className={publicChrome ? 'public-shell' : 'app-shell'}>
+      {publicChrome
+        ? <header className="public-header">
+            <Link className="brand" to="/"><BrandMark size={34} /><span className="brand-name"><strong>Trade</strong> basic</span></Link>
+            <nav className="public-nav" aria-label={t('navigation')}><PublicNavLinks /></nav>
+            <div className="public-actions">
+              {compactPreferences}
+              {session.authenticated === true ? <>
+                {role === 'ADMIN' && <Link className="public-admin-link" to="/admin/blog">{publicSession.manage}</Link>}
+                <Link className="button secondary public-login" to="/">{publicSession.workspace}</Link>
+              </> : <><Link className="button secondary public-login" to="/login">{t('login')}</Link><Link className="button public-register" to="/register">{t('register')}</Link></>}
+              <PublicMenu preferences={mobilePreferences} authenticated={session.authenticated} role={role} />
+            </div>
+          </header>
+        : <aside className="sidebar">
+            <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
+            <div className="desktop-quick-entry"><QuickEntry/></div>
+            {/* Search sits above the list because the route count exceeds what any
+                sidebar can hold; the list below is the always-visible subset. */}
+            <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
+            <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
+            {/* Language, theme and market colour change about twice a year, so they
+                sit behind a disclosure and stop spending ~120px of standing
+                sidebar height; sign-out stays directly reachable. */}
+            <div className="desktop-preferences">
+              {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
+              <details className="desktop-preferences-disclosure">
+                <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>
+                {preferences}
+              </details>
+            </div>
+            <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
+          </aside>}
+      <main id="main" className={!publicChrome && wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}>
+        {!publicChrome && <ForegroundReminders/>}
+        <PwaStatus/>
+        <Outlet context={{ authenticated: session.authenticated, viewer }} key={session.identity} />
+      </main>
+      {publicChrome
+        ? <footer className="public-footer">
+            <div className="public-footer-inner">
+              <div className="public-footer-brand"><BrandMark size={24} /><span className="brand-name"><strong>Trade</strong> basic</span></div>
+              <nav aria-label={t('navigation')}>
+                <PublicNavLinks disclosure={false} />
+                {session.authenticated === true ? <Link to="/">{publicSession.workspace}</Link> : <Link to="/login">{t('login')}</Link>}
+              </nav>
+            </div>
+          </footer>
+        : null}
+      {publicChrome ? null : <CommandPalette role={role} />}
+      {publicChrome ? null : <DiaryNavigation />}
     </div>
   </>;
 }

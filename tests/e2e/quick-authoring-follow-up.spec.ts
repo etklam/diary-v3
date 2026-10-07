@@ -323,19 +323,36 @@ test('a submit arriving during the destination lookup is queued, not swallowed',
   await page.unroute('**/api/diaries/by-date?*')
 })
 
+/**
+ * Holds the account read — which is also what confirms the session — so a cold
+ * document can be worked on while it is in flight, deterministically rather
+ * than on a timer.
+ */
+async function holdAccountRead(page: Page) {
+  let release = () => {}
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/auth/me', async route => { await held; await route.continue() })
+  return async () => { release(); await page.unroute('**/api/auth/me') }
+}
+
 test('a cold Quick load is typable before the account read and keeps what was typed', async ({ page }) => {
   const email = `quick-cold-start-${randomUUID()}@example.test`
   await register(page, email)
   await signIn(page, email)
-  // A cold load with a slow account read: the writing area must be present and
-  // typable while it is in flight, and survive the shell swap that follows it.
-  await page.route('**/api/auth/me', async route => { await new Promise(resolve => setTimeout(resolve, 1500)); await route.continue() })
+  // A cold load with the account read held open: the writing area must be
+  // present and typable while it is in flight, and keep what was typed when the
+  // session confirms underneath it.
+  const release = await holdAccountRead(page)
   await page.goto('/diaries/quick')
   const content = page.getByRole('textbox', { name: 'Content', exact: true })
   const marker = `Typed before the account read ${randomUUID()}`
   await content.fill(marker)
   await expect(content).toHaveValue(marker)
-  await page.unroute('**/api/auth/me')
+  // Nothing has confirmed the session yet, so this is the window the composer
+  // used to withhold the writing area for.
+  await expect(page.getByTestId('sign-out')).toHaveCount(0)
+  await release()
+  await expect(page.getByTestId('sign-out')).toBeVisible()
   await expect.poll(async () => content.inputValue(), { timeout: 10_000 }).toBe(marker)
   await expect(page.getByRole('button', { name: 'Create diary', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Create diary', exact: true }).click()
@@ -345,6 +362,76 @@ test('a cold Quick load is typable before the account read and keeps what was ty
   // The date still comes from the account timezone once the read confirms.
   const settings = await (await page.request.get('/api/user/settings')).json() as { settings: { timezone: string } }
   expect(settings.settings.timezone).toBeTruthy()
+})
+
+/**
+ * Writing can now begin before the account is known, so a draft stored for that
+ * account and writing typed on the cold document can both exist at once. One
+ * device key holds them, and neither may be dropped without the author saying so.
+ */
+async function seedStoredDraft(page: Page, content: string) {
+  const id = (await (await page.request.get('/api/auth/me')).json() as { data: { id: string } }).data.id
+  await page.evaluate(([key, body]) => localStorage.setItem(key, JSON.stringify({
+    at: Date.now(),
+    value: { date: '2026-10-08', title: 'Stored draft', content: body, tags: '', stockSymbols: '', kind: 'blank', data: {}, mode: 'create', titleTouched: true, contentTouched: true, applied: '' },
+  })), [`diary-quick-draft:${id}`, content] as const)
+}
+
+test('restoring a stored draft over writing typed before the account confirmed asks first', async ({ page }) => {
+  const email = `quick-cold-start-restore-${randomUUID()}@example.test`
+  await register(page, email)
+  await signIn(page, email)
+  const stored = `Draft stored on this device ${randomUUID()}`
+  await seedStoredDraft(page, stored)
+
+  const release = await holdAccountRead(page)
+  await page.goto('/diaries/quick')
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  const typed = `Typed on the cold document ${randomUUID()}`
+  await content.fill(typed)
+  await release()
+
+  // The offer still appears, even though writing already began.
+  const restore = page.getByRole('button', { name: 'Restore saved draft', exact: true })
+  await expect(restore).toBeVisible()
+  await expect(content).toHaveValue(typed)
+
+  await restore.click()
+  const confirm = page.locator('dialog.delete-dialog[open]')
+  await expect(confirm.getByRole('heading', { name: 'Replace the current writing?', exact: true })).toBeVisible()
+  await confirm.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(content).toHaveValue(typed)
+  await expect(restore).toBeVisible()
+
+  await restore.click()
+  await confirm.getByRole('button', { name: 'Replace writing', exact: true }).click()
+  await expect(content).toHaveValue(stored)
+  await expect(restore).toHaveCount(0)
+})
+
+test('discarding the stored draft keeps writing typed before the account confirmed', async ({ page }) => {
+  const email = `quick-cold-start-discard-${randomUUID()}@example.test`
+  await register(page, email)
+  await signIn(page, email)
+  await seedStoredDraft(page, `Draft stored on this device ${randomUUID()}`)
+
+  const release = await holdAccountRead(page)
+  await page.goto('/diaries/quick')
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  const typed = `Kept through the discard ${randomUUID()}`
+  await content.fill(typed)
+  await release()
+
+  await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toHaveCount(0)
+  await expect(content).toHaveValue(typed)
+  // Discard drops the stored draft; what is in the writing area is now the draft.
+  await expect(page.getByText('Draft saved on this device for 24 hours.', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Create diary', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
+  const href = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
+  expect((await readDiary(page, href!.split('/').at(-1)!)).content).toBe(typed)
 })
 
 test('tag suggestions follow the account to a device that never wrote a diary', async ({ page, browser }) => {

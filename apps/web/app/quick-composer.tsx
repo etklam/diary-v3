@@ -23,15 +23,6 @@ export type Draft={date:string;title:string;content:string;tags:string;stockSymb
 type Snippet={id:string;name:string;content:string};
 function isDefiniteAppendRejection(status:number,code?:string){if(status===400)return code==='SYS_VALIDATION_ERROR';if(status===401)return code==='AUTH_UNAUTHORIZED'||code==='AUTH_TOKEN_INVALID'||code==='AUTH_TOKEN_EXPIRED'||code==='AUTH_TOKEN_NOT_FOUND'||code==='AUTH_TOKEN_REVOKED';if(status===403)return code==='AUTH_FORBIDDEN'||code==='CSRF_FAILED';return status===409&&code==='DIARY_ALREADY_EXISTS';}
 function empty(date:string,stockSymbols='',captureContext?:CaptureContext,content=''):Draft{return {date,title:'',content,tags:'',stockSymbols:stockSymbols.trim(),kind:'blank',data:createEmptyQuickNoteTemplateData(),mode:'create',titleTouched:false,/* Shared text is the author's own content: a template must never overwrite it. */contentTouched:Boolean(content),applied:'',...(captureContext?{captureContext}: {})};}
-/**
- * The private shell replaces the public one as soon as the session is confirmed,
- * which remounts everything under `main`. That lands in the exact window this
- * composer now renders in, so writing typed before the account read confirms is
- * carried across that single remount in memory — same document, never stored,
- * dropped as soon as the account confirms or the session ends.
- */
-let preAccountDraft:{at:number;value:Draft}|null=null;
-const PRE_ACCOUNT_CARRY_MS=15_000;
 export function draftValueForStorage(form:Draft,uncertain=false):Draft{return uncertain?{...form,uncertain:true}:form;}
 export function readDraft(key:string):Draft|null{try{const saved=JSON.parse(localStorage.getItem(key)??'null');if(!saved||typeof saved.at!=='number'||Date.now()-saved.at>86400000||saved.at>Date.now()||!saved.value)return null;const v=saved.value;if(typeof v.content!=='string'||typeof v.title!=='string'||typeof v.tags!=='string'||typeof v.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v.date)||!['blank','trading','reflection','observation'].includes(v.kind)||!v.data||typeof v.data!=='object')return null;const data=createEmptyQuickNoteTemplateData();for(const field of ['tradingType','symbols','marketMood','note','marketCondition','goodPoints','improvePoints','topic','observationType','observationContent','action'] as const){if(typeof v.data[field]==='string')data[field]=v.data[field];}data.rating=Number.isInteger(v.data.rating)&&v.data.rating>=0&&v.data.rating<=5?v.data.rating:0;data.noRashTrading=v.data.noRashTrading===true;data.relatedTrades=Array.isArray(v.data.relatedTrades)?v.data.relatedTrades.flatMap((trade:Record<string,unknown>)=>{if(!trade||typeof trade!=='object')return [];const candidate={...trade};for(const field of ['sellQuantity','realizedPnL','realizedPnLPct'])if(typeof candidate[field]==='number'&&Number.isFinite(candidate[field]))candidate[field]=String(candidate[field]);const parsed=recentClosedTradeSchema.safeParse(candidate);return parsed.success?[parsed.data]:[];}):[];const captureContext=normalizeCaptureContext(v.captureContext);return {date:v.date,title:v.title,content:v.content,tags:v.tags,stockSymbols:typeof v.stockSymbols==='string'?v.stockSymbols:Array.isArray(v.stockSymbols)?v.stockSymbols.filter((value:unknown)=>typeof value==='string').join(', '):'',kind:v.kind,data,mode:v.mode==='append'?'append':'create',titleTouched:v.titleTouched===true,contentTouched:v.contentTouched===true,applied:typeof v.applied==='string'?v.applied:'',...(captureContext?{captureContext}: {}),...(v.uncertain===true?{uncertain:true}: {})};}catch{return null;}}
 export function QuickComposer({onSaved,onNavigate,initialDate,captureContext,captureIssue,share,autoFocusContent=false}:{onSaved?:(id:string,captureContext?:CaptureContext|null)=>void;onNavigate?:()=>void;initialDate?:string;captureContext?:CaptureContext|null;captureIssue?:CaptureContextIssue|null;share?:CaptureShare;autoFocusContent?:boolean}){
@@ -41,13 +32,17 @@ export function QuickComposer({onSaved,onNavigate,initialDate,captureContext,cap
  // a *different* account is confirmed — never on the first confirmation.
  const deviceDate=initialDate??calendarDateInTimezone(new Date(),Intl.DateTimeFormat().resolvedOptions().timeZone);
  const typed=useRef(false),confirmedId=useRef<string|null>(null),[generation,setGeneration]=useState(0);
- useEffect(()=>{let active=true;const revision=session.revision;setAccount(null);setError(false);if(session.authenticated===false)return()=>{active=false;};const live=()=>active&&sessionRef.current.authenticated!==false&&sessionRef.current.revision===revision;api.GET('/api/auth/me').then(result=>{if(!live())return;if(result.data){const id=result.data.data.id;if(confirmedId.current&&confirmedId.current!==id){typed.current=false;setGeneration(value=>value+1);}confirmedId.current=id;setAccount({id,date:initialDate??calendarDateInTimezone(new Date(),result.data.data.timezone)});}else setError(true);}).catch(()=>{if(live())setError(true);});return()=>{active=false;};},[attempt,initialDate,session.authenticated,session.revision]);
+ // The read is scoped to the session *identity*, not to every revision tick:
+ // confirming the session this document loaded under advances the revision but
+ // keeps the identity, so the read that is already in flight is still the right
+ // one and the account never has to be discarded and re-fetched mid-write.
+ const signedOut=session.authenticated===false;
+ useEffect(()=>{let active=true;const identity=session.identity;setAccount(null);setError(false);if(signedOut)return()=>{active=false;};const live=()=>active&&sessionRef.current.authenticated!==false&&sessionRef.current.identity===identity;api.GET('/api/auth/me').then(result=>{if(!live())return;if(result.data){const id=result.data.data.id;if(confirmedId.current&&confirmedId.current!==id){typed.current=false;setGeneration(value=>value+1);}confirmedId.current=id;setAccount({id,date:initialDate??calendarDateInTimezone(new Date(),result.data.data.timezone)});}else setError(true);}).catch(()=>{if(live())setError(true);});return()=>{active=false;};},[attempt,initialDate,signedOut,session.identity]);
  if(session.authenticated===false)return <><p>{t('loginRequired')}</p><Link to={signInPath(buildCapturePath('quick',captureContext,initialDate,share))}>{t('login')}</Link></>;
- // Confirming the session swaps the public shell for the private one, which
- // remounts everything under `main`. Rendering a writing area into that window
- // would hand back a surface that resets a frame later, so the composer waits
- // for the bootstrap — and then renders without waiting for the account read.
- if(session.authenticated===null)return <p role="status">{t('loading')}</p>;
+ // Nothing is withheld while the session resolves. Confirming it is a chrome
+ // change now, not a remount, so the writing area is real from the first frame
+ // of a cold document: the reader types, and the account read reconciles the
+ // date and the account-scoped storage into a composer that is already in use.
  if(error&&!typed.current)return <><p role="alert">{t('connection')}</p><button type="button" onClick={()=>setAttempt(value=>value+1)}>{t('retry')}</button></>;
  return <>{error&&<div role="alert" className="quick-account-error"><p>{t('connection')}</p><button type="button" className="secondary" onClick={()=>setAttempt(value=>value+1)}>{t('retry')}</button></div>}<Composer key={generation} accountId={account?.id??null} accountDate={account?.date??null} deviceDate={deviceDate} onTyped={()=>{typed.current=true;}} share={share} initialDate={initialDate} captureContext={captureContext} captureIssue={captureIssue} onSaved={onSaved} onNavigate={onNavigate} autoFocusContent={autoFocusContent}/></>;
 }
@@ -82,17 +77,18 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  const seed=composeSharedContent(share);
  const [restorable,setRestorable]=useState<Draft|null>(()=>key?readDraft(key):null);
  const captureRef=useRef(captureContext??null);
- const carried=useRef(!accountId&&preAccountDraft&&Date.now()-preAccountDraft.at<PRE_ACCOUNT_CARRY_MS?preAccountDraft.value:null);
- const [form,setForm]=useState<Draft>(()=>carried.current??(restorable?empty(incomingDate,'',undefined,seed):empty(incomingDate,captureRef.current?.symbol,captureRef.current??undefined,seed))),[draftError,setDraftError]=useState(false),[savedDraft,setSavedDraft]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState<Failure|null>(null),[destination,setDestination]=useState<DiaryResponse|null>(null),[checking,setChecking]=useState(false),[lookupError,setLookupError]=useState(false),[lookupAttempt,setLookupAttempt]=useState(0),[preview,setPreview]=useState(false),[snippets,setSnippets]=useState<Snippet[]>(()=>{try{const value=JSON.parse((snippetKey?localStorage.getItem(snippetKey):null)??'[]');return Array.isArray(value)?value.filter(item=>item&&typeof item.id==='string'&&typeof item.name==='string'&&typeof item.content==='string'):[];}catch{return [];}}),[snippet,setSnippet]=useState('default-1');
+ const [form,setForm]=useState<Draft>(()=>restorable?empty(incomingDate,'',undefined,seed):empty(incomingDate,captureRef.current?.symbol,captureRef.current??undefined,seed)),[draftError,setDraftError]=useState(false),[savedDraft,setSavedDraft]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState<Failure|null>(null),[destination,setDestination]=useState<DiaryResponse|null>(null),[checking,setChecking]=useState(false),[lookupError,setLookupError]=useState(false),[lookupAttempt,setLookupAttempt]=useState(0),[preview,setPreview]=useState(false),[snippets,setSnippets]=useState<Snippet[]>(()=>{try{const value=JSON.parse((snippetKey?localStorage.getItem(snippetKey):null)??'[]');return Array.isArray(value)?value.filter(item=>item&&typeof item.id==='string'&&typeof item.name==='string'&&typeof item.content==='string'):[];}catch{return [];}}),[snippet,setSnippet]=useState('default-1');
  const modeTouched=useRef(false),skipSave=useRef(false),skipSuggested=useRef(false),dirtyRef=useRef(false),active=useRef(true),incomingKey=useRef(buildCapturePath('quick',captureContext,incomingDate,share)),contentRef=useRef<HTMLTextAreaElement>(null),restoreRef=useRef<HTMLButtonElement>(null),destinationRef=useRef<DiaryResponse|null>(null),lookupRevision=useRef(0);
  const [recentTags,rememberTags]=useRecentTags(accountId??'');
  const a=authoringCopy[locale];
  const formRef=useRef<HTMLFormElement>(null),queued=useRef(false);
- const [confirming,setConfirming]=useState<'leave'|'snippet'|'template'|null>(null),[manageOpen,setManageOpen]=useState(false),[announce,setAnnounce]=useState(''),[queuedNotice,setQueuedNotice]=useState(false);
+ const [confirming,setConfirming]=useState<'leave'|'snippet'|'template'|'restore'|null>(null),[manageOpen,setManageOpen]=useState(false),[announce,setAnnounce]=useState(''),[queuedNotice,setQueuedNotice]=useState(false);
  useEffect(()=>{if(!announce)return;const timer=setTimeout(()=>setAnnounce(''),4000);return()=>clearTimeout(timer);},[announce]);
  const [uncertain,setUncertain]=useState(()=>Boolean(restorable?.uncertain));
  useEffect(()=>{active.current=true;return()=>{active.current=false;}},[]);
- useEffect(()=>{if(!autoFocusContent)return;if(restorable)restoreRef.current?.focus();else contentRef.current?.focus();},[autoFocusContent,restorable]);
+ // An offer that arrives while the author is already typing must not take the
+ // caret away from them.
+ useEffect(()=>{if(!autoFocusContent)return;if(restorable){if(!dirtyRef.current)restoreRef.current?.focus();return;}contentRef.current?.focus();},[autoFocusContent,restorable]);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
  useEffect(()=>{if(blocker.state==='blocked')setConfirming('leave');},[blocker.state]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
@@ -103,17 +99,15 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  useEffect(()=>{if(!key||session.authenticated!==true||!active.current||wasExplicitSignOut()||skipSave.current||restorable||(!form.content&&!form.title&&!form.tags&&form.kind==='blank'))return;const value=draftValueForStorage(form,uncertain);try{localStorage.setItem(key,JSON.stringify({at:Date.now(),value}));setSavedDraft(true);setDraftError(false);}catch{setDraftError(true);}},[form,key,restorable,session.authenticated,uncertain]);
  function change(patch:Partial<Draft>){dirtyRef.current=true;onTyped();setForm(current=>({...current,...patch}));}
  const dateTouched=useRef(false),reconciled=useRef(false);
- useEffect(()=>{if(carried.current){dirtyRef.current=true;onTyped();}},[onTyped]);
- useEffect(()=>{
-  if(session.authenticated===false||wasExplicitSignOut()){preAccountDraft=null;return;}
-  if(accountId){preAccountDraft=null;return;}
-  if(dirtyRef.current)preAccountDraft={at:Date.now(),value:form};
- },[form,accountId,session.authenticated]);
  useEffect(()=>{
   if(!accountId||reconciled.current)return;
   reconciled.current=true;
   const stored=readDraft(`diary-quick-draft:${accountId}`);
-  if(stored&&!dirtyRef.current)setRestorable(stored);
+  // Writing can begin before the account confirms, so a stored draft is offered
+  // even when it does: two pieces of writing now share one key, and neither may
+  // be dropped without the author choosing. Restore asks before replacing what
+  // is already typed, and Discard drops only the stored draft.
+  if(stored)setRestorable(stored);
   try{const value=JSON.parse(localStorage.getItem(`diary-quick-snippets:${accountId}`)??'[]');if(Array.isArray(value))setSnippets(value.filter(item=>item&&typeof item.id==='string'&&typeof item.name==='string'&&typeof item.content==='string'));}catch{/* Snippets are optional local content. */}
  },[accountId]);
  // The account timezone is authoritative for today's date, but never overrides a
@@ -126,9 +120,22 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  function insertSnippet(replace:boolean){const item=[...quickSnippets,...snippets].find(item=>item.id===snippet);if(!item)return;change({content:replace||!form.content?item.content:[form.content,item.content].join('\n\n'),contentTouched:true});}
  function insert(replace:boolean){if(replace&&form.content){setConfirming('snippet');return;}insertSnippet(replace);}
  const uncertainCopy=locale==='en'?'The append result could not be confirmed. Your writing is locked until you inspect the existing diary or discard this draft.':locale==='zh-CN'?'追加结果无法确认。你的内容仍保存在此设备上；请先检查现有日记或丢弃这份草稿。':'追加結果無法確認。你的內容仍保存在此裝置上；請先檢查現有日記或捨棄這份草稿。';
- function liveWrite(revision:number){return active.current&&sessionRef.current.authenticated===true&&sessionRef.current.revision===revision&&!wasExplicitSignOut();}
- async function save(event:FormEvent){event.preventDefault();if(pending||uncertain)return;const writeRevision=session.revision;const companies=parseCompanyContext(form.stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const append=form.mode==='append',target=destination?.date===form.date?destination:null,tags=splitTags(form.tags);const protectedForm=append&&target?{...form,title:target.title,titleTouched:false}:form;if(checking){queued.current=true;setQueuedNotice(true);setError(null);return;}if(destination&&destination.date!==form.date){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(!liveWrite(writeRevision)){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(append&&target&&form.title!==target.title)setForm(current=>({...current,title:target.title,titleTouched:false}));if(append&&!persistUncertainMarker(protectedForm)){setError({message:c.storageUnavailable,code:'SYS_INTERNAL_ERROR',fields:[]});return;}setPending(true);setError(null);try{const result=await api.POST('/api/diaries',{headers:append?{[NO_AUTOMATIC_SESSION_RETRY_HEADER]:'1'}:undefined,body:{title:append&&target?target.title:form.title.trim()||deriveQuickTitle(form.content,suggested.title),content:form.content.trim(),date:form.date,tags,stockSymbols:companies.data??[],appendToToday:append}});if(!liveWrite(writeRevision))return;if(result.response.ok&&result.data&&typeof result.data.id==='string'){skipSave.current=true;dirtyRef.current=false;modeTouched.current=false;if(liveWrite(writeRevision))rememberTags(tags);try{localStorage.removeItem(key);localStorage.removeItem(`diary-quick-reminder:${accountId}`);}catch{/* In-memory draft cleared on success. */}window.dispatchEvent(new Event('diary-quick-saved'));setForm(empty(incomingDate));setSavedDraft(false);setLookupAttempt(value=>value+1);if(onSaved)onSaved(result.data.id,captureRef.current);else navigate(`/diaries/${result.data.id}`,{state:{saved:true,captureContext:captureRef.current}});}else{const failure=apiFailure(result.error,t('failed'));if(append&&isDefiniteAppendRejection(result.response.status,failure.code)){if(!clearUncertainMarker(protectedForm))setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});else setError(failure);}else if(append)markUncertain(protectedForm);else setError(failure);}}catch{if(liveWrite(writeRevision)){if(append)markUncertain(protectedForm);else setError(apiFailure(null,t('connection')));}}finally{if(active.current)setPending(false);}}
- function restore(){if(!restorable)return;modeTouched.current=true;dirtyRef.current=true;skipSuggested.current=true;captureRef.current=normalizeCaptureContext(restorable.captureContext);setUncertain(Boolean(restorable.uncertain));const next={...restorable,titleTouched:restorable.titleTouched||Boolean(restorable.title),contentTouched:restorable.contentTouched||Boolean(restorable.content)};setForm(next);if(restorable.uncertain)setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});setRestorable(null);}
+ /**
+  * Is the session this write began under still the session now? The question is
+  * about identity, not about the revision: a write can now start on a cold
+  * document and have the session confirm underneath it, which advances the
+  * revision without changing who is writing. Comparing revisions there would
+  * abandon a diary the server had already created. A session that is still
+  * resolving counts as live — the request's own cookies decide it, and a 401
+  * ends the identity, which this does catch.
+  */
+ function liveWrite(identity:number){return active.current&&sessionRef.current.authenticated!==false&&sessionRef.current.identity===identity&&!wasExplicitSignOut();}
+ async function save(event:FormEvent){event.preventDefault();if(pending||uncertain)return;const writeIdentity=session.identity;const companies=parseCompanyContext(form.stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const append=form.mode==='append',target=destination?.date===form.date?destination:null,tags=splitTags(form.tags);const protectedForm=append&&target?{...form,title:target.title,titleTouched:false}:form;if(checking){queued.current=true;setQueuedNotice(true);setError(null);return;}if(destination&&destination.date!==form.date){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(!liveWrite(writeIdentity)){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(append&&target&&form.title!==target.title)setForm(current=>({...current,title:target.title,titleTouched:false}));if(append&&!persistUncertainMarker(protectedForm)){setError({message:c.storageUnavailable,code:'SYS_INTERNAL_ERROR',fields:[]});return;}setPending(true);setError(null);try{const result=await api.POST('/api/diaries',{headers:append?{[NO_AUTOMATIC_SESSION_RETRY_HEADER]:'1'}:undefined,body:{title:append&&target?target.title:form.title.trim()||deriveQuickTitle(form.content,suggested.title),content:form.content.trim(),date:form.date,tags,stockSymbols:companies.data??[],appendToToday:append}});if(!liveWrite(writeIdentity))return;if(result.response.ok&&result.data&&typeof result.data.id==='string'){skipSave.current=true;dirtyRef.current=false;modeTouched.current=false;if(liveWrite(writeIdentity))rememberTags(tags);try{localStorage.removeItem(key);localStorage.removeItem(`diary-quick-reminder:${accountId}`);}catch{/* In-memory draft cleared on success. */}window.dispatchEvent(new Event('diary-quick-saved'));setForm(empty(incomingDate));setSavedDraft(false);setLookupAttempt(value=>value+1);if(onSaved)onSaved(result.data.id,captureRef.current);else navigate(`/diaries/${result.data.id}`,{state:{saved:true,captureContext:captureRef.current}});}else{const failure=apiFailure(result.error,t('failed'));if(append&&isDefiniteAppendRejection(result.response.status,failure.code)){if(!clearUncertainMarker(protectedForm))setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});else setError(failure);}else if(append)markUncertain(protectedForm);else setError(failure);}}catch{if(liveWrite(writeIdentity)){if(append)markUncertain(protectedForm);else setError(apiFailure(null,t('connection')));}}finally{if(active.current)setPending(false);}}
+ function applyRestore(){if(!restorable)return;modeTouched.current=true;dirtyRef.current=true;skipSuggested.current=true;captureRef.current=normalizeCaptureContext(restorable.captureContext);setUncertain(Boolean(restorable.uncertain));const next={...restorable,titleTouched:restorable.titleTouched||Boolean(restorable.title),contentTouched:restorable.contentTouched||Boolean(restorable.content)};setForm(next);if(restorable.uncertain)setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});setRestorable(null);}
+ /** Restoring replaces the writing area, so it asks first when there is writing in it. */
+ function restore(){if(!restorable)return;if(dirtyRef.current){setConfirming('restore');return;}applyRestore();}
+ /** Drops the stored draft and leaves writing already in progress untouched. */
+ function discardStored(){setRestorable(null);if(!key)return;try{localStorage.removeItem(key);}catch{setDraftError(true);}}
  function discard(){modeTouched.current=false;dirtyRef.current=false;skipSuggested.current=false;captureRef.current=captureContext??null;setUncertain(false);setError(null);setRestorable(null);setForm(empty(incomingDate,captureRef.current?.symbol,captureRef.current??undefined,seed));setLookupAttempt(value=>value+1);if(!key)return;try{localStorage.removeItem(key);}catch{setDraftError(true);}}
  const selectedTags=splitTags(form.tags);
  const toggleTag=(tag:string)=>change({tags:(selectedTags.includes(tag)?selectedTags.filter(value=>value!==tag):[...selectedTags,tag]).join('\n')});
@@ -141,7 +148,7 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  useEffect(()=>{if(checking||!queued.current)return;queued.current=false;setQueuedNotice(false);if(!submitDisabled)formRef.current?.requestSubmit();},[checking,submitDisabled]);
  return <div className="quick-composer">
   <CaptureNotice context={captureContext} issue={captureIssue}/>
-  {restorable&&<div role="status" className="quick-restore"><button ref={restoreRef} type="button" onClick={restore}>{c.restore}</button><button type="button" className="secondary" onClick={discard}>{c.discard}</button></div>}
+  {restorable&&<div role="status" className="quick-restore"><button ref={restoreRef} type="button" onClick={restore}>{c.restore}</button><button type="button" className="secondary" onClick={()=>{if(dirtyRef.current)discardStored();else discard();}}>{c.discard}</button></div>}
   <form ref={formRef} onSubmit={save} aria-busy={pending}><fieldset disabled={pending||uncertain}>
    <div className="authoring-grid">
     <section className="quick-writing authoring-writing" aria-labelledby="quick-writing-title">
@@ -189,6 +196,7 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
   </form>
   {accountId&&<CaptureReminder accountId={accountId}/>}
   <ConfirmDialog open={confirming==='leave'} title={c.discardTitle} body={c.discardBody} confirmLabel={c.discardConfirm} danger onConfirm={()=>{setConfirming(null);dirtyRef.current=false;blocker.proceed?.();}} onCancel={()=>{setConfirming(null);if(blocker.state==='blocked')blocker.reset();}}/>
+  <ConfirmDialog open={confirming==='restore'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);applyRestore();}} onCancel={()=>setConfirming(null)}/>
   <ConfirmDialog open={confirming==='snippet'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);insertSnippet(true);}} onCancel={()=>setConfirming(null)}/>
   <ConfirmDialog open={confirming==='template'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);change({content:suggested.content,applied:suggested.content});setAnnounce(c.templateApplied);}} onCancel={()=>setConfirming(null)}/>
   <SnippetManager open={manageOpen} snippets={snippets} onSave={saveSnippets} onClose={()=>setManageOpen(false)}/>

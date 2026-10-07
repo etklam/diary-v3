@@ -113,6 +113,62 @@ The deeper finding — that the shell swap destroys all unsaved state under `mai
 load, not just here — is recorded as a follow-up rather than fixed in this ticket, because the fix
 is a root-layout change affecting every route.
 
+## Execution record — 2026-10-08, after [100]
+
+[100](100-shell-swap-destroys-page-state.md) removed the remount, so the two workarounds this
+ticket shipped around it are gone and the wait it was written about is gone with them.
+
+- **The writing area is no longer withheld for the session bootstrap.** The
+  `session.authenticated === null` loading paragraph is deleted. Measured rather than asserted:
+  the server-rendered `/diaries/quick` used to contain `role="status">正在載入…` and no
+  `#quick-content`; it now ships the textarea in the first server-rendered frame. There is no
+  wait left to remove on this path — not for the account read, not for the session, not for
+  hydration.
+- **`preAccountDraft` is deleted**, with its 15-second carry window. Nothing needs to survive a
+  remount that no longer happens.
+- **The write guard moved from revision to identity.** `liveWrite` compared
+  `session.revision`, which was safe only because the composer could not render before the
+  confirmation bump. With writing now starting on a cold document, a confirmation landing
+  mid-write would have advanced the revision and made the composer abandon a diary the server had
+  already created. It compares `identity` instead, which a confirmation does not change, and
+  treats a still-resolving session as live — the request's own cookies decide it, and a 401 ends
+  the identity, which the guard does catch.
+- **The account read is scoped to the identity too**, so confirming the session no longer
+  discards the account and re-reads it from cache mid-write.
+- **A latent dead branch became reachable, and it is a bug fix.** If `/api/auth/me` failed with
+  anything other than a 401, nothing ever confirmed the session, so the old gate showed
+  `loading` **forever** and the reader could never write. The error-and-retry state below it was
+  unreachable on a cold load. It is now reached, and create still saves while the account read is
+  failing, because the write only needs the cookie.
+
+### New conflict this created, and how it is resolved
+
+Writing can now begin before the account is known, so a draft stored for that account and writing
+typed on the cold document can both exist, with one device key between them. The old code offered
+the stored draft only `if(!dirtyRef.current)` — under the old ~1ms window that was never false,
+but under a real network round-trip the typed draft would have silently overwritten the stored one
+with no offer ever shown. Now:
+
+- the stored draft is offered even when writing has begun, and the offer does not take the caret
+  from the author;
+- **Restore** asks before replacing what is typed, reusing the existing `Replace the current
+  writing?` confirmation rather than adding copy in three locales;
+- **Discard** drops the stored draft and leaves writing already in progress untouched; with
+  nothing in progress it still resets the composer exactly as before.
+
+### Evidence
+
+- `tests/e2e/quick-authoring-follow-up.spec.ts` — the cold-start case no longer sleeps 1500ms; it
+  **holds** `/api/auth/me` open, types while it is in flight, asserts the session is still
+  unconfirmed (no sign-out in the shell), then releases and checks the writing saved with its
+  exact content. Two new cases cover the conflict above: restore-asks-then-replaces, and
+  discard-keeps-what-was-typed-and-saves-it.
+- Full unit suite 131 files / 1173 tests green; `tsc --noEmit`, `eslint .` and `react-router
+  build` green.
+
+**Not yet run: the three e2e cases.** They need the tunnelled Postgres the harness provisions
+against, and `127.0.0.1:55433` was closed for this session.
+
 Verification: a new case in `tests/e2e/quick-authoring-follow-up.spec.ts` delays `/api/auth/me` by
 1.5s, types into the composer while it is in flight, and asserts the writing survives confirmation
 and saves with its exact content. `quick-diary`, `quick-layout-follow-up`,

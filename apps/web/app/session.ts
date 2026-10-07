@@ -7,8 +7,16 @@ import { safeAuthReturnPath } from './return-paths';
 // callers keep importing them from the session surface.
 export { safeAuthReturnPath, safeReturnPath } from './return-paths';
 
-type SessionState = { authenticated: boolean | null; revision: number };
-const initial: SessionState = { authenticated: null, revision: 0 };
+/**
+ * `revision` advances on every session event; caches, in-flight reads and write
+ * guards key off it. `identity` advances only when the signed-in identity
+ * actually changes — a sign-in over a signed-out or different session, a
+ * sign-out, an expiry. Confirming the session the document already loaded under
+ * is not an identity change, so the routed content keeps its own state across
+ * it instead of being rebuilt.
+ */
+type SessionState = { authenticated: boolean | null; revision: number; identity: number };
+const initial: SessionState = { authenticated: null, revision: 0, identity: 0 };
 let state = initial;
 let locallySignedOut = false;
 // Set by an explicit sign-out here or in another tab. Device-local drafts must
@@ -18,6 +26,12 @@ let explicitSignOut = false;
 export function wasExplicitSignOut() { return explicitSignOut; }
 export function isLocallySignedOut() { return locallySignedOut; }
 export function getSessionRevision() { return state.revision; }
+/**
+ * The non-React read of the content identity. The shell keys the routed content
+ * on it, so the rule it encodes — a confirmation is not a new identity — is
+ * pinned by `tests/unit/session-identity.test.ts` through this accessor.
+ */
+export function getSessionIdentity() { return state.identity; }
 const accountResource = createAccountResource(getSessionRevision);
 export function invalidateAccountResource() { accountResource.invalidate(); }
 const listeners = new Set<() => void>();
@@ -67,7 +81,9 @@ export function clearPrivateSession(broadcast = false, clearDrafts = false) {
   if((broadcast||clearDrafts)&&typeof sessionStorage!=='undefined'){try{for(const key of Object.keys(sessionStorage))if(key.startsWith('diary-capture-return:')||key.startsWith('review-session:'))sessionStorage.removeItem(key);}catch{/* Ignore. */}}
   if (broadcast) explicitSignOut = true;
   locallySignedOut = true;
-  publish({ authenticated: false, revision: state.revision + 1 });
+  // Ending a session is an identity change in every case: private content that
+  // is already on screen must not survive it, confirmed or not.
+  publish({ authenticated: false, revision: state.revision + 1, identity: state.identity + 1 });
   if (broadcast && typeof window !== 'undefined') {
     const event = { type: 'logout', nonce: `${Date.now()}-${Math.random()}` };
     if (channel) channel.postMessage(event);
@@ -103,7 +119,10 @@ export function markSignedIn(newSession = false) {
   explicitSignOut = false;
   if (newSession) accountResource.invalidate();
   if (state.authenticated === true && !newSession) return;
-  publish({ ...state, authenticated: true, revision: state.revision + 1 });
+  // The first confirmation of a session the page already loaded under only
+  // resolves what was unknown; the reader is the same person on the same page.
+  const confirmation = state.authenticated === null && !newSession;
+  publish({ ...state, authenticated: true, revision: state.revision + 1, identity: confirmation ? state.identity : state.identity + 1 });
 }
 
 export const articleCacheInvalidationEvent = 'diary-article-cache-invalidated';
