@@ -16,3 +16,19 @@ test-results/
 .scratch/*
 !.scratch/diary-v3-rebuild/
 .expo/
+
+# Ignore screenshots and other local image files; keep runtime web icons tracked.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.ico
+*.avif
+*.heic
+*.svg
+!/apps/web/public/*.png
+!/apps/web/public/*.svg
