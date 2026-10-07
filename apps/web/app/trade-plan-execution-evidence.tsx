@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { tradePlanExecutionBaselineHistoryResponseSchema, type TradePlanExecutionComparison, type TradePlanExecutionBaseline } from '@diary/contracts/trade-plan-execution'
 import { api } from './ui'
 import { planCopy } from './trade-plan-copy'
+import { formatInstantUtc } from './market-display';
 
 type Copy = typeof planCopy[keyof typeof planCopy]
 
@@ -15,7 +16,7 @@ function statusText(c: Copy, status: TradePlanExecutionComparison['comparisonSta
 
 function dateTime(value: string, locale: string) {
   try {
-    return `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value))} UTC`
+    return `${formatInstantUtc(locale, value)}`
   } catch {
     return value
   }

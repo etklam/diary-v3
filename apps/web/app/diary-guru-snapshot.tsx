@@ -5,6 +5,7 @@ import { percent } from './guru-format'
 import { guruNotificationsCopy } from './guru-notifications-copy'
 import { api, useUi } from './ui'
 import './routes/guru-notifications.css'
+import { formatDay } from './market-display';
 
 /**
  * Decision-time Guru context attached to one diary entry. The stored snapshot is
@@ -72,7 +73,7 @@ export function DiaryGuruSnapshots({ diaryId, symbols }: { diaryId: string; symb
             <div><dt>{copy.snapshotHolders}</dt><dd>{snapshot.holderCount}</dd></div>
             <div><dt>{copy.snapshotNet}</dt><dd>{snapshot.context.consensus?.netBuyerCount ?? '—'}</dd></div>
             <div><dt>{copy.snapshotWeight}</dt><dd>{percent(snapshot.context.consensus?.averagePortfolioWeightPercent ?? null, locale)}</dd></div>
-            <div><dt>{copy.snapshotCaptured}</dt><dd>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(snapshot.capturedAt))}</dd></div>
+            <div><dt>{copy.snapshotCaptured}</dt><dd>{formatDay(snapshot.capturedAt)}</dd></div>
           </dl>
         </li>)}</ul>}
     <p className="diary-guru-snapshot-source">{copy.snapshotSource}</p>

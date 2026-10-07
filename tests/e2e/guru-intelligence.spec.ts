@@ -123,7 +123,7 @@ test('explores prepared Guru consensus, rankings, sectors, and mobile cards', as
   await expect(themeRow.getByRole('cell').nth(2)).toHaveText('3')
   await expect(themeRow.getByRole('cell').nth(3)).toHaveText('1')
   await expect(themeRow.getByRole('cell').nth(4)).toHaveText('1 · 2 · 1 · 0')
-  await expect(themeRow).toContainText('+10%')
+  await expect(themeRow).toContainText('+10.00%')
   await page.screenshot({ path: 'docs/design/evidence/guru-intelligence/sectors-desktop.png', fullPage: true })
 
   await selectLocale(page, 'zh-TW')
@@ -143,7 +143,7 @@ test('explores prepared Guru consensus, rankings, sectors, and mobile cards', as
   const themeCard = page.locator('.guru-intelligence-cards .guru-intelligence-card').first()
   await expect(themeCard).toContainText('AI Infrastructure')
   await expect(themeCard).toContainText('3 · 1')
-  await expect(themeCard).toContainText('+10%')
-  await expect(themeCard).toContainText('75%')
+  await expect(themeCard).toContainText('+10.00%')
+  await expect(themeCard).toContainText('75.00%')
   await page.screenshot({ path: 'docs/design/evidence/guru-intelligence/sectors-mobile.png', fullPage: true })
 })

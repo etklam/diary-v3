@@ -6,6 +6,7 @@ import { DiaryGuruSnapshots } from '../diary-guru-snapshot';
 import { companyContextCopy } from '../company-context-input';
 import { reviewScheduleCopy } from '../review-scheduling';
 import { ledgerCopy, ledgerEmotions } from '../ledger-copy';
+import { deviceTimeZone, formatAmount, formatInstantIn, formatInstantUtc, formatQuantity } from '../market-display';
 import '../ledger.css';
 import '../diary-editor.css';
 import './diary-reading.css';
@@ -44,9 +45,12 @@ export default function DiaryPage() {
   const reviewLabels = reviewScheduleCopy[locale];
   const reviewDue = diary?.reviewDueAt ? new Date(diary.reviewDueAt) : null;
   const reviewOverdue = reviewDue !== null && reviewDue.getTime() <= Date.now();
+  // A review due moment is the same role the Review page renders, so it takes the
+  // same date-and-time format rather than a date-only variant of it.
   const reviewDueText = reviewDue
-    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: timezone ?? 'UTC' }).format(reviewDue) + (timezone ? '' : ' UTC')
+    ? timezone ? formatInstantIn(locale, reviewDue.toISOString(), timezone) : formatInstantUtc(locale, reviewDue.toISOString())
     : null;
+  const deviceZone = deviceTimeZone();
 
   async function load() {
     setPending(true);
@@ -143,12 +147,12 @@ export default function DiaryPage() {
           emptyText={originalJudgmentCopy[locale].missing}
         />
       </section>
-      {Boolean(diary.transactions?.length) && <section className="ledger-reading"><h2>{ledgerCopy[locale].title}</h2>{diary.transactions?.map(transaction => <section key={transaction.id}><h3>{transaction.symbol} · {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}</h3><dl>{(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => <div key={field}><dt>{ledgerCopy[locale][field]}</dt><dd>{field === 'tradeDate' ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZoneName: undefined }).format(new Date(transaction.tradeDate)) + ' · ' + Intl.DateTimeFormat().resolvedOptions().timeZone : field === 'emotion' && transaction.emotion && Object.hasOwn(ledgerEmotions[locale], transaction.emotion) ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en] : transaction[field] || '—'}</dd></div>)}</dl></section>)}<Link className="inline-link" to="/stocks">{ledgerCopy[locale].view}</Link></section>}
+      {Boolean(diary.transactions?.length) && <section className="ledger-reading"><h2>{ledgerCopy[locale].title}</h2>{diary.transactions?.map(transaction => <section key={transaction.id}><h3>{transaction.symbol} · {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}</h3><dl>{(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => <div key={field}><dt>{ledgerCopy[locale][field]}</dt><dd>{field === 'tradeDate' ? `${formatInstantIn(locale, transaction.tradeDate, deviceZone)} · ${deviceZone}` : field === 'quantity' ? formatQuantity(locale, transaction.quantity) : field === 'price' ? formatAmount(locale, transaction.price) : field === 'emotion' && transaction.emotion && Object.hasOwn(ledgerEmotions[locale], transaction.emotion) ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en] : transaction[field] || '—'}</dd></div>)}</dl></section>)}<Link className="inline-link" to="/stocks">{ledgerCopy[locale].view}</Link></section>}
       </div>
       <aside className="diary-reading-aside">
       <ul className="diary-tags" aria-label={labels.tags}>{diary.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
       {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
-      <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : `${reviewLabels.duePrefix} `}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
+      <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : reviewLabels.duePrefix}{' '}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
       <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
       <DiaryGuruSnapshots diaryId={diary.id} symbols={diary.stockSymbols ?? []} />
       </aside>

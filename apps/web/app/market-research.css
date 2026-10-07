@@ -22,6 +22,12 @@
 .market-scenario-table table,.market-history-table table{width:100%;border-collapse:collapse}
 .market-scenario-table th,.market-scenario-table td,.market-history-table th,.market-history-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .market-scenario-table th:first-child,.market-scenario-table td:first-child,.market-history-table th:first-child,.market-history-table td:first-child{text-align:left}
+/* The action column shrinks to its widest label and never wraps, so the price
+   columns absorb the spare width instead. Without this the column is sized for
+   "Use this row" and the longer selected label is pushed out of the scroll
+   container, which reads as a clipped button. */
+.market-scenario-table th:last-child,.market-scenario-table td:last-child{width:1%}
+.market-scenario-table td:last-child button{white-space:nowrap}
 .market-history-chart{min-height:300px;border:1px solid var(--border);border-radius:var(--radius-control);padding:16px;overflow-x:auto}
 .market-history-chart svg{display:block;width:100%;min-width:560px;height:260px}
 .market-history-chart polyline{fill:none;stroke:var(--series-1);stroke-width:2}

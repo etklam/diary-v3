@@ -106,8 +106,8 @@ test('admin rotation batch writes controlled indexes and guest monitor renders d
     await expect(guest.getByRole('region', { name: 'Snapshot date' }).getByText('Market state date', { exact: true })).toBeVisible();
     await expect(guest.getByTestId('market-state-history')).toBeVisible();
     await expect(guest.getByTestId('market-state-history')).toContainText('Risk off');
-    await expect(guest.getByText('State coverage as of: Sep 2, 2026 · Coverage: 98%', { exact: true })).toBeVisible();
-    await expect(guest.getByRole('region', { name: 'Market state history' }).getByText('Sep 2, 2026', { exact: true }).first()).toBeVisible();
+    await expect(guest.getByText('State coverage as of: 2026-09-02 · Coverage: 98.00%', { exact: true })).toBeVisible();
+    await expect(guest.getByRole('region', { name: 'Market state history' }).getByText('2026-09-02', { exact: true }).first()).toBeVisible();
     await expect(guest.getByText('Data is insufficient for a market-state reading.', { exact: true })).toBeVisible();
     await expect(guest.locator('.rotation-signal-insufficient_data').first()).toContainText('Insufficient data');
     await guest.screenshot({ path: 'docs/design/evidence/market-rotation/desktop.png', fullPage: true });

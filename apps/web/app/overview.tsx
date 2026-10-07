@@ -12,7 +12,7 @@ import { stockWatchlistResponseSchema } from '@diary/contracts/watchlist'
 import { api, useUi } from './ui'
 import { apiFailure, FailureNotice, type Failure } from './api-error'
 import { useSessionState } from './session'
-import { formatNeutralValue } from './market-display'
+import { formatAmount, formatInstantIn, formatPercent as sharedFormatPercent } from './market-display'
 import { Icon } from './icons'
 import { buildOverviewAttentionRows, isOverviewFirstUse, type OverviewAttentionRow } from './overview-logic'
 import './overview.css'
@@ -68,16 +68,15 @@ function useResource<T>(name: ResourceName, schema: z.ZodType<T>, revision: numb
 }
 
 function formatInstant(value: string, locale: string, timezone: string | null, unavailable = 'Unknown') {
-  return timezone ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(value)) : unavailable
+  return timezone ? formatInstantIn(locale, value, timezone) : unavailable
 }
 
 function formatNumber(value: number | null | undefined, locale: string) {
-  return formatNeutralValue(locale, value, 2)
+  return formatAmount(locale, value)
 }
 
 function formatPercent(value: number | null | undefined, locale: string) {
-  const formatted = formatNumber(value, locale)
-  return formatted === '—' ? formatted : `${formatted}%`
+  return sharedFormatPercent(locale, value)
 }
 
 function sourceLabel(value: DiarySummary['createdVia'], c: OverviewCopy) {
@@ -145,7 +144,7 @@ function WorkspaceAttentionSection({ attention, retryAttention, reviews, retryRe
     <FailureSection state={attention} retry={retryAttention} copy={c} errorId="overview-attention-error" label={tx(c, 'attention')} />
     <FailureSection state={reviews} retry={retryReviews} copy={c} errorId="overview-reviews-error" label={tx(c, 'reviewQueue')} />
     {attention.data && !attention.data.coverage.complete && <p className="overview-partial" role="status">{c.attentionPartial}</p>}
-    {rows.length ? <ul className="overview-action-list">{rows.slice(0, 5).map(row => <li key={row.key} data-testid="overview-attention-item" data-overview-priority={row.priority}><div><strong>{rowLabel(row, c)}</strong><span>{row.title}</span>{row.reason === 'position_concentration' && <span>{formatPercent(row.concentrationPct, locale)}</span>}{row.dueAt && <time dateTime={row.dueAt}>{c.due}: {formatInstant(row.dueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={row.href}>{c.open}</Link></li>)}</ul> : null}
+    {rows.length ? <ul className="overview-action-list">{rows.slice(0, 5).map(row => <li key={row.key} data-testid="overview-attention-item" data-overview-priority={row.priority}><div><strong>{rowLabel(row, c)}</strong><span>{row.title}</span>{row.reason === 'position_concentration' && <span className="figure">{formatPercent(row.concentrationPct, locale)}</span>}{row.dueAt && <time dateTime={row.dueAt}>{c.due}: {formatInstant(row.dueAt, locale, timezone, tx(c, 'unknown'))}</time>}</div><Link to={row.href}>{c.open}</Link></li>)}</ul> : null}
   </section>
 }
 

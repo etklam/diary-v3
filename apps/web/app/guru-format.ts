@@ -1,45 +1,51 @@
 import type { Locale } from './destinations'
+import {
+  formatAmount,
+  formatCompactUsd,
+  formatCount,
+  formatDay,
+  formatPercent,
+  formatQuantity,
+  formatSignedAmount,
+  formatSignedPercent as sharedSignedPercent,
+} from './market-display'
+
+// Guru surfaces used to carry their own copy of grouping, percentage and date
+// logic, which is how the same figure came to read one way here and another way
+// on the portfolio pages. These are now thin aliases over the one display
+// boundary; the argument order stays (value, locale) so no call site changes.
 
 export function compactUsd(value: string | null, locale: Locale): string {
-  if (value === null || !Number.isFinite(Number(value))) return '—'
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(Number(value))
+  return formatCompactUsd(locale, value)
 }
 
 export function percent(value: string | null, locale: Locale): string {
-  if (value === null || !Number.isFinite(Number(value))) return '—'
-  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(Number(value))}%`
+  return formatPercent(locale, value)
 }
 
 export function number(value: number | null, locale: Locale): string {
-  if (value === null) return '—'
-  return new Intl.NumberFormat(locale).format(value)
+  return formatCount(locale, value)
 }
 
+/** A share count or weight: exact to four decimals with padded zeros trimmed. */
 export function formatExactDecimal(value: string | null | undefined, locale: Locale): string {
-  if (value == null) return '—'
-  if (!/^-?\d+(?:\.\d+)?$/.test(value)) return value
-  const negative = value.startsWith('-')
-  const [whole = '0', fraction = ''] = (negative ? value.slice(1) : value).split('.')
-  const digits = whole
-  let grouped = digits
-  try { grouped = new Intl.NumberFormat(locale).format(BigInt(digits || '0')) } catch { /* Preserve exact source text. */ }
-  const trimmedFraction = fraction.replace(/0+$/, '')
-  return `${negative ? '-' : ''}${grouped}${trimmedFraction ? `.${trimmedFraction}` : ''}`
+  return formatQuantity(locale, value)
 }
 
 export function formatSignedDecimal(value: string | null | undefined, locale: Locale): string {
-  const formatted = formatExactDecimal(value, locale)
-  return value != null && Number(value) > 0 ? `+${formatted}` : formatted
+  return formatSignedAmount(locale, value)
 }
 
 export function formatSignedPercent(value: string | null, locale: Locale): string {
-  const formatted = percent(value, locale)
-  return value != null && Number(value) > 0 ? `+${formatted}` : formatted
+  return sharedSignedPercent(locale, value)
 }
 
-export function shortDate(value: string | null, locale: Locale): string {
-  if (value === null) return '—'
-  const date = new Date(value)
-  if (!Number.isFinite(date.getTime())) return value
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
+/** The day role is locale-independent — it is the ISO day — so `_locale` goes unused. */
+export function shortDate(value: string | null, _locale: Locale): string {
+  return formatDay(value)
+}
+
+/** Kept for call sites that mean "a price", so they do not reach for `percent`. */
+export function amount(value: string | null, locale: Locale): string {
+  return formatAmount(locale, value)
 }

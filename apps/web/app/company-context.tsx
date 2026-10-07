@@ -4,7 +4,7 @@ import { companyHubResponseSchema, type CompanyHubResponse } from '@diary/contra
 import { api, useUi } from './ui';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 import { thesisCopy } from './thesis-copy';
-import { formatNeutralValue } from './market-display';
+import { formatAmount, formatInstantUtc, formatPercent, formatQuantity } from './market-display';
 import './company-context.css';
 const copy = {
   en: { title: 'Your company research', position: 'Your position', current: 'Current view', original: 'Original decisions', review: 'Later reviews', empty: 'Nothing recorded yet.', edit: 'Open thesis and reviews', diary: 'Read diary', reviewDiary: 'Review diary', quantity: 'Quantity', averageCost: 'Average cost', totalCost: 'Cost basis', marketValue: 'Market value', concentration: 'Portfolio share · cost basis', missing: 'Quote unavailable. Your research and cost basis are still available.', held: 'Currently held', closed: 'Position closed', research_only: 'Research only', untracked: 'Not tracked', hint: 'Recent context, up to ten original decisions and ten thesis reviews. Notes remain editable; evidence preserves the recorded event.' },
@@ -23,14 +23,15 @@ export function CompanyContext({ symbol }: { symbol: string }) {
     }).catch(() => { if (!controller.signal.aborted) setError(apiFailure(null, t('connection'))); });
     return () => controller.abort();
   }, [symbol, attempt]);
-  const number = (value: number | null) => formatNeutralValue(locale, value, 6);
+  const figure = (key: 'quantity' | 'averageCost' | 'totalCost' | 'marketValue', value: number | null) =>
+    key === 'quantity' ? formatQuantity(locale, value) : formatAmount(locale, value);
   return <section className="company-context" aria-label={c.title}><h2>{c.title}</h2><p>{c.hint}</p>{error ? <><FailureNotice failure={error} id="company-context-error"/><button onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
     <section aria-label={c.position}><h3>{c.position} · {c[data.position.state]}</h3>{data.position.quoteStatus === 'missing' && <p role="status">{c.missing}</p>}
-      <dl className="market-metrics">{(['quantity', 'averageCost', 'totalCost', 'marketValue'] as const).map(key => <div key={key}><dt>{c[key]}</dt><dd data-testid={`company-${key}`}>{number(data.position[key])}</dd></div>)}<div><dt>{c.concentration}</dt><dd>{number(data.position.concentrationPct)}{data.position.concentrationPct !== null && '%'}</dd></div></dl>
+      <dl className="market-metrics">{(['quantity', 'averageCost', 'totalCost', 'marketValue'] as const).map(key => <div key={key}><dt>{c[key]}</dt><dd data-testid={`company-${key}`}>{figure(key, data.position[key])}</dd></div>)}<div><dt>{c.concentration}</dt><dd>{formatPercent(locale, data.position.concentrationPct)}</dd></div></dl>
       {data.company.currency && <p>{data.company.currency}</p>}
     </section>
     <section aria-label={c.current}><h3>{c.current}</h3>{data.thesis ? <><p>{labels[data.thesis.health]}</p><p className="company-context-text">{data.thesis.summary}</p><p className="company-context-text">{data.thesis.whyIOwnIt}</p></> : <p>{c.empty}</p>}<Link to={`/stocks/${encodeURIComponent(symbol)}/thesis`}>{c.edit}</Link></section>
     <section aria-label={c.original}><h3>{c.original}</h3>{data.relatedDiaries.length ? <ul className="company-context-list">{data.relatedDiaries.map(diary => <li key={diary.id}><time dateTime={diary.date}>{diary.date}</time><Link to={`/diaries/${diary.id}`}>{diary.title}</Link><Link to={`/diaries/${diary.id}/review`} aria-label={`${c.reviewDiary}: ${diary.title}`}>{c.reviewDiary}</Link></li>)}</ul> : <p>{c.empty}</p>}</section>
-    <section aria-label={c.review}><h3>{c.review}</h3>{data.reviews.length ? <ul className="company-context-list">{data.reviews.map(review => <li key={review.id}><time dateTime={review.reviewedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(review.reviewedAt))} UTC</time><span>{labels[review.outcome]} · {labels[review.portfolioDecision]}</span><Link to={`/stocks/${encodeURIComponent(symbol)}/thesis#review-${review.id}`}>{c.edit}</Link></li>)}</ul> : <p>{c.empty}</p>}</section>
+    <section aria-label={c.review}><h3>{c.review}</h3>{data.reviews.length ? <ul className="company-context-list">{data.reviews.map(review => <li key={review.id}><time dateTime={review.reviewedAt}>{formatInstantUtc(locale, review.reviewedAt)}</time><span>{labels[review.outcome]} · {labels[review.portfolioDecision]}</span><Link to={`/stocks/${encodeURIComponent(symbol)}/thesis#review-${review.id}`}>{c.edit}</Link></li>)}</ul> : <p>{c.empty}</p>}</section>
   </>}</section>;
 }

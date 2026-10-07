@@ -6,6 +6,7 @@ import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { signInPath } from '../session';
 import '../trade-plan.css';
 import '../alerts.css';
+import { formatInstantIn } from '../market-display';
 const copy = {
   en: { title: 'Diary reminders', hint: 'Return to a decision when it needs your attention.', scope: 'The earliest 100 active reminders, including overdue reminders.', empty: 'No active reminders.', open: 'Open diary', dismiss: 'Dismiss reminder', series: 'Dismiss entire series', week: 'Weekday series', month: 'Monthly weekday series', paused: 'Paused', timezone: 'Times shown in', done: 'Reminder dismissed.', rootHint: 'Dismissing the first occurrence also dismisses the remaining series.', write: 'Write a diary' },
   'zh-TW': { title: '日記提醒', hint: '在需要的時候，回頭檢視你的決策。', scope: '顯示最早的 100 筆有效提醒，包括已到期提醒。', empty: '目前沒有有效提醒。', open: '開啟日記', dismiss: '取消這次提醒', series: '取消整組提醒', week: '本週工作日提醒', month: '本月工作日提醒', paused: '已暫停', timezone: '時間顯示時區', done: '已取消提醒。', rootHint: '取消首筆提醒會同時取消整組剩餘提醒。', write: '寫日記' },
@@ -46,7 +47,7 @@ export default function Alerts() {
     {error ? <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/alerts')}>{t('login')}</Link>}<button onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : !rows ? <p role="status">{t('loading')}</p> : <>
       <p className="muted">{c.timezone}: {timezone}</p>{rows.length === 0 ? <><p>{c.empty}</p><Link to="/diaries/new">{c.write}</Link></> : <><p>{c.rootHint}</p><ol className="plan-list">{rows.map(row => {
         const root = row.recurringMode !== null && row.instanceNumber === 1 && (row.parentId === null || row.parentId === row.id);
-        return <li key={row.id} data-testid="diary-reminder"><time dateTime={row.triggerAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(row.triggerAt))}</time><h2>{row.message}</h2>{row.recurringMode && <p>{row.recurringMode === 'WEEK' ? c.week : c.month} · {row.instanceNumber}{row.isPaused ? ` · ${c.paused}` : ''}</p>}<div className="plan-header"><Link to={`/diaries/${row.diaryId}`}>{row.diary?.title ?? c.open}</Link><button className="secondary" disabled={pending !== null} onClick={() => void dismiss(row.id)}>{pending === row.id ? t('pending') : root ? c.series : c.dismiss}</button></div></li>;
+        return <li key={row.id} data-testid="diary-reminder"><time dateTime={row.triggerAt}>{formatInstantIn(locale, row.triggerAt, timezone)}</time><h2>{row.message}</h2>{row.recurringMode && <p>{row.recurringMode === 'WEEK' ? c.week : c.month} · {row.instanceNumber}{row.isPaused ? ` · ${c.paused}` : ''}</p>}<div className="plan-header"><Link to={`/diaries/${row.diaryId}`}>{row.diary?.title ?? c.open}</Link><button className="secondary" disabled={pending !== null} onClick={() => void dismiss(row.id)}>{pending === row.id ? t('pending') : root ? c.series : c.dismiss}</button></div></li>;
       })}</ol></>}
     </>}
   </section>;

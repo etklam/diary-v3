@@ -31,6 +31,7 @@ const copy = {
     status: { MISSING: 'None', QUEUED: 'Queued', TRANSLATING: 'Translating', NEEDS_REVIEW: 'Needs review', READY: 'Ready', PUBLISHED: 'Published', UNPUBLISHED: 'Unpublished', STALE: 'Stale', FAILED: 'Failed' },
     limit: (limit: number) => `Select at most ${limit} articles for one dispatch.`,
     noTargets: 'The selected articles share one source language with no available target.',
+    needTargets: 'Choose at least one target language to request a translation.',
     failure: 'Unable to read translation state.',
   },
   'zh-TW': {
@@ -48,6 +49,7 @@ const copy = {
     status: { MISSING: '未有', QUEUED: '已排入', TRANSLATING: '翻譯中', NEEDS_REVIEW: '待審閱', READY: '可發布', PUBLISHED: '已發布', UNPUBLISHED: '已下架', STALE: '需更新', FAILED: '失敗' },
     limit: (limit: number) => `一次最多選取 ${limit} 篇文章。`,
     noTargets: '所選文章的原文語言相同，沒有可用的目標語言。',
+    needTargets: '請至少選擇一個目標語言才能發起翻譯。',
     failure: '暫時無法讀取翻譯狀態。',
   },
   'zh-CN': {
@@ -65,6 +67,7 @@ const copy = {
     status: { MISSING: '未有', QUEUED: '已排入', TRANSLATING: '翻译中', NEEDS_REVIEW: '待审阅', READY: '可发布', PUBLISHED: '已发布', UNPUBLISHED: '已下架', STALE: '需更新', FAILED: '失败' },
     limit: (limit: number) => `一次最多选取 ${limit} 篇文章。`,
     noTargets: '所选文章的原文语言相同，没有可用的目标语言。',
+    needTargets: '请至少选择一个目标语言才能发起翻译。',
     failure: '暂时无法读取翻译状态。',
   },
 } as const;
@@ -152,7 +155,9 @@ export function TranslationBatch({ selected }: { selected: string[] }) {
             {item}
           </label>)}
         </fieldset>
-        <button type="button" disabled={pending || !chosen.length || jobs === 0} onClick={() => dialog.current?.showModal()}>{c.dispatch}</button>
+        {/* Per the Buttons rule: a disabled action names the precondition it is
+            waiting on, so the reader is not left guessing why it is dead. */}
+        <div className="actions"><button type="button" disabled={pending || !chosen.length || jobs === 0} onClick={() => dialog.current?.showModal()}>{c.dispatch}</button>{!pending && !chosen.length && available.length > 0 && <span className="muted">{c.needTargets}</span>}</div>
       </div>
     </>}
     {results && <div className="admin-translation-results" role="status">

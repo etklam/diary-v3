@@ -11,6 +11,7 @@ import { api, useUi } from '../ui'
 import { filingInspectorCopy, institutionalOperationsCopy } from './admin-institutional-copy'
 import { guruAdminCopy } from './admin-gurus-copy'
 import './admin-institutional.css'
+import { formatPercent } from '../market-display';
 
 function shortTime(value: string | null, locale: string) {
   return value ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
@@ -81,7 +82,7 @@ export function AdminGuruOperations({ id }: { id: string }) {
       <div><dt>{c.latestFiling}</dt><dd>{manager.latestFiling ? `${manager.latestFiling.accession} · ${manager.latestFiling.status}` : '—'}</dd></div>
       <div><dt>{c.filings}</dt><dd>{manager.filings.total} · {manager.filings.partial}P · {manager.filings.error}E</dd></div>
       <div><dt>{c.quarters}</dt><dd>{manager.quarters.ready}R · {manager.quarters.partial}P · {manager.quarters.error}E</dd></div>
-      <div><dt>{c.coverage}</dt><dd>{manager.mappingCoveragePercent ? `${Number(manager.mappingCoveragePercent).toFixed(2)}%` : '—'}</dd></div>
+      <div><dt>{c.coverage}</dt><dd>{manager.mappingCoveragePercent ? formatPercent(locale, manager.mappingCoveragePercent) : '—'}</dd></div>
       <div><dt>{c.ai}</dt><dd>{manager.analysis.queued + manager.analysis.running}Q · {manager.analysis.failed}E · {manager.analysis.invalidated}I</dd></div>
       {manager.discovery.lastErrorCode && <div><dt>{c.error}</dt><dd><span className="admin-institutional-error-code">{manager.discovery.lastErrorCode}</span></dd></div>}
     </dl>}
@@ -91,7 +92,7 @@ export function AdminGuruOperations({ id }: { id: string }) {
         <th scope="row"><code>{filing.accession}</code></th>
         <td>{filing.periodEnd ?? '—'}</td>
         <td><span className={`admin-institutional-state is-${filing.status.toLowerCase()}`}>{filing.status}</span></td>
-        <td>{filing.mappingCoverage ? `${Number(filing.mappingCoverage).toFixed(2)}%` : '—'}</td>
+        <td>{filing.mappingCoverage ? formatPercent(locale, filing.mappingCoverage) : '—'}</td>
         <td>{filing.errorCode ? <span className="admin-institutional-error-code">{filing.errorCode}</span> : '—'}</td>
         <td><Link to={`/admin/institutional/filings/${filing.id}`}>{c.open}</Link></td>
       </tr>)}</tbody>

@@ -6,6 +6,7 @@ import { CaptureEntry } from '../capture-entry'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { getSessionRevision, signInPath, useSessionState } from '../session'
 import { watchlistCopy, type WatchlistCopy } from '../watchlist-copy'
+import { formatDay } from '../market-display'
 import '../trade-plan.css'
 import '../watchlist.css'
 
@@ -19,9 +20,8 @@ function compareCustom(a: StockWatchlistItem, b: StockWatchlistItem) {
   return Number(b.pinned) - Number(a.pinned) || a.sortOrder - b.sortOrder || a.id.localeCompare(b.id)
 }
 
-function WatchlistRow({ item, locale, c, sort, index, visibleItems, filteredView, pending, rowError, onMove, onPin, onRemove }: {
+function WatchlistRow({ item, c, sort, index, visibleItems, filteredView, pending, rowError, onMove, onPin, onRemove }: {
   item: StockWatchlistItem
-  locale: string
   c: WatchlistCopy
   sort: SortMode
   index: number
@@ -43,10 +43,12 @@ function WatchlistRow({ item, locale, c, sort, index, visibleItems, filteredView
       <h3><Link to={company}>{item.stock.symbol}</Link></h3>
       {item.stock.name && <p>{item.stock.name}</p>}
     </div>
-    <p className="watch-meta">
-      {item.recordCount > 0 ? <><span className="watch-count">{c.records}: {item.recordCount}</span>{occurredAt && <> · <time dateTime={occurredAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(occurredAt))}</time></>}</> : c.none}
-    </p>
-    <p className="watch-summary">{item.latestRecord ? <><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</> : c.none}</p>
+    {/* One sentence per row when nothing is researched: the meta column stays out
+        of the way rather than repeating the summary column's fallback. */}
+    {item.recordCount > 0 && <p className="watch-meta">
+      <span className="watch-count">{c.records}: {item.recordCount}</span>{occurredAt && <> · <time dateTime={occurredAt}>{formatDay(occurredAt)}</time></>}
+    </p>}
+    <p className="watch-summary">{item.latestRecord ? <><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</> : item.recordCount > 0 ? null : c.none}</p>
     <div className="watch-actions" aria-label={`${c.more}: ${item.stock.symbol}`}>
       <Link className="button secondary button-compact" to={company}>{c.viewResearch}</Link>
       <CaptureEntry symbol={item.stock.symbol}/>
@@ -362,7 +364,7 @@ export default function Watchlist() {
       </div>
       <p className="watch-limit muted">{sort === 'order' ? c.customHint : c.limit}</p>
       {!visible.length ? <div className="empty-state"><p>{c.empty}</p></div>
-        : <div className="watch-list card"><ul className="plan-list">{visible.map((item, index) => <WatchlistRow key={item.id} item={item} locale={locale} c={c} sort={sort} index={index} visibleItems={visible} filteredView={filteredView} pending={pending[item.id]} rowError={rowErrors[item.id]} onMove={direction => move(item, direction)} onPin={() => pin(item)} onRemove={() => void rowMutation(item, 'remove', signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }))}/>)}</ul></div>}
+        : <div className="watch-list card"><ul className="plan-list">{visible.map((item, index) => <WatchlistRow key={item.id} item={item} c={c} sort={sort} index={index} visibleItems={visible} filteredView={filteredView} pending={pending[item.id]} rowError={rowErrors[item.id]} onMove={direction => move(item, direction)} onPin={() => pin(item)} onRemove={() => void rowMutation(item, 'remove', signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }))}/>)}</ul></div>}
     </>}
   </section>
 }

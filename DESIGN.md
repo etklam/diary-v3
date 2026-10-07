@@ -246,7 +246,7 @@ Wide tables live in named, bordered, rounded scroll regions with page-specific m
 
 ### Buttons
 
-Primary buttons are solid action with an explicit `action-hover` and `action-strong` active state. Secondary are surface with a `control` border — the only border value that meets 3:1 — and no shadow. Quiet (`.quiet-button`) is transparent with action text and an `action-tint` hover, for row-level controls that must not compete. Danger (`.danger-button`) is surface with a negative border and negative text, reserved for delete/archive actions that name their consequence and pair with a confirmation. All buttons: 44px minimum height (`.button-compact` 36px for toolbars), 14px text at weight 600, 1.4 line height, inline icon slot with 8px gap. Disabled is .5 opacity with a waiting cursor, because buttons here are disabled while a submit is in flight rather than to signal invalid input. Focus: 2px outline with 2px offset.
+Primary buttons are solid action with an explicit `action-hover` and `action-strong` active state. Secondary are surface with a `control` border — the only border value that meets 3:1 — and no shadow. Quiet (`.quiet-button`) is transparent with action text and an `action-tint` hover, for row-level controls that must not compete. Danger (`.danger-button`) is surface with a negative border and negative text, reserved for delete/archive actions that name their consequence and pair with a confirmation. All buttons: 44px minimum height (`.button-compact` 36px for toolbars), 14px text at weight 600, 1.4 line height, inline icon slot with 8px gap. Disabled is .5 opacity with a waiting cursor, and there are exactly two reasons for it: a submit is in flight, or the action has an unmet precondition that the surface already names next to the control — a selection count reading zero, an empty writing area, an unconfirmed baseline. A disabled button never stands in for field validation: an invalid value is reported by the field and its error summary, not by a dead button the reader has to reverse-engineer. If a precondition is not visible beside the control, name it there rather than disabling silently. Focus: 2px outline with 2px offset.
 
 ### Fields
 
@@ -282,11 +282,28 @@ Dialogs carry a hairline, an 8px radius and `shadow-pop`, and enter with a fade 
 
 ## Data and finance
 
-Signed values come from `formatMarketValue` (always `+`/`−`, exact string decimals preserved from API projections; `—` for unknown). The Latin font subset deliberately includes U+2212 so the true minus renders in the self-hosted face. Money and quantities in tables use the mono cut with `tabular-nums` and keep their container-scoped scroll. Series colors never imply direction; the position-sizing total is closed by a heavier rule — the accounting convention — above a real ratio allocation bar. Company pages separate current views from follow-up evidence; Review separates the original judgment from later reflection (original → retrospective order).
+**Every figure a reader judges is formatted by `apps/web/app/market-display.ts` and nowhere else.** No page calls `Intl.NumberFormat`, `toFixed` or `toLocaleString` on a displayed figure; `tests/unit/figure-formatting-boundary.test.ts` enforces that and carries the short list of surfaces exempted for a stated non-figure reason (chart axes, file sizes, SVG geometry, API payloads). Formatting walks the decimal digits rather than parsing to a float, so an exact API projection string is never rounded through a double.
+
+One convention per role, and the same role reads identically on every page:
+
+| Role | Function | Renders |
+|---|---|---|
+| Price, cost, money total | `formatAmount` | At least two decimals, grouped — `182.40`, `2,918.40` |
+| Signed amount (a delta) | `formatSignedAmount` | As above with an explicit `+` — `+2.40` |
+| Quantity | `formatQuantity` | Up to four decimals, padded zeros trimmed — `24`, not `24.0000` |
+| Percentage | `formatPercent` / `formatSignedPercent` | Exactly two decimals and the `%` — `74.98%`, never `74.976878%` |
+| Whole count | `formatCount` | Grouped, no decimals |
+| Large magnitude | `formatCompactUsd` | The one abbreviated figure — `$1.3B` for AUM and market cap |
+| Calendar day | `formatDay` | The ISO day in every locale — `2026-09-04`. A dated record sorts and aligns on ISO, and it carries no language |
+| Instant | `formatInstantIn` / `formatInstantLocal` / `formatInstantUtc` | Medium date and short time in a named zone; market instants name `UTC` |
+
+An amount keeps up to four decimals when it arrives as a **decimal string** and stops at two when it arrives as a **number**, because that is exactly the difference between precision somebody committed to and the tail of a float multiplication. An average cost of `"10.925"` stays `10.925`, or `quantity × cost` stops equalling the cost basis printed beside it; a computed market value of `123456850743.8265` reads `123,456,850,743.83`, because the extra digits say nothing. Pass the API's string through — never `Number(...)` it on the way in.
+
+Unknown is always `—`, never `0`. Signed market values come from `formatMarketValue` (always `+`/`-`, exact string decimals preserved from API projections). Note that both it and the formatters above emit U+002D, because that is what `Intl` produces — the Latin subset includes U+2212 but nothing currently renders it; see ticket 101. Money and quantities in tables use the mono cut with `tabular-nums` and keep their container-scoped scroll. Series colors never imply direction; the position-sizing total is closed by a heavier rule — the accounting convention — above a real ratio allocation bar. Company pages separate current views from follow-up evidence; Review separates the original judgment from later reflection (original → retrospective order).
 
 ## Content and i18n
 
-Main interface copy uses full translation keys in zh-TW/zh-CN/en. The route boundary renders outside the UI provider, so it resolves the stored preference after mount and starts from the document language; its 404 and failure states carry separate copy and separate actions (reload, back, home). Known partial coverage: the table Symbol header is fixed text, and search/share metadata (`route-meta.ts`, article `meta`) stays English. Trade times state the device IANA timezone; ambiguous DST times require an explicit UTC instant choice and nonexistent local times are rejected. Amounts stay as string inputs and are stored to two decimals.
+Main interface copy uses full translation keys in zh-TW/zh-CN/en. The route boundary renders outside the UI provider, so it resolves the stored preference after mount and starts from the document language; its 404 and failure states carry separate copy and separate actions (reload, back, home). Known partial coverage: the table Symbol header is fixed text, and search/share metadata (`route-meta.ts`, article `meta`) stays English. Trade times state the device IANA timezone; ambiguous DST times require an explicit UTC instant choice and nonexistent local times are rejected. Amounts stay as string inputs and are stored as the exact decimal the user entered — the API returns `"182.4"` for an entered `182.40`, so two-decimal presentation is applied at read time by the display boundary above, not at write time.
 
 ## Page recipes
 

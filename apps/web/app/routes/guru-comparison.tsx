@@ -7,7 +7,7 @@ import {
   guruDirectoryResponseSchema,
 } from '@diary/contracts'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
-import { formatNeutralValue } from '../market-display'
+import { formatAmount, formatNeutralValue, formatPercent } from '../market-display'
 import { api, useUi } from '../ui'
 import { guruCopy } from './gurus-copy'
 import './guru-comparison.css'
@@ -128,8 +128,10 @@ export default function GuruComparisonPage() {
     setTerm('')
   }
 
+  // A percentage is two decimals app-wide; anything else here is a ratio or a count.
   function shownValue(value: string | null, suffix = '') {
-    return value === null ? '—' : `${formatNeutralValue(locale, Number(value), 4)}${suffix}`
+    if (value === null) return '—'
+    return suffix === '%' ? formatPercent(locale, value) : `${formatAmount(locale, value)}${suffix}`
   }
 
   const periodOptions = data?.periods ?? []

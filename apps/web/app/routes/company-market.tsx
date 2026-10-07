@@ -10,7 +10,7 @@ import { marketSymbolSchema, type MarketQuote, type MarketHistorical, type Marke
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { useSessionState } from '../session';
-import { formatMarketValue, formatMarketValueWithSuffix, formatNeutralValue, marketClass } from '../market-display';
+import { formatAmount, formatDay, formatInstantUtc, formatMarketValue, formatSignedPercent, marketClass } from '../market-display';
 import './company-market.css';
 
 const copy={
@@ -28,11 +28,11 @@ export default function CompanyMarket(){
   const navigate=useNavigate();const [input,setInput]=useState(params.symbol??'');const [inputError,setInputError]=useState(false);
   const [quote,setQuote]=useState<ReadState<MarketQuote>>(initial);const [history,setHistory]=useState<ReadState<MarketHistorical>>(initial);
   const [range,setRange]=useState<MarketRange>('1y');const [page,setPage]=useState(0);const quoteVersion=useRef(0);const historyVersion=useRef(0);
-  const number=(value:number|null)=>formatNeutralValue(locale,value,6);
-  const signed=(value:number|null)=>formatMarketValue(locale,value,6);
+  const number=(value:number|null)=>formatAmount(locale,value);
+  const signed=(value:number|null)=>formatMarketValue(locale,value,2);
   const capture=useMemo(()=>captureContextForCompanySymbol(symbol),[symbol]);
   const captureCopy=locale==='en'?{record:'Record a thought',full:'Write a full diary',unsupported:'This market symbol cannot be linked to a diary, so diary writing is not available here.'}:locale==='zh-CN'?{record:'记录想法',full:'写完整日记',unsupported:'此市场代码无法关联日记，因此这里不提供日记书写入口。'}:{record:'記錄想法',full:'寫完整日記',unsupported:'此市場代號無法關聯日記，因此這裡不提供日記書寫入口。'};
-  const instant=(value:string|null)=>value===null?text.unknown:new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(value))+' UTC';
+  const instant=(value:string|null)=>value===null?text.unknown:formatInstantUtc(locale,value);
   async function loadQuote(bypass=false){
     const version=++quoteVersion.current;setQuote(initial());
     try{const result=await api.GET('/api/market/quote/{symbol}',{params:{path:{symbol},query:bypass?{nocache:'1'}:{}}});if(version!==quoteVersion.current)return;
@@ -60,14 +60,14 @@ export default function CompanyMarket(){
     {symbol&&<><section className="market-section" aria-labelledby="market-quote-title"><div className="market-heading"><h2 id="market-quote-title">{text.quote}</h2><button type="button" className="secondary" disabled={quote.pending} onClick={()=>void loadQuote(true)}>{quote.pending?t('loading'):text.refresh}</button></div>
       {quote.pending?<p role="status">{t('loading')}</p>:quote.error?<FailureNotice failure={quoteFailure} id="quote-error"/>:quote.data&&<>
         {quote.source==='stale'&&<p role="status" className="market-stale">{text.stale}</p>}
-        <dl className="market-metrics"><div><dt>{text.price}</dt><dd data-testid="market-price">{number(quote.data.regularMarketPrice)}</dd></div><div><dt>{text.currency}</dt><dd>{quote.data.currency??text.unknown}</dd></div><div><dt>{text.previous}</dt><dd>{number(quote.data.previousClose)}</dd></div><div><dt>{text.change}</dt><dd className={marketClass(quote.data.change)}>{signed(quote.data.change)}</dd></div><div><dt>{text.percent}</dt><dd className={marketClass(quote.data.changePercent)}>{formatMarketValueWithSuffix(locale, quote.data.changePercent, '%', 6)}</dd></div><div><dt>{text.state}</dt><dd>{quote.data.marketState?(text.states[quote.data.marketState as keyof typeof text.states]??quote.data.marketState):text.unknown}</dd></div></dl>
+        <dl className="market-metrics"><div><dt>{text.price}</dt><dd data-testid="market-price">{number(quote.data.regularMarketPrice)}</dd></div><div><dt>{text.currency}</dt><dd>{quote.data.currency??text.unknown}</dd></div><div><dt>{text.previous}</dt><dd>{number(quote.data.previousClose)}</dd></div><div><dt>{text.change}</dt><dd className={marketClass(quote.data.change)}>{signed(quote.data.change)}</dd></div><div><dt>{text.percent}</dt><dd className={marketClass(quote.data.changePercent)}>{formatSignedPercent(locale, quote.data.changePercent)}</dd></div><div><dt>{text.state}</dt><dd>{quote.data.marketState?(text.states[quote.data.marketState as keyof typeof text.states]??quote.data.marketState):text.unknown}</dd></div></dl>
         <p className="market-timestamp">{text.time}: <time dateTime={quote.data.lastUpdateTime??undefined}>{instant(quote.data.lastUpdateTime)}</time></p><p className="market-timestamp">{text.fetched}: <time dateTime={quote.fetchedAt??undefined}>{instant(quote.fetchedAt)}</time></p>
       </>}
     </section>
     <section className="market-section" aria-labelledby="market-history-title"><div className="market-heading"><h2 id="market-history-title">{text.history}</h2><label>{text.range}<select value={range} onChange={event=>setRange(event.target.value as MarketRange)}>{ranges.map((value,index)=><option key={value} value={value}>{text.ranges[index]}</option>)}</select></label></div>
       {history.pending?<p role="status">{t('loading')}</p>:history.error?<><FailureNotice failure={historyFailure} id="history-error"/><button type="button" className="secondary" onClick={()=>void loadHistory()}>{t('retry')}</button></>:<>
         {history.source==='stale'&&<p role="status" className="market-stale">{text.stale}</p>}
-        {rows.length===0?<p>{text.empty}</p>:<details className="market-history-details"><summary>{text.showHistory} · {rows.length}</summary><><div className="market-table"><table><caption>{symbol} · {text.history}</caption><thead><tr><th scope="col">{text.date}</th><th scope="col">{text.close}</th></tr></thead><tbody>{rows.slice(page*50,page*50+50).map((row,index)=><tr key={`${row.timestamp}-${index}`}><td><time dateTime={new Date(row.timestamp*1000).toISOString()}>{new Date(row.timestamp*1000).toISOString().slice(0,10)}</time></td><td>{number(row.close)}</td></tr>)}</tbody></table></div>
+        {rows.length===0?<p>{text.empty}</p>:<details className="market-history-details"><summary>{text.showHistory} · {rows.length}</summary><><div className="market-table"><table><caption>{symbol} · {text.history}</caption><thead><tr><th scope="col">{text.date}</th><th scope="col">{text.close}</th></tr></thead><tbody>{rows.slice(page*50,page*50+50).map((row,index)=><tr key={`${row.timestamp}-${index}`}><td><time dateTime={new Date(row.timestamp*1000).toISOString()}>{formatDay(new Date(row.timestamp*1000).toISOString())}</time></td><td>{number(row.close)}</td></tr>)}</tbody></table></div>
           {count>1&&<div className="market-pagination"><button className="secondary" disabled={page===0} onClick={()=>setPage(value=>value-1)}>{text.previousPage}</button><span>{text.page} {page+1} / {count}</span><button className="secondary" disabled={page+1===count} onClick={()=>setPage(value=>value+1)}>{text.nextPage}</button></div>}</></details>}
         </>}
         <p className="market-timestamp">{text.fetched}: <time dateTime={history.fetchedAt??undefined}>{instant(history.fetchedAt)}</time></p>

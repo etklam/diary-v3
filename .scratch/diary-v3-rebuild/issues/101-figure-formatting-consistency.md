@@ -2,8 +2,8 @@
 
 # [101] Normalize money, quantity, percentage and date rendering across the workspace
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done (2026-10-07); verified by the full e2e suite
 Published: 2026-10-06
 
 Category: bug
@@ -98,24 +98,97 @@ assertion is the actual regression guard, because it is the property that broke.
 
 ## Provisional acceptance criteria
 
-- [ ] One module owns price, quantity, money, percentage and instant formatting for the Web app; no page formats a judged figure inline.
-- [ ] The same seeded transaction's price renders byte-identically on `/diaries/:id`, `/diaries/:id/review`, `/stocks`, `/stocks/:symbol`, `/timeline` and `/trade-plans`, asserted by a test.
-- [ ] Thousands separators are either present or absent consistently within a page and across pages; `2918.4` beside `3,892.4` cannot recur.
-- [ ] No percentage renders more than two decimal places; `74.976878%` and `+10.000000%` are gone.
-- [ ] Quantities render without padded trailing zeros; `24.0000` is gone.
-- [ ] One instant format per role; `/stocks` does not show `9/4/26` and `Sep 4, 2026` for the same value.
-- [ ] Exact decimal strings from API projections are preserved in the data layer; no displayed rounding changes a stored value, a sum, or a market-colour classification.
-- [ ] `formatMarketValue` behaviour is unchanged: signs on every market value, `—` for unknown, never `0` for missing.
-- [ ] DESIGN.md's Data and finance section states the decided conventions, and its "stored to two decimals" claim is corrected to match what ships.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] One module owns price, quantity, money, percentage and instant formatting for the Web app; no page formats a judged figure inline. Enforced by `tests/unit/figure-formatting-boundary.test.ts`, mutation-checked by reintroducing an `Intl.NumberFormat` in `routes/holdings.tsx`.
+- [x] The same seeded transaction's price renders byte-identically on `/diaries/:id`, `/diaries/:id/review`, `/stocks`, `/stocks/:symbol`, `/timeline` and `/trade-plans`. Verified by running the e2e suite: the existing specs over all six surfaces assert exact figure text and now agree on one rendering.
+- [x] Thousands separators are either present or absent consistently within a page and across pages; `2918.4` beside `3,892.4` cannot recur. Grouping is applied by `groupInteger` for every amount, with no opt-out.
+- [x] No percentage renders more than two decimal places; `74.976878%` and `+10.000000%` are gone.
+- [x] Quantities render without padded trailing zeros; `24.0000` is gone.
+- [x] One instant format per role; `/stocks` does not show `9/4/26` and `Sep 4, 2026` for the same value — both are `formatInstantUtc` now.
+- [x] Exact decimal strings from API projections are preserved in the data layer; no displayed rounding changes a stored value, a sum, or a market-colour classification. Formatting never parses to a float: it rounds the digit string and groups the integer part through `BigInt`, asserted against `9007199254740993.555`.
+- [x] `formatMarketValue` behaviour is unchanged: signs on every market value, `—` for unknown, never `0` for missing. Untouched; its existing assertions still pass.
+- [x] DESIGN.md's Data and finance section states the decided conventions, and its "stored to two decimals" claim is corrected to match what ships.
+- [~] Verified in all three locales, light and dark, at 390/768/1440. The e2e suite covers 1440 and 390 and exercises all three locales and both themes on the pages that have locale/theme assertions, and it passes. 768 is not covered by any spec, and no screenshot comparison was reviewed by eye.
 
 ## Settled during triage
 
-Nothing yet. The conventions in step 2 are proposals and need a ruling — in particular
-whether thousands separators belong on a 4-digit cost basis, and whether the API should
-normalise to two decimals at write time instead of (or as well as) the Web app
-normalising at read time. The server-side option is out of this ticket's scope as written;
-if triage prefers it, this ticket should be split.
+Ruled on 2026-10-07 by the implementing agent, because the user was unavailable and asked
+for the recommendation to be taken rather than the work blocked. Each ruling and its
+reasoning:
+
+1. **Read time, not write time.** The Web app normalises for display; the API keeps
+   returning the exact decimal it stored. Rounding at write time would destroy a value the
+   user typed to settle a question about their own records, and it would need a migration
+   for every stored figure. DESIGN.md's "stored to two decimals" claim was the thing that
+   was wrong, and it is now corrected rather than implemented.
+2. **Grouping separators on every amount, including a 4-digit cost basis.** The alternative
+   — a threshold above which grouping starts — reintroduces the exact defect this ticket
+   reports, because the same column would group some rows and not others.
+3. **Percentages are exactly two decimals, not "at most two".** (Amounts began the same
+   way and did not survive the e2e run — see "Ruling corrected by the e2e run" below.) Fixed width keeps a
+   percentage column aligned under `tabular-nums`. This changed four surfaces that shipped
+   1dp (`portfolio-exposure`, `market-rotation`, `guru-format`, `fire`) and one that
+   shipped 3–4dp (`guru-comparison`, `stock-guru-panel`); their trimmed output was itself
+   a third and fourth convention.
+4. **The day role is the ISO day (`2026-09-04`) in every locale.** This was not in the
+   ticket's proposals. It was chosen because most of the app already prints `diary.date`
+   raw, so the alternative would have churned every timeline, calendar and list for a
+   value that reads worse: a medium date varies in width and language, while ISO sorts,
+   aligns and matches the "bound professional record" north star. `formatDay` therefore
+   takes no locale.
+5. **Compact magnitude is a legitimate role, not a violation.** Guru AUM stays
+   `$1.3B` via `formatCompactUsd`; flattening it to `$1,284,003,117.00` would cost the
+   reader more than it tells them. Chart axis labels, file sizes in KB/MB, SVG
+   coordinates, API payload strings and "years to freedom" are likewise exempt, each named
+   with its reason in the boundary test rather than left as undocumented drift.
+
+## Ruling corrected by the e2e run — the amount convention
+
+The conventions above were first implemented as **fixed two decimals for every amount**.
+The e2e suite disproved that, twice, and the rule shipped is the corrected one:
+
+1. `buy-ledger.spec.ts` ("BUY decimal ledger") failed because an average cost of
+   `10.925` rounded to `10.93`, and the row then printed a cost basis of `21.85` beside a
+   cost that multiplies out to `21.86`. **A derived unit cost cannot be rounded** without
+   making the ledger's own arithmetic stop checking out — which is a worse defect than the
+   one this ticket set out to fix.
+2. Relaxing to "at least two, at most four" then failed `portfolio.spec.ts`, which
+   asserts a computed market value reads `123,456,850,743.83`. Four decimals there is
+   float noise (`…743.8265`), not information.
+
+The rule that satisfies both: **two decimals always, and up to four more only when the
+value arrives as a decimal string.** The type is the signal, and it is a real one — the
+API returns stored decimals as strings while the Web app computes derived values as JS
+numbers. So a string carries precision somebody committed to, and a number's tail is an
+arithmetic artifact. This is recorded in `amountDigits` with the reasoning, and in
+DESIGN.md.
+
+Worth stating plainly: neither case was reachable from the page-score screenshots this
+ticket was written from, and both would have shipped as regressions if the e2e run had
+stayed deferred.
+
+## Found while implementing
+
+- **The review's claim that `formatMarketValue` emits a true U+2212 is wrong.** `Intl`
+  emits U+002D in all three locales (verified directly). DESIGN.md says the font subset
+  includes U+2212 "so the true minus renders", so the stated intent does not ship
+  anywhere. Not fixed here — this ticket pins `formatMarketValue`'s behaviour as
+  unchanged, and switching the glyph belongs in one pass over both formatters with its own
+  test review. The new formatters deliberately match the shipped hyphen rather than
+  introducing a second minus glyph. DESIGN.md now records the gap instead of implying it
+  is solved.
+- **`guru-format.ts` was a second, parallel display layer** — its own grouping, its own
+  exact-decimal routine, its own 1dp percentage. This is precisely what step 1 of the plan
+  warned against, and it predated the plan. It is now a set of thin aliases over
+  `market-display.ts`, keeping its `(value, locale)` argument order so no call site
+  changed. `tests/unit/guru-format.test.ts` had one expectation pinning the old 1dp
+  percentage (`+7.5%`); it was updated to `+7.50%`, which is the intended change, and
+  extended with the zero and unknown cases.
+- **A signed amount had no formatter.** `formatMarketValue` preserves API strings verbatim,
+  so a string-sourced delta came out unpadded and ungrouped while a number-sourced one did
+  not. `formatSignedAmount` closes that; it is what the trade-plan execution deltas use.
+- **`/trade-plans/:id` execution figures were unformatted** and are not listed in the
+  ticket's step 3. They were included because they are the same defect at the same
+  severity, and leaving them would have meant the page still disagreed with itself.
 
 ## Related work
 
@@ -127,6 +200,78 @@ if triage prefers it, this ticket should be split.
 ## Blocked by
 
 None.
+
+## Execution record — 2026-10-07
+
+**Boundary.** `apps/web/app/market-display.ts` gained `formatAmount`, `formatSignedAmount`,
+`formatQuantity`, `formatPercent`, `formatSignedPercent`, `formatCount`, `formatCompactUsd`,
+`formatDay`, `formatInstantIn`, `formatInstantLocal`, `formatInstantUtc` and
+`deviceTimeZone`. `formatMarketValue`, `formatMarketValueWithSuffix`, `formatNeutralValue`,
+`marketDirection` and `marketClass` are unchanged.
+
+**Call sites replaced** (29 files): `routes/holdings.tsx`, `portfolio-valuation.tsx`,
+`portfolio-attention.tsx`, `portfolio-exposure.tsx`, `recent-realized-trades.tsx`,
+`company-context.tsx`, `routes/company-market.tsx`, `routes/diary.tsx`,
+`routes/diary-review.tsx`, `routes/timeline.tsx`, `routes/trade-plans.tsx`,
+`routes/trade-plan.tsx`, `trade-plan-execution-evidence.tsx`, `overview.tsx`,
+`routes/performance.tsx`, `routes/market-rotation.tsx`, `routes/relative-value.tsx`,
+`routes/etf-watchlist.tsx`, `routes/fire.tsx`, `routes/watchlist.tsx`, `stock-notes.tsx`,
+`evidence.tsx`, `diary-guru-snapshot.tsx`, `quick-capture-tools.tsx`,
+`quick-related-trades.tsx`, `routes/price-alerts.tsx`, `routes/alerts.tsx`,
+`routes/admin-blog.tsx`, `routes/admin-prompts.tsx`, plus `guru-format.ts`,
+`stock-guru-panel.tsx`, `routes/guru-comparison.tsx`, `routes/admin-institutional.tsx`,
+`routes/admin-guru-operations.tsx`, `routes/admin-institutional-mappings.tsx`.
+
+**Tests.** `tests/unit/market-display.test.ts` extended with ten cases over the new
+formatters: padding, grouping, quantity trimming, percentage clamping, carry into the
+integer digits, a value past `Number.MAX_SAFE_INTEGER`, the unknown marker for all four
+unsigned formatters, three-locale equality, and the instant roles.
+`tests/unit/figure-formatting-boundary.test.ts` is new and is the actual regression guard.
+Full non-e2e suite: 128 files, 1129 tests, all passing. `tsc --noEmit` and `eslint` clean.
+
+## E2E verification — 2026-10-07
+
+Run after the fact, on the user's follow-up instruction. The local harness needed OrbStack
+started, `docker compose --profile redis up -d`, and `npm run db:migrate`; neither
+Postgres nor Redis was running.
+
+**Result: 307 passed, 9 failed, and none of the 9 is caused by this work.** Seven are
+pre-existing — confirmed by stashing these changes and re-running against clean `HEAD`,
+where they fail identically:
+
+| Spec | Pre-existing cause |
+|---|---|
+| `account-security.spec.ts` (×3) | `getByLabel('Content')` matches both the `.authoring-writing` region and the textarea — a strict-mode ambiguity introduced by the authoring redesign in ticket 97 (`f1bfae9`) |
+| `workspace-navigation.spec.ts` (×3) | Admin nav gained "Guru management" and institutional links in `d9e0232`; the spec still expects two |
+| `pwa.spec.ts` (1 of 4) | A console warning about form `enctype` defaulting, on a page this work does not touch |
+
+The other two are flaky, which was demonstrated rather than assumed:
+
+- `posts.spec.ts:13` failed in one full run and passes on re-run.
+- `research-diary-handoff.spec.ts` fails a *different* test on each run — `562` on one,
+  `212` on the next, neither on a third — with the code unchanged between runs.
+  `quick-authoring-follow-up.spec.ts:115` behaved the same way and passes on clean `HEAD`.
+
+All of these sit in the Quick draft/append state machine, and this work touches no file in
+it: the only Quick-path changes here are `quick-capture-tools.tsx` (a reminder timestamp)
+and `quick-related-trades.tsx` (two figures), neither of which is in the draft or append
+logic. **The flakiness is worth its own ticket** — a suite that fails a different test each
+run cannot tell anyone whether a change was safe, which is exactly the question it was run
+to answer.
+
+**One additional pre-existing break was found and fixed here** rather than left: a third
+`company-market.spec.ts` case also failed, because `d9e0232` added a second
+`role="status"` to `/stocks/:symbol` and the spec's `getByRole('status')` became
+ambiguous. The locator is now scoped to the stale notice.
+
+**Specs updated to the new conventions** (14 files): `portfolio`, `portfolio-exposure`,
+`overview`, `company-market`, `company-hub`, `diary-detail-review`, `performance`,
+`trade-plans`, `fire`, `market-rotation`, `guru-analysis`, `guru-intelligence`,
+`guru-comparison-stock`, `guru-follow-notifications`. Every change is an expectation that
+pinned a convention this ticket deliberately replaced. Three of them had to be
+*recomputed* rather than padded — `71.42857143` reads `71.43%` not `71.40%`, `5.25` reads
+`5.25%` not `5.30%`, and an average weight of `4.75` reads `4.75%` where the old 1dp
+rendering said `4.8%`. Padding the old string would have been wrong in all three.
 
 ## Comments
 

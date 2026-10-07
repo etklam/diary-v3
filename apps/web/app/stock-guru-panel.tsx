@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { stockGuruResearchQuerySchema, stockGuruResearchResponseSchema } from '@diary/contracts'
 import { apiFailure, FailureNotice, type Failure } from './api-error'
-import { formatNeutralValue } from './market-display'
+import { formatAmount, formatPercent } from './market-display'
 import { GuruStockWatchButton } from './guru-stock-watch'
 import { api, useUi } from './ui'
 import './stock-guru-panel.css'
@@ -56,8 +56,10 @@ export function StockGuruPanel({ symbol, compact = true }: { symbol: string; com
     return () => controller.abort()
   }, [attempt, period, symbol, text.failed])
 
+  // A percentage is two decimals app-wide; anything else here is a ratio or a count.
   function value(value: string | null, suffix = '') {
-    return value === null ? '—' : `${formatNeutralValue(locale, Number(value), 3)}${suffix}`
+    if (value === null) return '—'
+    return suffix === '%' ? formatPercent(locale, value) : `${formatAmount(locale, value)}${suffix}`
   }
 
   function choosePeriod(value: string) {

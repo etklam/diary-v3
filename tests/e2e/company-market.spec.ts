@@ -3,7 +3,7 @@ import { test, expect, selectLocale, selectTheme } from '../support/e2e';
 test('guests can inspect quotes, change historical range, and resolve an index alias',async({page})=>{
   await page.goto('/stocks/SPY');
   await selectLocale(page, 'en');
-  await expect(page.getByTestId('market-price')).toHaveText('110');
+  await expect(page.getByTestId('market-price')).toHaveText('110.00');
   const historyDetails = page.locator('.market-history-details');
   await historyDetails.locator(':scope > summary').click();
   await expect(historyDetails).toHaveJSProperty('open', true);
@@ -14,7 +14,7 @@ test('guests can inspect quotes, change historical range, and resolve an index a
   await page.getByRole('textbox',{name:'Stock or index symbol',exact:true}).fill('spx');
   await page.getByRole('button',{name:'View market data',exact:true}).click();
   await expect(page.getByRole('heading',{level:1,name:'^GSPC',exact:true})).toBeVisible();
-  await expect(page.getByTestId('market-price')).toHaveText('110');
+  await expect(page.getByTestId('market-price')).toHaveText('110.00');
   await expect(page.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();
   await page.setViewportSize({width:1440,height:1000});
   await selectTheme(page, 'light');
@@ -30,7 +30,7 @@ test('guests can inspect quotes, change historical range, and resolve an index a
 test('missing metadata stays unknown and quote/history errors recover independently',async({page})=>{
   await page.goto('/stocks/PARTIAL');
   await selectLocale(page, 'en');
-  await expect(page.getByTestId('market-price')).toHaveText('90');
+  await expect(page.getByTestId('market-price')).toHaveText('90.00');
   await expect(page.getByText('Not provided',{exact:true})).toHaveCount(3);
   await expect(page.getByText('—',{exact:true})).toHaveCount(3);
   const partialHistory = page.locator('.market-history-details');
@@ -38,7 +38,7 @@ test('missing metadata stays unknown and quote/history errors recover independen
   await expect(partialHistory).toHaveJSProperty('open', true);
   await expect(partialHistory.getByRole('table')).toBeVisible();
   await page.goto('/stocks/HISTFAIL');
-  await expect(page.getByTestId('market-price')).toHaveText('110');
+  await expect(page.getByTestId('market-price')).toHaveText('110.00');
   await expect(page.getByTestId('api-error')).toContainText('Unable to get historical prices');
   await expect(page.getByRole('button',{name:'Try again',exact:true})).toBeVisible();
   await page.getByRole('textbox',{name:'Stock or index symbol',exact:true}).fill('SPY');
@@ -57,14 +57,16 @@ test('missing metadata stays unknown and quote/history errors recover independen
 test('a failed quote refresh is identified as stale without presenting a new quote timestamp',async({page})=>{
   await page.goto('/stocks/STALE');
   await selectLocale(page, 'en');
-  await expect(page.getByTestId('market-price')).toHaveText('110');
+  await expect(page.getByTestId('market-price')).toHaveText('110.00');
   const time=page.locator('time').first();
   await expect(time).toHaveAttribute('datetime','2026-09-04T15:00:00.000Z');
   const refresh=page.waitForResponse(response=>response.url().includes('/api/market/quote/STALE?nocache=1'));
   await page.getByRole('button',{name:'Refresh quote',exact:true}).click();
   expect((await refresh).headers()['x-market-data-source']).toBe('stale');
-  await expect(page.getByRole('status')).toContainText('Showing the last successful data');
-  await expect(page.getByTestId('market-price')).toHaveText('110');
+  // The guru panel added a second role=status to this page in d9e0232, so the
+  // stale notice has to be named rather than assumed to be the only one.
+  await expect(page.locator('[role="status"]', { hasText: 'Showing the last successful data' })).toBeVisible();
+  await expect(page.getByTestId('market-price')).toHaveText('110.00');
   await expect(time).toHaveAttribute('datetime','2026-09-04T15:00:00.000Z');
   await selectLocale(page, 'zh-TW');
   await expect(page.getByRole('heading',{name:'最新報價',exact:true})).toBeVisible();

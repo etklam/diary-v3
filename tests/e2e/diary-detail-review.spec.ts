@@ -27,8 +27,9 @@ test('diary detail review section answers due state and next action',async({page
  const due=new Date((Math.floor(Date.now()/60000)+60*24)*60000);
  await page.getByLabel('Review due at',{exact:true}).fill(localWall(due));
  await page.getByRole('button',{name:'Save diary',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));await page.goto(`/diaries/${id}`);
- // Scheduled ahead: medium date in the account timezone plus the review link.
- await expect(page.getByText(`Review ${new Intl.DateTimeFormat('en',{dateStyle:'medium',timeZone:'Asia/Taipei'}).format(due)}`,{exact:true})).toBeVisible();
+ // Scheduled ahead: a review due moment is the instant role, so it carries the time
+ // in the account timezone, matching how /diaries/:id/review renders the same value.
+ await expect(page.getByText(`Review ${new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(due)}`,{exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:'Review diary',exact:true})).toBeVisible();
  await expect(page.getByText('Review due',{exact:true})).toHaveCount(0);
  // Overdue: emphasized state with the primary contextual action.

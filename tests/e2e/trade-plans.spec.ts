@@ -79,7 +79,7 @@ test('Trade Plan execution keeps selected fills while confirming a new baseline 
  await picker.getByRole('button',{name:'Select',exact:true}).click();
  await page.getByRole('button',{name:'Save execution selection',exact:true}).click();
  await expect(page.getByText('Execution selection saved.',{exact:true})).toBeVisible();
- await expect(page.getByText('103.333333',{exact:true})).toBeVisible();
+ await expect(page.getByText('103.3333',{exact:true})).toBeVisible();
  await page.locator('.execution-selected-list > li').first().getByRole('button',{name:'Remove',exact:true}).click();
  await page.getByRole('textbox',{name:'Reason for deviation',exact:true}).fill('Draft deviation retained');
  await page.getByRole('textbox',{name:'Entry price',exact:true}).fill('101');
@@ -110,7 +110,7 @@ test('Trade Plan execution keeps selected fills while confirming a new baseline 
  const savedPlan=await (await page.request.get(`/api/trade-plans/${planId}`)).json();
  await page.goto(`/diaries/${savedPlan.diaryId}/review`);
  await page.locator('.review-plan-execution > summary').click();
- await expect(page.locator('.review-plan-execution')).toContainText('103.333333');
+ await expect(page.locator('.review-plan-execution')).toContainText('103.3333');
 });
 
 test('Trade Plan restores a local draft, clears a reverted dirty state, and reports storage quota failures', async ({page}) => {
@@ -262,5 +262,5 @@ test('Trade Plan keeps newer execution metrics when a plan-save reload GET resol
  await expect(page.getByRole('textbox',{name:'Reason for deviation',exact:true})).toHaveValue('N+1 saved reason');
  await expect(page.locator('.execution-values')).toContainText('10');
  await expect(page.locator('.execution-values')).toContainText('100');
- await expect(page.locator('.execution-values')).not.toContainText('103.333333');
+ await expect(page.locator('.execution-values')).not.toContainText('103.3333');
 });

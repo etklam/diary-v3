@@ -53,10 +53,19 @@
 
 /* Text fields fill the column so the grid reads as one aligned form; a select
    stays the width of its own options (see the select rule in styles.css). */
-.plan-grid input,
+.plan-grid input:not([type='checkbox']),
 .plan-grid textarea {
   width: 100%;
   box-sizing: border-box;
+}
+
+/* A checkbox is a choice, not a field: it keeps its intrinsic size and sits on
+   one baseline beside its label text, rather than stacking under it the way the
+   label-over-field rule above arranges text inputs. */
+.plan-grid label:has(> input[type='checkbox']) {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-items: start;
 }
 
 .plan-wide {

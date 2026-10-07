@@ -13,7 +13,7 @@ for (const width of [1440,390]) {
     await expect(page.getByRole('heading',{name:'財務自由計算',exact:true})).toBeVisible();
     await selectLocale(page, 'en');
     if(width===390) await selectTheme(page, 'dark');
-    await expect(page.getByTestId('fire-target')).toHaveText('15,000,000');
+    await expect(page.getByTestId('fire-target')).toHaveText('15,000,000.00');
     await expect(page.getByTestId('fire-projection').locator('tbody tr')).toHaveCount(10);
     await page.getByRole('button',{name:'Show all projected years'}).click();
     expect(await page.getByTestId('fire-projection').locator('tbody tr').count()).toBeGreaterThan(10);
@@ -22,9 +22,9 @@ for (const width of [1440,390]) {
     await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBe(0);
     await page.screenshot({path:`docs/design/evidence/fire/fire-${width}.png`,fullPage:true});
     await page.getByTestId('fire-preset').selectOption('conservative');
-    await expect(page.getByTestId('fire-target')).toHaveText('20,000,000');
+    await expect(page.getByTestId('fire-target')).toHaveText('20,000,000.00');
     await page.getByTestId('fire-preset').selectOption('aggressive');
-    await expect(page.getByTestId('fire-target')).toHaveText('12,000,000');
+    await expect(page.getByTestId('fire-target')).toHaveText('12,000,000.00');
     await page.getByTestId('fire-annualExpenses').fill('');
     await expect(page.getByRole('alert')).toContainText('Complete valid inputs');
     await expect(page.getByTestId('fire-annualExpenses')).toHaveAttribute('aria-invalid','true');

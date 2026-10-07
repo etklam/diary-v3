@@ -9,6 +9,7 @@ import { evidenceCopy } from './evidence-copy';
 import { useSessionState, signInPath } from './session';
 import './trade-plan.css';
 import './evidence.css';
+import { formatInstantIn } from './market-display';
 
 type Capture = { symbol: string; body: z.infer<typeof webEvidenceRequestSchema> };
 type EvidenceSource = { title: string; path: string };
@@ -189,7 +190,7 @@ export function Evidence({ symbol: fixedSymbol, source, collapsed = false }: { s
         <button disabled={busy || !date}>{busy ? t('pending') : uncertain ? c.retry : c.save}</button>
         {saved && <p role="status" className="evidence-saved"><span>{c.saved}</span>{destination && <> · {destination}</>}</p>}
       </form>
-      {fixedSymbol && <><h3>{c.timeline}</h3><p>{c.limit}</p>{readError ? <><FailureNotice failure={readError} /><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !records ? <p role="status">{t('loading')}</p> : !records.length ? <p>{c.empty}</p> : <ol className="plan-list">{records.map(record => <li key={record.id} data-testid="evidence-record"><p><time dateTime={record.occurredAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(record.occurredAt))} · {timezone}</time> · {c.types[STOCK_TIMELINE_SOURCE_TYPES.indexOf(record.sourceType)]}</p>{record.confidence !== null && <p>{c.confidence}: {record.confidence}%</p>}{record.sourceTitle && <h4>{record.sourceTitle}</h4>}<p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.summary}</p>{record.sourceDiaryId && <Link to={`/diaries/${record.sourceDiaryId}`}>{c.diary}</Link>}{record.sourceUrl && /^https?:\/\//i.test(record.sourceUrl) && <a href={record.sourceUrl} target="_blank" rel="noopener noreferrer">{c.original}</a>}</li>)}</ol>}</>}
+      {fixedSymbol && <><h3>{c.timeline}</h3><p>{c.limit}</p>{readError ? <><FailureNotice failure={readError} /><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !records ? <p role="status">{t('loading')}</p> : !records.length ? <p>{c.empty}</p> : <ol className="plan-list">{records.map(record => <li key={record.id} data-testid="evidence-record"><p><time dateTime={record.occurredAt}>{formatInstantIn(locale, record.occurredAt, timezone)} · {timezone}</time> · {c.types[STOCK_TIMELINE_SOURCE_TYPES.indexOf(record.sourceType)]}</p>{record.confidence !== null && <p>{c.confidence}: {record.confidence}%</p>}{record.sourceTitle && <h4>{record.sourceTitle}</h4>}<p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.summary}</p>{record.sourceDiaryId && <Link to={`/diaries/${record.sourceDiaryId}`}>{c.diary}</Link>}{record.sourceUrl && /^https?:\/\//i.test(record.sourceUrl) && <a href={record.sourceUrl} target="_blank" rel="noopener noreferrer">{c.original}</a>}</li>)}</ol>}</>}
     </div>}
   </section>;
 }

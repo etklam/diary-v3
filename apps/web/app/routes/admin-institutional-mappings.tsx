@@ -17,6 +17,7 @@ import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath } from '../session'
 import { api, LoadingBlock, useUi } from '../ui'
 import './admin-institutional-mappings.css'
+import { formatInstantUtc } from '../market-display';
 
 type Locale = 'zh-TW' | 'zh-CN' | 'en'
 type Filter = '' | 'UNRESOLVED' | 'AMBIGUOUS' | 'MANUAL_OVERRIDE'
@@ -73,7 +74,7 @@ function SourceLink({ href, label }: { href: string; label: string }) {
 }
 
 function dateTime(value: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value)) + ' UTC'
+  return formatInstantUtc(locale, value)
 }
 
 function date(value: string | null, locale: Locale) {

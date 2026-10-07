@@ -265,10 +265,14 @@
   overflow-wrap: anywhere;
 }
 
+/* The Figure Rule: these are portfolio figures, so they take the mono cut like
+   .stat-value does. Weight drops to medium because the mono face already reads
+   heavier than Plex Sans at 650. */
 .overview-metrics dd {
   margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
   font-size: 1.125rem;
-  font-weight: 650;
+  font-weight: var(--weight-medium);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }

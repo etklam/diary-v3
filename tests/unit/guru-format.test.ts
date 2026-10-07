@@ -12,7 +12,11 @@ describe('Guru portfolio number formatting', () => {
   })
 
   it('shows a plus sign for positive share and weight changes', () => {
-    expect(formatSignedPercent('7.5000', 'en')).toBe('+7.5%')
-    expect(formatSignedPercent('-7.5000', 'en')).toBe('-7.5%')
+    // Two decimals, not the trimmed 1dp this page used to carry on its own: a
+    // percentage reads the same here as on the portfolio pages. See ticket 101.
+    expect(formatSignedPercent('7.5000', 'en')).toBe('+7.50%')
+    expect(formatSignedPercent('-7.5000', 'en')).toBe('-7.50%')
+    expect(formatSignedPercent('0.000', 'en')).toBe('0.00%')
+    expect(formatSignedPercent(null, 'en')).toBe('—')
   })
 })

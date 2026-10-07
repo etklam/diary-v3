@@ -144,8 +144,8 @@ the set is cross-cutting consistency work and four focused reworks.
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | needs-triage; Execution: todo | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
-| 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | needs-triage; Execution: todo | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
+| 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, e2e suite run and green | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
+| 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, no assertion pins the seven fixes | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
 | 103 — Split AI administration into task-scoped views | Design follow-up | needs-triage; Execution: todo | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
 | 104 — Rebuild the admin accounts page around a readable table | Design follow-up | needs-triage; Execution: todo | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
 | 105 — Make strategy performance readable at low cardinality | Design follow-up | needs-triage; Execution: todo | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
@@ -162,6 +162,35 @@ the set is cross-cutting consistency work and four focused reworks.
 Recommended order from the review: 101 first (highest visibility per unit of effort, and a
 credibility problem), then 102 (four fixes of two lines or less), then the redesigns
 103–106, then 107–111, then 112–114.
+
+**Progress — 2026-10-07.** 101 and 102 are implemented, in one pass because they share
+call sites. Both carry rulings taken by the implementing agent rather than by the user,
+each recorded with its reasoning in the ticket's "Settled during triage". Two things found
+during the work are worth reading before picking up 103–114:
+
+- The display boundary is now enforced by `tests/unit/figure-formatting-boundary.test.ts`.
+  Any new page that formats a figure with `Intl.NumberFormat`, `toFixed` or
+  `toLocaleString` fails that test. Use `apps/web/app/market-display.ts`; DESIGN.md's Data
+  and finance section has the table of roles.
+- The full e2e suite was run: **307 passed, 9 failed, none caused by 101/102.** Seven are
+  pre-existing and also fail on clean `HEAD`: three in `account-security.spec.ts` (an ambiguous
+  `getByLabel('Content')` dating from ticket 97), three in `workspace-navigation.spec.ts`
+  (admin nav gained Guru links in `d9e0232`), and one in `pwa.spec.ts`. These are not
+  caused by 101/102 and are worth their own ticket. An eighth, in `company-market.spec.ts`,
+  had the same cause and was fixed here.
+- **The other two failures are flaky and that is its own problem.** `posts.spec.ts:13`
+  passes on re-run, and `research-diary-handoff.spec.ts` fails a different test on every
+  run (`562`, then `212`, then neither) with no code change between runs. Both live in the
+  Quick draft/append state machine. Worth a ticket: a suite that fails a different test
+  each run cannot answer the question it is run to answer.
+- Running e2e **changed the shipped rule**: fixed two-decimal amounts broke the ledger's
+  own arithmetic (`buy-ledger.spec.ts`) and then over-reported float noise
+  (`portfolio.spec.ts`). The convention that shipped is two decimals always, up to four
+  more only for a decimal string. Read 101's "Ruling corrected by the e2e run" before
+  touching an amount.
+- 102's seven fixes are still unpinned — the repo has no DOM test harness and no spec
+  covers them. The local e2e harness now runs (OrbStack + `docker compose --profile redis
+  up -d` + `npm run db:migrate`), so writing them is a small follow-up.
 
 ### Scored but not filed
 

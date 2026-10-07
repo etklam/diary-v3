@@ -171,3 +171,32 @@ non-defects so they are not rediscovered from the same capture.
 One page in the set is genuinely unassessed: `/tools/market-rotation` had no seeded
 snapshot, so only its empty state was scored. [113](issues/113-research-tool-page-corrections.md)
 makes capturing it populated a prerequisite for touching it.
+
+### Delivery — 2026-10-07
+
+| Ticket | Title | Recorded state |
+|---|---|---|
+| 101 | Normalize money, quantity, percentage and date rendering | Execution: done; e2e and three-locale visual verification deferred |
+| 102 | Correct the confirmed text and markup defects | Execution: done; all seven per-fix assertions deferred |
+
+Delivered as one pass, because 101's step 4 asks for it: the two tickets share call sites
+and splitting them would have meant touching the same markup twice. 103–114 remain todo.
+
+Both tickets were `needs-triage` with open product decisions, and the user asked for the
+recommendation to be taken rather than the work blocked. The rulings are in each ticket;
+the two that reach past their own ticket are:
+
+- **DESIGN.md's Buttons rule changed** rather than the four surfaces that violated it.
+  Disabled now has two sanctioned reasons — a submit in flight, or an unmet precondition
+  the surface names beside the control. This is the rule 103, 104, 107 and 114 will be
+  read against, since all four touch admin surfaces full of bulk actions.
+- **The day role is the ISO day in every locale**, and `formatDay` takes no locale
+  argument. This was chosen partly to avoid churning every list and calendar in the app,
+  so 112 (empty states and list sections) and any future calendar work inherit it.
+
+Two corrections to the page-score review itself came out of the work, both recorded in
+ticket 101: `formatMarketValue` does **not** emit a true U+2212 as the review states
+(`Intl` emits U+002D, and nothing in the app renders the character DESIGN.md claims the
+font subset exists for), and `guru-format.ts` was already a second parallel display layer
+with its own grouping and percentage conventions, which the review did not catch because
+it scored pages rather than modules.

@@ -190,7 +190,7 @@ test('shows prepared stock Guru holders and history, and hides partial or unmapp
   })
   await page.getByRole('combobox', { name: 'Reported quarter' }).selectOption('2026-03-31')
   await readyResponse
-  await expect(page.locator('.stock-guru-metrics')).toContainText('60%')
+  await expect(page.locator('.stock-guru-metrics')).toContainText('60.00%')
   await expect(page.getByRole('row', { name: /Synthetic Manager/ })).toContainText('ADD')
   await expect(page.getByRole('group', { name: /Guru holders/ })).toContainText('2026-03-31')
   await page.screenshot({ path: 'docs/design/evidence/guru-comparison/stock-gurus-desktop.png', fullPage: true })

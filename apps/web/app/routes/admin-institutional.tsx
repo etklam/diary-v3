@@ -10,6 +10,7 @@ import { signInPath } from '../session'
 import { api, LoadingBlock, useUi } from '../ui'
 import { institutionalOperationsCopy, type InstitutionalOperationsCopy } from './admin-institutional-copy'
 import './admin-institutional.css'
+import { formatPercent } from '../market-display';
 
 type Overview = ReturnType<typeof adminInstitutionalOverviewResponseSchema.parse>['data']
 type Filings = ReturnType<typeof adminInstitutionalFilingListResponseSchema.parse>
@@ -143,7 +144,7 @@ export default function AdminInstitutional() {
                 : '—'}</td>
               <td>{manager.filings.total} · {manager.filings.partial}P · {manager.filings.error}E</td>
               <td>{manager.quarters.ready}R · {manager.quarters.partial}P · {manager.quarters.error}E</td>
-              <td>{manager.mappingCoveragePercent ? `${Number(manager.mappingCoveragePercent).toFixed(2)}%` : '—'}</td>
+              <td>{manager.mappingCoveragePercent ? formatPercent(locale, manager.mappingCoveragePercent) : '—'}</td>
               <td>{manager.analysis.queued + manager.analysis.running}Q · {manager.analysis.failed}E · {manager.analysis.invalidated}I</td>
               <td>
                 {manager.guruId && <Link to={`/admin/gurus/${manager.guruId}`}>{c.profile}</Link>}
@@ -179,7 +180,7 @@ export default function AdminInstitutional() {
               <td>{filing.form}</td>
               <td><span className={`admin-institutional-state is-${filing.status.toLowerCase()}`}>{filing.status}</span></td>
               <td>{filing.parsedRowCount ?? '—'}{filing.rejectedRowCount ? ` / ${filing.rejectedRowCount}` : ''}</td>
-              <td>{filing.mappingCoverage ? `${Number(filing.mappingCoverage).toFixed(2)}%` : '—'}</td>
+              <td>{filing.mappingCoverage ? formatPercent(locale, filing.mappingCoverage) : '—'}</td>
               <td>{filing.errorCode ? <span className="admin-institutional-error-code">{filing.errorCode}</span> : '—'}</td>
               <td><Link to={`/admin/institutional/filings/${filing.id}`}>{c.open}</Link></td>
             </tr>)}</tbody>

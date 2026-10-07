@@ -11,7 +11,7 @@ import { portfolioLedgerResponseSchema, portfolioOverviewResponseSchema, type Po
 import { api, useUi, LoadingBlock } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { ledgerCopy } from '../ledger-copy';
-import { formatMarketValue, formatNeutralValue, marketClass } from '../market-display';
+import { formatAmount, formatInstantUtc, formatMarketValue, formatQuantity, marketClass } from '../market-display';
 import '../ledger.css';
 
 const copy = {
@@ -61,7 +61,7 @@ export default function Holdings() {
   const exposure = data?.exposure.status === 'ready' ? data.exposure.data : null;
   const retryPrices = () => retryMarket(value => value + 1), retryBook = () => retryLedger(value => value + 1);
   const sectionError = (section: { status: string; error?: unknown } | undefined, fallback: Failure | null) => section?.status === 'failed' ? apiFailure({ data: section.error }, t('failed')) : fallback;
-  const number = (value: number | null) => formatNeutralValue(locale, value, 2);
+  const amount = (value: number | string | null) => formatAmount(locale, value);
   if (session.authenticated === false) return <section><h1>{c.title}</h1><Link to={signInPath('/stocks')}>{t('login')}</Link></section>;
   return <section className="holdings-workspace"><header><h1>{c.title}</h1><p className="lede">{l.holdingsHint}</p></header>
     {ledgerError && <><FailureNotice failure={ledgerError}/><button onClick={retryBook}>{t('retry')}</button></>}
@@ -73,8 +73,8 @@ export default function Holdings() {
         const price = compatible ? quote.price : undefined;
         const value = price === undefined ? null : price * Number(row.quantity), pnl = value === null ? null : value - Number(row.totalCost);
         const stale = quote?.source === 'stale' || (quote?.quoteAsOf && Date.now() - Date.parse(quote.quoteAsOf) > 72 * 3600_000);
-        return <tr key={row.symbol}><th scope="row"><span className="holdings-symbol"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link><CaptureEntry symbol={row.symbol}/></span></th><td>{row.quantity}</td><td>{row.avgCost}</td><td>{row.totalCost}</td><td>{number(price ?? null)}</td><td>{number(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(quote.quoteAsOf))} UTC</time> : c.timeUnknown}</>}</td></tr>;
-      })}</tbody></table></div><p className="muted">{c.updated}: <time dateTime={data.asOf}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(data.asOf))} UTC</time></p>
+        return <tr key={row.symbol}><th scope="row"><span className="holdings-symbol"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link><CaptureEntry symbol={row.symbol}/></span></th><td>{formatQuantity(locale, row.quantity)}</td><td>{amount(row.avgCost)}</td><td>{amount(row.totalCost)}</td><td>{amount(price ?? null)}</td><td>{amount(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{formatInstantUtc(locale, quote.quoteAsOf)}</time> : c.timeUnknown}</>}</td></tr>;
+      })}</tbody></table></div><p className="muted">{c.updated}: <time dateTime={data.asOf}>{formatInstantUtc(locale, data.asOf)}</time></p>
     </>}
     <div className="actions"><Link className="button" to="/diaries/new">{l.record}</Link>{data && data.holdings.length > 0 && <button className="secondary" onClick={() => { retryBook(); retryPrices(); }} disabled={ledgerLoading || marketLoading}>{t('retry')}</button>}</div>
     {marketLoading && quotes && <p role="status">{c.refreshing}</p>}

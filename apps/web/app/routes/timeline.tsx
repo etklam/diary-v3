@@ -9,6 +9,7 @@ import { FailureNotice, invalidField } from '../api-error';
 import { signInPath } from '../session';
 import { TimelineModeSwitch } from '../timeline-mode-switch';
 import { Icon, type IconName } from '../icons';
+import { formatAmount, formatQuantity } from '../market-display';
 import '../timeline.css';
 
 type Copy = (typeof timelineCopy)['en'];
@@ -73,14 +74,15 @@ function DiaryBody({ event, c, time }: { event: Extract<ActivityEvent, { kind: '
 }
 
 function TradeBody({ event, c, time }: { event: Extract<ActivityEvent, { kind: 'TRADE' }>; c: Copy; time: string | null }) {
+  const { locale } = useUi();
   return <>
     <h3>
       <span className={event.type === 'BUY' ? 'timeline-trade-buy' : 'timeline-trade-sell'}>
         {event.type === 'BUY' ? c.buy : c.sell}
       </span>
       {' '}<span className="timeline-symbol-strong">{event.symbol}</span>
-      {' '}<span className="timeline-trade-size">{event.quantity}</span>
-      {' '}<span className="muted">{c.at} {event.price}</span>
+      {' '}<span className="timeline-trade-size">{formatQuantity(locale, event.quantity)}</span>
+      {' '}<span className="muted">{c.at} {formatAmount(locale, event.price)}</span>
     </h3>
     <Meta kind="TRADE" c={c} time={time}>
       {event.strategy && <li>{event.strategy}</li>}

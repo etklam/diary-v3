@@ -6,6 +6,7 @@ import { apiFailure } from '../api-error'
 import { useSessionState } from '../session'
 import { promptCopy } from './admin-prompts-copy'
 import './admin-prompts.css'
+import { formatInstantLocal } from '../market-display';
 
 type Action = 'create-from-default' | 'duplicate' | 'activate' | 'rollback' | 'archive' | 'disable'
 type Playground = z.infer<typeof sharedPromptPlaygroundResponseSchema>
@@ -136,7 +137,7 @@ export default function AdminPrompts() {
           {readable(c.sample, playground.sampleInput)}{readable(c.variables, playground.variables)}{readable(c.rendered, playground.renderedPrompts)}{readable(c.schema, playground.outputSchema)}{readable(c.usage, playground.usage)}{playground.validation === 'passed' && readable(c.output, playground.output)}
         </div>}
       </section>
-      <section className="panel" aria-labelledby="prompt-audit"><h2 id="prompt-audit">{c.audit}</h2>{!audit?.data.length ? <p className="muted">{c.noAudit}</p> : <ol className="admin-prompt-audit">{audit.data.map(row => <li key={row.id}><strong>{row.action}</strong><span>{c.version}: {row.versionId ?? c.default} · {c.actor}: {row.actorUserId ?? c.system}</span><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString(locale)}</time></li>)}</ol>}</section>
+      <section className="panel" aria-labelledby="prompt-audit"><h2 id="prompt-audit">{c.audit}</h2>{!audit?.data.length ? <p className="muted">{c.noAudit}</p> : <ol className="admin-prompt-audit">{audit.data.map(row => <li key={row.id}><strong>{row.action}</strong><span>{c.version}: {row.versionId ?? c.default} · {c.actor}: {row.actorUserId ?? c.system}</span><time dateTime={row.createdAt}>{formatInstantLocal(locale,row.createdAt)}</time></li>)}</ol>}</section>
     </>}
     <dialog ref={dialog} aria-labelledby="prompt-confirm-heading" onCancel={() => setConfirmation(null)} onClose={() => setConfirmation(null)} className="admin-prompt-dialog"><h2 id="prompt-confirm-heading">{confirmationCopy}</h2><div className="button-row"><button className={confirmation === 'archive' || confirmation === 'disable' ? 'danger-button' : ''} onClick={() => confirmation && void mutate(confirmation)}>{c.confirm}</button><button className="secondary" onClick={() => setConfirmation(null)}>{c.close}</button></div></dialog>
   </div>

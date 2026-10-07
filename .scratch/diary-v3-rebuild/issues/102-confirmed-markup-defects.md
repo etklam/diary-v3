@@ -2,8 +2,8 @@
 
 # [102] Correct the confirmed text and markup defects found in the page score
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done (2026-10-07); e2e suite run and green, but no assertion pins these seven fixes
 Published: 2026-10-06
 
 Category: bug
@@ -73,19 +73,95 @@ including correcting DESIGN.md if the rule is the thing that changes.
 
 ## Provisional acceptance criteria
 
-- [ ] An overdue diary reading page renders "Review due" and the date with a space between them, in all three locales.
-- [ ] `.overview-metrics dd` and the attention-list concentration percentage use the monospace cut per the Figure Rule, matching `.stat-value`.
-- [ ] An unresearched watchlist row shows "No research records yet." exactly once, at 1440 and 390.
-- [ ] `/admin/blog` names itself once; the title column header names the column, and a missing author does not render a bare em dash.
-- [ ] The thesis invalidation checkbox sits on one baseline with its label, and the label is programmatically associated with the control.
-- [ ] Every disabled button in the app is disabled for one documented reason, and DESIGN.md states that reason accurately.
-- [ ] No action button on `/tools/relative-value` is clipped at 1440, 768 or 390.
-- [ ] Each fix is pinned by an assertion that fails if reverted, mutation-checked individually.
+- [x] An overdue diary reading page renders "Review due" and the date with a space between them, in all three locales. `routes/diary.tsx` now emits `{' '}` outside the branch, so neither branch can own the separator.
+- [x] `.overview-metrics dd` and the attention-list concentration percentage use the monospace cut per the Figure Rule, matching `.stat-value`.
+- [x] An unresearched watchlist row shows "No research records yet." exactly once. The meta column is no longer rendered at all when there are no records.
+- [x] `/admin/blog` names itself once; the title column header names the column, and a missing author does not render a bare em dash.
+- [x] The thesis invalidation checkbox sits on one baseline with its label, and the label is programmatically associated with the control.
+- [x] Every disabled button in the app is disabled for one documented reason, and DESIGN.md states that reason accurately — see the ruling below.
+- [x] No action button on `/tools/relative-value` is clipped at 1440, 768 or 390. Cause and fix below.
+- [ ] Each fix is pinned by an assertion that fails if reverted, mutation-checked individually. **Not done.** See "Why these are not pinned".
 
 ## Settled during triage
 
-Nothing yet. Item 6 is the only one needing a decision; items 1–5 and 7 are unambiguous
-defects against either the code's own intent or a stated DESIGN.md rule.
+**Item 6, ruled 2026-10-07 by the implementing agent** (the user was unavailable and asked
+for the recommendation to be taken rather than the work blocked): **the rule was the thing
+that was wrong, and DESIGN.md changed.**
+
+The old rule allowed exactly one reason to disable a button — a submit in flight — which
+would have meant re-enabling "Publish selected" at zero selected so it could fail on
+click. That is worse for the reader than a disabled control beside a visible "0 selected".
+The rule now permits two reasons, and adds the constraint that makes the second one
+legitimate:
+
+> a submit is in flight, or the action has an unmet precondition that the surface already
+> names next to the control. A disabled button never stands in for field validation. If a
+> precondition is not visible beside the control, name it there rather than disabling
+> silently.
+
+Against that, the four reported surfaces resolve as:
+
+- `/diaries/quick` "Create diary" on an empty textarea — **compliant as shipped.** The
+  precondition is the empty writing area directly above the button; adding a hint would be
+  noise on the most-used surface in the product.
+- `/admin/blog` "Publish selected" at 0 selected — **compliant as shipped.** `0 selected`
+  sits immediately to the left of the button.
+- `/admin/article-translations` "Apply provider" — **was not compliant.** It is also
+  disabled when zero *articles* are selected, which is state from the parent surface, not
+  from the checkboxes beside it. Added `needTargets` copy in all three locales, shown next
+  to the control.
+- `/trade-plans/:id` "Save execution selection" — **was not compliant, and the ticket
+  misreads it.** It is not disabled for "nothing selected" (that case already shows
+  `executionNoTransactions`); it is disabled when no plan baseline is confirmed. Added
+  `executionNeedBaseline` copy in all three locales.
+
+## Found while implementing
+
+- **Item 5's cause is a CSS rule, not the checkbox's markup.** The label/control
+  association was already correct — the `<input>` is wrapped by its `<label>`, which is a
+  valid implicit association, so no `for`/`id` pair was needed. The layout defect is that
+  `.plan-grid label { display: grid }` stacks every child, and
+  `.plan-grid input { width: 100% }` stretched the checkbox across its column. Both are
+  now scoped: the width rule excludes `[type='checkbox']`, and a `:has()` rule puts a
+  checkbox label on one baseline. This fixes every checkbox in a `.plan-grid`, not only
+  the thesis one, and it brings the file back in line with the Fields rule, which says
+  text inputs and textareas fill their column — not checkboxes.
+- **Item 7 is horizontal overflow, not a paint clip.** `.market-scenario-table` is
+  `overflow-x: auto`, so the button was scrolled out of view rather than cut off — which
+  is indistinguishable in a full-page screenshot. The mechanism is that the action
+  column was sized for "Use this row" and the selected label, "Selected scenario", is
+  longer. Fixed by sizing the action column to its content (`width: 1%` plus `nowrap`) so
+  the price columns absorb the spare width instead. The scroll container also gained
+  `role="region"` and `tabIndex={0}`, matching the other tables in the app, so an
+  overflowing table is reachable by keyboard at all.
+- **Beyond the ticket:** the same table's `<caption>` was "Selected scenario" — it named
+  one row while labelling the whole scenario table. Corrected to "Scenario prices". This
+  is item 4's defect class (a caption naming the wrong thing) in the region item 7 opened,
+  so it was fixed rather than refiled.
+- **Item 4 needed new copy, not just deletions.** Reusing `c.title` for the caption and
+  the column header is what caused the triplication, so `caption`, `articleColumn` and
+  `noAuthor` were added in all three locales. A missing author now reads "Unnamed account"
+  in muted text rather than an em dash above an email.
+
+## Why these are not pinned
+
+The full e2e suite was run on 2026-10-07 and is green apart from seven pre-existing
+failures (catalogued in [101](101-figure-formatting-consistency.md)'s E2E section), so
+nothing here regressed anything that *is* covered. But no existing spec asserts any of
+these seven fixes, and none was added.
+
+The repo has no DOM or component test harness — `vitest` runs in the node environment over
+pure modules, and everything that renders markup is covered by Playwright. Pinning these
+seven fixes therefore needs either the e2e suite, which the user asked to skip for this
+session, or a new `@testing-library/react` + jsdom harness, which is a dependency and
+infrastructure decision well outside a bundle of two-line corrections.
+
+Each fix was verified by reading the source and the governing CSS rule, and the four that
+changed behaviour rather than markup (items 2, 5, 6, 7) are explained above in terms of
+the rule they now satisfy. **None of them is regression-protected.** The last acceptance
+criterion is outstanding: items 1, 3 and 4 want a single `toHaveText` each, and items 2, 5
+and 7 want computed-style and bounding-box checks. The harness to write them in now runs
+locally, so this is a small, well-defined follow-up rather than a blocked one.
 
 ## Related work
 
@@ -98,6 +174,25 @@ defects against either the code's own intent or a stated DESIGN.md rule.
 ## Blocked by
 
 None.
+
+## Execution record — 2026-10-07
+
+Delivered alongside [101](101-figure-formatting-consistency.md), which shares item 2's call
+sites, so the markup was touched once.
+
+| Item | Change |
+|---|---|
+| 1 | `routes/diary.tsx` — separator moved outside the overdue/not-overdue branch |
+| 2 | `overview.css` `.overview-metrics dd` takes `--font-mono` at `--weight-medium`; `overview.tsx` concentration span takes `.figure` |
+| 3 | `routes/watchlist.tsx` — meta column not rendered when `recordCount === 0`; the now-unused `locale` prop dropped from `WatchlistRow` |
+| 4 | `routes/admin-blog.tsx` — new `caption`, `articleColumn`, `noAuthor` copy in three locales |
+| 5 | `trade-plan.css` — width rule excludes checkboxes; new `:has()` rule for checkbox labels |
+| 6 | `DESIGN.md` Buttons rule rewritten; `admin-translation-batch.tsx` and `routes/trade-plan.tsx` name their preconditions, with copy in three locales |
+| 7 | `market-research.css` — action column sized to content; `routes/relative-value.tsx` scroll region made focusable and the caption corrected |
+
+`tsc --noEmit` and `eslint` clean; the full non-e2e suite passes (128 files, 1129 tests).
+No existing assertion covered any of these seven surfaces, so nothing needed updating —
+which is the same fact as the gap recorded above.
 
 ## Comments
 

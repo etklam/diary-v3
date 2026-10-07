@@ -6,7 +6,7 @@ import { filterAndSortRotationRows, rotationFilterKeys, type RotationFilterKey, 
 import { api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { localizeAllocationMode, localizePolicyExplanation, localizePolicyWarning } from '../market-policy-copy';
-import { formatMarketValue, marketClass, marketDirection } from '../market-display';
+import { formatAmount, formatDay, formatMarketValue, formatPercent, marketClass, marketDirection } from '../market-display';
 import { ToolShell, toolByHref } from '../tool-shell';
 import './market-rotation.css';
 import { publicPageMeta } from '../route-meta';
@@ -394,16 +394,17 @@ const breadthConfirmationDescriptions: Record<Locale, Record<BreadthConfirmation
   },
 };
 
-function number(locale: string, value: number | null, digits = 2) {
-  return value === null ? '—' : new Intl.NumberFormat(locale, { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value);
+function number(locale: string, value: number | null) {
+  return formatAmount(locale, value);
 }
 
+/** A ratio in 0..1 from the rotation API; percentages are two decimals app-wide. */
 function percent(locale: string, value: number | null) {
-  return value === null ? '—' : new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(value);
+  return value === null ? '—' : formatPercent(locale, value * 100);
 }
 
 function date(locale: string, value: string | null) {
-  return value === null ? '—' : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+  return formatDay(value);
 }
 
 function stateLabel(value: MarketRotationMonitorResponse['marketState'], locale: Locale) {
@@ -415,7 +416,7 @@ function rowLabel(row: MarketRotationMonitorRow, c: RotationCopy, locale: Locale
 }
 
 function coverage(locale: Locale, value: number | null) {
-  return value === null ? '—' : `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)}%`;
+  return formatPercent(locale, value);
 }
 
 function historyStateLabel(row: MarketStateHistoryItem, locale: Locale) {
@@ -423,7 +424,7 @@ function historyStateLabel(row: MarketStateHistoryItem, locale: Locale) {
 }
 
 function wholePercent(locale: Locale, value: number | null) {
-  return value === null ? null : new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(value);
+  return value === null ? null : formatPercent(locale, value * 100);
 }
 
 function breadthSummary(value: BreadthConditionValue, ratio: number | null, locale: Locale, c: RotationCopy) {
@@ -515,7 +516,7 @@ function trendPlot(row: MarketRotationMonitorRow) {
 
 function trendText(locale: string, row: MarketRotationMonitorRow, unavailable: string) {
   if (row.twoWeekTrend.length < 2) return unavailable;
-  const values = row.twoWeekTrend.map(point => point.value === null ? '—' : number(locale, point.value, 2));
+  const values = row.twoWeekTrend.map(point => point.value === null ? '—' : number(locale, point.value));
   return values.join(' → ');
 }
 
@@ -668,7 +669,7 @@ export default function MarketRotation() {
       row.symbol,
       row.sectorName ?? row.name,
       number(locale, row.lastPrice),
-      number(locale, row.rsi14, 1),
+      number(locale, row.rsi14),
       signed(locale, row.rsiDelta2W, 1),
       integer(locale, row.rotationRank),
       signed(locale, row.rankDelta2W, 0),
@@ -924,7 +925,7 @@ export default function MarketRotation() {
             <th scope="row"><strong>{row.symbol}</strong></th>
             <td>{row.sectorName ?? row.name}</td>
             <td>{number(locale, row.lastPrice)}</td>
-            <td>{number(locale, row.rsi14, 1)}</td>
+            <td>{number(locale, row.rsi14)}</td>
             <td className={marketClass(row.rsiDelta2W)}>{signed(locale, row.rsiDelta2W, 1)}</td>
             <td>{integer(locale, row.rotationRank)}</td>
             <td className={marketClass(row.rankDelta2W)}>{signed(locale, row.rankDelta2W, 0)}</td>

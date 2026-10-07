@@ -73,7 +73,7 @@ test('reads the Guru AI analysis with separated facts, disclosures and generatio
   await expect(page.getByRole('heading', { name: 'Prepared facts' })).toBeVisible()
   await expect(page.getByText('Reported portfolio value (USD)')).toBeVisible()
   await expect(page.locator('.guru-analysis-facts')).toContainText('1,000,000')
-  await expect(page.locator('.guru-analysis-facts')).toContainText('100%')
+  await expect(page.locator('.guru-analysis-facts')).toContainText('100.00%')
   await expect(page.locator('.guru-analysis-facts')).not.toContainText('100.00000000')
   await expect(page.getByRole('heading', { name: 'Executive summary' })).toBeVisible()
   await expect(page.locator('.guru-analysis-statements > li.is-fact').first()).toContainText('Reported value held at 1,000,000 USD')
