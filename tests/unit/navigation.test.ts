@@ -13,6 +13,10 @@ describe('workspace navigation ownership', () => {
     ['/settings', 'settings'], ['/settings/security', 'settings'], ['/settings/api-keys', 'settings'],
     ['/admin/blog', 'adminBlog'], ['/admin/blog/new', 'adminBlog'], ['/admin/blog/42/edit', 'adminBlog'],
     ['/admin/users', 'adminUsers'], ['/admin/gurus', 'adminGurus'], ['/admin/gurus/42', 'adminGurus'], ['/admin/etf', 'adminEtf'],
+    // The AI administration views are one navigation destination with five
+    // task-scoped addresses; the sidebar must not gain an item per view.
+    ['/admin/ai', 'adminAi'], ['/admin/ai/report-prompts', 'adminAi'], ['/admin/ai/access', 'adminAi'],
+    ['/admin/ai/usage', 'adminAi'], ['/admin/ai/prompts', 'adminAi'],
     ['/diaries/42/review/', 'reviews'], ['/partners/compare/', 'timeline'], ['/stocks/watchlist/', 'watchlist'],
     ['/stocks/NVDA/', 'marketResearch'], ['/trade-plans/42/', 'tradePlans'],
   ] as const)('maps %s to exactly %s', (path, owner) => {

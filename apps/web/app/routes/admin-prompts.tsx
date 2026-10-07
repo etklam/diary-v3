@@ -5,6 +5,7 @@ import { api, useUi } from '../ui'
 import { apiFailure } from '../api-error'
 import { useSessionState } from '../session'
 import { promptCopy } from './admin-prompts-copy'
+import { AdminAiShell, useAdminAiSettings } from './admin-ai-shell'
 import './admin-prompts.css'
 import { formatInstantLocal } from '../market-display';
 
@@ -15,6 +16,9 @@ const formatted = (value: unknown) => JSON.stringify(value, null, 2)
 
 export default function AdminPrompts() {
   const { locale } = useUi(), c = promptCopy[locale], session = useSessionState()
+  // The registry keeps its own page header; the shell gives it the view
+  // navigation and the site-wide live state every AI admin view must show.
+  const adminAi = useAdminAiSettings()
   const [items, setItems] = useState<SharedPromptItem[] | null>(null)
   const [key, setKey] = useState<SharedPromptKey>('ai-report.weekly')
   const [selected, setSelected] = useState('')
@@ -95,7 +99,8 @@ export default function AdminPrompts() {
   const confirmationCopy = confirmation === 'archive' ? c.confirmArchive : confirmation === 'disable' ? c.confirmDisable : c.confirmActivate
   const readable = (label: string, value: unknown) => <details><summary>{label}</summary><pre tabIndex={0}>{typeof value === 'string' ? value : formatted(value)}</pre></details>
 
-  return <div className="admin-prompts">
+  return <AdminAiShell view="registry" state={adminAi}>
+   <div className="admin-prompts">
     <header className="page-heading"><h1>{c.title}</h1><p className="muted">{c.intro}</p></header>
     {failure && <div role="alert"><p>{failure}</p><button className="secondary" disabled={pending} onClick={() => items ? void refresh().then(() => setFailure(null)).catch(() => setFailure(c.failed)) : setAttempt(value => value + 1)}>{c.reload}</button></div>}
     {notice && <p role="status">{notice}</p>}
@@ -140,5 +145,6 @@ export default function AdminPrompts() {
       <section className="panel" aria-labelledby="prompt-audit"><h2 id="prompt-audit">{c.audit}</h2>{!audit?.data.length ? <p className="muted">{c.noAudit}</p> : <ol className="admin-prompt-audit">{audit.data.map(row => <li key={row.id}><strong>{row.action}</strong><span>{c.version}: {row.versionId ?? c.default} · {c.actor}: {row.actorUserId ?? c.system}</span><time dateTime={row.createdAt}>{formatInstantLocal(locale,row.createdAt)}</time></li>)}</ol>}</section>
     </>}
     <dialog ref={dialog} aria-labelledby="prompt-confirm-heading" onCancel={() => setConfirmation(null)} onClose={() => setConfirmation(null)} className="admin-prompt-dialog"><h2 id="prompt-confirm-heading">{confirmationCopy}</h2><div className="button-row"><button className={confirmation === 'archive' || confirmation === 'disable' ? 'danger-button' : ''} onClick={() => confirmation && void mutate(confirmation)}>{c.confirm}</button><button className="secondary" onClick={() => setConfirmation(null)}>{c.close}</button></div></dialog>
-  </div>
+   </div>
+  </AdminAiShell>
 }

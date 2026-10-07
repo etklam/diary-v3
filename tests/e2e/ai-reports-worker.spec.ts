@@ -1,6 +1,18 @@
 import { randomUUID } from 'node:crypto'
+import type { Page } from '@playwright/test'
 import { test, expect } from '../support/e2e'
 import { aiMutation, configureSyntheticAi, gotoAiPage, registerAiOwner } from '../support/ai-e2e'
+
+/**
+ * Paid and destructive AI admin actions confirm through the project dialog, so
+ * the confirm button shares its name with the trigger that opened it. Scoping
+ * to the open dialog is what keeps the two apart.
+ */
+async function confirmAdminAction(page: Page, name: string) {
+  const dialog = page.locator('dialog.delete-dialog[open]')
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name, exact: true }).click()
+}
 
 const slowTestDatabase = process.env.REMOTE_TEST_DB === '1'
 const workerWaitMs = slowTestDatabase ? 30_000 : 5_000
@@ -168,46 +180,61 @@ test('AI admin UI saves, tests and publishes current revisions without reading b
     await expect(page.getByLabel('Currency (ISO code)', { exact: true })).toHaveValue('USD')
     await expect(page.getByLabel('Base URL', { exact: true })).toHaveValue('https://api.deepseek.com')
     await expect(page.getByTestId('admin-ai-provider-test')).toBeEnabled()
-    page.once('dialog', dialog => dialog.accept())
     await page.getByTestId('admin-ai-provider-test').click()
+    await confirmAdminAction(page, 'Run paid test')
     await expect(page.locator('.admin-ai-provider-meta')).toContainText('passed')
     await page.getByLabel('Model ID', { exact: true }).fill('unsaved-model')
     await expect(page.getByTestId('admin-ai-provider-publish')).toBeDisabled()
     await page.getByLabel('Model ID', { exact: true }).fill('synthetic-review-model')
     await expect(page.getByTestId('admin-ai-provider-publish')).toBeEnabled()
-    page.once('dialog', dialog => dialog.accept())
     await page.getByTestId('admin-ai-provider-publish').click()
+    await confirmAdminAction(page, 'Publish')
     await expect(page.locator('.admin-ai-provider-meta')).toContainText('Published')
+
+    // Each job is its own address now; the prompts view owns the templates.
+    await gotoAiPage(page, '/admin/ai/report-prompts')
     const prompt = page.getByTestId('admin-ai-prompt-weekly')
     const editor = page.getByTestId('admin-ai-prompt-draft-weekly')
     const original = await editor.inputValue()
     await editor.fill(`${original}\nKeep questions specific to the saved records.`)
     await expect(prompt.getByRole('button', { name: 'Paid test (synthetic data)', exact: true })).toBeDisabled()
     await prompt.getByRole('button', { name: 'Save draft', exact: true }).click()
-    await expect(prompt.getByRole('heading', { level: 3 })).toContainText('Draft')
-    page.once('dialog', dialog => dialog.accept())
+    await expect(prompt.getByRole('heading', { level: 2 })).toContainText('Draft')
     const promptTestResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/admin/ai/prompts/weekly/test' && response.request().method() === 'POST')
     await prompt.getByRole('button', { name: 'Paid test (synthetic data)', exact: true }).click()
+    await confirmAdminAction(page, 'Paid test (synthetic data)')
     expect((await promptTestResponse).status()).toBe(200)
     await expect(page.getByTestId('admin-ai-prompt-test-weekly')).toContainText('summary', { timeout: reportTextWaitMs })
-    page.once('dialog', dialog => dialog.accept())
     await prompt.getByRole('button', { name: 'Publish new version', exact: true }).click()
-    await expect(prompt.getByRole('heading', { level: 3 })).toContainText('Published')
-    page.once('dialog', dialog => dialog.accept())
+    await confirmAdminAction(page, 'Publish new version')
+    await expect(prompt.getByRole('heading', { level: 2 })).toContainText('Published')
     await prompt.getByRole('button', { name: 'Restore default template', exact: true }).click()
+    await confirmAdminAction(page, 'Restore default template')
     await expect(editor).toHaveValue(original)
+
+    await gotoAiPage(page, '/admin/ai/access')
     await page.getByLabel('Search email or name', { exact: true }).fill(owner.email)
     await page.locator('.admin-ai-search').getByRole('button', { name: 'Search', exact: true }).click()
     const row = page.getByTestId('admin-ai-access-table').locator('tr').filter({ hasText: owner.email })
     await row.getByRole('spinbutton').fill('7')
     await row.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(row.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
+
+    await gotoAiPage(page, '/admin/ai/usage')
     await expect(page.getByTestId('admin-ai-usage-table')).toContainText('USD')
+    // Ten columns stay inside their scroll region instead of widening the page.
+    await page.setViewportSize({ width: 768, height: 1000 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.locator('.admin-ai-page').screenshot({ path: 'docs/design/evidence/ai-reports/admin-usage-768-en.png' })
+
+    await gotoAiPage(page, '/admin/ai')
     await page.setViewportSize({ width: 1440, height: 1000 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    // The live state is readable without scrolling, in every view.
+    await expect(page.getByTestId('admin-ai-live')).toBeInViewport()
     await page.locator('.admin-ai-page').screenshot({ path: 'docs/design/evidence/ai-reports/admin-desktop-en.png' })
     await selectLocale(page, 'zh-CN')
-    await expect(page.getByRole('heading', { name: 'AI 报告管理', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'AI 数据接收方', exact: true })).toBeVisible()
     await selectLocale(page, 'zh-TW')
     await selectTheme(page, 'dark')
     await page.setViewportSize({ width: 390, height: 844 })
@@ -319,15 +346,17 @@ test('a late audit page cannot hide a fresh management action', async ({ page, b
         await route.fulfill({ json: { data: [event(fresh ? '900003' : '900002', fresh ? 'Fresh synthetic audit action' : 'Initial synthetic audit action')], nextCursor: fresh ? null : 'held-page' } })
       }
     })
-    await gotoAiPage(page, '/admin/ai')
+    await gotoAiPage(page, '/admin/ai/usage')
     await selectLocale(page, 'en')
     const table = page.getByTestId('admin-ai-audit-table')
     await expect(table).toContainText('Initial synthetic audit action')
-    await page.locator('.admin-ai-section').filter({ has: table }).getByRole('button', { name: 'Load more', exact: true }).click()
+    await page.locator('.admin-ai-region').filter({ has: table }).getByRole('button', { name: 'Load more', exact: true }).click()
     await waiting
     fresh = true
-    await page.locator('.admin-ai-runtime input[type="checkbox"]').click()
-    await expect(page.locator('.admin-ai-runtime input[type="checkbox"]')).not.toBeChecked()
+    // The switch lives in the shared chrome; the row it writes still has to
+    // reach the audit log of the view it was thrown from.
+    await page.locator('.admin-ai-live input[type="checkbox"]').click()
+    await expect(page.locator('.admin-ai-live input[type="checkbox"]')).not.toBeChecked()
     await expect(table).toContainText('Fresh synthetic audit action')
     release()
     await done

@@ -28,7 +28,8 @@ const EXACT_RETURN_PATHS = new Set([
   // Account.
   '/settings', '/settings/api-keys', '/settings/security',
   // Administration.
-  '/admin/etf', '/admin/users', '/admin/gurus', '/admin/ai', '/admin/ai/prompts', '/admin/email-settings',
+  '/admin/etf', '/admin/users', '/admin/gurus', '/admin/email-settings',
+  '/admin/ai', '/admin/ai/report-prompts', '/admin/ai/access', '/admin/ai/usage', '/admin/ai/prompts',
   '/admin/institutional', '/admin/institutional/mappings',
   '/admin/article-translations', '/admin/research', '/admin/research/new',
   '/admin/research/settings', '/admin/blog', '/admin/blog/new',

@@ -9,7 +9,10 @@ export async function aiMutation(context: BrowserContext, request: APIRequestCon
 }
 
 /** Wait for saved preferences before selecting the test's interface language. */
-export async function gotoAiPage(page: Page, path: '/reviews/ai-reports' | '/admin/ai') {
+/** AI administration is four task-scoped views; each is its own address. */
+export type AiAdminPath = '/admin/ai' | '/admin/ai/report-prompts' | '/admin/ai/access' | '/admin/ai/usage' | '/admin/ai/prompts'
+
+export async function gotoAiPage(page: Page, path: '/reviews/ai-reports' | AiAdminPath) {
   const preferences = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.request().method() === 'GET' && response.ok())
   await page.goto(path)
   await preferences

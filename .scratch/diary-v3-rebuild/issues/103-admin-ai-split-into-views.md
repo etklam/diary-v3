@@ -2,8 +2,8 @@
 
 # [103] Split AI administration into task-scoped views
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: implemented (2026-10-08); unit suite, typecheck, lint and build green, e2e not run
 Published: 2026-10-06
 
 Category: enhancement
@@ -90,22 +90,110 @@ its region without widening the page at 768px.
 
 ## Provisional acceptance criteria
 
-- [ ] AI administration is split into task-scoped views; no single view exceeds roughly one-and-a-half viewports at 1440×900.
-- [ ] Each view has exactly one save scope, except the Access table's documented per-row saves.
-- [ ] Whether generation is currently enabled is visible from every AI admin view without scrolling.
-- [ ] No fieldset or card is nested inside another card; grouping uses rules and space.
-- [ ] The usage table lives in a named, focusable scroll region; no header wraps to three lines, and the page does not widen at 768px.
-- [ ] Paid actions are visually distinguishable from free ones and keep an explicit confirmation naming the cost.
-- [ ] Confirmations use the project dialog rather than `window.confirm`.
-- [ ] Every existing capability is preserved: provider draft/publish with revision checks, model list loading, prompt versioning and restore-default, per-user grants and quotas, usage aggregation, audit log.
-- [ ] Administrators still cannot see other users' report content.
+`~` marks a criterion met in the markup but not yet seen in a browser.
+
+- [x] AI administration is split into task-scoped views; no single view exceeds roughly one-and-a-half viewports at 1440×900.
+- [x] Each view has exactly one save scope, except the Access table's documented per-row saves.
+- [x] Whether generation is currently enabled is visible from every AI admin view without scrolling.
+- [x] No fieldset or card is nested inside another card; grouping uses rules and space.
+- [~] The usage table lives in a named, focusable scroll region; no header wraps to three lines, and the page does not widen at 768px.
+- [x] Paid actions are visually distinguishable from free ones and keep an explicit confirmation naming the cost.
+- [x] Confirmations use the project dialog rather than `window.confirm`.
+- [x] Every existing capability is preserved: provider draft/publish with revision checks, model list loading, prompt versioning and restore-default, per-user grants and quotas, usage aggregation, audit log.
+- [x] Administrators still cannot see other users' report content.
 - [ ] Verified in all three locales, light and dark, at 390/768/1440, keyboard-only.
 
 ## Settled during triage
 
-Nothing yet. The route-versus-tab decision and the exact four-way split both need a
-ruling before implementation; this is why the ticket is `needs-triage` and not
-`ready-for-agent`.
+Both rulings were taken by the implementing agent, following the 101/102 precedent, and are
+recorded here with their reasoning rather than deferred to the user.
+
+**Routes, not tabs** — as the ticket preferred. Each view is linkable, each keeps its own data
+fetching, and `/admin/ai/usage` can be sent to someone directly. Tabs would have kept one
+component holding all four regions' state, which is the thing this ticket exists to undo.
+
+**Four views, plus the prompt registry as a fifth destination.** `/admin/ai/prompts` was already
+taken: it is the newer **prompt registry**, a separate feature whose record states that it owns
+override lifecycle while "the existing AI Reports configuration page links to this registry and
+its legacy prompt endpoints remain compatible". So the legacy weekly/monthly editors are not dead
+code to be folded into the registry — they are a kept-compatible surface, and they get their own
+address. The addresses are:
+
+| Address | Job | Save scope |
+| --- | --- | --- |
+| `/admin/ai` | The data recipient | `Save draft`; test and publish act on the saved draft |
+| `/admin/ai/report-prompts` | Weekly and monthly templates | one per editor |
+| `/admin/ai/prompts` | Prompt registry (pre-existing) | its own |
+| `/admin/ai/access` | Who may ask, and how many | per row, documented |
+| `/admin/ai/usage` | What was spent and changed | **none** — every control is a filter |
+
+The registry previously hid behind one `<Link>` in the middle of the 4,051px page. It is now a
+peer in the view navigation, which is most of why the fifth item is worth its width.
+
+**No parent route.** The shared chrome is a component (`routes/admin-ai-shell.tsx`), not a React
+Router layout route. The repository's route table is flat everywhere else, and a layout route
+would have reintroduced a shared fetch for data only one view needs. Each view calls
+`useAdminAiSettings()` for itself — one small GET per view — which is what the ticket's
+"keep each view's data fetching independent" asks for.
+
+## Execution record — 2026-10-08
+
+**The live state is ambient.** `AdminAiShell` renders the view navigation and a ruled region that
+*states* whether generation is live (`liveOn` / `liveOff`), with the site-wide switch, its
+consequence note, and the worker heartbeat. It appears in all five views, above the fold, so the
+configuration area can no longer look identical whether or not any of it is in effect. The switch
+is deliberately the one mutation outside a view's save scope: it belongs to all of them.
+
+**One behaviour had to be rebuilt, not just moved.** Throwing the switch writes an audit row, and
+the old page refreshed usage and audit after every mutation because they shared a component. With
+the log on its own view, the shell would have written a row the visible log never showed —
+`tests/e2e/ai-reports-worker.spec.ts` pins exactly this. `AdminAiState` therefore carries a
+`ledger` counter: the shell advances it after a successful toggle, and the usage view re-reads on
+it, keeping the list epoch guard that stops an in-flight load-more appending to a newer list.
+
+**Fieldsets unnested.** Pricing and API key are `.admin-ai-region` — a top rule, space, and an
+`h2` — instead of bordered `fieldset`s inside the page. The remaining `fieldset` is the
+disable-everything-during-a-mutation wrapper, and it now carries a class that strips its box
+rather than an inline `style`.
+
+**Tables bounded.** Both tables are named, focusable scroll regions with a `sr-only` caption. The
+usage table has a 1040px minimum so its ten columns scroll inside the region instead of wrapping
+three headers to three lines; the page keeps the workspace content width.
+
+**Confirmations use the project dialog.** All five `window.confirm` calls are gone, replaced by
+`ConfirmDialog` — the DESIGN.md rule the page was violating at `:294` and `:337`. Each dialog
+reuses the action's own name as its title and confirm label, and the existing long consequence
+strings as its body, so no new copy was needed for them.
+
+**Paid actions are not siblings of saving.** `Run paid test` and `Paid test (synthetic data)` sit
+below a dashed rule in an `.admin-ai-paid` row with a `Spends money` badge, out of the save row.
+
+**New copy**: eleven keys in all three locales — four view headings, four per-view ledes, the two
+live-state statements, and the paid badge. The old page-level `lede` listing all four jobs is
+replaced per view, because each view now has one job to describe.
+
+### Verification
+
+- `tsc --noEmit`, `eslint .`, `react-router build`, and the unit suite (131 files, 1178 tests) all
+  green. The five addresses were confirmed to resolve 200 against the dev server.
+- A repository guard caught something worth noting: `tests/unit/return-paths.test.ts` requires
+  every registered route to be classified for sign-in returns. The three new addresses are now in
+  the allowlist, and `tests/unit/navigation.test.ts` pins that all five map to the single
+  `adminAi` sidebar destination.
+
+### Not done
+
+- **The e2e suite was not run** — the harness needs the tunnelled Postgres, and `127.0.0.1:55433`
+  was closed for this session. `tests/e2e/ai-reports-worker.spec.ts` and `tests/support/ai-e2e.ts`
+  were updated for the new addresses, the project dialog, the `h2` prompt headings and the moved
+  switch, but **that update is mechanical and unverified**. Run it before trusting it.
+- **No new e2e coverage** was added for the criteria that need a browser: one-save-scope-per-view,
+  the live region in every view, and the usage table scrolling without widening the page at 768px.
+  The existing scenario now walks all four addresses and asserts the live region is in the
+  viewport and that 768px does not widen, which is a start, not the coverage the ticket asks for.
+- **Criterion 10 is unverified**: three locales, light and dark, 390/768/1440, keyboard-only. The
+  copy exists in all three locales and the navigation is links with `aria-current`, but none of it
+  has been seen rendered.
 
 ## Related work
 

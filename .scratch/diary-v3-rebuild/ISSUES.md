@@ -89,7 +89,7 @@ this set and is not indexed above.
 | 87 — Offer prefilled capture from holdings, watchlist and price alerts | Follow-up | ready-for-agent; Execution: todo | [87-prefilled-capture-entries.md](issues/87-prefilled-capture-entries.md) |
 | 88 — Stop requiring a title in the full Diary editor | Follow-up | ready-for-agent; Execution: todo | [88-full-editor-title-derivation.md](issues/88-full-editor-title-derivation.md) |
 | 89 — Suggest company symbols the account already tracks | Follow-up | ready-for-agent; Execution: todo | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
-| 90 — Remove the cold-start wait before the Quick Diary writing area | Follow-up | ready-for-agent; Execution: todo; blocked by 85 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
+| 90 — Remove the cold-start wait before the Quick Diary writing area | Follow-up | accepted; Execution: done 2026-10-04, completed 2026-10-08 after 100 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
 | 91 — Revisit the destination summary sitting above Quick writing | Design decision | needs-triage; refines accepted work in 64 | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
 
 ## Article translation management follow-up (92)
@@ -135,6 +135,15 @@ this set and is not indexed above.
 |---|---|---|---|
 | 99 — Redesign the Diary calendar around density and legible destinations | Design follow-up | needs-triage; Execution: todo | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |
 
+## Shell architecture follow-up (100)
+
+Filed 2026-10-04 from the execution of [90](issues/90-quick-cold-start-wait.md), which found that
+confirming the session replaced the routed element tree on every cold load.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 100 — Confirming the session destroys every page's unsaved state | Cross-cutting architecture | triaged; Execution: done 2026-10-08, new e2e cases not run | [100-shell-swap-destroys-page-state.md](issues/100-shell-swap-destroys-page-state.md) |
+
 ## Whole-app page score follow-up (101–114)
 
 Filed 2026-10-06 from the [whole-app UI page score](../../docs/design/ui-page-score-2026-10-06.md),
@@ -146,7 +155,7 @@ the set is cross-cutting consistency work and four focused reworks.
 |---|---|---|---|
 | 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, e2e suite run and green | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
 | 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, no assertion pins the seven fixes | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
-| 103 — Split AI administration into task-scoped views | Design follow-up | needs-triage; Execution: todo | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
+| 103 — Split AI administration into task-scoped views | Design follow-up | triaged; Execution: implemented, e2e not run | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
 | 104 — Rebuild the admin accounts page around a readable table | Design follow-up | needs-triage; Execution: todo | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
 | 105 — Make strategy performance readable at low cardinality | Design follow-up | needs-triage; Execution: todo | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
 | 106 — Reduce the Watchlist row to a readable company | Design follow-up | needs-triage; Execution: todo | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |

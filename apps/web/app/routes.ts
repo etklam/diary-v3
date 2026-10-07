@@ -62,7 +62,13 @@ export default [
   route('admin/institutional', 'routes/admin-institutional.tsx'),
   route('admin/institutional/filings/:id', 'routes/admin-institutional-filing.tsx'),
   route('admin/institutional/mappings', 'routes/admin-institutional-mappings.tsx'),
+  // AI administration is four task-scoped views plus the prompt registry; they
+  // share chrome through `admin-ai-shell.tsx`, not a parent route, so each view
+  // keeps its own data fetching.
   route('admin/ai', 'routes/admin-ai.tsx'),
+  route('admin/ai/report-prompts', 'routes/admin-ai-report-prompts.tsx'),
+  route('admin/ai/access', 'routes/admin-ai-access.tsx'),
+  route('admin/ai/usage', 'routes/admin-ai-usage.tsx'),
   route('admin/ai/prompts', 'routes/admin-prompts.tsx'),
   route('admin/article-translations', 'routes/admin-article-translations.tsx'),
   route('admin/research', 'routes/admin-research.tsx'),
