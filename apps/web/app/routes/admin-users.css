@@ -11,12 +11,6 @@
   border-bottom: 1px solid var(--border);
 }
 
-.admin-users-kicker {
-  margin: 0 0 var(--space-2);
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
 .admin-users-header .lede {
   max-width: 58ch;
   margin-bottom: 0;
@@ -34,86 +28,73 @@
   margin-bottom: var(--space-5);
 }
 
-.admin-users-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+/* The counts read as a ledger: muted label, right-aligned figure, hairline
+   between rows. The breakdown sits under its own label rather than becoming
+   three more rows. */
+.admin-users-ledger {
+  max-width: 480px;
 }
 
-.admin-users-summary > div {
-  min-height: 132px;
-  padding: var(--space-5) var(--space-4);
-  border-right: 1px solid var(--border);
-}
-
-.admin-users-summary > div:last-child {
-  border-right: 0;
-}
-
-.admin-users-summary dt,
-.admin-users-summary small {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.admin-users-summary dd {
-  margin: var(--space-2) 0 var(--space-1);
-  font-size: 1.5rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.admin-users-summary small {
+.admin-users-ledger small {
   display: block;
+  margin-top: var(--space-1);
   line-height: 1.6;
 }
 
-.admin-users-section-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--space-6);
-  margin-bottom: var(--space-5);
-}
-
-.admin-users-section-heading h2 {
-  margin-bottom: 0;
-}
-
+/* One control group. The old markup put the label on the section heading's
+   baseline, the field above it and the button below it — three lines across
+   two columns — and its 480px floor is what pushed the page past 768px. */
 .admin-users-search {
-  display: flex;
-  align-items: end;
-  gap: var(--space-3);
-  min-width: min(480px, 100%);
-  margin: 0;
+  max-width: 480px;
+  margin: 0 0 var(--space-5);
 }
 
 .admin-users-search label {
-  flex: 1;
+  display: block;
+  margin-bottom: var(--space-2);
 }
 
-.admin-users-search button {
+.admin-users-search-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.admin-users-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-users-search-row button {
   flex-shrink: 0;
 }
 
+/* A named, bordered, rounded scroll region from `.table-scroll`, with this
+   page's own minimum widths. The page never widens to fit either table. */
 .admin-users-table-wrap {
-  overflow-x: auto;
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-5);
 }
 
 .admin-users-table {
-  width: 100%;
   min-width: 900px;
-  font-size: 0.9375rem;
 }
 
-.admin-users-table th,
-.admin-users-table td {
-  padding: var(--space-3) var(--space-2);
+/* Text left, figures right: a data table is read down its columns. */
+.admin-users-table td.num,
+.admin-users-table th.num {
+  text-align: right;
 }
 
 .admin-users-table th[scope="row"] {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+}
+
+.admin-users-table td {
+  vertical-align: middle;
+}
+
+.admin-users-self-note {
+  margin-top: var(--space-4);
+  font-size: 0.875rem;
 }
 
 .admin-users-email {
@@ -169,40 +150,7 @@
     margin-top: var(--space-4);
   }
 
-  .admin-users-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-users-summary > div {
-    border-bottom: 1px solid var(--border);
-  }
-
-  .admin-users-summary > div:nth-child(2n) {
-    border-right: 0;
-  }
-
-  .admin-users-summary > div:nth-last-child(-n + 2) {
-    border-bottom: 0;
-  }
-
-  .admin-users-section-heading {
-    display: block;
-  }
-
-  .admin-users-section-heading h2 {
-    margin-bottom: var(--space-5);
-  }
-
-  .admin-users-search {
-    display: block;
-    min-width: 0;
-  }
-
-  .admin-users-search button {
-    width: 100%;
-    margin-top: var(--space-3);
-  }
-
+  /* The 390px conversion: stacked cards replace the table entirely. */
   .admin-users-table-wrap {
     display: none;
   }
@@ -260,8 +208,8 @@
     margin-top: var(--space-1);
   }
 
-  .admin-users-mobile-row .admin-users-role .muted {
+  .admin-users-mobile-row .admin-users-role .badge {
     width: 100%;
-    font-size: 0.875rem;
+    text-align: center;
   }
 }

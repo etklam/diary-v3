@@ -51,6 +51,11 @@ test('admin account inventory preserves current-account guard and manages a synt
   await expect(targetRow.locator('td').nth(3)).toHaveText('1')
   await expect(page.locator('main')).toContainText('Synthetic admin diary')
   await expect(adminRow.getByRole('button', { name: 'Delete account', exact: true })).toHaveCount(0)
+  // Same row shape as the others: one chip, with the reason stated below the
+  // table rather than as two lines of prose inside the cell.
+  await expect(adminRow).toContainText('Current account')
+  await expect(page.locator('#admin-users-self-note')).toContainText('You cannot change or delete your own account.')
+  await expect(adminRow.getByRole('combobox', { name: `Role: ${adminEmail}`, exact: true })).toBeDisabled()
 
   const role = targetRow.getByRole('combobox', { name: `Role: ${targetEmail}`, exact: true })
   await role.selectOption('ADMIN')
@@ -60,17 +65,37 @@ test('admin account inventory preserves current-account guard and manages a synt
   await targetRow.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Role updated.')
 
+  // This route carried the only whole-page horizontal overflow in the app, at
+  // 768px. The assertion is the test for it; a screenshot would not have
+  // caught it.
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `no horizontal overflow at ${width}px`)
+      .toBe(await page.evaluate(() => document.documentElement.clientWidth))
+  }
+
   await page.setViewportSize({ width: 1440, height: 900 })
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  // Both tables scroll inside their own named, keyboard-focusable regions.
+  const regions = page.getByRole('region', { name: 'Accounts', exact: true })
+  await expect(regions).toHaveCount(1)
+  await expect(regions).toHaveAttribute('tabindex', '0')
+  await expect(page.getByRole('region', { name: 'Recent Diaries', exact: true })).toHaveAttribute('tabindex', '0')
+  // "Accounts" is a label on this page once, not three times.
+  expect(await page.locator('.admin-users-page').getByText('Accounts', { exact: true }).count()).toBe(1)
   await page.locator('.admin-users-page').screenshot({ path: 'docs/design/evidence/admin-users/1440.png' })
   await page.setViewportSize({ width: 390, height: 844 })
   await selectTheme(page, 'dark')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  // The stacked-card conversion still replaces the table at 390px.
+  await expect(page.locator('.admin-users-mobile-list')).toBeVisible()
+  await expect(page.locator('.admin-users-table-wrap').first()).toBeHidden()
   await page.locator('.admin-users-page').screenshot({ path: 'docs/design/evidence/admin-users/390.png' })
 
   await page.setViewportSize({ width: 1440, height: 900 })
-  page.once('dialog', dialog => dialog.accept())
   await targetRow.getByRole('button', { name: 'Delete account', exact: true }).click()
+  // Deletion confirms in the project dialog and names the account it removes.
+  const confirm = page.locator('dialog.delete-dialog[open]')
+  await expect(confirm).toContainText(targetEmail)
+  await confirm.getByRole('button', { name: 'Delete account', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Account deleted.')
   await expect(page.locator('tr').filter({ hasText: targetEmail })).toHaveCount(0)
 })

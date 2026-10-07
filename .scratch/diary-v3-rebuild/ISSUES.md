@@ -156,7 +156,7 @@ the set is cross-cutting consistency work and four focused reworks.
 | 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, e2e suite run and green | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
 | 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, no assertion pins the seven fixes | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
 | 103 — Split AI administration into task-scoped views | Design follow-up | triaged; Execution: implemented, e2e not run | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
-| 104 — Rebuild the admin accounts page around a readable table | Design follow-up | needs-triage; Execution: todo | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
+| 104 — Rebuild the admin accounts page around a readable table | Design follow-up | triaged; Execution: implemented, overflow fix measured, e2e not run | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
 | 105 — Make strategy performance readable at low cardinality | Design follow-up | needs-triage; Execution: todo | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
 | 106 — Reduce the Watchlist row to a readable company | Design follow-up | needs-triage; Execution: todo | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
 | 107 — AI reports denied, empty and first-run states | Design follow-up | needs-triage; Execution: todo | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |

@@ -2,8 +2,8 @@
 
 # [104] Rebuild the admin accounts page around a readable table
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: implemented (2026-10-08); the overflow fix is measured, e2e not run
 Published: 2026-10-06
 
 Category: bug
@@ -114,20 +114,102 @@ assertion, and do not treat it as caused by this work.
 
 ## Provisional acceptance criteria
 
-- [ ] The search label, field and submit read as one control group on one alignment line at 1440, 768 and 390.
-- [ ] `documentElement.scrollWidth` equals `clientWidth` on this route at 390, 768 and 1440; both tables scroll inside their own named regions, which are keyboard-focusable.
-- [ ] Table text is left-aligned and figures are right-aligned; no email wraps mid-address at 1440.
-- [ ] The page names "Accounts" once in visible copy.
-- [ ] Row-level Save and Delete are quiet-weight; Delete keeps its danger semantics, consequence copy and confirmation dialog.
-- [ ] System counts render as a ledger rather than four stat tiles.
-- [ ] The current-account row has the same structure as every other row, and the guard still prevents self role-change and self-deletion.
-- [ ] The 390px stacked-card conversion still works.
+`~` marks a criterion met in the markup and CSS but not seen in the running app.
+
+- [x] The search label, field and submit read as one control group on one alignment line at 1440, 768 and 390.
+- [x] `documentElement.scrollWidth` equals `clientWidth` on this route at 390, 768 and 1440; both tables scroll inside their own named regions, which are keyboard-focusable.
+- [x] Table text is left-aligned and figures are right-aligned; no email wraps mid-address at 1440.
+- [x] The page names "Accounts" once in visible copy.
+- [x] Row-level Save and Delete are quiet-weight; Delete keeps its danger semantics, consequence copy and confirmation dialog.
+- [x] System counts render as a ledger rather than four stat tiles.
+- [x] The current-account row has the same structure as every other row, and the guard still prevents self role-change and self-deletion.
+- [~] The 390px stacked-card conversion still works.
 - [ ] Verified in all three locales, light and dark, keyboard-only, at 200% zoom.
-- [ ] The pre-existing diary-count mismatch is neither fixed nor masked here; it is left as recorded.
+- [x] The pre-existing diary-count mismatch is neither fixed nor masked here; it is left as recorded.
 
 ## Settled during triage
 
-Nothing yet.
+Both judgement calls were taken by the implementing agent and are recorded with their
+reasoning, following the 101/102 precedent.
+
+**Item 3 — the duplicate name: drop the `<caption>`, keep the `h2`.** The `h2` names the whole
+section, which holds the search control, the table and the pagination; a caption can only name
+the table. So the section keeps its visible heading and the table and its scroll region are both
+`aria-labelledby` that same `h2` — one name, one node, announced once. A `sr-only` caption
+repeating "Accounts" would have been a second announcement of the same word for exactly the
+readers who gain least from it.
+
+Worth noting: "Accounts" was printed **three** times, not twice. Besides the `h2` and the
+caption there was an `admin-users-kicker` eyebrow above the `h1`. DESIGN.md has no eyebrow above
+any headline, so it is gone too, leaving `h1` "Admin accounts" for the page and `h2` "Accounts"
+for the list.
+
+**Item 6 — the current-account row: a chip plus a note the chip points at.** Every other row has
+one control in the Actions cell, so this one has one `.badge` reading "Current account" and the
+row rhythm holds. The explanation moves to a single `#admin-users-self-note` below the table,
+referenced by `aria-describedby` from the chip, so the reason is still announced with the chip
+rather than crammed into the cell as two lines of prose. `title` was rejected: it is not
+reliably available to keyboard or screen-reader users.
+
+## Execution record — 2026-10-08
+
+**The overflow is fixed and the fix is measured, not argued.** The ticket's numbers were
+reproduced in a throwaway Playwright harness that loads `tokens.css` + `styles.css` + this
+page's stylesheet around the page's real DOM shape, inside a real `.app-shell` with a sidebar —
+that last part matters, because the mechanism is the 180px sidebar column between 768px and
+1199px leaving `main` at 588px while the search control held a 480px floor:
+
+| Measurement at 768px | before | after |
+| --- | --- | --- |
+| `documentElement.scrollWidth` vs `clientWidth` | **786** vs 768 | 768 vs 768 |
+| Overflowing nodes | `form.admin-users-search`, its `div`, its `input`, `table.admin-users-table` at **1104px** | none |
+
+The reproduction matched the ticket's own figures (it recorded 784 and the same 1104px table), so
+the harness was measuring the real defect. Same harness, same DOM, three more criteria:
+
+| | before | after |
+| --- | --- | --- |
+| Header cell `text-align` | `center` | `left` |
+| Email row-header `text-align` | `center` | `left` |
+| Diaries column `text-align` | `left` | `right` |
+| Emails wrapping mid-address at 1440px | 1 | 0 |
+| Delete button height | 44px | 36px |
+
+The centring had a plain cause: `th` defaults to `text-align: center`, and the email cell is a
+`th[scope="row"]`. Adopting the shared `.table-scroll` region supplies the explicit `left`.
+
+**What changed.**
+
+- **Search is one control group.** Label above the field, field and submit on one row, the whole
+  form its own block instead of three loose children of a flex heading row. Its 480px `min-width`
+  floor — the thing that overflowed — is now a `max-width`, with `min-width: 0` on the input.
+- **Both tables moved to `.table-scroll`**, the system's named, bordered, rounded scroll region,
+  with `role="region"`, `tabIndex={0}` and this page's own minimum widths. `max-width: 100%` on
+  that class is what stops the page widening to fit a table.
+- **Counts are a ledger.** Four `.ledger-row`s replace the four-up `dl` of stat tiles, with each
+  breakdown as a `small` under its own label rather than three more rows.
+- **Row controls are quiet-weight.** Role Save is `.quiet-button .button-compact`. Delete keeps
+  `.danger-button` — DESIGN.md requires the semantics, the named consequence and the confirmation
+  — but at compact height it stops being the loudest thing in the densest part of the page.
+- **Deletion confirms in the project dialog.** `window.confirm` is gone; `ConfirmDialog` carries
+  the existing consequence copy, which already names the account. No new copy anywhere in this
+  ticket.
+- **The eyebrow is gone**, with its duplicate "Accounts" (see *Settled during triage*).
+
+**Deliberately untouched**: the diary-count mismatch recorded in the 2026-09-06 layout review.
+The spec still asserts `toHaveText('1')` on that cell; the assertion was not weakened and the
+data defect was not "fixed" here.
+
+### Not done
+
+- **The e2e suite was not run** — the harness needs the tunnelled Postgres and `127.0.0.1:55433`
+  was closed for this session. `tests/e2e/admin-users.spec.ts` was updated for the project
+  dialog and gained assertions for the width at 1440/768/390, both named scroll regions being
+  keyboard-focusable, "Accounts" appearing once, and the 390px card conversion — but **that
+  update is unverified**.
+- The 390px conversion and the locale/theme/zoom sweep were not seen rendered. The harness
+  measured 390px as `390 = 390` with the card list in place of the table, which is evidence for
+  the layout but not for the three locales, the two themes, or 200% zoom.
 
 ## Related work
 

@@ -11,6 +11,7 @@ import { authUserResponseSchema } from '@diary/contracts'
 import { api, useUi } from '../ui'
 import { signInPath } from '../session'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
+import { ConfirmDialog } from '../authoring-controls'
 import './admin-users.css'
 
 const copy = {
@@ -46,6 +47,9 @@ export default function AdminUsers() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [failure, setFailure] = useState<Failure | null>(null)
+  // Deletion names its consequence in the project dialog; `window.confirm` is
+  // not a confirmation this design system has.
+  const [doomed, setDoomed] = useState<AdminUserListItem | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -93,7 +97,7 @@ export default function AdminUsers() {
   }
 
   async function deleteUser(row: AdminUserListItem) {
-    if (pending || !window.confirm(c.confirmDelete(row.email))) return
+    if (pending) return
     setPending(`delete:${row.id}`); setNotice(''); setFailure(null)
     try {
       const result = await api.DELETE('/api/admin/users/{id}', { params: { path: { id: row.id } } })
@@ -110,21 +114,54 @@ export default function AdminUsers() {
   }
 
   const roleLabel = (role: Role) => role === 'ADMIN' ? c.admin : c.user
+  const roleControl = (row: AdminUserListItem) => <div className="admin-users-role">
+    <select aria-label={`${c.role}: ${row.email}`} value={roleDrafts[row.id] ?? row.role} disabled={row.id === currentUserId || pending !== null} onChange={event => setRoleDrafts(current => ({ ...current, [row.id]: event.target.value as Role }))}><option value="USER">{c.user}</option><option value="ADMIN">{c.admin}</option></select>
+    {/* Row controls stay quiet-weight so they do not compete with the data.
+        Delete keeps `danger-button` — its semantics are required — but at
+        compact height it stops being the loudest element in the table. */}
+    <button type="button" className="quiet-button button-compact" disabled={row.id === currentUserId || pending !== null || (roleDrafts[row.id] ?? row.role) === row.role} onClick={() => void updateRole(row)}>{pending === `role:${row.id}` ? '…' : c.save}</button>
+  </div>
+  // The guard is unchanged; only its presentation is. Every other row has one
+  // control here, so this one has one chip, and the reason it cannot be acted
+  // on is a note below the table that the chip points at.
+  const rowAction = (row: AdminUserListItem) => row.id === currentUserId
+    ? <span className="badge" aria-describedby="admin-users-self-note">{c.current}</span>
+    : <button type="button" className="danger-button button-compact admin-users-delete" disabled={pending !== null} onClick={() => setDoomed(row)}>{pending === `delete:${row.id}` ? '…' : c.remove}</button>
+
   return <section className="admin-users-page">
-    <header className="admin-users-header"><div><p className="admin-users-kicker">{c.users}</p><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link className="secondary admin-users-back" to="/settings">{c.back}</Link></header>
+    <header className="admin-users-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link className="secondary admin-users-back" to="/settings">{c.back}</Link></header>
     <FailureNotice failure={failure} />
     {notice && <p className="admin-users-notice" role="status">{notice}</p>}
     {failure?.code === 'AUTH_UNAUTHORIZED' && <Link to={signInPath('/admin/users')}>{c.signIn}</Link>}
     <section className="admin-users-section" aria-labelledby="admin-users-stats"><h2 id="admin-users-stats">{c.stats}</h2>
-      {stats ? <dl className="admin-users-summary"><div><dt>{c.totalUsers}</dt><dd>{stats.users.total}</dd><small>{c.admins}: {stats.users.admin} · {c.regular}: {stats.users.regular}</small></div><div><dt>{c.totalDiaries}</dt><dd>{stats.diaries.total}</dd></div><div><dt>{c.totalAlerts}</dt><dd>{stats.alerts.total}</dd><small>{c.activeAlerts}: {stats.alerts.active} · {c.dismissedAlerts}: {stats.alerts.dismissed}</small></div><div><dt>{c.totalTransactions}</dt><dd>{stats.transactions.total}</dd><small>{c.buys}: {stats.transactions.buy} · {c.sells}: {stats.transactions.sell}</small></div></dl> : <p role="status">{c.loading}</p>}
+      {/* Four figures read as a ledger. Four stat tiles side by side is the
+          hero-metric template, not a design. */}
+      {stats ? <div className="ledger admin-users-ledger">
+        <div className="ledger-row"><span>{c.totalUsers}<small>{c.admins}: {stats.users.admin} · {c.regular}: {stats.users.regular}</small></span><span>{stats.users.total}</span></div>
+        <div className="ledger-row"><span>{c.totalDiaries}</span><span>{stats.diaries.total}</span></div>
+        <div className="ledger-row"><span>{c.totalAlerts}<small>{c.activeAlerts}: {stats.alerts.active} · {c.dismissedAlerts}: {stats.alerts.dismissed}</small></span><span>{stats.alerts.total}</span></div>
+        <div className="ledger-row"><span>{c.totalTransactions}<small>{c.buys}: {stats.transactions.buy} · {c.sells}: {stats.transactions.sell}</small></span><span>{stats.transactions.total}</span></div>
+      </div> : <p role="status">{c.loading}</p>}
     </section>
-    <section className="admin-users-section" aria-labelledby="admin-users-list"><div className="admin-users-section-heading"><h2 id="admin-users-list">{c.users}</h2><form className="admin-users-search" onSubmit={submitSearch}><label htmlFor="admin-users-search">{c.search}</label><div><input id="admin-users-search" value={search} onChange={event => setSearch(event.target.value)} maxLength={255} /><button type="submit">{c.searchAction}</button></div></form></div>
+    <section className="admin-users-section" aria-labelledby="admin-users-list"><h2 id="admin-users-list">{c.users}</h2>
+      {/* One control group: label over field, field and submit on one row. It
+          is its own block rather than three loose children of a heading row. */}
+      <form className="admin-users-search" onSubmit={submitSearch}>
+        <label htmlFor="admin-users-search">{c.search}</label>
+        <div className="admin-users-search-row"><input id="admin-users-search" value={search} onChange={event => setSearch(event.target.value)} maxLength={255} /><button type="submit" className="secondary">{c.searchAction}</button></div>
+      </form>
       {rows === null ? <p role="status">{c.loading}</p> : rows.data.length === 0 ? <p>{c.failed}</p> : <>
-        <div className="admin-users-table-wrap"><table className="admin-users-table"><caption>{c.users}</caption><thead><tr><th scope="col">{c.email}</th><th scope="col">{c.name}</th><th scope="col">{c.role}</th><th scope="col">{c.created}</th><th scope="col">{c.diaries}</th><th scope="col">{c.actions}</th></tr></thead><tbody>{rows.data.map(row => <tr key={row.id}><th scope="row"><span className="admin-users-email">{row.email}</span></th><td>{row.name ?? c.unnamed}</td><td><div className="admin-users-role"><select aria-label={`${c.role}: ${row.email}`} value={roleDrafts[row.id] ?? row.role} disabled={row.id === currentUserId || pending !== null} onChange={event => setRoleDrafts(current => ({ ...current, [row.id]: event.target.value as Role }))}><option value="USER">{c.user}</option><option value="ADMIN">{c.admin}</option></select><button type="button" className="secondary" disabled={row.id === currentUserId || pending !== null || (roleDrafts[row.id] ?? row.role) === row.role} onClick={() => void updateRole(row)}>{pending === `role:${row.id}` ? '…' : c.save}</button></div></td><td><time dateTime={row.createdAt}>{formatDate(row.createdAt, locale)}</time></td><td>{row.diaryCount}</td><td>{row.id === currentUserId ? <span className="muted">{c.current}<br />{c.accountPrivate}</span> : <button type="button" className="secondary danger-button admin-users-delete" disabled={pending !== null} onClick={() => void deleteUser(row)}>{pending === `delete:${row.id}` ? '…' : c.remove}</button>}</td></tr>)}</tbody></table></div>
-        <div className="admin-users-mobile-list">{rows.data.map(row => <article key={row.id} className="admin-users-mobile-row"><h3>{row.email}</h3><p>{row.name ?? c.unnamed}</p><dl><div><dt>{c.role}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{c.created}</dt><dd><time dateTime={row.createdAt}>{formatDate(row.createdAt, locale)}</time></dd></div><div><dt>{c.diaries}</dt><dd>{row.diaryCount}</dd></div></dl><div className="admin-users-role"><select aria-label={`${c.role}: ${row.email}`} value={roleDrafts[row.id] ?? row.role} disabled={row.id === currentUserId || pending !== null} onChange={event => setRoleDrafts(current => ({ ...current, [row.id]: event.target.value as Role }))}><option value="USER">{c.user}</option><option value="ADMIN">{c.admin}</option></select><button type="button" className="secondary" disabled={row.id === currentUserId || pending !== null || (roleDrafts[row.id] ?? row.role) === row.role} onClick={() => void updateRole(row)}>{c.save}</button>{row.id === currentUserId ? <span className="muted">{c.current}</span> : <button type="button" className="secondary danger-button admin-users-delete" disabled={pending !== null} onClick={() => void deleteUser(row)}>{c.remove}</button>}</div></article>)}</div>
+        {/* The section heading names this table, so it carries no caption of
+            its own: the page printed "Accounts" twice. */}
+        <div className="table-scroll admin-users-table-wrap" role="region" aria-labelledby="admin-users-list" tabIndex={0}><table className="admin-users-table" aria-labelledby="admin-users-list"><thead><tr><th scope="col">{c.email}</th><th scope="col">{c.name}</th><th scope="col">{c.role}</th><th scope="col" className="num">{c.created}</th><th scope="col" className="num">{c.diaries}</th><th scope="col">{c.actions}</th></tr></thead><tbody>{rows.data.map(row => <tr key={row.id}><th scope="row"><span className="admin-users-email">{row.email}</span></th><td>{row.name ?? c.unnamed}</td><td>{roleControl(row)}</td><td className="num"><time dateTime={row.createdAt}>{formatDate(row.createdAt, locale)}</time></td><td className="num">{row.diaryCount}</td><td>{rowAction(row)}</td></tr>)}</tbody></table></div>
+        <div className="admin-users-mobile-list">{rows.data.map(row => <article key={row.id} className="admin-users-mobile-row"><h3>{row.email}</h3><p>{row.name ?? c.unnamed}</p><dl><div><dt>{c.role}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{c.created}</dt><dd><time dateTime={row.createdAt}>{formatDate(row.createdAt, locale)}</time></dd></div><div><dt>{c.diaries}</dt><dd className="num">{row.diaryCount}</dd></div></dl><div className="admin-users-role"><select aria-label={`${c.role}: ${row.email}`} value={roleDrafts[row.id] ?? row.role} disabled={row.id === currentUserId || pending !== null} onChange={event => setRoleDrafts(current => ({ ...current, [row.id]: event.target.value as Role }))}><option value="USER">{c.user}</option><option value="ADMIN">{c.admin}</option></select><button type="button" className="quiet-button button-compact" disabled={row.id === currentUserId || pending !== null || (roleDrafts[row.id] ?? row.role) === row.role} onClick={() => void updateRole(row)}>{c.save}</button>{rowAction(row)}</div></article>)}</div>
+        {rows.data.some(row => row.id === currentUserId) && <p id="admin-users-self-note" className="muted admin-users-self-note">{c.current}: {c.accountPrivate}</p>}
         {rows.pagination.totalPages > 1 && <nav className="admin-users-pagination" aria-label={c.users}><button type="button" className="secondary" disabled={rows.pagination.page <= 1 || pending !== null} onClick={() => setPage(value => value - 1)}>{c.previous}</button><span>{c.page} {rows.pagination.page} / {rows.pagination.totalPages}</span><button type="button" className="secondary" disabled={rows.pagination.page >= rows.pagination.totalPages || pending !== null} onClick={() => setPage(value => value + 1)}>{c.next}</button></nav>}
       </>}
     </section>
-    <section className="admin-users-section" aria-labelledby="admin-users-recent"><h2 id="admin-users-recent">{c.recent}</h2>{recent?.data.length ? <div className="admin-users-table-wrap"><table className="admin-users-table admin-users-diary-table"><caption>{c.recent}</caption><thead><tr><th scope="col">{c.date}</th><th scope="col">{c.name}</th><th scope="col">{c.author}</th><th scope="col">{c.alerts}</th><th scope="col">{c.transactions}</th></tr></thead><tbody>{recent.data.map(row => <tr key={row.id}><td><time dateTime={row.date}>{row.date}</time></td><th scope="row">{row.title}</th><td>{row.author.name ?? row.author.email}</td><td>{row.alertCount}</td><td>{row.transactionCount}</td></tr>)}</tbody></table></div> : <p>{c.loading}</p>}</section>
+    <section className="admin-users-section" aria-labelledby="admin-users-recent"><h2 id="admin-users-recent">{c.recent}</h2>{recent?.data.length ? <div className="table-scroll admin-users-table-wrap" role="region" aria-labelledby="admin-users-recent" tabIndex={0}><table className="admin-users-table admin-users-diary-table" aria-labelledby="admin-users-recent"><thead><tr><th scope="col" className="num">{c.date}</th><th scope="col">{c.name}</th><th scope="col">{c.author}</th><th scope="col" className="num">{c.alerts}</th><th scope="col" className="num">{c.transactions}</th></tr></thead><tbody>{recent.data.map(row => <tr key={row.id}><td className="num"><time dateTime={row.date}>{row.date}</time></td><th scope="row">{row.title}</th><td>{row.author.name ?? row.author.email}</td><td className="num">{row.alertCount}</td><td className="num">{row.transactionCount}</td></tr>)}</tbody></table></div> : <p>{c.loading}</p>}</section>
+    <ConfirmDialog open={doomed !== null} title={c.remove} body={doomed ? c.confirmDelete(doomed.email) : ''} confirmLabel={c.remove} danger
+      onConfirm={() => { const row = doomed; setDoomed(null); if (row) void deleteUser(row) }}
+      onCancel={() => setDoomed(null)} />
   </section>
 }
