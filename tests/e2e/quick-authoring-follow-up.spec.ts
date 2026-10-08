@@ -26,7 +26,11 @@ async function signIn(page: Page, email: string, returnPath = '/diaries/quick') 
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`${returnPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`))
-  await selectLocale(page, 'en')
+  // The account's own locale is authoritative once it is known, and it defaults
+  // to zh-TW; wait for the choice to reach the account rather than only the
+  // control, or the next cold document renders in Chinese and every English
+  // locator in this file misses.
+  await selectAccountLocale(page, 'en')
 }
 
 async function startAccount(page: Page, returnPath = '/diaries/quick') {

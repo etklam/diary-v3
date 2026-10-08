@@ -96,13 +96,24 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  useEffect(()=>{if(skipSuggested.current){skipSuggested.current=false;return;}setForm(current=>({...current,title:current.titleTouched?current.title:current.kind==='blank'?'':suggested.title,content:current.contentTouched?current.content:suggested.content,applied:current.contentTouched?current.applied:suggested.content}));},[suggested]);
  useEffect(()=>{const nextKey=buildCapturePath('quick',captureContext,incomingDate,share);if(nextKey===incomingKey.current)return;if(dirtyRef.current)return;incomingKey.current=nextKey;const next=normalizeCaptureContext(captureContext);captureRef.current=next;if(restorable)return;modeTouched.current=false;setUncertain(false);setForm(empty(incomingDate,next?.symbol,next??undefined,seed));setLookupAttempt(value=>value+1);},[incomingDate,captureContext,restorable]);
  useEffect(()=>{const revision=++lookupRevision.current;let valid=true;const previous=destinationRef.current;setChecking(true);setLookupError(false);setDestination(null);destinationRef.current=null;api.GET('/api/diaries/by-date',{params:{query:{date:form.date}}}).then(result=>{if(!valid||revision!==lookupRevision.current)return;if(result.response.ok){const parsed=diaryResponseSchema.safeParse(result.data);const next=parsed.success?parsed.data:null;destinationRef.current=next;setDestination(next);if(!modeTouched.current)setForm(current=>({...current,mode:next?'append':'create',...(next?{title:next.title,titleTouched:false}:previous?{title:'',titleTouched:false}:{})}));}else setLookupError(true);}).catch(()=>{if(valid&&revision===lookupRevision.current)setLookupError(true);}).finally(()=>{if(valid&&revision===lookupRevision.current)setChecking(false);});return()=>{valid=false;};},[form.date,lookupAttempt]);
- useEffect(()=>{if(!key||session.authenticated!==true||!active.current||wasExplicitSignOut()||skipSave.current||restorable||(!form.content&&!form.title&&!form.tags&&form.kind==='blank'))return;const value=draftValueForStorage(form,uncertain);try{localStorage.setItem(key,JSON.stringify({at:Date.now(),value}));setSavedDraft(true);setDraftError(false);}catch{setDraftError(true);}},[form,key,restorable,session.authenticated,uncertain]);
+ // False until the stored draft for this account has been read; the save effect
+ // below waits on it rather than on effect declaration order.
+ const [draftChecked,setDraftChecked]=useState(false);
+ // Nothing is written to the device key until the stored draft under it has
+ // been read. The account read confirms the session and supplies the key in one
+ // commit, and this effect is declared before the one that reads storage, so
+ // without the gate it saved first — overwriting a stored draft with whatever
+ // was typed on the cold document, and then offering that back as the "stored
+ // draft". Both pieces of writing were the author's; one was destroyed silently.
+ useEffect(()=>{if(!draftChecked||!key||session.authenticated!==true||!active.current||wasExplicitSignOut()||skipSave.current||restorable||(!form.content&&!form.title&&!form.tags&&form.kind==='blank'))return;const value=draftValueForStorage(form,uncertain);try{localStorage.setItem(key,JSON.stringify({at:Date.now(),value}));setSavedDraft(true);setDraftError(false);}catch{setDraftError(true);}},[draftChecked,form,key,restorable,session.authenticated,uncertain]);
  function change(patch:Partial<Draft>){dirtyRef.current=true;onTyped();setForm(current=>({...current,...patch}));}
  const dateTouched=useRef(false),reconciled=useRef(false);
  useEffect(()=>{
   if(!accountId||reconciled.current)return;
   reconciled.current=true;
   const stored=readDraft(`diary-quick-draft:${accountId}`);
+  // Releases the save above, which has been held since the key existed.
+  setDraftChecked(true);
   // Writing can begin before the account confirms, so a stored draft is offered
   // even when it does: two pieces of writing now share one key, and neither may
   // be dropped without the author choosing. Restore asks before replacing what
