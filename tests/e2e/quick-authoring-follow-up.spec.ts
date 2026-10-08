@@ -331,8 +331,12 @@ test('a submit arriving during the destination lookup is queued, not swallowed',
 async function holdAccountRead(page: Page) {
   let release = () => {}
   const held = new Promise<void>(resolve => { release = resolve })
-  await page.route('**/api/auth/me', async route => { await held; await route.continue() })
-  return async () => { release(); await page.unroute('**/api/auth/me') }
+  // The page issues more than one account read, and the ones still parked when
+  // the test releases the hold can outlive the navigation that follows. A
+  // continue on a route whose request has gone throws "Route is already
+  // handled"; that is the handler's own race, not a product failure.
+  await page.route('**/api/auth/me', async route => { await held; await route.continue().catch(() => {}) })
+  return async () => { release(); await page.unroute('**/api/auth/me').catch(() => {}) }
 }
 
 test('a cold Quick load is typable before the account read and keeps what was typed', async ({ page }) => {

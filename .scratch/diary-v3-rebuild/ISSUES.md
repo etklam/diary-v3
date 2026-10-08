@@ -78,62 +78,64 @@ Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are 
 ## Capture-cost follow-ups (84–91)
 
 Published 2026-10-04 from a review of input cost across the two authoring paths
-(`/diaries/quick` and `/diaries/new`). None of these are implemented yet. Ticket 83 predates
-this set and is not indexed above.
+(`/diaries/quick` and `/diaries/new`). All of them are implemented; the rows below were
+reconciled with the tickets themselves on 2026-10-08, having been left at
+`ready-for-agent; Execution: todo` long after each ticket recorded its own completion.
+Ticket 83 predates this set and is not indexed above.
 
 | Ticket | Type | Recorded state | Issue file |
 | --- | --- | --- | --- |
-| 84 — Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter | Follow-up | ready-for-agent; Execution: todo | [84-quick-keyboard-submit.md](issues/84-quick-keyboard-submit.md) |
-| 85 — Launch straight into capture from the installed app icon | Follow-up | ready-for-agent; Execution: todo | [85-app-shortcuts-to-capture.md](issues/85-app-shortcuts-to-capture.md) |
-| 86 — Receive shared links and text into a Quick Diary draft | Follow-up | ready-for-agent; Execution: todo; blocked by 85 | [86-share-target-into-quick-diary.md](issues/86-share-target-into-quick-diary.md) |
-| 87 — Offer prefilled capture from holdings, watchlist and price alerts | Follow-up | ready-for-agent; Execution: todo | [87-prefilled-capture-entries.md](issues/87-prefilled-capture-entries.md) |
-| 88 — Stop requiring a title in the full Diary editor | Follow-up | ready-for-agent; Execution: todo | [88-full-editor-title-derivation.md](issues/88-full-editor-title-derivation.md) |
-| 89 — Suggest company symbols the account already tracks | Follow-up | ready-for-agent; Execution: todo | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
+| 84 — Close the Quick Diary keyboard loop with Cmd/Ctrl+Enter | Follow-up | accepted; Execution: done | [84-quick-keyboard-submit.md](issues/84-quick-keyboard-submit.md) |
+| 85 — Launch straight into capture from the installed app icon | Follow-up | accepted; Execution: done | [85-app-shortcuts-to-capture.md](issues/85-app-shortcuts-to-capture.md) |
+| 86 — Receive shared links and text into a Quick Diary draft | Follow-up | accepted; Execution: done | [86-share-target-into-quick-diary.md](issues/86-share-target-into-quick-diary.md) |
+| 87 — Offer prefilled capture from holdings, watchlist and price alerts | Follow-up | accepted; Execution: done | [87-prefilled-capture-entries.md](issues/87-prefilled-capture-entries.md) |
+| 88 — Stop requiring a title in the full Diary editor | Follow-up | accepted; Execution: done | [88-full-editor-title-derivation.md](issues/88-full-editor-title-derivation.md) |
+| 89 — Suggest company symbols the account already tracks | Follow-up | accepted; Execution: done | [89-company-symbol-suggestions.md](issues/89-company-symbol-suggestions.md) |
 | 90 — Remove the cold-start wait before the Quick Diary writing area | Follow-up | accepted; Execution: done 2026-10-04, completed 2026-10-08 after 100 | [90-quick-cold-start-wait.md](issues/90-quick-cold-start-wait.md) |
-| 91 — Revisit the destination summary sitting above Quick writing | Design decision | needs-triage; refines accepted work in 64 | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
+| 91 — Revisit the destination summary sitting above Quick writing | Design decision | ruled 2026-10-04; Execution: done (delivered by 97) | [91-quick-destination-placement.md](issues/91-quick-destination-placement.md) |
 
 ## Article translation management follow-up (92)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 92 — Batch-manage and retranslate article translations | Follow-up | needs-triage; Execution: todo | [92-article-translation-bulk-management.md](issues/92-article-translation-bulk-management.md) |
+| 92 — Batch-manage and retranslate article translations | Follow-up | accepted; Execution: done | [92-article-translation-bulk-management.md](issues/92-article-translation-bulk-management.md) |
 
 ## Desktop workspace layout follow-up (93)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 93 — Use desktop workspace width more effectively | Design follow-up | needs-triage; Execution: todo | [93-desktop-workspace-space-utilization.md](issues/93-desktop-workspace-space-utilization.md) |
+| 93 — Use desktop workspace width more effectively | Design follow-up | accepted; Execution: done | [93-desktop-workspace-space-utilization.md](issues/93-desktop-workspace-space-utilization.md) |
 
 ## Quick Diary button consistency follow-up (94)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 94 — Standardize button sizing across Quick Diary editing | Design follow-up | needs-triage; Execution: todo | [94-quick-diary-button-consistency.md](issues/94-quick-diary-button-consistency.md) |
+| 94 — Standardize button sizing across Quick Diary editing | Design follow-up | accepted; Execution: done (delivered by 97) | [94-quick-diary-button-consistency.md](issues/94-quick-diary-button-consistency.md) |
 
 ## Dropdown layout follow-up (95)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 95 — Correct dropdown layout and spacing across the app | Cross-cutting visual bug | needs-triage; Execution: todo | [95-dropdown-layout-density.md](issues/95-dropdown-layout-density.md) |
+| 95 — Correct dropdown layout and spacing across the app | Cross-cutting visual bug | accepted; Execution: done | [95-dropdown-layout-density.md](issues/95-dropdown-layout-density.md) |
 
 ## Trading principles page redesign (96)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 96 — Rebuild the Trading principles page around reading, not managing | Design follow-up | needs-triage; Execution: todo | [96-discipline-page-redesign.md](issues/96-discipline-page-redesign.md) |
+| 96 — Rebuild the Trading principles page around reading, not managing | Design follow-up | accepted; Execution: done | [96-discipline-page-redesign.md](issues/96-discipline-page-redesign.md) |
 
 ## Diary authoring redesign (97)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 97 — Redesign both diary authoring surfaces as one writing system | Design follow-up | needs-triage; Execution: todo; covers /diaries/quick and /diaries/new; consumes 91 and 94 | [97-quick-composer-redesign.md](issues/97-quick-composer-redesign.md) |
-| 98 — Derive recent tag suggestions from saved diaries | Follow-up | needs-triage; Execution: todo | [98-recent-tags-from-saved-diaries.md](issues/98-recent-tags-from-saved-diaries.md) |
+| 97 — Redesign both diary authoring surfaces as one writing system | Design follow-up | accepted; Execution: done | [97-quick-composer-redesign.md](issues/97-quick-composer-redesign.md) |
+| 98 — Derive recent tag suggestions from saved diaries | Follow-up | accepted; Execution: done | [98-recent-tags-from-saved-diaries.md](issues/98-recent-tags-from-saved-diaries.md) |
 
 ## Diary calendar redesign (99)
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 99 — Redesign the Diary calendar around density and legible destinations | Design follow-up | needs-triage; Execution: todo | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |
+| 99 — Redesign the Diary calendar around density and legible destinations | Design follow-up | accepted; Execution: done | [99-calendar-redesign.md](issues/99-calendar-redesign.md) |
 
 ## Shell architecture follow-up (100)
 
@@ -155,11 +157,11 @@ the set is cross-cutting consistency work and four focused reworks.
 |---|---|---|---|
 | 101 — Normalize money, quantity, percentage and date rendering | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, e2e suite run and green | [101-figure-formatting-consistency.md](issues/101-figure-formatting-consistency.md) |
 | 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, no assertion pins the seven fixes | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
-| 103 — Split AI administration into task-scoped views | Design follow-up | triaged; Execution: implemented, e2e not run | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
-| 104 — Rebuild the admin accounts page around a readable table | Design follow-up | triaged; Execution: implemented, overflow fix measured, e2e not run | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
-| 105 — Make strategy performance readable at low cardinality | Design follow-up | triaged; Execution: implemented, chart geometry unit-tested, e2e not run | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
-| 106 — Reduce the Watchlist row to a readable company | Design follow-up | triaged; Execution: implemented 2026-10-08, both watchlist e2e specs updated and green | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
-| 107 — AI reports denied, empty and first-run states | Design follow-up | triaged; Execution: implemented 2026-10-08, 11/11 AI e2e cases green, guard mutation-checked | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |
+| 103 — Split AI administration into task-scoped views | Design follow-up | triaged; Execution: done 2026-10-08, AI admin e2e green | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
+| 104 — Rebuild the admin accounts page around a readable table | Design follow-up | triaged; Execution: done 2026-10-09, admin-users e2e 2/2 after two real fixes | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
+| 105 — Make strategy performance readable at low cardinality | Design follow-up | triaged; Execution: done 2026-10-08, chart geometry unit-tested and performance e2e green | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
+| 106 — Reduce the Watchlist row to a readable company | Design follow-up | triaged; Execution: done 2026-10-08, both watchlist e2e specs updated and green | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
+| 107 — AI reports denied, empty and first-run states | Design follow-up | triaged; Execution: done 2026-10-08, 11/11 AI e2e cases green, guard mutation-checked | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |
 | 108 — Rebuild Diary reminders as a usable page | Design follow-up | triaged; Execution: done 2026-10-08, 7/7 alerts e2e cases green | [108-diary-reminders-page.md](issues/108-diary-reminders-page.md) |
 | 109 — Design the authentication pages | Design follow-up | triaged; Execution: done 2026-10-08, 8/8 new auth e2e cases green | [109-authentication-pages-design.md](issues/109-authentication-pages-design.md) |
 | 110 — Section the company research page into legible jobs | Design follow-up | triaged; Execution: done 2026-10-08, company/notes/evidence e2e green | [110-company-research-page-sections.md](issues/110-company-research-page-sections.md) |
@@ -177,8 +179,14 @@ readings, so neither was decided inside a consistency ticket.
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 115 — Rule on the duplicate Quick diary primary action | Design decision | needs-triage; Execution: todo | [115-duplicate-quick-diary-action.md](issues/115-duplicate-quick-diary-action.md) |
-| 116 — Decide what belongs in the sidebar | Information architecture | needs-triage; Execution: todo | [116-sidebar-navigation-depth.md](issues/116-sidebar-navigation-depth.md) |
+| 115 — Rule on the duplicate Quick diary primary action | Design decision | triaged; Execution: done 2026-10-08 | [115-duplicate-quick-diary-action.md](issues/115-duplicate-quick-diary-action.md) |
+| 116 — Decide what belongs in the sidebar | Information architecture | triaged; Execution: done 2026-10-08 | [116-sidebar-navigation-depth.md](issues/116-sidebar-navigation-depth.md) |
+
+## Test debt (117)
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 117 — Clear the remaining end-to-end failures | Test debt | needs-triage; Execution: todo | [117-remaining-e2e-failures.md](issues/117-remaining-e2e-failures.md) |
 
 Recommended order from the review: 101 first (highest visibility per unit of effort, and a
 credibility problem), then 102 (four fixes of two lines or less), then the redesigns
@@ -253,17 +261,18 @@ review's recommended order. Three things are worth reading before picking up 110
   work and are fixed (`layout-theme`'s gutter selector, `ui-ux-audit-regressions` above);
   the other fourteen are pre-existing, and the list below is now the authoritative one.
 
-### Pre-existing e2e failures, as of 2026-10-08
+### Pre-existing e2e failures — now [117](issues/117-remaining-e2e-failures.md)
 
-Still unfiled as a ticket. Three in `account-security.spec.ts` (the ambiguous
-`getByLabel('Content')` from 97), three in `workspace-navigation.spec.ts` (nav width, and
-the admin nav's Guru links), one in `pwa.spec.ts`, four in
-`quick-authoring-follow-up.spec.ts` (115, 338, 380, 412 — the Quick draft state machine,
-one of them failing inside the spec's own `/api/auth/me` hold helper), two in
-`research-diary-handoff.spec.ts` (212 and 563, still a different pair on each run), and
-`admin-users.spec.ts:22`, which fails at a different assertion depending on suite order —
-on the row guard in a full run and on the region count in isolation, so it is
-order-dependent rather than broken outright.
+Carried here unfiled since 2026-10-07 and filed as a ticket on 2026-10-09, by which point
+seven of them were fixed: three in `account-security.spec.ts` (97's region label), three in
+`workspace-navigation.spec.ts` (116), and `admin-users.spec.ts:22`, whose two real faults —
+a paginated inventory in a shared database, and two landmarks named "Accounts" — also
+completed 104's acceptance. Two of the four `quick-authoring-follow-up` cases went with
+them; the spec's own account-read hold helper was throwing.
+
+Six remain and are described in the ticket: two in `quick-authoring-follow-up.spec.ts`,
+two in `research-diary-handoff.spec.ts`, one in `pwa.spec.ts`, and `posts.spec.ts:13`,
+which passes on re-run.
 
 **Progress — 2026-10-08, third pass.** 110 and 111 are implemented, finishing the
 review's 107–111 band. Three things are worth reading before picking up 112–114:
@@ -331,6 +340,30 @@ it are worth carrying forward:
 
 **Full e2e suite run: 322 passed, 14 failed — all pre-existing.** `posts.spec.ts:13`
 passed on this run, which is the re-run behaviour already recorded for it.
+
+**Progress — 2026-10-09, sixth pass. Every ticket that uses the execution convention is
+done except [117](issues/117-remaining-e2e-failures.md), which this pass filed.** The full
+suite now runs **333 passed, 5 failed**, up from 325/13.
+
+- **115 and 116 are done.** Capture keeps one filled action, the sidebar's; the account
+  controls are pinned to the bottom of the scrolling column and Settings moved in beside
+  them. 116's own measurement is recorded in the ticket, including the arrangement that was
+  tried and rejected — giving the list its own scroll box left it 242px tall at 1440×900.
+- **The index was lying about 84–99.** Fourteen rows still read
+  `ready-for-agent; Execution: todo` while every one of those tickets recorded
+  `Status: accepted / Execution: done` in its own file, some of them days earlier. The rows
+  are reconciled; the tickets were right and the index was stale. Worth checking the files
+  rather than this table when a state matters.
+- **Seven of the long-standing e2e failures are fixed, not deferred, and the rest are now
+  [117](issues/117-remaining-e2e-failures.md).** 116 could not start without characterising
+  the three `workspace-navigation` cases, and all three turned out to be stale assertions
+  rather than defects: a content-width check that contradicted DESIGN.md's 1280px data cap,
+  a calendar legend that 99 turned into two, and an administration link list that predated
+  the Guru routes. The same pass fixed the three `account-security` cases (97's writing
+  region shares its label with the textarea, so address the control by role),
+  `admin-users.spec.ts:22` — which had two real faults and whose fix **completes 104's
+  acceptance** — and two of the four Quick cold-start cases, where the spec's own
+  account-read hold helper was throwing.
 
 The 101–114 set from the 2026-10-06 page score is now complete. What remains open from
 that review is the "Scored but not filed" list below, plus [115](issues/115-duplicate-quick-diary-action.md)

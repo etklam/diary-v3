@@ -3,7 +3,7 @@
 # [107] Give the AI reports page honest denied, empty and first-run states
 
 Status: triaged
-Execution: implemented 2026-10-08; spec extended and all 11 AI report e2e cases green, guard mutation-checked
+Execution: done 2026-10-08; spec extended and all 11 AI report e2e cases green, guard mutation-checked
 Published: 2026-10-06
 
 Category: bug

@@ -45,11 +45,24 @@ test('admin account inventory preserves current-account guard and manages a synt
   await gotoWithPreferences(page, '/admin/users')
   await selectLocale(page, 'en')
   await expect(page.getByRole('heading', { name: 'Admin accounts', exact: true })).toBeVisible()
-  const targetRow = page.locator('tr').filter({ hasText: targetEmail })
-  const adminRow = page.locator('tr').filter({ hasText: adminEmail })
+  // The inventory is paginated at ten, and every other case in the suite adds
+  // accounts to the same database, so neither of these rows is reliably on the
+  // first page. Search for them instead of assuming where they are.
+  // Scoped to the accounts table: the Recent Diaries table beside it also
+  // carries author emails.
+  const accounts = page.getByRole('region', { name: 'Accounts', exact: true })
+  const search = async (term: string) => {
+    await page.getByLabel('Search email or name', { exact: true }).fill(term)
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect(accounts.locator('tbody tr').filter({ hasText: term })).toHaveCount(1)
+  }
+  await search(targetEmail)
+  const targetRow = accounts.locator('tbody tr').filter({ hasText: targetEmail })
+  const adminRow = accounts.locator('tbody tr').filter({ hasText: adminEmail })
   await expect(targetRow).toContainText('Synthetic account')
   await expect(targetRow.locator('td').nth(3)).toHaveText('1')
   await expect(page.locator('main')).toContainText('Synthetic admin diary')
+  await search(adminEmail)
   await expect(adminRow.getByRole('button', { name: 'Delete account', exact: true })).toHaveCount(0)
   // Same row shape as the others: one chip, with the reason stated below the
   // table rather than as two lines of prose inside the cell.
@@ -57,6 +70,7 @@ test('admin account inventory preserves current-account guard and manages a synt
   await expect(page.locator('#admin-users-self-note')).toContainText('You cannot change or delete your own account.')
   await expect(adminRow.getByRole('combobox', { name: `Role: ${adminEmail}`, exact: true })).toBeDisabled()
 
+  await search(targetEmail)
   const role = targetRow.getByRole('combobox', { name: `Role: ${targetEmail}`, exact: true })
   await role.selectOption('ADMIN')
   await targetRow.getByRole('button', { name: 'Save', exact: true }).click()
@@ -97,7 +111,7 @@ test('admin account inventory preserves current-account guard and manages a synt
   await expect(confirm).toContainText(targetEmail)
   await confirm.getByRole('button', { name: 'Delete account', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Account deleted.')
-  await expect(page.locator('tr').filter({ hasText: targetEmail })).toHaveCount(0)
+  await expect(accounts.locator('tbody tr').filter({ hasText: targetEmail })).toHaveCount(0)
 })
 
 test('ordinary account sees the protected admin route without admin controls', async ({ page }) => {

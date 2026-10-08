@@ -143,7 +143,9 @@ export default function AdminUsers() {
         <div className="ledger-row"><span>{c.totalTransactions}<small>{c.buys}: {stats.transactions.buy} · {c.sells}: {stats.transactions.sell}</small></span><span>{stats.transactions.total}</span></div>
       </div> : <p role="status">{c.loading}</p>}
     </section>
-    <section className="admin-users-section" aria-labelledby="admin-users-list"><h2 id="admin-users-list">{c.users}</h2>
+    {/* The scroll region below carries the accessible name. A named section
+        around it made two landmarks called "Accounts", one inside the other. */}
+    <section className="admin-users-section"><h2 id="admin-users-list">{c.users}</h2>
       {/* One control group: label over field, field and submit on one row. It
           is its own block rather than three loose children of a heading row. */}
       <form className="admin-users-search" onSubmit={submitSearch}>
@@ -159,7 +161,7 @@ export default function AdminUsers() {
         {rows.pagination.totalPages > 1 && <nav className="admin-users-pagination" aria-label={c.users}><button type="button" className="secondary" disabled={rows.pagination.page <= 1 || pending !== null} onClick={() => setPage(value => value - 1)}>{c.previous}</button><span>{c.page} {rows.pagination.page} / {rows.pagination.totalPages}</span><button type="button" className="secondary" disabled={rows.pagination.page >= rows.pagination.totalPages || pending !== null} onClick={() => setPage(value => value + 1)}>{c.next}</button></nav>}
       </>}
     </section>
-    <section className="admin-users-section" aria-labelledby="admin-users-recent"><h2 id="admin-users-recent">{c.recent}</h2>{recent?.data.length ? <div className="table-scroll admin-users-table-wrap" role="region" aria-labelledby="admin-users-recent" tabIndex={0}><table className="admin-users-table admin-users-diary-table" aria-labelledby="admin-users-recent"><thead><tr><th scope="col" className="num">{c.date}</th><th scope="col">{c.name}</th><th scope="col">{c.author}</th><th scope="col" className="num">{c.alerts}</th><th scope="col" className="num">{c.transactions}</th></tr></thead><tbody>{recent.data.map(row => <tr key={row.id}><td className="num"><time dateTime={row.date}>{row.date}</time></td><th scope="row">{row.title}</th><td>{row.author.name ?? row.author.email}</td><td className="num">{row.alertCount}</td><td className="num">{row.transactionCount}</td></tr>)}</tbody></table></div> : <p>{c.loading}</p>}</section>
+    <section className="admin-users-section"><h2 id="admin-users-recent">{c.recent}</h2>{recent?.data.length ? <div className="table-scroll admin-users-table-wrap" role="region" aria-labelledby="admin-users-recent" tabIndex={0}><table className="admin-users-table admin-users-diary-table" aria-labelledby="admin-users-recent"><thead><tr><th scope="col" className="num">{c.date}</th><th scope="col">{c.name}</th><th scope="col">{c.author}</th><th scope="col" className="num">{c.alerts}</th><th scope="col" className="num">{c.transactions}</th></tr></thead><tbody>{recent.data.map(row => <tr key={row.id}><td className="num"><time dateTime={row.date}>{row.date}</time></td><th scope="row">{row.title}</th><td>{row.author.name ?? row.author.email}</td><td className="num">{row.alertCount}</td><td className="num">{row.transactionCount}</td></tr>)}</tbody></table></div> : <p>{c.loading}</p>}</section>
     <ConfirmDialog open={doomed !== null} title={c.remove} body={doomed ? c.confirmDelete(doomed.email) : ''} confirmLabel={c.remove} danger
       onConfirm={() => { const row = doomed; setDoomed(null); if (row) void deleteUser(row) }}
       onCancel={() => setDoomed(null)} />

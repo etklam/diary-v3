@@ -3,7 +3,7 @@
 # [103] Split AI administration into task-scoped views
 
 Status: triaged
-Execution: implemented (2026-10-08); unit suite, typecheck, lint and build green, e2e not run
+Execution: done 2026-10-08; unit suite, typecheck, lint and build green, and the AI admin e2e cases (ai-reports-worker, shared-prompts) pass in the full suite run of 2026-10-08
 Published: 2026-10-06
 
 Category: enhancement

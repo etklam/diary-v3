@@ -3,7 +3,7 @@
 # [105] Make strategy performance readable at low cardinality
 
 Status: triaged
-Execution: implemented (2026-10-08); chart geometry unit-tested, e2e not run
+Execution: done 2026-10-08; chart geometry unit-tested and performance.spec.ts passes in the full suite run of 2026-10-08
 Published: 2026-10-06
 
 Category: bug

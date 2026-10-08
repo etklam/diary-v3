@@ -3,7 +3,7 @@
 # [104] Rebuild the admin accounts page around a readable table
 
 Status: triaged
-Execution: implemented (2026-10-08); the overflow fix is measured, e2e not run
+Execution: done 2026-10-09; the overflow fix is measured and admin-users.spec.ts passes 2/2. Its case had failed on two counts, both real and both fixed on 2026-10-09: the inventory is paginated at ten and the suite's shared database pushed the rows under test off the first page (the spec now searches for them), and this page shipped two landmarks named "Accounts", one inside the other — the outer section no longer carries the name
 Published: 2026-10-06
 
 Category: bug

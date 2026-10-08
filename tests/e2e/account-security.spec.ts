@@ -10,13 +10,16 @@ async function login(page: Page, email: string, value = password) {
   await page.getByLabel('Password', { exact: true }).fill(value);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
+// Ticket 97 wrapped the editor's writing area in a region labelled "Content",
+// so a label query matches the region and the textarea. Address the control by
+// its role.
 async function account(page: Page) {
   const email = `security-${randomUUID()}@example.test`;
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
   await login(page, email);
   await expect(page).toHaveURL(/\/diaries\/new$/);
   await selectLocale(page, 'en');
-  await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
   await page.goto('/settings/security');
   await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
   return email;
@@ -28,7 +31,7 @@ test('password validation preserves masked inputs; changing password keeps this 
   const other = await otherContext.newPage();
   try {
     await login(other, email);
-    await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+    await expect(other.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
     const next = 'new-synthetic-security-password';
     await page.getByLabel('Current password', { exact: true }).fill(password);
     await page.getByLabel('New password', { exact: true }).fill(next);
@@ -45,7 +48,7 @@ test('password validation preserves masked inputs; changing password keeps this 
     await expect(page.getByLabel('Current password', { exact: true })).toHaveCount(0);
     // The device that changed the password keeps the replacement session.
     await page.goto('/diaries/new');
-    await expect(page.getByLabel('Content', { exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
     // A separate browser context represents another device and keeps its revoked cookies.
     await other.goto('/diaries/new');
     await expect(other.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
@@ -53,7 +56,7 @@ test('password validation preserves masked inputs; changing password keeps this 
     await expect(other.getByTestId('error-code')).toHaveText('AUTH_LOGIN_INVALID_CREDENTIALS');
     await other.getByLabel('Password', { exact: true }).fill(next);
     await other.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+    await expect(other.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
   } finally {
     await otherContext.close();
   }
@@ -70,13 +73,13 @@ test('wrong current password preserves the form; all-device logout clears the fo
   await expect(page.getByLabel('Current password', { exact: true })).toHaveValue('wrong-current-password');
   const other = await context.newPage();
   await other.goto('/diaries/new');
-  await expect(other.getByLabel('Content', { exact: true })).toBeVisible();
+  await expect(other.getByRole('textbox', { name: 'Content', exact: true })).toBeVisible();
   const response = page.waitForResponse(result => result.url().endsWith('/api/auth/logout-all'));
   await page.getByRole('button', { name: 'Sign out all devices', exact: true }).click();
   expect((await response).status()).toBe(200);
   await expect(page.getByRole('status')).toContainText('Every device has been signed out');
   await expect(page.getByLabel('Current password', { exact: true })).toHaveCount(0);
-  await expect(other.getByLabel('Content', { exact: true })).toHaveCount(0);
+  await expect(other.getByRole('textbox', { name: 'Content', exact: true })).toHaveCount(0);
   await other.close();
 });
 

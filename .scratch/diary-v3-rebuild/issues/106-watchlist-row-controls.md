@@ -3,7 +3,7 @@
 # [106] Reduce the Watchlist row to a readable company, not six buttons
 
 Status: triaged
-Execution: implemented 2026-10-08; both watchlist e2e specs updated and green
+Execution: done 2026-10-08; both watchlist e2e specs updated and green
 Published: 2026-10-06
 
 Category: bug

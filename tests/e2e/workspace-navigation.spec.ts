@@ -73,9 +73,17 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   ] as const) {
     await page.setViewportSize({ width, height: 900 })
     await page.goto(path)
-    const rightGap = await page.locator(selector).evaluate(element => window.innerWidth - element.getBoundingClientRect().right)
-    expect(rightGap).toBeGreaterThanOrEqual(30)
-    expect(rightGap).toBeLessThanOrEqual(34)
+    const box = await page.locator(selector).evaluate(element => { const rect = element.getBoundingClientRect(); return { right: window.innerWidth - rect.right, left: rect.left, width: rect.width } })
+    if (width === 1440) {
+      expect(box.right).toBeGreaterThanOrEqual(30)
+      expect(box.right).toBeLessThanOrEqual(34)
+    } else {
+      // Past the 1280px data cap the page stops widening and stays aligned to
+      // the sidebar rather than centring in the remaining space.
+      expect(box.width).toBeLessThanOrEqual(1281)
+      expect(box.left).toBeGreaterThanOrEqual(240)
+      expect(box.left).toBeLessThanOrEqual(260)
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     if (width === 1440) await page.screenshot({ path: `docs/design/evidence/navigation/${selector.slice(1)}-1440.png`, fullPage: true })
   }
@@ -131,8 +139,9 @@ test('desktop workspace navigation marks the active route exactly once', async (
     ['/trade-plans/123', 'Trade plans'], ['/settings/security', 'Settings'],
   ] as const) {
     await page.goto(path)
-    await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText(active)
-    await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(1)
+    const marked = page.locator('.desktop-nav a[aria-current="page"], .desktop-preferences a[aria-current="page"]')
+    await expect(marked).toHaveText(active)
+    await expect(marked).toHaveCount(1)
   }
 
   await page.goto('/stocks/NVDA')
@@ -211,7 +220,7 @@ test('mobile bottom navigation carries the whole diary loop without covering con
   await expect(page.locator('[data-heatdate]')).toHaveCount(371)
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
   expect(await diaryNavigation.evaluate(element => Math.abs(element.getBoundingClientRect().bottom - window.innerHeight))).toBeLessThanOrEqual(1)
-  expect(await page.locator('.calendar-legend').evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
+  expect(await page.locator('.calendar-legend').last().evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual((await diaryNavigation.boundingBox())!.y)
   for (const [locale, labels] of [
     ['zh-TW', ['記錄', '日記庫', '時間軸', '日曆', '複盤']],
     ['zh-CN', ['记录', '日记库', '时间轴', '日历', '复盘']],
@@ -253,7 +262,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await selectAccountLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
   await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
-  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'AI administration', 'Research Studio', 'ETF catalog', 'Mail settings'])
+  await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'Guru management', 'Institutional mappings', 'AI administration', 'Research Studio', 'ETF catalog', 'Mail settings'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
   await page.goto('/admin/blog/123/edit')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
@@ -266,4 +275,72 @@ test('admin navigation is role-gated and ordered with article management first',
     await page.setViewportSize({ width, height: 720 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
+})
+
+// Ticket 115: the sidebar's Quick diary is the global capture shortcut and is
+// the one that stays filled. A page-level copy of the same link, to the same
+// address, put two identical filled buttons on screen at once.
+test('capture is filled once on a workspace page', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const email = `capture-weight-${randomUUID()}@example.test`
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
+  await page.goto('/login?returnTo=%2Fdiaries')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries$/)
+  await selectLocale(page, 'en')
+
+  for (const path of ['/diaries', '/timeline']) {
+    await page.goto(path)
+    // Poll rather than count once: confirming the session swaps the chrome
+    // around `main`, and a one-shot resolve can land mid-swap with nothing
+    // matched at all.
+    const capture = page.getByRole('link', { name: 'Quick diary', exact: true })
+    await expect.poll(async () => capture.evaluateAll(links => links.filter(link => !link.className.includes('secondary')).length),
+      { message: `one filled capture action on ${path}` }).toBe(1)
+    await expect(page.getByTestId('quick-entry')).not.toHaveClass(/secondary/)
+    await expect.poll(async () => page.locator('main').getByRole('link', { name: 'Quick diary', exact: true }).evaluateAll(links => links.filter(link => !link.className.includes('secondary')).length),
+      { message: `no filled capture action inside main on ${path}` }).toBe(0)
+  }
+})
+
+// Ticket 116: the sidebar's content measures ~1,720px against a 900px
+// viewport, and it used to take Settings, Sign out and Preferences below the
+// fold of a column that does not look like it scrolls.
+test('the account controls stay in view however far the navigation scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `sidebar-depth-${randomUUID()}@example.test`
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
+  await page.goto('/login?returnTo=%2Ftimeline')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/timeline$/)
+  await selectLocale(page, 'en')
+
+  const sidebar = page.locator('.sidebar')
+  const visible = async () => sidebar.evaluate((aside, height) => {
+    const block = aside.querySelector('.desktop-preferences')!
+    const inside = (node: Element | null) => { if (!node) return false; const box = node.getBoundingClientRect(); return box.top >= 0 && box.bottom <= height + 1 }
+    return {
+      settings: inside(block.querySelector('a[href="/settings"]')),
+      signOut: inside(block.querySelector('[data-testid="sign-out"]')),
+      preferences: inside(block.querySelector('summary')),
+      scrolls: aside.scrollHeight > aside.clientHeight,
+    }
+  }, 900)
+
+  // The list is longer than the viewport — that is the condition, not the bug.
+  expect((await visible()).scrolls).toBe(true)
+  expect(await visible()).toMatchObject({ settings: true, signOut: true, preferences: true })
+  await sidebar.evaluate(aside => { aside.scrollTop = aside.scrollHeight })
+  expect(await visible()).toMatchObject({ settings: true, signOut: true, preferences: true })
+
+  // The diary loop stays at the top of the list and never behind a disclosure.
+  const library = page.locator('.desktop-nav').getByRole('link', { name: 'Diary library', exact: true })
+  await expect(library).toBeVisible()
+  expect(await library.evaluate(node => node.closest('details') === null)).toBe(true)
 })
