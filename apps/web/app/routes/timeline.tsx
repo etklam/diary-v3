@@ -176,7 +176,7 @@ export default function TimelinePage() {
   return <section className="diary-timeline">
     <header className="page-heading">
       <div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div>
-      <Link className="button" to="/diaries/quick">{t('quick')}</Link>
+      <Link className="button secondary" to="/diaries/quick">{t('quick')}</Link>
     </header>
 
     {/* One chrome band: which timeline, which records, which dates, how many —

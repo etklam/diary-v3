@@ -353,7 +353,7 @@ export default function DiaryListPage() {
   return <section className="diary-library">
     {/* Quick capture is the primary path everywhere it is offered; the full
         editor stays available next to it rather than taking its place. */}
-    <header className="page-heading"><div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div><div className="actions"><Link className="button" to="/diaries/quick">{t('quick')}</Link><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></header>
+    <header className="page-heading"><div><h1>{c.title}</h1><p className="muted">{c.intro}</p></div><div className="actions"><Link className="button secondary" to="/diaries/quick">{t('quick')}</Link><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></header>
     <section className="diary-library-view-toolbar" aria-label={libraryCopy.savedViews}>
       <div className="diary-library-view-select">
         <label>{libraryCopy.chooseView}

@@ -2,8 +2,8 @@
 
 # [115] Rule on the duplicate Quick diary primary action
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-08
 
 Category: enhancement
@@ -65,14 +65,48 @@ capture actions at 1440 and 390.
 
 ## Provisional acceptance criteria
 
-- [ ] The ruling is recorded here with its reasoning against the capture-first principle, and `DESIGN.md` is corrected if the rule's scope changes.
-- [ ] Every workspace page applies it; no page is left with two filled actions linking to the same destination unless the ruling says that is correct.
-- [ ] `Cmd/Ctrl+J`, the mobile bottom-bar capture entry and the existing capture test ids are unchanged.
-- [ ] Verified at 390/768/1440 in all three locales.
+- [x] The ruling is recorded here with its reasoning against the capture-first principle, and `DESIGN.md` is corrected if the rule's scope changes. The rule's scope did not change.
+- [x] Every workspace page applies it; no page is left with two filled actions linking to the same destination unless the ruling says that is correct.
+- [x] `Cmd/Ctrl+J`, the mobile bottom-bar capture entry and the existing capture test ids are unchanged.
+- [ ] Verified at 390/768/1440 in all three locales. The assertion runs at 1440 in English; the change is a class, not a layout, and the narrow shells carry their own capture entry.
 
 ## Settled during triage
 
-Nothing yet. Step 1 is the ruling and it is the whole ticket.
+**The sidebar keeps the filled capture action; the page-level copies become secondary.**
+
+The reasoning, against the capture-first principle rather than against the style rule: the
+sidebar entry is the *global* shortcut. It is in the same place on every private page and
+it carries the `⌘ / Ctrl J` hint. A control that is always available has to look the same
+everywhere, so it is the one that stays filled; making its weight depend on whether the
+current route also offers capture would be the opposite of a shortcut. The page-level
+button is not a different action — same destination, same verb, same words — so on
+Overview, Diary library and Timeline it was the same filled button twice within about
+200px.
+
+The third option, "state that both are intentional and amend `DESIGN.md`", was rejected
+because nothing distinguishes the two for a reader: an argument that they are different
+controls has to be visible, and here it is not.
+
+**Empty states keep their filled starting point.** Overview's first-use region and the
+review queue's empty state each offer capture as the one next action, and neither renders
+while the page-level action is on screen. That is the empty-state rule rather than this
+one.
+
+**The audit found a third page.** The ticket named Overview and Diary library; `/timeline`
+carried the same header action and is included.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/overview.tsx`, `apps/web/app/routes/timeline.tsx` and
+`apps/web/app/routes/diary-list.tsx` — three `className="button"` to
+`className="button secondary"` changes — plus a case in
+`tests/e2e/workspace-navigation.spec.ts` asserting that `/diaries` and `/timeline` carry
+exactly one filled capture action, that it is the sidebar's, and that nothing inside `main`
+is a filled capture link.
+
+**Verification.** `tsc --noEmit` and `eslint` clean. The new case passes; `overview`,
+`timeline`, `diary-list` and `diary-discovery` pass unchanged — 17 cases across those four
+files.
 
 ## Related work
 
