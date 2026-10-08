@@ -2,8 +2,8 @@
 
 # [116] Decide what belongs in the sidebar
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-08
 
 Category: enhancement
@@ -70,17 +70,85 @@ the sidebar.
 
 ## Provisional acceptance criteria
 
-- [ ] The measurement in step 1 is recorded here before any change is made.
-- [ ] Settings, Sign out and Preferences are reachable without scrolling the sidebar at 1440×900.
-- [ ] Every destination that leaves the sidebar has a stated home, and no destination becomes unreachable.
-- [ ] The diary loop — capture, read, review — stays at the top of the tree and never behind a disclosure.
-- [ ] The mobile shell (top bar, bottom bar, drawer) keeps its current behaviour or changes deliberately, with the reason recorded.
-- [ ] `aria-current="page"`, the selection treatment, the skip link and the palette trigger are unchanged.
-- [ ] Verified at 390/768/1280/1440 in all three locales.
+- [x] The measurement in step 1 is recorded here before any change is made.
+- [x] Settings, Sign out and Preferences are reachable without scrolling the sidebar at 1440×900.
+- [x] Every destination that leaves the sidebar has a stated home, and no destination becomes unreachable.
+- [x] The diary loop — capture, read, review — stays at the top of the tree and never behind a disclosure.
+- [x] The mobile shell (top bar, bottom bar, drawer) keeps its current behaviour or changes deliberately, with the reason recorded.
+- [x] `aria-current="page"`, the selection treatment, the skip link and the palette trigger are unchanged.
+- [ ] Verified at 390/768/1280/1440 in all three locales. Measured at 1440×900, 1280×800 and 1100×900 in English; 390 and 768 use the mobile shell, which is unchanged and covered by its existing cases.
 
 ## Settled during triage
 
-Nothing yet. Step 1 must happen before step 2 is decided.
+### Step 1 — the measurement, taken before anything changed
+
+Signed in as an ordinary account on `/timeline`, English, sidebar width 216px:
+
+| Viewport | Sidebar content | Viewport height | Below the fold |
+|---|---|---|---|
+| 1440×900 | 1,670px | 900px | 17 items, from Price reminders down to Preferences |
+| 1440×1080 | 1,712px | 1,080px | 14 items, from the Tools disclosure down to Preferences |
+| 1280×800 | 1,712px | 800px | 20 items, from Guru portfolios down to Preferences |
+
+`overflow-y` computes to `auto` and the column is `position: sticky`, so nothing was
+unreachable — the review's reading was right, and so was its 1,745px figure. Settings,
+Sign out and Preferences were below the fold in all three.
+
+### Step 2 — the mechanism
+
+**The column still scrolls, and the account block is pinned to its bottom edge.** Of the
+three candidates the ticket listed, the third was taken and the first two were not:
+
+- **Giving the list its own scroll box was tried and rejected on the measurement.** Making
+  `.desktop-nav` the scroller and pinning the header and the account block left the list
+  **242px tall at 1440×900** and 142px at 1280×800, against 1,042px of content. That is
+  worse than scrolling the column: it trades a long scroll for a keyhole. The account block
+  is `position: sticky; bottom` inside the scrolling column instead, so the header and the
+  list scroll normally and the account controls never leave the viewport.
+- **Collapsing the lower groups was taken only where it pays.** Administration is eight
+  standing links for one role; it is now a disclosure that opens itself on any `/admin`
+  route and remembers the reader's choice otherwise, reusing the hook the Trade management
+  and Tools groups already use. The diary loop is untouched and never behind a disclosure,
+  which the acceptance requires and the product's capture → read → review rule demands.
+- **Moving destinations out of the sidebar was rejected.** It is the option that costs
+  discoverability, and the two cheaper ones were enough; the command palette already exists
+  as the escape hatch for the long tail.
+
+**Settings moved, and its stated home is the account block.** It is an account control, it
+now sits with Sign out and Preferences, and it keeps `aria-current="page"` and the ink
+selection treatment there. The mobile drawer keeps it inline — nothing scrolls away there —
+via a `showSettings` prop rather than a second copy of the link.
+
+**After the change**, at 1440×900 / 1280×800 / 1100×900: the account block's bottom edge
+sits on the viewport's bottom edge, all three controls measure inside the viewport before
+and after scrolling the column to its end, and the list keeps its full height.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/styles.css` (the sticky account block, replacing the
+column-level scroll fix), `apps/web/app/nav.tsx` (`showSettings`, the Administration
+disclosure, a `SettingsLink` for the pinned block), `apps/web/app/root.tsx`,
+`tests/e2e/workspace-navigation.spec.ts`.
+
+**Verification.** `tsc --noEmit` and `eslint` clean. A new case measures the three controls
+inside the viewport at 1440×900 both at the top of the column and scrolled to its end, and
+pins that the diary loop's library link is not inside a `<details>`. `narrow-viewport`,
+`layout-theme` and `command-palette` pass unchanged.
+
+**The three failing `workspace-navigation` cases this ticket was told to characterise
+first are now fixed**, because two of them were stale assertions rather than defects and
+the third was in the way:
+
+- `:19` asserted the content region hugs the right gutter at **1920px**, which contradicts
+  `DESIGN.md`'s 1280px data cap. Measured: at 1920 the page is 1,280px wide, aligned to the
+  sidebar, with a 392px right gap. The assertion now checks the gutter at 1440 and the cap
+  and alignment past it.
+- `:143` broke on a strict-mode violation because the calendar now renders two
+  `.calendar-legend` paragraphs — the month grid's and the year heatmap's, from
+  [99](99-calendar-redesign.md). The bottom-bar clearance check takes the last one.
+- `:249` expected six administration links; `d9e0232` added Guru management and
+  Institutional mappings. The expected list is now the delivered eight, and the group's
+  new disclosure opens on `/admin` routes, which is what keeps the links reachable there.
 
 ## Related work
 

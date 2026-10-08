@@ -148,7 +148,7 @@ function NavToolShortcuts({ onNavigate, forcedOpen }: { onNavigate?: () => void;
   </details>
 }
 
-export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean }) {
+export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true, showSettings = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean; showSettings?: boolean }) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
@@ -157,6 +157,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
   const owner = navigationOwner(location.pathname)
   const waiting = useReviewCount()
   const trade = usePersistedDisclosure('trade-management', owner === 'priceReminders' || owner === 'discipline')
+  const admin = usePersistedDisclosure('administration', location.pathname.startsWith('/admin'))
   const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
   return <>
     <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
@@ -196,9 +197,10 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
     <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
       {link('/articles', c.publicArticles, 'fileText', 'articles')}
       {link('/achievements', c.achievements, 'target', 'achievements')}
-      {link('/settings', c.settings, 'settings', 'settings')}
+      {showSettings && link('/settings', c.settings, 'settings', 'settings')}
     </div></section>
-    {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><div className="nav-group-links">
+    {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><details className="nav-more" open={admin.open} onToggle={event => admin.remember(event.currentTarget.open)}>
+      <summary><Icon name="chevronDown" />{sections.admin}</summary><div className="nav-group-links nav-secondary-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
       {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
       {link('/admin/gurus', label(locale, { en: 'Guru management', 'zh-CN': '投资大师管理', 'zh-TW': '投資大師管理' }), 'layers', 'adminGurus')}
@@ -207,8 +209,15 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
       {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
       {link('/admin/email-settings', c.adminEmail, 'settings', 'adminEmail')}
-    </div></section>}
+    </div></details></section>}
   </>
+}
+
+export function SettingsLink({ onNavigate }: { onNavigate?: () => void }) {
+  const { locale } = useUi()
+  const location = useLocation()
+  const c = workspaceCopy[locale]
+  return <Link to="/settings" onClick={onNavigate} aria-current={navigationOwner(location.pathname) === 'settings' ? 'page' : undefined}><Icon name="settings" />{c.settings}</Link>
 }
 
 export function MobileMenu({ role, authenticated, preferences, onLogout, logoutPending, logoutError }: { role: Role; authenticated: boolean | null; preferences: ReactNode; onLogout: () => void; logoutPending: boolean; logoutError: boolean }) {

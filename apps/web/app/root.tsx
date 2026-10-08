@@ -9,7 +9,7 @@ import './tokens.css';
 import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
-import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks } from './nav';
+import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks, SettingsLink } from './nav';
 import { CommandPalette, CommandPaletteTrigger } from './command-palette';
 import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
@@ -181,11 +181,15 @@ function Shell() {
             {/* Search sits above the list because the route count exceeds what any
                 sidebar can hold; the list below is the always-visible subset. */}
             <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
-            <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role}/></nav>
+            <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role} showSettings={false}/></nav>
             {/* Language, theme and market colour change about twice a year, so they
                 sit behind a disclosure and stop spending ~120px of standing
                 sidebar height; sign-out stays directly reachable. */}
+            {/* The account controls are pinned to the bottom of the column, so a
+                navigation list long enough to scroll never takes Settings,
+                Sign out or Preferences below the fold (ticket 116). */}
             <div className="desktop-preferences">
+              <SettingsLink/>
               {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
               <details className="desktop-preferences-disclosure">
                 <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>

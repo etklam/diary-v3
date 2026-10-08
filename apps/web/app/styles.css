@@ -1176,6 +1176,30 @@ kbd {
   border-top: 1px solid var(--rule);
 }
 
+/* Settings sits with the other account controls rather than at the end of a
+   list that scrolls, and reads as navigation, like the links above it. */
+.desktop-preferences > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+
+.desktop-preferences > a:hover {
+  background: var(--tint-neutral);
+}
+
+.desktop-preferences > a[aria-current='page'] {
+  background: var(--selected);
+  color: var(--action);
+}
+
 /* Same disclosure treatment as a secondary navigation group, so the sidebar
    has one collapsing idiom rather than two. */
 .desktop-preferences-disclosure > summary {
@@ -2098,6 +2122,21 @@ dialog::backdrop {
 
   .sidebar > * {
     flex-shrink: 0;
+  }
+
+  /* The column still scrolls — roughly 30 destinations will not fit a laptop
+     viewport and hiding them behind more disclosures costs more than it saves
+     — but the account controls stay glued to its bottom edge, so Settings,
+     Sign out and Preferences are never below the fold (ticket 116). Giving the
+     list its own scroll box instead left it 242px tall at 1440x900, which is
+     worse than scrolling the column. */
+  .desktop-preferences {
+    position: sticky;
+    bottom: calc(var(--space-5) * -1);
+    z-index: var(--z-base);
+    margin-bottom: calc(var(--space-5) * -1);
+    padding-bottom: var(--space-5);
+    background: var(--muted-surface);
   }
 
   .mobile-menu-dialog {
