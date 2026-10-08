@@ -872,11 +872,14 @@ export default function MarketRotation() {
             {state?.isStale && <span>{c.stateStale}</span>}
           </>}
         </div>
-        <dl className="rotation-cards">
-          <div><dt>{c.marketState}</dt><dd>{stateLabel(data.marketState, locale)}</dd></div>
-          <div><dt>{c.above20d}</dt><dd>{ratio(data.summary.above20d)}</dd></div>
-          <div><dt>{c.above50d}</dt><dd>{ratio(data.summary.above50d)}</dd></div>
-          <div><dt>{c.averageRsi}</dt><dd>{number(locale, data.summary.averageRsi)}</dd></div>
+        {/* Four labelled figures are a ledger. Four bordered tiles side by side
+            is the hero-metric template DESIGN.md names, and the same change
+            [105] and [111] made elsewhere. */}
+        <dl className="ledger rotation-cards">
+          <div className="ledger-row rotation-row-text"><dt>{c.marketState}</dt><dd>{stateLabel(data.marketState, locale)}</dd></div>
+          <div className="ledger-row"><dt>{c.above20d}</dt><dd>{ratio(data.summary.above20d)}</dd></div>
+          <div className="ledger-row"><dt>{c.above50d}</dt><dd>{ratio(data.summary.above50d)}</dd></div>
+          <div className="ledger-row"><dt>{c.averageRsi}</dt><dd>{number(locale, data.summary.averageRsi)}</dd></div>
         </dl>
       </section>
       <section className="rotation-leadership" aria-label={`${c.leaders} and ${c.weakening}`}>

@@ -1,7 +1,13 @@
 .market-research-page{max-width:1280px}
-.market-research-section{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);padding:var(--space-6);margin-top:var(--space-5)}
-.market-research-section h2{margin:0 0 var(--space-4)}
+/* Panel before card: a heading with a rule under it, flush on the canvas. Six
+   bordered boxes down a reading page is what the Structural Hierarchy Rule
+   exists to prevent; the card survives only where DESIGN.md sanctions it, which
+   on these pages is the input form and the research capture. */
+.market-research-section{margin-top:var(--space-8)}
+.market-research-section>h2{margin:0 0 var(--space-4);padding-bottom:var(--space-3);border-bottom:1px solid var(--rule)}
 .market-research-section h3{margin:0 0 var(--space-4)}
+.market-research-form{border:1px solid var(--rule);border-radius:var(--radius-card);background:var(--surface);padding:var(--space-6)}
+.market-research-form>h2{border-bottom:0;padding-bottom:0}
 .market-research-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
 .market-research-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .market-research-inputs label,.market-research-controls label,.market-capture-form label{display:grid;gap:6px;color:var(--muted)}
@@ -20,6 +26,7 @@
 .market-ratio-read strong{font-variant-numeric:tabular-nums}
 .market-scenario-table{overflow-x:auto}
 .market-scenario-table table,.market-history-table table{width:100%;border-collapse:collapse}
+.market-scenario-table table{min-width:360px}
 .market-scenario-table th,.market-scenario-table td,.market-history-table th,.market-history-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .market-scenario-table th:first-child,.market-scenario-table td:first-child,.market-history-table th:first-child,.market-history-table td:first-child{text-align:left}
 /* The action column shrinks to its widest label and never wraps, so the price
@@ -73,7 +80,11 @@
 .market-research-pair{display:grid;gap:10px;align-content:start}
 .seasonality-table th,.seasonality-table td{vertical-align:top}
 
-.market-research-relative-grid{grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);align-items:start}
+/* The scenario table holds two figure columns and an action and is the thing
+   that runs out of room; the ratio chart scales to whatever it is given. The
+   wider column therefore goes to the table, which is what stops the action
+   reading as clipped at 1440px. */
+.market-research-relative-grid{grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);align-items:start}
 .market-research-relative-grid>.market-research-section{margin-top:32px}
 /* Audit UI-038: grid items must be shrinkable so the chart's min-width SVG
    cannot widen the page; the chart scrolls inside its own container instead. */

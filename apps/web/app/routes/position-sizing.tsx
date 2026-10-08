@@ -149,7 +149,10 @@ export default function PositionSizing() {
       <section className="position-sizing-panel position-sizing-results" aria-labelledby="position-sizing-results">
         <h2 id="position-sizing-results">{copy.results}</h2>
         {/* Audit UI-100: keep the manual-price disclaimer in the input card only. */}
-        {!summary ? showInvalid && <p className="position-sizing-error" data-testid="position-sizing-invalid">{copy.invalid}</p> : <>
+        {/* An empty Results panel is the first thing a guest sees on the most
+            linked calculator; it now names what to enter instead of showing a
+            heading over nothing. */}
+        {!summary ? showInvalid ? <p className="position-sizing-error" data-testid="position-sizing-invalid">{copy.invalid}</p> : <div className="empty-state"><p>{copy.emptyResults}</p></div> : <>
           <dl className="position-sizing-total"><dt>{copy.invested}</dt><dd data-testid="position-sizing-invested">{money(summary.totalInvested)}</dd></dl>
           <div className="position-sizing-allocation" role="img" aria-label={copy.strategy}>
             {output!.results.map((row, index) => <span key={`${row.ratio}-${index}`} className={`allocation-segment allocation-series-${index % 3 + 1}`} style={{ inlineSize: `${row.ratio}%` }} title={`${row.ratio}%`} />)}

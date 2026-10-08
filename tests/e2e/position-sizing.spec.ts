@@ -17,6 +17,9 @@ for (const width of [1440, 390]) {
     await page.goto('/tools/position-sizing')
     await selectLocale(page, 'en')
     await expect(page.getByRole('heading', { name: 'Position sizing', exact: true })).toBeVisible()
+    // Ticket 113: the Results panel names what to enter instead of shipping a
+    // heading over an empty box, which is the first thing a guest sees here.
+    await expect(page.locator('.position-sizing-results .empty-state')).toContainText('Enter available capital')
     await page.getByTestId('position-sizing-capital').fill('10000')
     await page.getByTestId('position-sizing-price').fill('33')
     await page.getByTestId('position-sizing-symbol').fill('AAPL')

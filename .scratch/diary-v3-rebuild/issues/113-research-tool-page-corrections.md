@@ -2,8 +2,8 @@
 
 # [113] Correct the research tool pages: clipped actions, ambiguous labels, card stacking
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: bug
@@ -109,20 +109,94 @@ when a page is restructured.
 
 ## Provisional acceptance criteria
 
-- [ ] No action button on `/tools/relative-value` is clipped at 1440, 768 or 390.
-- [ ] No two buttons on one tool page carry the same label for different actions.
-- [ ] Neither the ratio figures nor the "Monthly reference" heading is stated twice.
-- [ ] Seasonality groups its regions with headings and rules; any surviving `.card` is a form or genuinely needs an edge, and no card is nested in a card.
-- [ ] Chart value labels do not overlap the zero line or extend outside the plot area at any supported width.
-- [ ] `/tools/position-sizing` shows an empty state naming what to enter before results exist.
-- [ ] `/tools/market-rotation` is captured and assessed populated; any change to it is justified against that capture.
-- [ ] Every calculation result is unchanged; guest access, Copy Markdown, research capture and the fixed-dataset source copy all behave as before.
-- [ ] Private actions stay secondary and preserve guest inputs across sign-in, per the tools access matrix.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] No action button on `/tools/relative-value` is clipped at 1440, 768 or 390.
+- [x] No two buttons on one tool page carry the same label for different actions.
+- [x] Neither the ratio figures nor the "Monthly reference" heading is stated twice.
+- [x] Seasonality groups its regions with headings and rules; any surviving `.card` is a form or genuinely needs an edge, and no card is nested in a card.
+- [x] Chart value labels do not overlap the zero line or extend outside the plot area at any supported width.
+- [x] `/tools/position-sizing` shows an empty state naming what to enter before results exist.
+- [x] `/tools/market-rotation` is captured and assessed populated; any change to it is justified against that capture.
+- [x] Every calculation result is unchanged; guest access, Copy Markdown, research capture and the fixed-dataset source copy all behave as before.
+- [x] Private actions stay secondary and preserve guest inputs across sign-in, per the tools access matrix.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440. The specs run 1440 and 390 and the seasonality case runs zh-TW and English; 768 and dark are not separately captured for the changed regions.
 
 ## Settled during triage
 
-Nothing yet.
+**1. Step 1: the clipped action was a column-width problem, and the fix is which column
+the table gets.** `.market-scenario-table` is already a scroll region with an action column
+sized to its own label, and a comment in `market-research.css` claims that as the fix for
+this defect. It was not enough: the panel sits in the **narrow** (0.75fr) half of
+`market-research-relative-grid`, which leaves roughly 420px of content for two figure
+columns plus a button, so the action scrolls out of view and reads as "Use this ro". The
+scenario table now takes the wider column and the ratio chart the narrower one — the chart
+scales to whatever it is given, the table does not. A `min-width` keeps the table scrolling
+rather than crushing the action at phone widths, and the e2e assertion measures the button
+against its region at 1440, 768 and 390 rather than screenshotting it.
+
+**2. Step 2: the three quote controls name what they fetch.** `Fetch primary quote`,
+`Fetch comparison quote`, and — for the submit, which refetches both and reloads the
+history — `Fetch both quotes and history`. The third genuinely does more than the first
+two, so it says so.
+
+**3. Step 3: the duplicate ratio line was deleted from the scenario panel, not from the
+ratio read.** The deleted line was the only place the abstract formula string
+"Primary ÷ comparison" appeared; the read states the same thing concretely as
+`^GSPC ÷ SPY`, under the figure it belongs to, which is strictly better. The history
+table's `Current ratio` column header stays — a column of ratios is a different use of the
+word, and the test says so. Seasonality's `Monthly reference` caption is gone and its
+table is labelled by the region heading that already printed it.
+
+**4. Step 4: `.market-research-section` became a panel, and the card survives only where
+`DESIGN.md` sanctions it.** That is one class change covering both pages: six bordered
+boxes down seasonality and three on relative value become headings with rules, flush on the
+canvas. The relative-value input **form** keeps its edge under a new `.market-research-form`
+— `.card` is explicitly "for a form" — and so does the research capture, which is also a
+form. No card is nested in a card.
+
+**5. Step 5: the bar labels are anchored away from the zero line.** `textAnchor` is now
+`start` for a positive month and `end` for a negative one, so a ±0.01% label sits beside
+its own bar end instead of running across the zero line, and a long bar's label grows
+outward instead of off the plot. The chart has a fixed `viewBox`, so the geometry holds at
+every width; the test measures every label's `getBBox()` against the zero line and the plot
+bounds rather than capturing a picture.
+
+**6. The flat ratio chart resolves the same way [105] did.** When every known ratio in the
+range is equal there is nothing for a line to show, so the page states it —
+"The ratio did not change over this range. The history table below carries the dates." —
+and renders no plot. This is the harness's own default state, which is how the review saw
+it: the e2e fixtures serve both symbols the same series.
+
+**7. Step 7: `/tools/market-rotation` was captured populated before anything was decided,
+and one thing changed.** `market-rotation.spec.ts` already renders the page against
+snapshot and history fixtures with eight ranked rows; the capture is
+`docs/design/evidence/market-rotation/desktop.png`. The page is in good shape — a ruled
+metadata row, independent failure and retry per reader, a scoped scroll region for a
+1,200px table, honest "Insufficient data" values. The one defect against DESIGN.md is the
+**four-up bordered stat row** (Market state, Above 20-day SMA, Above 50-day SMA, Average
+RSI), which is the hero-metric template named in the don'ts and the same shape [105] and
+[111] removed elsewhere. It is now a ledger. Nothing else on that page was touched.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/market-research.css` (panel-before-card, the relative grid
+columns, the scenario table minimum), `routes/relative-value.tsx` (three quote labels, the
+deleted duplicate, the flat-ratio state, the form's card class),
+`routes/seasonality.tsx` (caption removed, label anchors), `routes/position-sizing.tsx`
+and `position-sizing-copy.ts` (the Results empty state in three locales),
+`routes/market-rotation.tsx` and `.css` (the ledger).
+
+**Verification.** `tsc --noEmit` and `eslint` clean. `relative-value-seasonality` 2/2 —
+including a new case that pins the flat-ratio state and then re-renders the chart from a
+moving series, and measured assertions for the scenario action at three widths, the three
+distinct quote labels, the single ratio statement, the single `Monthly reference`, the
+absence of any bordered content region, and every bar label's geometry.
+`position-sizing` 2/2, `public-tools` 1/1, `market-rotation` 4/4. Evidence:
+`docs/design/evidence/relative-value/desktop.png`, `docs/design/evidence/seasonality/desktop.png`,
+`docs/design/evidence/market-rotation/desktop.png`.
+
+**Not done.** 768px and dark captures of the changed regions, and a Chinese capture of
+seasonality — its table is the widest content in the set and the locale labels differ in
+width, so it is the one worth a later look.
 
 ## Related work
 
