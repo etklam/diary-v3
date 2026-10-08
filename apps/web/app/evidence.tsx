@@ -171,10 +171,20 @@ export function Evidence({ symbol: fixedSymbol, source, collapsed = false }: { s
   const markDirty = () => setDirty(true);
   const destination = savedRecord?.sourceDiaryId ? <Link data-testid="evidence-destination" to={`/diaries/${savedRecord.sourceDiaryId}`}>{c.diary}</Link> : savedRecord?.sourceUrl && /^https?:\/\//i.test(savedRecord.sourceUrl) ? <a data-testid="evidence-destination" href={savedRecord.sourceUrl} target="_blank" rel="noopener noreferrer">{c.original}</a> : null;
 
+  // A company page keeps the recorded timeline standing and defers only the
+  // capture form, so the section needs a heading of its own with the disclosure
+  // beside it. On a diary the section is the capture and nothing else, so the
+  // trigger is still the whole resting state.
+  const standingHeading = collapsed && Boolean(fixedSymbol);
   return <section className={`evidence-section${collapsed ? ' evidence-section-collapsible' : ''}`} aria-label={c.title}>
-    {collapsed && <EvidenceNavigationGuard dirty={dirty} authenticated={session.authenticated} discardMessage={c.discard} onProceed={() => setDirty(false)} />}
-    {collapsed && !open ? <button ref={trigger} type="button" className="secondary evidence-open" aria-expanded={false} aria-controls={captureId} onClick={() => setOpen(true)}>{c.open}</button> : <div id={captureId} className="evidence-capture">
-      <div className="evidence-heading"><h2>{c.title}</h2>{collapsed && <button type="button" className="secondary evidence-close" aria-expanded={true} aria-controls={captureId} onClick={() => setOpen(false)}>{c.close}</button>}</div>
+    {/* The guard exists only while there is unsaved capture to lose. A router
+        supports one blocker at a time, and this section now shares pages with
+        other surfaces that block on their own unsaved work — a guard mounted
+        permanently here would take that registration from them. */}
+    {collapsed && dirty && <EvidenceNavigationGuard dirty={dirty} authenticated={session.authenticated} discardMessage={c.discard} onProceed={() => setDirty(false)} />}
+    {standingHeading && <div className="section-head evidence-heading"><h2>{c.title}</h2><button ref={trigger} type="button" className="secondary evidence-close" aria-expanded={open} aria-controls={captureId} onClick={() => setOpen(value => !value)}>{open ? c.close : c.open}</button></div>}
+    {collapsed && !standingHeading && !open ? <button ref={trigger} type="button" className="secondary evidence-open" aria-expanded={false} aria-controls={captureId} onClick={() => setOpen(true)}>{c.open}</button> : !open ? null : <div id={captureId} className="evidence-capture">
+      {!standingHeading && <div className="evidence-heading"><h2>{c.title}</h2>{collapsed && <button type="button" className="secondary evidence-close" aria-expanded={true} aria-controls={captureId} onClick={() => setOpen(false)}>{c.close}</button>}</div>}
       <p>{c.hint}</p>
       <form className="plan-form" onSubmit={event => { event.preventDefault(); void capture(); }}>
         <fieldset disabled={busy || uncertain}><div className="plan-grid">
@@ -190,7 +200,7 @@ export function Evidence({ symbol: fixedSymbol, source, collapsed = false }: { s
         <button disabled={busy || !date}>{busy ? t('pending') : uncertain ? c.retry : c.save}</button>
         {saved && <p role="status" className="evidence-saved"><span>{c.saved}</span>{destination && <> · {destination}</>}</p>}
       </form>
-      {fixedSymbol && <><h3>{c.timeline}</h3><p>{c.limit}</p>{readError ? <><FailureNotice failure={readError} /><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !records ? <p role="status">{t('loading')}</p> : !records.length ? <p>{c.empty}</p> : <ol className="plan-list">{records.map(record => <li key={record.id} data-testid="evidence-record"><p><time dateTime={record.occurredAt}>{formatInstantIn(locale, record.occurredAt, timezone)} · {timezone}</time> · {c.types[STOCK_TIMELINE_SOURCE_TYPES.indexOf(record.sourceType)]}</p>{record.confidence !== null && <p>{c.confidence}: {record.confidence}%</p>}{record.sourceTitle && <h4>{record.sourceTitle}</h4>}<p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.summary}</p>{record.sourceDiaryId && <Link to={`/diaries/${record.sourceDiaryId}`}>{c.diary}</Link>}{record.sourceUrl && /^https?:\/\//i.test(record.sourceUrl) && <a href={record.sourceUrl} target="_blank" rel="noopener noreferrer">{c.original}</a>}</li>)}</ol>}</>}
     </div>}
+    {fixedSymbol && <><h3>{c.timeline}</h3><p>{c.limit}</p>{readError ? <><FailureNotice failure={readError} /><button onClick={() => reload(value => value + 1)}>{t('retry')}</button></> : !records ? <p role="status">{t('loading')}</p> : !records.length ? <p>{c.empty}</p> : <ol className="plan-list">{records.map(record => <li key={record.id} data-testid="evidence-record"><p><time dateTime={record.occurredAt}>{formatInstantIn(locale, record.occurredAt, timezone)} · {timezone}</time> · {c.types[STOCK_TIMELINE_SOURCE_TYPES.indexOf(record.sourceType)]}</p>{record.confidence !== null && <p>{c.confidence}: {record.confidence}%</p>}{record.sourceTitle && <h4>{record.sourceTitle}</h4>}<p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.summary}</p>{record.sourceDiaryId && <Link to={`/diaries/${record.sourceDiaryId}`}>{c.diary}</Link>}{record.sourceUrl && /^https?:\/\//i.test(record.sourceUrl) && <a href={record.sourceUrl} target="_blank" rel="noopener noreferrer">{c.original}</a>}</li>)}</ol>}</>}
   </section>;
 }

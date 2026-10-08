@@ -47,7 +47,9 @@ test('Company note pagination, exact instant preservation and unsaved navigation
   await notes.locator('.plan-form').screenshot({ path: '.impeccable/review/stock-notes-editor.png' });
   await notes.getByRole('button', { name: 'Save note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toContainText('Preserve precise time');
   const listed = await (await page.request.get('/api/stocks/AAPL/notes?page=2&limit=20')).json(); expect(listed.data[0].date).toBe('2026-09-05T10:30:45.123Z');
-  page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toBeDisabled();
+  page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(20);
+  // One page of results carries no pagination at all (ticket 110).
+  await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toHaveCount(0);
   await notes.getByRole('button', { name: 'New note', exact: true }).click(); await notes.getByLabel('Note title', { exact: true }).fill('Discard me');
   page.once('dialog', dialog => dialog.accept()); await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/watchlist$/);
   await page.goto('/stocks/AAPL'); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await signOut(page); await expect(page.getByTestId('stock-note')).toHaveCount(0);

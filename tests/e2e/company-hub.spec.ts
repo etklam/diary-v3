@@ -40,3 +40,50 @@ test('Company Hub readers fail and retry independently while other sections rema
   let failEvidence = true; await page.route('**/api/stocks/AAPL/timeline**', async route => { if (failEvidence && route.request().method() === 'GET') { failEvidence = false; await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'company-evidence-retry' } }) }); } else await route.continue(); });
   await page.reload(); const reloadedHub = page.getByRole('region', { name: 'Your company research', exact: true }); const reloadedNotes = page.getByRole('region', { name: 'Company notes', exact: true }); const reloadedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true }); await expect(reloadedEvidence.getByTestId('request-id')).toHaveText('company-evidence-retry'); await expect(reloadedHub).toContainText('Reader current view'); await expect(reloadedNotes).toContainText('Reader note'); await expect(page.getByTestId('market-price')).toHaveText('110.00'); await reloadedEvidence.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(reloadedEvidence).toContainText('Reader evidence'); await page.unroute('**/api/stocks/AAPL/timeline**');
 });
+
+// Ticket 110: eight independently useful jobs share this address. They stay on
+// one page — an accepted acceptance above pins that they fail independently
+// there — but the page now says what it carries and offers one standing action.
+test('the company page lists its sections and keeps one filled action at rest', async ({ page, context }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const email = `hub-sections-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
+  await page.request.post('/api/auth/register', { data: { email, password } });
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+  expect((await page.request.post('/api/stocks/AAPL/notes', { headers, data: { title: 'Sectioned note', content: 'Note body' } })).status()).toBe(200);
+  expect((await page.request.post('/api/stocks/AAPL/evidence', { headers, data: { sourceType: 'MANUAL', summary: 'Sectioned evidence', occurredAt: '2026-09-02T00:00:00Z' } })).status()).toBe(200);
+  await page.goto('/stocks/AAPL');
+
+  const sections = page.getByRole('navigation', { name: 'Sections for this company', exact: true });
+  const links = sections.getByRole('link');
+  await expect(links).toHaveCount(6);
+  // Every listed destination exists on the page, so no entry is a dead jump.
+  const targets = await links.evaluateAll(nodes => nodes.map(node => node.getAttribute('href') ?? ''));
+  expect(targets.every(href => href.startsWith('#'))).toBe(true);
+  for (const href of targets) await expect(page.locator(`.company-market ${href}`)).toHaveCount(1);
+
+  // One standing filled action, and it is the capture the product ranks first.
+  const filled = page.locator('.company-market button:not(.secondary):not(.quiet-button):not(.danger-button), .company-market a.button:not(.secondary)');
+  await expect(filled).toHaveCount(1);
+  await expect(filled).toHaveText('Record a thought');
+
+  // The capture form is deferred; the recorded timeline is not.
+  await expect(page.getByLabel('Evidence summary')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Research evidence', exact: true })).toContainText('Sectioned evidence');
+
+  // Note filters label above their controls, and a single page carries no pagination.
+  const notes = page.getByRole('region', { name: 'Company notes', exact: true });
+  await expect(notes.getByLabel('Whose notes')).toBeVisible();
+  await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toHaveCount(0);
+  const labelAbove = await notes.getByLabel('Whose notes').evaluate(select => {
+    const label = select.closest('label')!.getBoundingClientRect(), control = select.getBoundingClientRect();
+    return control.top > label.top;
+  });
+  expect(labelAbove).toBe(true);
+
+  await sections.getByRole('link', { name: 'Company notes', exact: true }).click();
+  await expect(page.locator('#company-notes')).toBeInViewport();
+  await page.screenshot({ path: 'docs/design/evidence/company-hub/sections-1440.png', fullPage: true });
+});

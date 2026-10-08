@@ -2,8 +2,8 @@
 
 # [110] Section the company research page into legible jobs
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: enhancement
@@ -88,21 +88,93 @@ them.
 
 ## Provisional acceptance criteria
 
-- [ ] Each of the page's jobs is reachable without scrolling past the others, by whichever mechanism triage rules.
-- [ ] Each resulting view has exactly one filled action.
-- [ ] The research-evidence capture form is deferred and opens itself when it already holds content.
-- [ ] Notes filters place labels above their controls, consistent with the rest of the page and the app.
-- [ ] Pagination controls do not render for an empty or single-page set.
-- [ ] No percentage or price change renders more than two decimal places (via 101).
-- [ ] Per-section loading, failure and retry remain independent; one failing section never blocks another.
-- [ ] Missing quotes stay labelled and are never rendered as `0`; the 50-row history cap and the range select are unchanged.
-- [ ] Saved evidence remains immutable and the evidence timeline order is unchanged.
-- [ ] The pre-existing `company-market` failures are characterised before work starts and are neither introduced nor masked by it.
-- [ ] Verified in all three locales, light and dark, all three market-colour preferences, at 390/768/1440.
+- [x] Each of the page's jobs is reachable without scrolling past the others, by whichever mechanism triage rules.
+- [x] Each resulting view has exactly one filled action. One page, one standing filled action — see ruling 2.
+- [x] The research-evidence capture form is deferred and opens itself when it already holds content.
+- [x] Notes filters place labels above their controls, consistent with the rest of the page and the app.
+- [x] Pagination controls do not render for an empty or single-page set.
+- [x] No percentage or price change renders more than two decimal places (via 101).
+- [x] Per-section loading, failure and retry remain independent; one failing section never blocks another.
+- [x] Missing quotes stay labelled and are never rendered as `0`; the 50-row history cap and the range select are unchanged.
+- [x] Saved evidence remains immutable and the evidence timeline order is unchanged.
+- [x] The pre-existing `company-market` failures are characterised before work starts and are neither introduced nor masked by it.
+- [ ] Verified in all three locales, light and dark, all three market-colour preferences, at 390/768/1440. 1440 and 390 are covered by the existing company specs; the three locales are asserted for the hub region but not for the new section list, and 768 and the market-colour preferences are not.
 
 ## Settled during triage
 
-Nothing yet. Step 1 defines the page's shape and must be ruled first.
+**1. Step 1: the page stays one page and gains in-page section navigation.** The plan
+offered three mechanisms and recommended deferred disclosures. Reading them against what
+is already accepted changed the answer:
+
+- **Routes were rejected, despite `/thesis` and `/gurus` already being routes.**
+  `company-hub.spec.ts`'s second case is an accepted acceptance that the hub, notes,
+  evidence and quote readers *sit on one page and fail independently there*. Splitting
+  notes and evidence onto their own addresses would not satisfy that test — it would
+  delete it, along with the claim it protects. Six specs also reach these regions through
+  `/stocks/:symbol`. That is a re-litigation of a delivered decision, not this ticket.
+- **Disclosures alone were rejected as the primary mechanism.** A disclosure that opens
+  itself when it already holds content leaves a populated page exactly as long as it is
+  today, which is the case the complaint is about. It solves the empty case only.
+- **Shipped: a ruled row of in-page destinations** under the page header, listing only the
+  sections that actually render, plus `scroll-margin` and a focus target on each. It is
+  the cheapest mechanism that answers the literal complaint — no job is reachable only by
+  scrolling past the others — and it costs no accepted behaviour.
+
+**2. Step 2: one *standing* filled action, and forms keep their own commit.** DESIGN.md's
+"one filled action per surface" is applied here as: at rest the page shows exactly one
+filled action — `Record a thought`, because the product ranks capture first — and every
+region's opener is secondary. A form that the reader has deliberately opened is its own
+surface and keeps its filled commit, which is how `/achievements` and the diary editor
+already work. `View market data`, `New note` and the evidence disclosure are therefore
+secondary; `Save note` and `Capture evidence` stay filled once their form is open. This is
+pinned at rest by a test rather than left to inspection.
+
+**3. Step 3: only the capture form defers, not the timeline.** `Evidence` already had a
+`collapsed` mode, used on the diary page — but it collapsed the *whole* section, timeline
+included. On a company page the recorded timeline is standing content and one of the
+page's jobs, so the component was restructured: the heading and the disclosure trigger
+stand, the form defers, and the timeline renders outside the disclosure. The diary page
+has no timeline (`fixedSymbol` is undefined there) and is untouched.
+
+**4. A second router blocker was found and removed.** Passing `collapsed` mounted
+`EvidenceNavigationGuard` permanently on the company page, and a router supports one
+blocker at a time: the guard silently took the registration from the notes editor, whose
+unsaved-note confirmation then stopped holding the navigation. `stock-notes.spec.ts`
+caught it. The guard now mounts only while there is unsaved capture to lose, which is also
+the only time it has anything to do.
+
+**5. Step 4 as specified**, with both filters in one control row with labels above, and
+pagination rendered only when there is more than one page. The pagination change is
+asserted in `stock-notes.spec.ts`, which previously pinned the opposite (a disabled
+`Next notes` on a single page).
+
+**6. The pre-existing failures the plan asked about were characterised first.**
+`company-market`, `company-hub`, `evidence` and `stock-notes` all passed on the full-suite
+run taken before this work started, so the 2026-10-02 changelog's list is stale for these
+four files and nothing here is masking a known failure.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/routes/company-market.tsx` (section navigation, section
+ids and focus targets, secondary lookup submit, `collapsed` evidence),
+`company-market.css` (the navigation row, scroll margins, the note filter row),
+`apps/web/app/evidence.tsx` (standing heading plus deferred capture, timeline outside the
+disclosure, conditional navigation guard), `apps/web/app/stock-notes.tsx` (filter row,
+conditional pagination, secondary `New note`).
+
+**Verification.** `tsc --noEmit` and `eslint` clean. A new case in `company-hub.spec.ts`
+asserts the section list matches the rendered sections, that every listed destination
+exists, that exactly one filled action stands at rest and that it is `Record a thought`,
+that the capture form is absent while the recorded evidence is present, that the note
+filter's label sits above its control (measured, not assumed) and that a single page of
+notes has no pagination. `company-hub` 4/4, `company-market` 3/3, `evidence` 4/4,
+`stock-notes` 3/3, and `partners`, `api-keys`, `stock-note-sharing`, `company-context`,
+`diary-detail-review` 8/8 — all green. Evidence:
+`docs/design/evidence/company-hub/sections-1440.png`.
+
+**Not done.** 768px, the three market-colour preferences, and Chinese captures. The page
+is 3,354px no longer but it is still long; the sectioning makes that navigable rather than
+shorter, which is what the ticket asked for.
 
 ## Related work
 

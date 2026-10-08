@@ -10,6 +10,10 @@ for (const width of [1440, 390]) test(`Evidence capture and immutable retry at $
   await selectLocale(page, 'en'); await page.goto('/stocks/UNKNOWN');
   const evidence = page.getByRole('region', { name: 'Research evidence', exact: true });
   await expect(evidence.getByText('No evidence captured yet.', { exact: true })).toBeVisible();
+  // Ticket 110: on a company page the recorded timeline stands and the capture
+  // form is deferred, so five empty controls no longer sit open mid-page.
+  await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0);
+  await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click();
   await evidence.getByLabel('Evidence summary').fill('Synthetic research, even without a quote.');
   await evidence.getByLabel('Source type').selectOption('ARTICLE');
   await evidence.getByLabel('Occurred at (UTC)').fill('2026-09-05T10:30');
