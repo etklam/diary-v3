@@ -17,7 +17,9 @@ describe('session content identity', () => {
     expect(session.getSessionRevision()).toBe(0)
     expect(session.getSessionIdentity()).toBe(0)
     session.markSignedIn()
-    // The revision still advances: caches and in-flight read guards key off it.
+    // The revision still advances: account caches key off it. The in-flight
+    // read guard keys off the identity instead, so a read that was issued
+    // before this confirmation is still answered (see account-session-fetch).
     expect(session.getSessionRevision()).toBe(1)
     // The identity does not, so the routed content keeps its own state.
     expect(session.getSessionIdentity()).toBe(0)

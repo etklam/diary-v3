@@ -167,9 +167,15 @@ const fetchSession: typeof fetch = async (input, init) => {
     || /^\/api\/(?:ai|diaries|v2\/diaries|discipline|partners|api-keys|admin|trade-plans|user|stats|reviews|timeline)(?:\/|$)/.test(pathname)
     || /^\/api\/stocks\/(?:holdings|portfolio|exposure|attention|prices|watchlist|timeline|alerts)(?:\/|$)/.test(pathname);
   if (locallySignedOut && (privatePath || /^\/api\/stocks\/[^/]+\/(?:timeline|evidence|notes|thesis|hub)(?:\/|$)/.test(pathname))) return invalidatedSessionResponse();
-  const revision = state.revision;
+  // In-flight private reads are discarded when the identity they were issued
+  // under ends — not on every session event. Confirming the session the
+  // document already loaded under advances the revision without changing the
+  // identity, and the first confirmation normally lands while a page's own
+  // reads are still open: keying this guard on the revision rejected those
+  // answers and reported a false AUTH_UNAUTHORIZED on a cold load.
+  const identity = state.identity;
   const response = await webSession.fetch(input, init);
-  if (revision !== state.revision && (privatePath || pathname === '/api/auth/me')) return invalidatedSessionResponse();
+  if (identity !== state.identity && (privatePath || pathname === '/api/auth/me')) return invalidatedSessionResponse();
   if (pathname.startsWith('/api/alerts') || pathname === '/api/auth/me' || pathname === '/api/portfolio/attention') {
     if (response.ok) markSignedIn();
     else if (response.status === 401 && state.authenticated !== false) {

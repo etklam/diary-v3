@@ -56,3 +56,41 @@ describe('account settings invalidation', () => {
   });
 
 });
+
+// A page's own reads normally start before the shell has confirmed the
+// session, so the first confirmation lands while they are open. The guard that
+// discards answers from an ended session must not discard these: doing so
+// reported a false AUTH_UNAUTHORIZED on every cold load of a private page.
+describe('in-flight private reads across a session event', () => {
+  async function gatedSession(pathname: string) {
+    vi.resetModules();
+    const session = await import('../../apps/web/app/session');
+    vi.stubGlobal('window', { location: { origin: 'http://localhost', pathname } });
+    let open = () => {};
+    const gate = new Promise<void>(resolve => { open = resolve; });
+    vi.spyOn(session.webSession, 'fetch').mockImplementation(async input => {
+      const path = new URL(input instanceof Request ? input.url : String(input)).pathname;
+      if (path === '/api/diaries/summary') { await gate; return Response.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }); }
+      return Response.json({ data: { id: '1', timezone: 'UTC' } });
+    });
+    return { session, open: () => open() };
+  }
+
+  it('answers a read that was in flight when the session was first confirmed', async () => {
+    const { session, open } = await gatedSession('/alerts');
+    const summary = session.sessionFetch('http://localhost/api/diaries/summary');
+    // Confirms the session the document already loaded under.
+    expect((await session.sessionFetch('http://localhost/api/alerts')).ok).toBe(true);
+    open();
+    expect((await summary).status).toBe(200);
+  });
+
+  it('discards a read that was in flight when the identity ended', async () => {
+    const { session, open } = await gatedSession('/alerts');
+    expect((await session.sessionFetch('http://localhost/api/alerts')).ok).toBe(true);
+    const summary = session.sessionFetch('http://localhost/api/diaries/summary');
+    session.clearPrivateSession();
+    open();
+    expect((await summary).status).toBe(401);
+  });
+});

@@ -97,6 +97,25 @@ it. Resolving `authenticated: null → true` is not an identity change.
 **Not yet run: the two new e2e scenarios.** They need the tunnelled Postgres the E2E harness
 provisions against, and `127.0.0.1:55433` was closed for this session.
 
+## Defect found and fixed afterwards — 2026-10-08
+
+**The in-flight read guard was keyed on the wrong counter.** `fetchSession` captured
+`state.revision` before a request and discarded the answer if the revision had advanced by
+the time it resolved. This change makes the first confirmation of an already-loaded
+session advance the revision — which is correct for caches — but that confirmation
+normally lands *while a page's own reads are still open*, so a cold load of a private page
+could render `AUTH_UNAUTHORIZED` with every API response at `200`. Found while rebuilding
+`/alerts` for [108](108-diary-reminders-page.md), where it failed every cold-load case in
+`alerts.spec.ts`, and confirmed to be independent of that work by reproducing it on a tree
+with 108 stashed.
+
+The guard now keys on `identity`, which is exactly the distinction this ticket introduced:
+a confirmation is not an identity change; a sign-out, an expiry and a sign-in over a
+session all are. `tests/unit/account-session-fetch.test.ts` pins both directions, and
+`tests/unit/session-identity.test.ts`'s comment about the guard was corrected.
+
+The same fix took `quick-authoring-follow-up.spec.ts` from 7 failures to 4.
+
 ## Follow-up this unblocks
 
 - **Done, same day, as a separate change**: `quick-composer.tsx` no longer withholds the writing
