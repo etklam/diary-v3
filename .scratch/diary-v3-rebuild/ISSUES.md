@@ -164,9 +164,21 @@ the set is cross-cutting consistency work and four focused reworks.
 | 109 — Design the authentication pages | Design follow-up | triaged; Execution: done 2026-10-08, 8/8 new auth e2e cases green | [109-authentication-pages-design.md](issues/109-authentication-pages-design.md) |
 | 110 — Section the company research page into legible jobs | Design follow-up | triaged; Execution: done 2026-10-08, company/notes/evidence e2e green | [110-company-research-page-sections.md](issues/110-company-research-page-sections.md) |
 | 111 — Fix the trade plan execution comparison region | Design follow-up | triaged; Execution: done 2026-10-08, 10/10 trade-plan e2e cases green | [111-trade-plan-execution-comparison.md](issues/111-trade-plan-execution-comparison.md) |
-| 112 — Standardize empty states and list sections | Cross-cutting visual bug | needs-triage; Execution: todo | [112-empty-states-and-list-sections.md](issues/112-empty-states-and-list-sections.md) |
-| 113 — Correct the research tool pages | Design follow-up | needs-triage; Execution: todo | [113-research-tool-page-corrections.md](issues/113-research-tool-page-corrections.md) |
+| 112 — Standardize empty states and list sections | Cross-cutting visual bug | triaged; Execution: done 2026-10-08, 13/13 affected e2e cases green | [112-empty-states-and-list-sections.md](issues/112-empty-states-and-list-sections.md) |
+| 113 — Correct the research tool pages | Design follow-up | triaged; Execution: done 2026-10-08, tool-page e2e green | [113-research-tool-page-corrections.md](issues/113-research-tool-page-corrections.md) |
 | 114 — Quiet the article management rows and size its columns | Design follow-up | needs-triage; Execution: todo | [114-admin-article-list-rows.md](issues/114-admin-article-list-rows.md) |
+
+## Navigation and capture decisions filed from 112 (115–116)
+
+Filed 2026-10-08 from [112](issues/112-empty-states-and-list-sections.md)'s execution,
+whose acceptance required its two deferred findings to be ruled on or filed rather than
+dropped. Both touch the capture-first navigation principle and both have two defensible
+readings, so neither was decided inside a consistency ticket.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 115 — Rule on the duplicate Quick diary primary action | Design decision | needs-triage; Execution: todo | [115-duplicate-quick-diary-action.md](issues/115-duplicate-quick-diary-action.md) |
+| 116 — Decide what belongs in the sidebar | Information architecture | needs-triage; Execution: todo | [116-sidebar-navigation-depth.md](issues/116-sidebar-navigation-depth.md) |
 
 Recommended order from the review: 101 first (highest visibility per unit of effort, and a
 credibility problem), then 102 (four fixes of two lines or less), then the redesigns
@@ -274,6 +286,33 @@ review's 107–111 band. Three things are worth reading before picking up 112–
   pre-existing list above, plus `posts.spec.ts:13`, which the 2026-10-07 note already
   recorded as passing on re-run. The run before this one failed 16 including two caused by
   109; both were fixed.
+
+**Progress — 2026-10-08, fourth pass.** 112 and 113 are implemented, which closes the
+whole-app page score's 101–114 set except [114](issues/114-admin-article-list-rows.md).
+Three things are worth reading before picking it up:
+
+- **112's open decision went the other way from the review's reading.** The review
+  suggested an unconditional Refresh was the weaker option; it does not survive contact
+  with what these lists are. Every one of them can change without the reader — two specs
+  use `Refresh partners` to observe a second account across browser contexts. The rule
+  that shipped is: a **retry** belongs to a failure and appears only with one; a
+  **refresh** belongs to a list whose data can change without you, and sits on its
+  heading's baseline. `/stocks`'s unconditional "Try again" was a mislabelled refresh and
+  is now `Refresh prices`.
+- **112's two deferred findings are filed, not dropped**, as its acceptance required:
+  [115](issues/115-duplicate-quick-diary-action.md) for the duplicate Quick diary primary
+  action and [116](issues/116-sidebar-navigation-depth.md) for sidebar depth. Both touch
+  the capture-first principle and both have two defensible readings.
+- **113 reached `/tools/market-rotation` the way its step 7 demanded** — captured
+  populated from the existing fixtures before deciding anything — and changed exactly one
+  thing against that capture: the four-up bordered stat row became a ledger, the same
+  shape [105](issues/105-performance-chart-low-cardinality.md) and
+  [111](issues/111-trade-plan-execution-comparison.md) removed elsewhere. Its flat ratio
+  chart resolves the same way too: a ratio that does not move is stated rather than drawn
+  as a straight line across a 680px frame.
+
+**Full e2e suite run: 320 passed, 15 failed — the same fifteen as the previous run, none
+new.**
 
 ### Scored but not filed
 
