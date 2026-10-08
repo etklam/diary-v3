@@ -756,6 +756,18 @@ kbd {
   font-size: var(--text-sm);
 }
 
+/* Field columns. DESIGN.md has text inputs fill their column; these name the
+   column, so a symbol field and an email field stop being the same width as
+   whatever grid they happen to sit in. A textarea keeps the full column — it
+   holds prose, and prose wants the measure. */
+.field-sm {
+  max-width: 18rem;
+}
+
+.field-md {
+  max-width: 28rem;
+}
+
 /* Empty state: a quiet well that names the next action. Not a dashed outline —
    nothing here is a drop target. */
 .empty-state {

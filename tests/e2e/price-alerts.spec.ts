@@ -10,6 +10,14 @@ for (const width of [1440, 390]) test(`price reminder CRUD and rearm at ${width}
   await page.goto('/stocks/AAPL');
   await page.locator('main').getByRole('link', { name: 'Price reminders', exact: true }).click();
   await expect(page.getByLabel('Symbol', { exact: true })).toHaveValue('AAPL');
+  // Ticket 112: the empty list is the project's empty state and names a next
+  // action on this page; the 100-reminder bound and the display timezone
+  // describe content, so they wait for it.
+  const emptyPrices = page.locator('.plan-page .empty-state');
+  await expect(emptyPrices).toContainText('No price reminders yet.');
+  await expect(page.locator('main')).not.toContainText('Times shown in');
+  await emptyPrices.getByRole('button', { name: 'Create the first one', exact: true }).click();
+  await expect(page.getByLabel('Symbol', { exact: true })).toBeFocused();
   await page.getByLabel('Price threshold', { exact: true }).fill('123.4567');
   await page.getByLabel('Reminder message', { exact: true }).fill('Check whether the original reasoning still applies at this price.');
   await page.getByRole('button', { name: 'Create price reminder', exact: true }).click();

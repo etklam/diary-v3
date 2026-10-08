@@ -21,7 +21,13 @@ test('watchlist reconciles committed writes when their responses are lost',async
  await selectLocale(page, 'en');await page.getByRole('button',{name:'Add common ETFs',exact:true}).click();await expect(page.getByRole('status')).toContainText('Added:');
 const seed=/Added: (\d+) · Skipped: (\d+) · Total: (\d+)/.exec(await page.getByRole('status').innerText())!;expect(Number(seed[1])+Number(seed[2])).toBe(24);
 await expect(page.getByTestId('etf-catalog-item')).toHaveCount(Number(seed[3]));
- await page.goto('/etf/watchlist');await page.getByRole('textbox',{name:'ETF symbol',exact:true}).fill('QQQ');
+ await page.goto('/etf/watchlist');
+ // Ticket 112: a headed list region, and an empty state that names its action.
+ await expect(page.getByRole('heading',{name:'Followed ETFs (0)',exact:true})).toBeVisible();
+ await expect(page.locator('.empty-state')).toContainText('No ETFs followed yet.');
+ await page.locator('.empty-state').getByRole('button',{name:'Add the first one',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'ETF symbol',exact:true})).toBeFocused();
+ await page.getByRole('textbox',{name:'ETF symbol',exact:true}).fill('QQQ');
  await page.route('**/api/etf/watchlist',async route=>{if(route.request().method()!=='POST')return route.continue();const response=await route.fetch();expect(response.status()).toBe(200);await route.abort();});
  await page.getByRole('button',{name:'Add ETF',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Unable to confirm');await expect(page.getByRole('button',{name:'Add ETF',exact:true})).toBeDisabled();await expect(page.getByRole('textbox',{name:'ETF symbol',exact:true})).toHaveValue('QQQ');
  await page.unroute('**/api/etf/watchlist');await page.getByRole('button',{name:'Refresh watchlist',exact:true}).click();await expect(page.getByTestId('etf-watch-item')).toHaveCount(1);await expect(page.getByRole('alert')).toHaveCount(0);

@@ -7,6 +7,10 @@ for (const width of [1440, 390]) test(`API key external diary and revocation at 
  await page.goto('/login?returnTo=%2Fsettings%2Fapi-keys'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/settings\/api-keys$/); await selectLocale(page, 'en');
+ // Ticket 112: the list is a headed region with its refresh on the heading's
+ // baseline, not a control floating above an unnamed list.
+ await expect(page.getByRole('heading', { name: 'Your keys (0)', exact: true })).toBeVisible();
+ await expect(page.locator('.empty-state')).toContainText('No API keys yet.');
  await page.getByRole('combobox', { name: 'Access scope', exact: true }).selectOption('AGENT_WRITE'); await page.getByLabel('Key label', { exact: true }).fill('External research writer'); await page.getByRole('button', { name: 'Create key', exact: true }).click();
  const secret = page.getByRole('textbox', { name: 'New API key', exact: true });
  const rawKey = await page.locator('textarea[readonly]').inputValue(); expect(rawKey).toMatch(/^dva_[0-9a-f]{48}$/);

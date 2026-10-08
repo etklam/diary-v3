@@ -2,8 +2,8 @@
 
 # [112] Standardize empty states and list sections across the secondary pages
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: bug
@@ -98,18 +98,16 @@ one assertion per converted page that the empty state is reachable and names an 
 
 ## Provisional acceptance criteria
 
-- [ ] Every successfully-empty dataset in the app renders `.empty-state` with a next action; no bare-paragraph empty state remains.
-- [ ] Every list region has a heading and a rule separating it from the page description.
-- [ ] Refresh/retry controls appear per the triage ruling, applied consistently — including `/stocks`'s unconditional "Try again".
-- [ ] Resource failures remain visually distinct from empty data on every affected page.
-- [ ] Single-line text fields on the affected pages sit in a decided column rather than filling the full content width.
-- [ ] A display timezone is stated only when times are shown.
-- [ ] The two deferred items — the duplicate Quick diary action and navigation depth — are either ruled on or filed as their own tickets, not silently dropped.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] Every successfully-empty dataset in the app renders `.empty-state` with a next action; no bare-paragraph empty state remains.
+- [x] Every list region has a heading and a rule separating it from the page description.
+- [x] Refresh/retry controls appear per the triage ruling, applied consistently — including `/stocks`'s unconditional "Try again".
+- [x] Resource failures remain visually distinct from empty data on every affected page.
+- [x] Single-line text fields on the affected pages sit in a decided column rather than filling the full content width.
+- [x] A display timezone is stated only when times are shown.
+- [x] The two deferred items — the duplicate Quick diary action and navigation depth — are either ruled on or filed as their own tickets, not silently dropped. Filed as [115](115-duplicate-quick-diary-action.md) and [116](116-sidebar-navigation-depth.md).
+- [ ] Verified in all three locales, light and dark, at 390/768/1440. The affected specs run at 1440 and 390; the locales and themes are not separately captured for these regions.
 
 ## Settled during triage
-
-Nothing yet. Step 3 is the open decision and it affects five pages.
 
 **Scope reduced by 108, 2026-10-08.** `/alerts` is done: it now renders `.empty-state` with
 a next action, states the 100-reminder bound and the display timezone only when reminders
@@ -117,6 +115,65 @@ are shown, and gives its list a headed region with a rule. Two of this ticket's 
 empty states remain (`/stocks/alerts`, `/etf/watchlist`), and the conditional-timezone item
 now applies to `/stocks/alerts` only. 108 also moved row controls to quiet weight on
 `/alerts`, which is the convention step 3 should stay consistent with.
+
+**1. Step 3: Refresh survives, and moves onto the list heading's baseline.** The review's
+reading was that an unconditional Refresh is the weaker option. It does not survive
+contact with what these lists are: **every one of them can change without the reader** — a
+partner accepts an invitation or sends one (`partners.spec.ts` and
+`stock-note-sharing.spec.ts` both use `Refresh partners` to observe exactly that across two
+browser contexts), an agent's use updates a key's last-used time, and quotes and ETF
+closes move on their own. Removing the control would delete a capability to satisfy a
+reading of a rule about *retry*, which is a different thing.
+
+So the rule is: **a retry belongs to a failure and appears only with one; a refresh belongs
+to a list whose data can change without you, and sits on its heading's baseline at
+secondary weight.** That is what [106](106-watchlist-row-controls.md) already shipped for
+`/stocks/watchlist`, and it is what the complaint was actually about — a control floating
+above an unnamed region reads as a control with nothing to control. `/partners`,
+`/settings/api-keys` and `/etf/watchlist` now have the heading the control sits on.
+
+**2. `/stocks`'s unconditional "Try again" was a mislabel, not a stray control.** It
+re-reads the ledger and the quotes, which is a refresh; it was only ever wrong because it
+said "Try again" with no failure in sight. It is now `Refresh prices`. The scoped retries
+inside each failed section are unchanged, and `portfolio-exposure.spec.ts` — which used
+this control to trigger a reload — was updated with it.
+
+**3. Step 4: two field columns, not per-page widths.** `.field-sm` (18rem) for a symbol or
+a threshold and `.field-md` (28rem) for an email or a label, applied to the field's grid
+cell so the input still fills its column as `DESIGN.md` requires. A textarea keeps the
+full column: it holds prose, and prose wants the measure. This is the column definition
+[95](95-dropdown-layout-density.md) left open, not a re-litigation of it.
+
+**4. `/etf/watchlist`'s read failure gained a scoped retry.** Moving the refresh onto the
+list heading put it inside the loaded branch, and the failure branch had been relying on
+that one floating button for recovery. A failure now carries its own retry, which is what
+the empty-versus-failure pattern asks for anyway.
+
+**5. The two deferred findings are filed, not ruled.** [115](115-duplicate-quick-diary-action.md)
+for the duplicate Quick diary primary action and [116](116-sidebar-navigation-depth.md)
+for navigation depth. Both touch the capture-first principle, and both have two defensible
+readings; taking either ruling inside a consistency ticket would have been the wrong place
+to decide it.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `.empty-state` with a reachable next action on `/stocks/alerts` and
+`/etf/watchlist` (`/alerts` was [108](108-diary-reminders-page.md)'s); headed list regions
+with their rule and their refresh on `/partners`, `/settings/api-keys` and
+`/etf/watchlist`; `.field-sm`/`.field-md` in `styles.css` applied to the price-alert
+symbol and threshold, the ETF symbol, the partner email and the API key label; the
+100-reminder bound and the display timezone on `/stocks/alerts` stated only with content;
+`Refresh prices` on `/stocks`.
+
+Files: `apps/web/app/styles.css`, `routes/price-alerts.tsx`, `price-alert-copy.ts`,
+`routes/etf-watchlist.tsx`, `routes/partners.tsx`, `routes/api-keys.tsx`,
+`routes/holdings.tsx`, and the five specs below.
+
+**Verification.** `tsc --noEmit` and `eslint` clean. `price-alerts` 2/2, `api-keys` 2/2,
+`partners` 2/2, `etf-research` 4/4, `portfolio-exposure` 2/2 and `stock-note-sharing` 1/1
+— 13 of 13 green, with new assertions for each converted empty state (reachable, names its
+action, moves focus to the field it names), each new region heading, and the absence of
+the display timezone on an empty price-reminder list.
 
 ## Related work
 

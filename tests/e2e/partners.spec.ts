@@ -15,6 +15,10 @@ test('two independent accounts accept, share separately and remove a partnership
  }
  try {
   await a.setViewportSize({ width: 1440, height: 900 }); await login(a, emailA); await login(b, emailB);
+  // Ticket 112: the list region is named and carries its own refresh.
+  await expect(a.getByRole('heading', { name: 'Connections (0)', exact: true })).toBeVisible();
+  await expect(a.locator('.empty-state')).toContainText('No partners yet.');
+  await expect(a.locator('.section-head').getByRole('button', { name: 'Refresh partners', exact: true })).toBeVisible();
   await a.getByLabel('Partner email', { exact: true }).fill(emailB); await a.getByRole('button', { name: 'Invite partner', exact: true }).click();
   await expect(a.getByTestId('partner')).toContainText('Awaiting acceptance'); await expect(a.getByRole('button', { name: 'Accept invitation', exact: true })).toHaveCount(0);
   await b.getByRole('button', { name: 'Refresh partners', exact: true }).click(); await expect(b.getByTestId('partner')).toContainText('Invitation received');
