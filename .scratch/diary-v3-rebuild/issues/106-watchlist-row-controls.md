@@ -2,8 +2,8 @@
 
 # [106] Reduce the Watchlist row to a readable company, not six buttons
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: implemented 2026-10-08; both watchlist e2e specs updated and green
 Published: 2026-10-06
 
 Category: bug
@@ -88,20 +88,99 @@ disclosure level step 2 chooses, and for removal-with-undo surviving the restruc
 
 ## Provisional acceptance criteria
 
-- [ ] A watchlist row's most prominent element is the company and its latest research, not its controls.
-- [ ] Row management controls are quiet-weight; no row renders more than one full-weight button.
-- [ ] At most four controls are visible per row at 1440 and at 390; any others sit behind one disclosure with an accessible name.
-- [ ] An unresearched row states "No research records yet." exactly once.
-- [ ] At most one bordered region precedes the list; counts, quick add and filters are grouped by rules and space.
-- [ ] The orphaned custom-order helper line is either attached to the control it describes or removed along with the condition that required it.
-- [ ] Custom ordering, pinning, search, research filter, inline symbol edit, remove-with-undo and the 100-company bound all behave as before.
-- [ ] Reorder and remove are fully operable by keyboard, with state changes announced.
-- [ ] At 390px a company's control block is not taller than its information.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] A watchlist row's most prominent element is the company and its latest research, not its controls.
+- [x] Row management controls are quiet-weight; no row renders more than one full-weight button.
+- [x] At most four controls are visible per row at 1440 and at 390; any others sit behind one disclosure with an accessible name.
+- [x] An unresearched row states "No research records yet." exactly once.
+- [x] At most one bordered region precedes the list; counts, quick add and filters are grouped by rules and space.
+- [x] The orphaned custom-order helper line is either attached to the control it describes or removed along with the condition that required it.
+- [x] Custom ordering, pinning, search, research filter, remove-with-undo and the 100-company bound all behave as before. (Inline symbol edit never existed — see "Settled during triage".)
+- [x] Reorder and remove are fully operable by keyboard, with state changes announced.
+- [x] At 390px a company's control block is not taller than its information.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440 — the three locale headings and the dark 390 screenshot are asserted; 768 and a human read of all nine combinations are not.
 
 ## Settled during triage
 
-Nothing yet. Step 2 is the open decision and it determines the page's shape.
+Taken by the implementing agent, not by the user. Each is reversible.
+
+**1. Step 2's disclosure is a page-level arrange mode, not a per-row menu.** The row
+splits into two states instead of hiding four controls behind an overflow trigger:
+
+- reading (the default): `View research` (quiet), `Record a thought` (quiet icon),
+  `Remove` (danger icon) — three controls.
+- arranging: `Move up`, `Move down` (quiet icons), `Pin`/`Unpin` (quiet) — three controls.
+
+`Arrange order` / `Done arranging` sits in the list heading and is the one disclosure.
+Reasoning: the ticket named the keyboard cost of hiding reorder behind a per-row
+disclosure as the thing to weigh rather than assume away. A menu makes every single move
+cost open-move-reopen, because the row re-renders under the open menu; a mode makes a run
+of moves one entry and n presses, with the reorder controls as plain buttons in the row.
+It also removes the need for a new menu widget — the app has no reusable row menu, and
+dropdown layout is already a known cross-cutting defect in
+[95](95-dropdown-layout-density.md). Pinning went into arrange mode rather than reading
+mode because pinning *is* arranging: it is the one other control that changes custom
+order. `watchlist.css` carried dead `.watch-menu*` and `.watch-order*` rules from an
+earlier overflow-menu attempt; they are deleted rather than revived.
+
+**2. The mode exists only where a move has a defined result.** `Arrange order` renders
+only when the sort is Custom order, no search or research filter is active, and more than
+one row is visible — exactly the condition the orphaned helper line stated in prose. The
+line is deleted, and changing sort or filter while arranging leaves the mode. This is why
+there is no longer a permanently greyed `Move up`/`Move down` pair on every row.
+
+**3. Boundary reorder stays disabled rather than omitted,** matching the delivered
+`/discipline` row. Only the first and last row of a pinned group carry a disabled
+control, and only inside arrange mode, so the two always-grey peers the review counted
+are gone. A control that disables itself cannot keep focus, so a move that reaches a
+boundary sends focus to the row's company heading — and only when focus actually fell to
+the document, so an ordinary move does not steal it.
+
+**4. `View research` became quiet-weight rather than disappearing.** It is the same
+destination as the symbol link in the row's heading, so a case exists for deleting it as
+a duplicate, but a named "research" affordance is the page's whole point and the symbol
+alone does not say where it goes. It is now the row's quietest text control instead of
+its loudest button; `Remove` is the single bordered control, which is where DESIGN.md
+wants legible weight — on the destructive one.
+
+**5. The three leading boxes became one.** The counts are one muted sentence under the
+lede (`2 tracked · 1 with research · 1 not yet researched`), the search/filter/sort
+toolbar lost its card and is grouped by space under the section rule, and Quick add keeps
+the only edge — DESIGN.md's card is "for a form". The 100-company bound moved from a
+floating line above the list into Quick add, because it is a constraint on adding.
+The list heading was `Watchlist`, repeating the `h1`; it is now `Companies`.
+
+**6. Inline symbol editing was in the acceptance list but does not exist.** The row had
+an icon-only pencil, which is `CaptureEntry` — the shared `Record a thought` entry into
+Quick Diary from ticket 63, not a symbol editor. The `editOrder` copy key was unused in
+every locale and is deleted with `tracked`, `researched`, `unresearched`, `more` and
+`customHint`. Nothing that existed was dropped.
+
+## Execution record — 2026-10-08
+
+Changed: `apps/web/app/routes/watchlist.tsx`, `apps/web/app/watchlist-copy.ts`,
+`apps/web/app/watchlist.css`, `tests/e2e/watchlist.spec.ts`,
+`tests/e2e/library-watchlist-improvements.spec.ts`.
+
+Item 3 of the plan (the duplicate empty column) was already fixed by
+[102](102-confirmed-markup-defects.md) and only needed its assertion, which it now has.
+
+**Verification.** `tsc --noEmit` and `eslint` clean. `tests/e2e/watchlist.spec.ts` 2
+passed (1440 and 390) and `tests/e2e/library-watchlist-improvements.spec.ts` 2 passed,
+against the local harness. New assertions in `watchlist.spec.ts`: the single fallback
+sentence, the counts sentence, the absence of the old helper line, two cards on the page,
+three controls per row in both states, no reorder control outside arrange mode, a
+keyboard `Enter` move with a focus assertion on the row heading afterwards, the disabled
+boundary control, the pinned badge surviving the exit from arrange mode, and at 390 a
+measured `.watch-actions` height no greater than the rest of its row.
+`evidence.spec.ts` and `integrated-mobile.spec.ts` were run because they visit this page:
+`integrated-mobile` passes all 7, and `evidence.spec.ts:44` fails at both widths —
+**pre-existing**, confirmed by rerunning it with this work stashed. It is a missing
+`Add research evidence` disclosure on `/diaries/:id`, unrelated to the watchlist, and is
+not in the nine failures 101 recorded, so the stale-e2e ticket those notes ask for should
+pick it up too.
+
+**Not done.** 768px and a human pass over three locales × two themes. The `Refresh
+watchlist` placement stays with [112](112-empty-states-and-list-sections.md).
 
 ## Related work
 

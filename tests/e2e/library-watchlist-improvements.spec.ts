@@ -95,12 +95,14 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
     if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/stocks/watchlist') watchlistGets.push(request.url())
   })
   const beforeMove = watchlistGets.length
-  await page.getByTestId('watch-MSFT').getByRole('button', { name: 'Move up', exact: true }).click()
+  await page.getByRole('button', { name: 'Arrange order', exact: true }).click()
+  await page.getByTestId('watch-MSFT').getByRole('button', { name: 'Move up · MSFT', exact: true }).click()
   await expect(page.locator('.plan-list > li').first()).toHaveAttribute('data-testid', 'watch-MSFT')
   expect(watchlistGets.length).toBe(beforeMove)
+  await page.getByRole('button', { name: 'Done arranging', exact: true }).click()
 
   const aapl = page.getByTestId('watch-AAPL')
-  await aapl.getByRole('button', { name: 'Remove', exact: true }).click()
+  await aapl.getByRole('button', { name: 'Remove · AAPL', exact: true }).click()
   await expect(aapl).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Undo remove', exact: true })).toBeVisible()
   const beforeUndo = watchlistGets.length
@@ -122,7 +124,7 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
   await page.getByRole('button', { name: 'Refresh watchlist', exact: true }).click()
   await refreshReadStartedPromise
   const staleRefreshAapl = page.getByTestId('watch-AAPL')
-  await staleRefreshAapl.getByRole('button', { name: 'Remove', exact: true }).click()
+  await staleRefreshAapl.getByRole('button', { name: 'Remove · AAPL', exact: true }).click()
   await expect(staleRefreshAapl).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Undo remove', exact: true })).toBeVisible()
   releaseRefresh()

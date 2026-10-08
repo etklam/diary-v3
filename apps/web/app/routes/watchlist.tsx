@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { stockWatchlistCreateRequestSchema, stockWatchlistDeleteResponseSchema, stockWatchlistMutationResponseSchema, stockWatchlistReorderResponseSchema, stockWatchlistResponseSchema, type StockWatchlistItem } from '@diary/contracts/watchlist'
 import { api, useUi } from '../ui'
 import { CaptureEntry } from '../capture-entry'
+import { Icon } from '../icons'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { getSessionRevision, signInPath, useSessionState } from '../session'
 import { watchlistCopy, type WatchlistCopy } from '../watchlist-copy'
@@ -20,28 +21,33 @@ function compareCustom(a: StockWatchlistItem, b: StockWatchlistItem) {
   return Number(b.pinned) - Number(a.pinned) || a.sortOrder - b.sortOrder || a.id.localeCompare(b.id)
 }
 
-function WatchlistRow({ item, c, sort, index, visibleItems, filteredView, pending, rowError, onMove, onPin, onRemove }: {
+function WatchlistRow({ item, c, arranging, index, visibleItems, pending, rowError, onMove, onPin, onRemove }: {
   item: StockWatchlistItem
   c: WatchlistCopy
-  sort: SortMode
+  arranging: boolean
   index: number
   visibleItems: StockWatchlistItem[]
-  filteredView: boolean
   pending?: PendingAction
   rowError?: Failure
   onMove: (direction: 'up' | 'down') => void
   onPin: () => void
   onRemove: () => void
 }) {
-  const canMoveUp = !filteredView && sort === 'order' && index > 0 && visibleItems[index - 1]?.pinned === item.pinned
-  const canMoveDown = !filteredView && sort === 'order' && index < visibleItems.length - 1 && visibleItems[index + 1]?.pinned === item.pinned
+  // Reorder is only offered inside arrange mode, which exists only where a move
+  // can land: custom order, unfiltered. Within it, the pinned group is still a
+  // boundary, so the two ends of each group keep a disabled control.
+  const canMoveUp = index > 0 && visibleItems[index - 1]?.pinned === item.pinned
+  const canMoveDown = index < visibleItems.length - 1 && visibleItems[index + 1]?.pinned === item.pinned
   const occurredAt = item.latestRecord?.occurredAt
   const disabled = pending !== undefined
   const company = `/stocks/${encodeURIComponent(item.stock.symbol)}`
   return <li className="watch-row" data-testid={`watch-${item.stock.symbol}`}>
     <div className="watch-identity">
-      <h3><Link to={company}>{item.stock.symbol}</Link></h3>
+      {/* The row's own focus target: a control that disables itself at a boundary
+          cannot keep focus, so arrange mode hands it back to the company. */}
+      <h3 id={`watch-row-${item.id}`} tabIndex={-1}><Link to={company}>{item.stock.symbol}</Link></h3>
       {item.stock.name && <p>{item.stock.name}</p>}
+      {item.pinned && <p className="watch-pinned"><span className="badge">{c.pinnedMark}</span></p>}
     </div>
     {/* One sentence per row when nothing is researched: the meta column stays out
         of the way rather than repeating the summary column's fallback. */}
@@ -49,13 +55,16 @@ function WatchlistRow({ item, c, sort, index, visibleItems, filteredView, pendin
       <span className="watch-count">{c.records}: {item.recordCount}</span>{occurredAt && <> · <time dateTime={occurredAt}>{formatDay(occurredAt)}</time></>}
     </p>}
     <p className="watch-summary">{item.latestRecord ? <><span className="muted">{c.latest}: </span>{item.latestRecord.summary}</> : item.recordCount > 0 ? null : c.none}</p>
-    <div className="watch-actions" aria-label={`${c.more}: ${item.stock.symbol}`}>
-      <Link className="button secondary button-compact" to={company}>{c.viewResearch}</Link>
-      <CaptureEntry symbol={item.stock.symbol}/>
-      <button type="button" className="secondary button-compact" disabled={disabled || !canMoveUp} onClick={() => onMove('up')} title={filteredView ? c.customHint : undefined}>{c.moveUp}</button>
-      <button type="button" className="secondary button-compact" disabled={disabled || !canMoveDown} onClick={() => onMove('down')} title={filteredView ? c.customHint : undefined}>{c.moveDown}</button>
-      <button type="button" className="secondary button-compact" disabled={disabled} onClick={onPin}>{item.pinned ? c.unpinned : c.pinned}</button>
-      <button type="button" className="secondary button-compact" disabled={disabled} onClick={onRemove}>{c.remove}</button>
+    <div className="watch-actions" role="group" aria-label={c.rowActions.replace('{symbol}', item.stock.symbol)}>
+      {arranging ? <>
+        <button type="button" className="quiet-button button-compact watch-icon-button" aria-label={`${c.moveUp} · ${item.stock.symbol}`} disabled={disabled || !canMoveUp} onClick={() => onMove('up')}><Icon name="arrowUp"/></button>
+        <button type="button" className="quiet-button button-compact watch-icon-button" aria-label={`${c.moveDown} · ${item.stock.symbol}`} disabled={disabled || !canMoveDown} onClick={() => onMove('down')}><Icon name="arrowDown"/></button>
+        <button type="button" className="quiet-button button-compact" disabled={disabled} onClick={onPin}>{item.pinned ? c.unpinned : c.pinned}</button>
+      </> : <>
+        <Link className="button quiet-button button-compact" to={company}>{c.viewResearch}</Link>
+        <CaptureEntry symbol={item.stock.symbol}/>
+        <button type="button" className="danger-button button-compact watch-icon-button" aria-label={`${c.remove} · ${item.stock.symbol}`} disabled={disabled} onClick={onRemove}><Icon name="trash"/></button>
+      </>}
     </div>
     {rowError && <FailureNotice failure={rowError} id={`watch-error-${item.id}`} messageOverride={c.updateFailed} />}
   </li>
@@ -78,6 +87,7 @@ export default function Watchlist() {
   const [sort, setSort] = useState<SortMode>('order')
   const [filter, setFilter] = useState<FilterMode>('all')
   const [search, setSearch] = useState('')
+  const [arranging, setArranging] = useState(false)
   const [undo, setUndo] = useState<StockWatchlistItem | null>(null)
   const [undoPending, setUndoPending] = useState(false)
   const [undoError, setUndoError] = useState<Failure | null>(null)
@@ -257,9 +267,12 @@ export default function Watchlist() {
     const action: PendingAction = direction === 'up' ? 'move-up' : 'move-down'
     const queuedEpoch = privateEpoch.current
     const queuedSessionRevision = session.revision
-    const run = orderMutationQueue.current.then(() => {
+    const run = orderMutationQueue.current.then(async () => {
       if (queuedEpoch !== privateEpoch.current || queuedSessionRevision !== getSessionRevision()) return
-      return rowMutation(item, action, signal => reorderApi.POST('/api/stocks/watchlist/reorder', { body: { id: item.id, direction }, signal }))
+      await rowMutation(item, action, signal => reorderApi.POST('/api/stocks/watchlist/reorder', { body: { id: item.id, direction }, signal }))
+      // A row that reaches the top or the bottom loses the control that moved it.
+      // Only rescue focus when it actually fell to the document.
+      requestAnimationFrame(() => { if (document.activeElement === document.body) document.getElementById(`watch-row-${item.id}`)?.focus() })
     })
     orderMutationQueue.current = run.catch(() => undefined)
   }
@@ -341,14 +354,20 @@ export default function Watchlist() {
   })
   const researched = sessionItems?.filter(item => item.recordCount > 0).length ?? 0
   const filteredView = search.trim() !== '' || filter !== 'all'
+  // Arranging is only offered where a move has a defined result, which is the
+  // condition the orphaned helper line used to state in prose.
+  const canArrange = sort === 'order' && !filteredView && visible.length > 1
+  useEffect(() => { if (!canArrange) setArranging(false) }, [canArrange])
   return <section className="plan-page watch-page">
-    <header className="plan-header watch-header"><div><h1>{c.title}</h1><p className="lede">{c.hint}</p></div><Link className="button secondary" to="/stocks">{c.holdings}</Link></header>
-    {sessionItems && <div className="card watch-stats">
-      <div className="stat"><span className="stat-label">{c.tracked}</span><p className="stat-value">{sessionItems.length}</p></div>
-      <div className="stat"><span className="stat-label">{c.researched}</span><p className="stat-value">{researched}</p></div>
-      <div className="stat"><span className="stat-label">{c.unresearched}</span><p className="stat-value">{sessionItems.length - researched}</p></div>
-    </div>}
-    <form className="watch-add card" onSubmit={add}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><button disabled={adding}>{adding ? t('pending') : c.add}</button></div></form>
+    <header className="plan-header watch-header">
+      <div>
+        <h1>{c.title}</h1>
+        <p className="lede">{c.hint}</p>
+        {sessionItems && <p className="watch-counts">{c.counts.replace('{total}', String(sessionItems.length)).replace('{researched}', String(researched)).replace('{unresearched}', String(sessionItems.length - researched))}</p>}
+      </div>
+      <Link className="button secondary" to="/stocks">{c.holdings}</Link>
+    </header>
+    <form className="watch-add card" onSubmit={add}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><button disabled={adding}>{adding ? t('pending') : c.add}</button></div><p className="muted watch-add-hint">{c.limit}</p></form>
     {saved && <p role="status">{c.saved}</p>}
     {writeError && <><FailureNotice failure={writeError}/>{writeError.code?.startsWith('AUTH_') && <Link to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}</>}
     {!sessionItems && loading && <p role="status">{t('loading')}</p>}
@@ -356,15 +375,15 @@ export default function Watchlist() {
     {sessionItems && <>
       {!loading && refreshError && <div className="watch-refresh-error"><FailureNotice failure={refreshError}/>{refreshError.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" className="secondary" onClick={() => retry(value => value + 1)}>{t('retry')}</button></div>}
       {sessionUndo && <div className="watch-undo" role="status" aria-live="polite"><span>{c.removed} {sessionUndo.stock.symbol}</span><button type="button" className="secondary" disabled={undoPending} onClick={() => void restore()}>{undoPending ? t('pending') : c.undo}</button>{undoError && <span className="error">{undoError.message}</span>}</div>}
-      <div className="section-head watch-list-head"><h2>{c.listTitle} ({visible.length}{visible.length !== sessionItems.length ? ` / ${sessionItems.length}` : ''})</h2><div className="watch-list-head-actions">{loading && <span className="watch-refreshing" role="status" aria-live="polite">{c.refreshing}</span>}<button type="button" className="secondary" disabled={loading} onClick={() => retry(value => value + 1)}>{loading ? t('pending') : c.refresh}</button></div></div>
-      <div className="watch-toolbar card">
+      <div className="section-head watch-list-head"><h2>{c.listTitle} ({visible.length}{visible.length !== sessionItems.length ? ` / ${sessionItems.length}` : ''})</h2><div className="watch-list-head-actions">{loading && <span className="watch-refreshing" role="status" aria-live="polite">{c.refreshing}</span>}{canArrange && <button type="button" className="secondary" onClick={() => setArranging(value => !value)}>{arranging ? c.arrangeDone : c.arrange}</button>}<button type="button" className="secondary" disabled={loading} onClick={() => retry(value => value + 1)}>{loading ? t('pending') : c.refresh}</button></div></div>
+      <div className="watch-toolbar">
         <label>{c.search}<input type="search" value={search} onChange={event => setSearch(event.target.value)} maxLength={100}/></label>
         <label>{c.filterLabel}<select value={filter} onChange={event => setFilter(event.target.value as FilterMode)}><option value="all">{c.all}</option><option value="researched">{c.hasResearch}</option><option value="unresearched">{c.noResearch}</option></select></label>
         <label>{c.sortLabel}<select value={sort} onChange={event => setSort(event.target.value as SortMode)}><option value="order">{c.sortOrder}</option><option value="research">{c.byResearch}</option><option value="symbol">{c.bySymbol}</option></select></label>
       </div>
-      <p className="watch-limit muted">{sort === 'order' ? c.customHint : c.limit}</p>
+      {arranging && <p className="muted watch-arrange-hint">{c.pinnedHint}</p>}
       {!visible.length ? <div className="empty-state"><p>{c.empty}</p></div>
-        : <div className="watch-list card"><ul className="plan-list">{visible.map((item, index) => <WatchlistRow key={item.id} item={item} c={c} sort={sort} index={index} visibleItems={visible} filteredView={filteredView} pending={pending[item.id]} rowError={rowErrors[item.id]} onMove={direction => move(item, direction)} onPin={() => pin(item)} onRemove={() => void rowMutation(item, 'remove', signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }))}/>)}</ul></div>}
+        : <div className="watch-list card"><ul className="plan-list">{visible.map((item, index) => <WatchlistRow key={item.id} item={item} c={c} arranging={arranging} index={index} visibleItems={visible} pending={pending[item.id]} rowError={rowErrors[item.id]} onMove={direction => move(item, direction)} onPin={() => pin(item)} onRemove={() => void rowMutation(item, 'remove', signal => api.DELETE('/api/stocks/watchlist/{id}', { params: { path: { id: item.id } }, signal }))}/>)}</ul></div>}
     </>}
   </section>
 }
