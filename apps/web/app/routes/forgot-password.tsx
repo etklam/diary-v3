@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLoaderData } from 'react-router'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { api, useUi } from '../ui'
+import { AuthPage } from '../auth-page'
+import { authAsideCopy } from '../auth-copy'
 import './registration-complete.css'
 import { resolveAccountRecoverySupportUrl } from '../account-recovery-support.server'
 
@@ -97,7 +99,7 @@ export default function ForgotPassword() {
   }
 
   const cooldownMessage = cooldownSeconds > 0 ? c.resendWait(cooldownSeconds) : c.resendReady
-  return <section className="form-page">
+  return <AuthPage lede={authAsideCopy[locale].recovery}>
     <h1>{c.title}</h1>
     {capabilityState === 'loading' ? <p role="status">{c.loading}</p>
       : capabilityState === 'error' ? <div role="alert"><p>{c.connection}</p><button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>{c.retry}</button></div>
@@ -108,5 +110,5 @@ export default function ForgotPassword() {
               <form onSubmit={submit} aria-busy={pending}><label>{c.email}<input type="email" name="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={pending} required /></label><FailureNotice failure={failure} /><button type="submit" disabled={pending}>{pending ? '…' : c.send}</button></form>
               <p className="form-alternate"><Link to="/login">{c.back}</Link></p>
             </>}
-  </section>
+  </AuthPage>
 }

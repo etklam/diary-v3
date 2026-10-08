@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { api, useUi } from '../ui'
+import { AuthPage } from '../auth-page'
+import { authAsideCopy } from '../auth-copy'
 import './registration-complete.css'
 
 const copy = {
@@ -54,7 +56,7 @@ export default function RegistrationComplete() {
     finally { setPending(false) }
   }
 
-  return <section className="form-page registration-complete-page">
+  return <AuthPage className="registration-complete-page" lede={authAsideCopy[locale].register}>
     <h1>{c.title}</h1>
     {completed ? <div className="registration-complete-success" role="status"><p>{c.success}</p><Link className="button" to="/login">{c.login}</Link></div>
       : !token ? <div role="alert"><p>{c.missing}</p><p><Link to="/register">{c.request}</Link></p><p className="form-alternate"><Link to="/login">{c.back}</Link></p></div>
@@ -70,5 +72,5 @@ export default function RegistrationComplete() {
           </form>
           <p className="form-alternate"><Link to="/login">{c.back}</Link></p>
         </>}
-  </section>
+  </AuthPage>
 }

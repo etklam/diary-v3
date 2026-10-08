@@ -358,6 +358,121 @@
   padding-inline: var(--page-gutter);
 }
 
+/* ---- Authentication pages ----
+   The form alone left the content in the top half of the viewport with the
+   width either side of it empty, which read as a form that was placed rather
+   than designed. The two columns are the shape the home hero already
+   establishes: the form keeps its own measure, and the statement beside it
+   gives the page a second thing to hold. Vertical centring closes the gap
+   under the form instead of letting it fall to the footer. */
+.public-shell > main > .auth-page {
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  gap: clamp(32px, 6vw, 88px);
+  width: min(1160px, 100%);
+  min-height: clamp(480px, 68dvh, 860px);
+  margin-inline: auto;
+  padding: clamp(32px, 5vw, 64px) var(--page-gutter) clamp(48px, 6vw, 72px);
+}
+
+.auth-page > .form-page {
+  max-width: none;
+  margin: 0;
+}
+
+.auth-page > .form-page h1 {
+  margin-bottom: var(--space-6);
+}
+
+.auth-aside {
+  min-width: 0;
+}
+
+.auth-aside-lede {
+  max-width: 46ch;
+  margin-bottom: var(--space-6);
+  color: var(--text);
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.auth-aside > h2 {
+  max-width: 24ch;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--text-xl);
+}
+
+/* A list of things is a ruled list, not a grid of tiles. */
+.auth-points {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-points li {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--space-4);
+}
+
+.auth-points li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.auth-points h3 {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.auth-points p {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* The alternative journey and the recovery path are different weights: one is
+   the other half of this page's job, the other is a repair. Two identical
+   underlined links said they were the same thing. */
+.auth-alternate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--rule);
+}
+
+.auth-alternate .auth-recovery {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 850px) {
+  .public-shell > main > .auth-page {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: var(--space-10);
+    padding-top: var(--page-block);
+  }
+
+  .auth-aside-lede {
+    font-size: var(--text-base);
+  }
+}
+
 .public-shell > main > .plan-page {
   width: min(100%, calc(1040px + var(--page-gutter) + var(--page-gutter)));
   margin: var(--page-block) auto;

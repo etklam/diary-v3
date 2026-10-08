@@ -135,6 +135,7 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     const email = `article-reader-${key}@example.test`, password = 'synthetic-reader-password'
     await reader.getByLabel('Email', { exact: true }).fill(email)
     await reader.getByLabel('Password', { exact: true }).fill(password)
+    await reader.getByLabel('Confirm password', { exact: true }).fill(password)
     const registrationResponsePromise = reader.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/register')
     await reader.getByRole('button', { name: 'Create account', exact: true }).click()
     const registrationResponse = await registrationResponsePromise

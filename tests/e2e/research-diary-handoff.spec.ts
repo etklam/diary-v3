@@ -406,6 +406,7 @@ test('guest Company capture preserves context through registration and login wit
   await page.getByLabel('Name', { exact: true }).fill('Synthetic researcher')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByLabel('Confirm password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.getByText('Your account is ready', { exact: false })).toBeVisible()
   await page.locator('#main').getByRole('link', { name: 'Sign in', exact: true }).click()

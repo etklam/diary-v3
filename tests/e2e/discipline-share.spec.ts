@@ -115,6 +115,7 @@ test('new account registration preserves the shared import destination through s
  await page.locator('#main').getByRole('link', { name: 'Create account', exact: true }).click(); await expect(page).toHaveURL(/\/register\?returnTo=/);
  const email = `new-share-${Date.now()}@example.test`, password = 'synthetic-transfer-password';
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+ await page.getByLabel('Confirm password', { exact: true }).fill(password);
  await page.getByRole('button', { name: 'Create account', exact: true }).click(); await expect(page.locator('.form-page [role="status"]')).toBeVisible();
  await page.locator('#main').getByRole('link', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/login\?returnTo=/);
  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);

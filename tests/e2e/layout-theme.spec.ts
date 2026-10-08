@@ -32,12 +32,15 @@ test('public direct routes load their stylesheet and share the responsive gutter
       const root = getComputedStyle(document.documentElement)
       const header = document.querySelector('.public-header')
       const main = document.querySelector('.public-shell > main')
-      const form = document.querySelector('.public-shell > main > .form-page')
+      // The authentication pages compose the form inside `.auth-page`, which is
+      // what owns the gutter for them (ticket 109); other direct public routes
+      // still put `.form-page` straight under `main`.
+      const page = document.querySelector('.public-shell > main > .auth-page, .public-shell > main > .form-page')
       return {
         gutter: root.getPropertyValue('--page-gutter').trim(),
         headerPadding: header ? getComputedStyle(header).paddingLeft : null,
         mainPadding: main ? getComputedStyle(main).paddingLeft : null,
-        formPadding: form ? getComputedStyle(form).paddingLeft : null,
+        formPadding: page ? getComputedStyle(page).paddingLeft : null,
       }
     })
 

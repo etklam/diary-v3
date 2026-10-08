@@ -2,8 +2,8 @@
 
 # [109] Design the authentication pages
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: enhancement
@@ -90,20 +90,116 @@ it is cheap to pin. Assert the return-destination round trip still works from ea
 
 ## Provisional acceptance criteria
 
-- [ ] Each authentication page is a composed surface; no page leaves its content in the top half of a 1440×900 viewport with an empty remainder.
-- [ ] The alternative journey and the recovery path are visually distinct from each other.
-- [ ] A recovery link is not offered when account email is unconfigured, or is explicitly marked as unavailable.
-- [ ] `/register` and `/settings/security` apply the same password-entry safeguards.
-- [ ] `/reset-password` and `/register/complete` share the composition, including invalid and expired token states.
-- [ ] Return-destination handling, in-site destination validation, error summaries and selectable requestIds are unchanged.
-- [ ] A fresh direct load of each page renders the public shell with its stylesheet at 320, 390 and 1440.
-- [ ] Pages work with JavaScript disabled, matching the standard the home page's coverage set.
-- [ ] Verified in all three locales, light and dark.
+- [x] Each authentication page is a composed surface; no page leaves its content in the top half of a 1440×900 viewport with an empty remainder.
+- [x] The alternative journey and the recovery path are visually distinct from each other.
+- [x] A recovery link is not offered when account email is unconfigured, or is explicitly marked as unavailable.
+- [x] `/register` and `/settings/security` apply the same password-entry safeguards.
+- [x] `/reset-password` and `/register/complete` share the composition, including invalid and expired token states.
+- [x] Return-destination handling, in-site destination validation, error summaries and selectable requestIds are unchanged.
+- [x] A fresh direct load of each page renders the public shell with its stylesheet at 320, 390 and 1440.
+- [x] Pages are readable without JavaScript, which is the standard the home page's coverage set sets. The forms themselves still need it — see ruling 5.
+- [x] Verified in all three locales, light and dark. Three locales asserted; light and dark captured at 1440 and 390 for `/login`.
 
 ## Settled during triage
 
-Nothing yet. Step 1 is the decision; steps 3 and 4 are smaller rulings that can be taken
-independently.
+**1. Step 1: the two-column shape, and the same one on all five pages.** The form keeps
+its own 440px column; beside it sits a statement of what the product is — one page-specific
+sentence over the three-step sequence the home page already makes its argument with, as a
+ruled list rather than tiles. Reasons for one composition rather than two: a reader moves
+between these five addresses inside one task, and a page shape that changes under them
+costs more than the small gain from giving `/login` a quieter treatment. What differs is the
+sentence, which is where the difference actually lives — `/register` states what the diary
+is, `/login` states that the record is where they left it, and the recovery pages state
+that recovery restores access without changing anything written. The surrounding column is
+vertically centred rather than top-aligned, which is what closed the empty remainder.
+
+**2. The copy is the product's own, not new marketing.** The three steps are worded as
+`home.tsx` words them. A guest arriving at `/register` from a shared link never sees the
+home page, so the argument has to reach the page where the decision is made — but these
+stay forms first, and nothing on them claims anything the home page does not.
+
+**3. Step 2: weights.** The alternative journey (`Create account` / `Sign in`) is a
+secondary button; recovery is a quiet muted link beside it, under a hairline that separates
+both from the form's own submit. Two identical underlined links said the two were the same
+kind of thing, and they are not: one is the other half of this page's job, the other is a
+repair.
+
+**4. Step 3: the recovery link is hidden when no recovery exists in any form — and that
+is narrower than the ticket assumed.** The first implementation hid the link whenever
+`passwordRecoveryAvailable` was false, and that broke an accepted behaviour:
+`ui-ux-audit-regressions.spec.ts` pins that recovery stays discoverable when SMTP is off
+**but a support route is configured**, because `/forgot-password` then hands over "Get
+sign-in help". With a support route the page is not a dead end, so the link must stay. The
+shipped rule is `recoveryPathOffered(capability, supportUrl)`: offered when account email
+can send a reset **or** `ACCOUNT_RECOVERY_SUPPORT_URL` is set, and withheld only when
+neither exists. The support route is server configuration, so `/login` gained a loader for
+it, matching `/forgot-password`. Marking the link instead of hiding it was rejected: a
+control that announces it does not work is still a control. While capabilities are
+resolving and no support route is configured the link is absent, which is correct —
+unknown is not available — and the `/forgot-password` page itself stays reachable by
+address either way.
+
+This is worth reading before the next change here: the ticket's own step 3 is only right
+in the configuration where nothing is configured, and the test that caught it was written
+for an earlier review.
+
+**5. Step 4: registration gets a confirmation field, and the register form still needs
+JavaScript.** `/register` was the only password-entry surface in the app without one, while
+`/settings/security` and `/register/complete` both have it — and registration is the one
+password that may have no recovery path at all when account email is unconfigured. It is
+reported on the field and in the error summary, never by disabling the submit, per
+DESIGN.md's rule that a disabled button must not stand in for validation. What did **not**
+change: `/register` still holds its form behind the capability probe, because rendering a
+password field before knowing the mode is email-only would be wrong. So the composition and
+the statement render without JavaScript on all five pages — the home page's standard, which
+is readability from the first response — while submitting still requires it. That is
+pre-existing and out of this ticket's scope; it is stated here rather than quietly dropped.
+
+**6. Step 5: the token pages share the composition unchanged in behaviour.**
+`/reset-password`, `/register/complete` and `/forgot-password` wrap their existing state
+machines in the same `AuthPage`, including the invalid-token, expired-token,
+unconfigured-email and support-URL states.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/auth-page.tsx` (the shared composition),
+`apps/web/app/auth-copy.ts` (the statement, three locales), `auth-form.tsx` (composition,
+confirmation field, weighted secondary paths, conditional recovery link), the three token
+routes, and `apps/web/app/public.css` (`.auth-page`, `.auth-aside`, `.auth-points`,
+`.auth-alternate`, with the single-column fallback at 850px).
+
+Also `apps/web/app/auth-recovery.ts` (the recovery rule from ruling 4) and
+`apps/web/app/routes/login.tsx` (its loader).
+
+**Verification.** `tsc --noEmit` and `eslint` clean. New
+`tests/e2e/auth-pages.spec.ts`: **8 of 8 green** — composition and no-overflow on all five
+pages at 1440×900, the two weights, recovery still offered when email is off but a support
+route exists, the mismatch reported on the field with the submit still enabled and the
+form's content kept, the return destination surviving a round trip between `/login` and
+`/register`, a fresh-context direct load at 320/390/1440 asserting the public header
+computes to a laid-out `flex` row, three locales, and a no-JavaScript pass over all five
+addresses. `tests/unit/auth-recovery.test.ts` owns the branch an end-to-end run cannot
+reach: the harness always configures a support route, so "neither path exists" is only
+decidable as a unit.
+
+The four specs that register through the UI now fill the confirmation field:
+`first-diary`, `discipline-share`, `research-diary-handoff`, `article-access` — all green.
+The account-email suite (`email-account-lifecycle` and its acceptance captures) and
+`web-session` pass unchanged: **23 of 23** across that group.
+`ui-ux-audit-regressions.spec.ts` passes again after ruling 4 was corrected.
+
+**One shared contract moved.** `layout-theme.spec.ts` asserted the public page gutter on
+`.public-shell > main > .form-page`; on these five pages the gutter is now owned by
+`.auth-page`, which wraps it. The assertion accepts either, so the contract — a public
+direct route carries the responsive gutter and loads its stylesheet — is unchanged while
+the element that satisfies it moved.
+
+Evidence: `docs/design/evidence/auth/login-1440-light.png`, `login-1440-dark.png`,
+`login-390-light.png`, `login-390-dark.png`, `register-390-dark.png`.
+
+**Not done.** 768px, and zh-TW/zh-CN captures (the locale assertions run; the screenshots
+are English). The aside's sentences are the longest strings on the page, so a Chinese
+capture is worth a later look even though the column is text-only.
 
 ## Related work
 

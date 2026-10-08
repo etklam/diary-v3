@@ -4,6 +4,9 @@ import { apiFailure, FailureNotice, invalidField, type Failure } from './api-err
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { api, useUi } from './ui'
+import { AuthPage } from './auth-page'
+import { authAsideCopy } from './auth-copy'
+import { recoveryPathOffered } from './auth-recovery'
 import './routes/registration-complete.css'
 
 const copy = {
@@ -18,6 +21,8 @@ const copy = {
     resendWait: (seconds: number) => `${seconds} 秒後可以再次寄出。`,
     changeEmail: '更改電郵',
     forgotPassword: '忘記密碼？',
+    confirm: '確認密碼',
+    mismatch: '兩次輸入的密碼不一致。',
     retry: '重試',
   },
   'zh-CN': {
@@ -31,6 +36,8 @@ const copy = {
     resendWait: (seconds: number) => `${seconds} 秒后可以再次发送。`,
     changeEmail: '更改邮箱',
     forgotPassword: '忘记密码？',
+    confirm: '确认密码',
+    mismatch: '两次输入的密码不一致。',
     retry: '重试',
   },
   en: {
@@ -44,6 +51,8 @@ const copy = {
     resendWait: (seconds: number) => `You can send another email in ${seconds} seconds.`,
     changeEmail: 'Change email',
     forgotPassword: 'Forgot password?',
+    confirm: 'Confirm password',
+    mismatch: 'The passwords do not match.',
     retry: 'Try again',
   },
 } as const
@@ -60,7 +69,7 @@ function retryAfterSeconds(response: Response) {
   return Number.isFinite(retryAt) ? Math.max(0, Math.ceil((retryAt - Date.now()) / 1000)) : 0
 }
 
-export function AuthForm({ register = false }: { register?: boolean }) {
+export function AuthForm({ register = false, supportUrl = null }: { register?: boolean; supportUrl?: string | null }) {
   const { t, locale, ready } = useUi()
   const text = copy[locale]
   const navigate = useNavigate()
@@ -75,6 +84,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
   const [cooldownSeconds, setCooldownSeconds] = useState(0)
   const returnTo = safeAuthReturnPath(search.get('returnTo'))
@@ -119,6 +129,10 @@ export function AuthForm({ register = false }: { register?: boolean }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (register && capability?.registrationMode === 'email') { await requestVerification(); return }
+    // Registration is the one password this account may never be able to
+    // recover: with optional account email unconfigured there is no reset path
+    // at all. It gets the same confirmation `/settings/security` already has.
+    if (register && password !== confirm) { setError({ message: text.mismatch, fields: ['confirm'] }); return }
     setPending(true)
     setError(null)
     try {
@@ -148,7 +162,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
   const emailMode = register && capability?.registrationMode === 'email'
   const directRegistrationDone = directDone && register
 
-  return <section className="form-page">
+  return <AuthPage lede={authAsideCopy[locale][register ? 'register' : 'signIn']}>
     <h1>{t(register ? 'registerTitle' : 'loginTitle')}</h1>
     {capabilityLoading ? <p role="status">{text.capabilityLoading}</p>
       : capabilityFailed ? <div role="alert"><p>{text.capabilityFailed}</p><button type="button" className="secondary" onClick={() => setCapabilityAttempt(value => value + 1)}>{text.retry}</button></div>
@@ -166,12 +180,17 @@ export function AuthForm({ register = false }: { register?: boolean }) {
               {register && !emailMode && <label>{t('name')}<input disabled={!ready || pending} name="name" value={name} onChange={event => setName(event.target.value)} aria-invalid={invalidField(error, 'name')} aria-describedby={error ? 'form-error' : undefined} autoComplete="name" maxLength={100} /></label>}
               <label>{t('email')}<input disabled={!ready || pending} name="email" value={email} onChange={event => setEmail(event.target.value)} aria-invalid={invalidField(error, 'email')} aria-describedby={error ? 'form-error' : undefined} type="email" autoComplete="email" required /></label>
               {!emailMode && <label>{t('password')}<input disabled={!ready || pending} name="password" value={password} onChange={event => setPassword(event.target.value)} aria-invalid={invalidField(error, 'password')} type="password" autoComplete={register ? 'new-password' : 'current-password'} minLength={register ? 8 : undefined} required aria-describedby={[register ? 'password-hint' : '', error ? 'form-error' : ''].filter(Boolean).join(' ') || undefined} /></label>}
+              {register && !emailMode && <label>{text.confirm}<input disabled={!ready || pending} name="confirm" value={confirm} onChange={event => setConfirm(event.target.value)} aria-invalid={invalidField(error, 'confirm')} type="password" autoComplete="new-password" minLength={8} required aria-describedby={['password-hint', error ? 'form-error' : ''].filter(Boolean).join(' ')} /></label>}
               {register && !emailMode && <p id="password-hint" className="muted">{t('registerHint')}</p>}
-              <FailureNotice failure={error} />
+              <FailureNotice failure={error} messageOverride={error?.fields.includes('confirm') ? text.mismatch : undefined} />
               <button disabled={pending || !ready} type="submit">{pending ? t('pending') : emailMode ? text.sendVerification : register ? t('register') : t('login')}</button>
             </form>
-            {!register && <p className="form-alternate"><Link to="/forgot-password">{text.forgotPassword}</Link></p>}
-            <p className="form-alternate"><Link to={`${register ? '/login' : '/register'}${returnQuery}`}>{t(register ? 'login' : 'register')}</Link></p>
+            {/* The alternative journey carries weight; recovery stays quiet and
+                only appears when account email can actually deliver it. */}
+            <div className="auth-alternate">
+              <Link className="button secondary" to={`${register ? '/login' : '/register'}${returnQuery}`}>{t(register ? 'login' : 'register')}</Link>
+              {!register && recoveryPathOffered(capability, supportUrl) && <Link className="auth-recovery" to="/forgot-password">{text.forgotPassword}</Link>}
+            </div>
           </>}
-  </section>
+  </AuthPage>
 }

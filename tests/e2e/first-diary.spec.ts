@@ -10,6 +10,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     const email = `e2e-${viewport.width}-${Date.now()}@example.test`;
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Password', { exact: true }).fill('e2e-safe-password-123');
+    await page.getByLabel('Confirm password', { exact: true }).fill('e2e-safe-password-123');
     await page.getByLabel('Name', { exact: true }).fill('Test investor');
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.getByText(/Your account is ready/)).toBeVisible();
