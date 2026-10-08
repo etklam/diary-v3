@@ -34,7 +34,15 @@ for (const width of [1440, 390]) test(`Diary reminders navigation, series dismis
   await page.reload(); await expect(page.getByTestId('request-id')).toHaveText('alerts-retry'); await page.unroute('**/api/alerts');
   await page.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(items).toHaveCount(1);
   for (const [locale, title] of [['zh-TW', '日記提醒'], ['zh-CN', '日记提醒'], ['en', 'Diary reminders']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
-  await page.getByRole('button', { name: 'Dismiss reminder', exact: true }).click(); await expect(page.locator('main')).toContainText('No active reminders.');
+  await page.getByRole('button', { name: 'Dismiss reminder', exact: true }).click();
+  // The empty list is the project's empty state and names a reachable next
+  // action; the pagination bound and the display timezone describe reminders
+  // that are no longer on screen, so they leave with them.
+  const empty = page.locator('.reminder-list .empty-state');
+  await expect(empty).toContainText('No active reminders.');
+  await expect(empty.getByRole('button', { name: 'Set a reminder', exact: true })).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('Times shown in');
+  await expect(page.locator('main')).not.toContainText('The earliest 100 active reminders');
   await signOut(page); await expect(items).toHaveCount(0); await expect(page.locator('main').getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login?returnTo=%2Falerts');
 });
 
@@ -118,4 +126,66 @@ test.describe('Reminder device timezone boundaries', () => {
     await page.getByRole('button', { name: 'Save diary', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`${path}$`));
     expect((await (await page.request.get(`/api${path}`)).json()).alerts[0]).toMatchObject({ message: 'Changed message, same instant', triggerAt: '2026-11-01T06:30:42.123Z' });
   });
+});
+
+// Ticket 108: the page is named for reminders, so it has to be able to make
+// one. Creation stays attached to a diary — the reminder belongs to the
+// decision — and the page states that by requiring the diary to be chosen
+// here rather than by sending the reader to the editor.
+for (const width of [1440, 390]) test(`Diary reminders creation, overdue marking and first-use state at ${width}px`, async ({ page, context }) => {
+  await page.setViewportSize({ width, height: 900 });
+  const email = `alerts-create-${randomUUID()}@example.test`, password = 'synthetic-alerts-create-password';
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
+  await page.goto('/login?returnTo=%2Falerts'); await selectLocale(page, 'en');
+  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/alerts$/); await selectLocale(page, 'en');
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+
+  // With no diary written there is nothing to attach a reminder to, so the
+  // create region names that precondition instead of offering a dead form.
+  const createRegion = page.locator('.reminder-create');
+  await expect(createRegion.locator('.empty-state')).toContainText('A reminder belongs to a diary');
+  await expect(createRegion.getByRole('link', { name: 'Write a diary', exact: true })).toHaveAttribute('href', '/diaries/new');
+  await expect(page.locator('.reminder-list .empty-state').getByRole('link', { name: 'Write a diary', exact: true })).toBeVisible();
+
+  const diary = await page.request.post('/api/diaries', { headers, data: { title: 'Position review decision', date: '2026-03-02', content: 'Private decision body' } });
+  expect(diary.status()).toBe(201); const diaryId = (await diary.json()).id as string;
+  await page.reload();
+
+  // The empty list's next action leads to the form on this page, in one step.
+  await page.locator('.reminder-list .empty-state').getByRole('button', { name: 'Set a reminder', exact: true }).click();
+  await expect(page.getByLabel('Diary', { exact: true })).toBeFocused();
+
+  await page.getByLabel('Diary', { exact: true }).selectOption(diaryId);
+  await page.getByLabel('Reminder time', { exact: true }).fill('2027-05-04T09:30');
+  await page.getByLabel('Reminder message', { exact: true }).fill('Check whether the thesis still holds');
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
+  await expect(page.locator('main')).toContainText('Reminder added.');
+  const items = page.getByTestId('diary-reminder');
+  await expect(items).toHaveCount(1);
+  await expect(items.first()).toContainText('Check whether the thesis still holds');
+  await expect(page.locator('[data-overdue="true"]')).toHaveCount(0);
+  // The bound and the display timezone belong to a list that has content.
+  await expect(page.locator('.reminder-list')).toContainText('Times shown in');
+  await expect(page.locator('.reminder-list')).toContainText('The earliest 100 active reminders');
+
+  expect((await page.request.post('/api/alerts', { headers, data: { diaryId, message: 'Overdue since the start of the year', triggerAt: '2020-01-01T09:00:00Z' } })).status()).toBe(200);
+  await page.reload();
+  await expect(items).toHaveCount(2);
+  const overdue = page.locator('[data-overdue="true"]');
+  await expect(overdue).toHaveCount(1);
+  await expect(overdue).toContainText('Overdue');
+  await expect(overdue).toContainText('Overdue since the start of the year');
+  // Earliest first, so the overdue reminder leads the list.
+  await expect(items.first()).toHaveAttribute('data-overdue', 'true');
+  await expect(items.nth(1)).not.toHaveAttribute('data-overdue', 'true');
+
+  if (width === 390) await selectTheme(page, 'dark');
+  await page.locator('main').screenshot({ path: `docs/design/evidence/alerts/create-${width}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+  for (const [locale, heading] of [['zh-TW', '設定提醒'], ['zh-CN', '设置提醒'], ['en', 'Set a reminder']] as const) {
+    await selectLocale(page, locale);
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+  }
 });

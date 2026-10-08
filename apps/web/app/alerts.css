@@ -2,12 +2,46 @@
   max-width: 1120px;
 }
 
+/* The create region is a panel, so it supplies its own heading and rule; the
+   shared plan-form fieldset would otherwise add a second rule above the
+   fields. */
+.reminder-create .plan-form {
+  margin: 0;
+}
+
+.reminder-create .plan-form fieldset {
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.reminder-create .plan-form .actions {
+  margin-top: var(--space-6);
+}
+
+.reminder-create .plan-form p {
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+}
+
+.reminder-list .plan-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.reminder-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
 .reminders-page time {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.reminders-page .plan-list h2 {
+.reminders-page .plan-list h3 {
   max-width: 65ch;
   margin: var(--space-3) 0 var(--space-4);
   overflow-wrap: anywhere;

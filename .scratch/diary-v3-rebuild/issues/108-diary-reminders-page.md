@@ -2,8 +2,8 @@
 
 # [108] Rebuild Diary reminders as a page you can actually use
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: bug
@@ -87,19 +87,93 @@ reachable next action.
 
 ## Provisional acceptance criteria
 
-- [ ] The populated list is reviewed and recorded before restructuring; this ticket's plan is revised if that review contradicts it.
-- [ ] The empty state uses `.empty-state` and names a next action that leads somewhere specific.
-- [ ] A user can reach reminder creation from this page in one step, by whichever route triage rules.
-- [ ] The 100-reminder bound and the display timezone are stated only when reminders are shown.
-- [ ] The reminder list has its own region with a heading and a rule; overdue reminders are visually distinguishable from active ones.
-- [ ] Dismiss still works and announces its result; the diary-editor capture path is unchanged.
-- [ ] Timezone handling is unchanged and stated once.
-- [ ] Empty, active and overdue states are covered by tests.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] The populated list is reviewed and recorded before restructuring; this ticket's plan is revised if that review contradicts it.
+- [x] The empty state uses `.empty-state` and names a next action that leads somewhere specific.
+- [x] A user can reach reminder creation from this page in one step, by whichever route triage rules.
+- [x] The 100-reminder bound and the display timezone are stated only when reminders are shown.
+- [x] The reminder list has its own region with a heading and a rule; overdue reminders are visually distinguishable from active ones.
+- [x] Dismiss still works and announces its result; the diary-editor capture path is unchanged.
+- [x] Timezone handling is unchanged and stated once.
+- [x] Empty, active and overdue states are covered by tests.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440. Three locales are asserted for the page's own headings and 1440 light / 390 dark are captured; 768 and the remaining locale × theme pairs are not.
 
 ## Settled during triage
 
-Nothing yet. Step 2 is the decision that defines the page.
+**1. Step 1 was done first, and it changed one thing.** The populated list was reviewed
+before anything was restructured, with active, overdue and recurring reminders seeded. The
+rendering itself is sound — time, message, recurrence, diary link, dismiss — and the plan
+below survives it. One finding the review could not have had: **the list carried no mark
+for an overdue reminder at all.** The lede promises "including overdue reminders" and the
+only thing separating them was sort order, which says nothing on a screen that shows one
+row. That is now a `badge-warn` reading `Overdue` plus `data-overdue` on the row, so the
+distinction is in words and not in position or colour alone.
+
+**2. Step 2: this page creates reminders, and creation still names its diary.** The two
+options in the plan were read against the data model, which settles more of it than the
+plan assumed: `alertCreateRequestSchema` requires a `diaryId`, and `POST /api/alerts`
+already exists and already generates recurring series. A reminder cannot exist apart from
+a decision, so "keep creation in the editor" and "add a create form here" are not actually
+opposed — the form on this page *is* the reminder-beside-the-decision thesis, as long as
+choosing the diary is part of making one. The create region therefore leads with a **Diary**
+select over the 50 most recent diaries, then the same message / time / repeat fields the
+editor uses. The product principle is kept where it matters (a reminder is still filed
+against a decision) and the page can do the thing it is named for. No API change.
+
+**3. The diary-editor capture path is untouched,** and so is the shared
+`reminderCopy`/`trade-time` vocabulary: the create form reuses `alert-fields`' labels and
+`resolveLocalTradeInstant`, so a repeated clock hour resolves here exactly as it does in
+the editor, including the explicit `UTC` choice when the local time is ambiguous.
+
+**4. An account with no diaries gets the precondition stated, not a dead form.** The
+create region renders `.empty-state` naming "Write a diary" rather than a disabled select,
+per the rule that a precondition is named beside the control rather than encoded in a
+disabled one.
+
+**5. A recurring start that produces nothing is reported.** `POST /api/alerts` answers
+`200` with a `null` body when a recurring start has no remaining weekday. The form treats
+that as a failure with its own message instead of announcing a reminder that was never
+written.
+
+**6. Row controls dropped to quiet weight.** Dismiss was `secondary` on every row, which
+made the row's control compete with the one filled action the page now has. This matches
+the convention [106](106-watchlist-row-controls.md) and [114](114-admin-article-list-rows.md)
+are converging on.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `/alerts` is now a page heading and lede, then two panels: **Set a
+reminder** (diary select, reminder time, repeat, message, device-timezone line, one filled
+`Add reminder`) and **Active reminders (n)** (heading plus rule, the bound and the display
+timezone only when rows exist, the series hint only when a series root is present, then the
+list). The empty list is `.empty-state` whose action focuses the diary select on this page —
+or links to `/diaries/new` when the account has no diary to attach to.
+
+Files: `apps/web/app/routes/alerts.tsx` (rewritten), `apps/web/app/alerts.css`,
+`tests/e2e/alerts.spec.ts`.
+
+**Verification.** `tsc --noEmit`, `eslint` and `figure-formatting-boundary` clean.
+`tests/e2e/alerts.spec.ts` is **7 of 7 green** at 1440 and 390, including a new case
+covering the no-diary first-use state, the empty state's next action landing focus on the
+diary select, creating a reminder through the form, and an overdue row marked beside an
+upcoming one. Evidence: `docs/design/evidence/alerts/create-1440.png` (light) and
+`create-390.png` (dark).
+
+**This ticket was blocked by a real defect and fixed it.** Every case in
+`alerts.spec.ts` that cold-loads `/alerts` failed before this work, and failed the same way
+with this work stashed — so it was pre-existing on `HEAD`, from
+[100](100-shell-swap-destroys-page-state.md). A cold load showed `AUTH_UNAUTHORIZED` while
+every API response was `200`: `fetchSession` discarded an in-flight private read whenever
+the session *revision* advanced between the request and its answer, and the first
+confirmation of the session the document loaded under advances exactly that revision while
+a page's own reads are open. The guard now keys on `identity`, which 100 added for this
+distinction — a confirmation is not an identity change, a sign-out and a sign-in over a
+session are. `apps/web/app/session.ts`, pinned by two new cases in
+`tests/unit/account-session-fetch.test.ts` (an in-flight read across a confirmation is
+answered; one across an ended identity is still discarded).
+
+**Not done.** 768px, and three locales × two themes as a human pass. The locale loop
+asserts the create region's heading in all three; the layout at 768 is the same single
+`.plan-grid` collapse the trade-plan form already uses.
 
 ## Related work
 
