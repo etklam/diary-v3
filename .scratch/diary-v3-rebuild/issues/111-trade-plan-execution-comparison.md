@@ -2,8 +2,8 @@
 
 # [111] Fix the trade plan execution comparison region
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: bug
@@ -91,21 +91,71 @@ starting so this work is not blamed for them.
 
 ## Provisional acceptance criteria
 
-- [ ] The execution comparison figures render as a ledger, not as five bordered tiles.
-- [ ] Before a transaction is selected the region shows one empty state naming the next action, not five "Unavailable" boxes.
-- [ ] After selection, individually missing figures stay labelled in text and are never rendered as `0`.
-- [ ] Baseline status is visually distinct from the control that confirms it, and does not rely on colour alone.
-- [ ] The plan save and the execution save read as two scopes, and it is clear which commits what.
-- [ ] Manual transaction selection, baseline confirmation, execution-baseline history and its pagination all behave as before.
-- [ ] The stated exclusions (fees, FX, corporate actions) and the position-size-unit caveat remain visible.
-- [ ] The two stitching-artifact findings named above are confirmed as non-defects and left untouched.
-- [ ] Pre-existing `trade-plans` test failures are characterised before work starts and are neither introduced nor masked.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] The execution comparison figures render as a ledger, not as five bordered tiles.
+- [x] Before a transaction is selected the region shows one empty state naming the next action, not five "Unavailable" boxes.
+- [x] After selection, individually missing figures stay labelled in text and are never rendered as `0`.
+- [x] Baseline status is visually distinct from the control that confirms it, and does not rely on colour alone.
+- [x] The plan save and the execution save read as two scopes, and it is clear which commits what.
+- [x] Manual transaction selection, baseline confirmation, execution-baseline history and its pagination all behave as before.
+- [x] The stated exclusions (fees, FX, corporate actions) and the position-size-unit caveat remain visible.
+- [x] The two stitching-artifact findings named above are confirmed as non-defects and left untouched.
+- [x] Pre-existing `trade-plans` test failures are characterised before work starts and are neither introduced nor masked.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440. 1440 light is captured and the existing spec keeps its 390 no-overflow check; the locales and dark are not captured for the new region.
 
 ## Settled during triage
 
 **The plan form's structure is not in scope.** Ruled at publication: the two findings that
 suggested otherwise were measurement artifacts, verified against source and the DOM.
+
+**1. The ledger's order puts the differences last, and the first of them closes the
+column.** Buy quantity, average execution price and entry zone are what happened; the two
+entry-price differences are what it means against the plan, so they read last and
+`Entry price difference` carries `.ledger-row-total` — the accounting convention position
+sizing already uses. The entry-zone row holds a sentence rather than a figure, so it opts
+out of the mono cut; everything else keeps it.
+
+**2. Baseline status became a label plus a badge, not a pill.** `Baseline status:
+<badge>`, informational tint when the comparison is ready and the needs-attention tint
+otherwise. The state is carried by the words in every case, so nothing depends on colour;
+what changed is that a 44px-tall filled pill no longer sits beside `Confirm current plan`
+pretending to be a disabled twin of it.
+
+**3. The empty state replaces the figure grid rather than sitting above it.** With nothing
+selected the region renders one `.empty-state` naming `Choose transactions` — and the
+precondition sentence when no baseline is confirmed yet — and renders no figures at all.
+Five rows of "Unavailable" say less than one sentence does.
+
+**4. The same treatment was applied to the read-only copy of this region.**
+`trade-plan-execution-evidence.tsx` renders the same five figures inside a diary review
+and shared the `.execution-values` class. Leaving it on the old markup would have left it
+unstyled when the tile rules were deleted, and would have shown the same figures in two
+idioms; it now uses the ledger and the same empty state.
+
+**5. The two save scopes are separated by a rule and a sentence**, not by a redesign of
+the plan form. `This saves the execution selection only. The plan fields above keep their
+own save.` sits above the execution commit, inside a region the rule marks off. The
+disabled-submit convention is still [102](102-confirmed-markup-defects.md)'s to settle and
+was not touched here.
+
+**6. Pre-existing failures: there are none in this file.** All eight `trade-plans` cases
+passed on the full-suite run taken before this work, so the 2026-10-02 changelog's record
+of pre-existing `trade-plans` failures is stale.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/routes/trade-plan.tsx` (status, empty state, ledger,
+commit region), `apps/web/app/trade-plan-execution-evidence.tsx` (the same three for the
+review's read-only copy), `apps/web/app/trade-plan.css` (the tile grid and the status pill
+are gone), `apps/web/app/trade-plan-copy.ts` (two new keys in three locales).
+
+**Verification.** `tsc --noEmit` and `eslint` clean. Two new cases in
+`trade-plans.spec.ts`: one walks no-selection → confirmed baseline → selection and asserts
+the empty state, the absence of any "Unavailable" before a selection, the five ledger rows,
+the single total row, and the commit region's rule and sentence; the other builds a plan
+with no planned entry price and asserts that the two derived figures stay labelled
+`Unavailable` after a selection and are never `0.00`. `trade-plans` 10/10,
+`diary-review` and `review-instant` green with it. Evidence:
+`docs/design/evidence/trade-plans/execution-ledger-1440.png`.
 
 ## Related work
 

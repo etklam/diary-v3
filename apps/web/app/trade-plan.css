@@ -295,14 +295,20 @@
   font-weight: 700;
 }
 
+/* Baseline state is a status, not a control. The filled pill it used to be sat
+   beside "Confirm current plan" at the same size and shape and read as a
+   disabled button; a label plus a badge states the same thing in words. */
 .execution-status {
-  display: inline-block;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
   margin: var(--space-4) 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--tint-info);
-  color: var(--tint-info-text);
-  font-weight: 600;
+}
+
+.execution-status-label {
+  color: var(--muted);
+  font-size: var(--text-sm);
 }
 
 .execution-actions {
@@ -313,29 +319,37 @@
   margin: var(--space-5) 0;
 }
 
+/* Five labelled figures are a ledger, not five equal bordered tiles: the system
+   already owns this idiom, and the entry difference closes the column with the
+   heavier rule the position-sizing total uses. */
 .execution-values {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-4);
   margin: var(--space-5) 0;
 }
 
-.execution-values div {
-  min-width: 0;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-}
-
-.execution-values dt {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
 .execution-values dd {
-  margin: var(--space-2) 0 0;
-  font-variant-numeric: tabular-nums;
+  margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* The entry-zone row carries a sentence rather than a figure. The selector
+   matches the ledger's own `> :last-child` weight, which sets the mono cut. */
+.execution-values .execution-row-text > dd {
+  font-family: inherit;
+  font-variant-numeric: normal;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+/* The plan form and the execution record are two commits on one page. */
+.execution-commit {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--rule);
+}
+
+.execution-commit > p {
+  margin-bottom: var(--space-4);
+  max-width: 60ch;
 }
 
 .execution-reason {
@@ -461,10 +475,6 @@
 
   .picker-filters label:first-child {
     grid-column: auto;
-  }
-
-  .execution-values {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .execution-snapshot {

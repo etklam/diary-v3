@@ -264,3 +264,81 @@ test('Trade Plan keeps newer execution metrics when a plan-save reload GET resol
  await expect(page.locator('.execution-values')).toContainText('100');
  await expect(page.locator('.execution-values')).not.toContainText('103.3333');
 });
+
+// Ticket 111: before a transaction is chosen the region said "Unavailable"
+// five times in five equal boxes. It now states what to do, and once there is
+// something to compare the figures read as a ledger.
+test('Trade Plan execution states its next action before a selection and reads as a ledger after', async ({page}) => {
+ await signInTradePlan(page);
+ const planId=await createExecutionFixture(page);
+ await page.goto(`/trade-plans/${planId}`); await selectLocale(page,'en');
+
+ // Baseline state is a status, not a control sitting beside the real one.
+ const status=page.locator('.execution-status');
+ await expect(status.locator('.badge')).toHaveText('Baseline not confirmed');
+ await expect(status.locator('button')).toHaveCount(0);
+ await expect(status).toContainText('Baseline status');
+
+ // No selection: one empty state naming the next action, and no figure grid.
+ const region=page.locator('.plan-execution');
+ await expect(region.locator('.execution-values')).toHaveCount(0);
+ await expect(region).not.toContainText('Unavailable');
+ const empty=region.locator('.empty-state');
+ await expect(empty).toContainText('No transactions selected yet.');
+ await expect(empty.getByRole('button',{name:'Choose transactions',exact:true})).toBeVisible();
+
+ await page.getByRole('button',{name:'Confirm current plan',exact:true}).click();
+ await expect(status.locator('.badge')).not.toHaveText('Baseline not confirmed');
+ await empty.getByRole('button',{name:'Choose transactions',exact:true}).click();
+ const picker=page.getByRole('dialog',{name:'Recorded transactions'});
+ await picker.locator('input[type="checkbox"]').nth(0).check();
+ await picker.getByRole('button',{name:'Select',exact:true}).click();
+ await page.getByRole('button',{name:'Save execution selection',exact:true}).click();
+ await expect(page.getByText('Execution selection saved.',{exact:true})).toBeVisible();
+
+ // Complete data: five labelled figures in one column, the difference closing
+ // it with the heavier rule.
+ const rows=region.locator('.execution-values .ledger-row');
+ await expect(rows).toHaveCount(5);
+ await expect(region.locator('.execution-values .ledger-row-total')).toHaveCount(1);
+ await expect(region.locator('.execution-values .ledger-row-total dt')).toHaveText('Entry price difference');
+ await expect(rows.nth(0)).toContainText('Buy quantity');
+ await expect(rows.nth(0)).toContainText('5');
+ await expect(region.locator('.empty-state')).toHaveCount(0);
+
+ // The two commits read as two scopes.
+ await expect(region.locator('.execution-commit')).toContainText('This saves the execution selection only');
+ await expect(region.locator('.execution-commit').getByRole('button',{name:'Save execution selection',exact:true})).toBeVisible();
+ await expect(page.evaluate(()=>getComputedStyle(document.querySelector('.execution-commit')!).borderTopWidth)).resolves.not.toBe('0px');
+
+ await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));
+ await page.screenshot({path:'docs/design/evidence/trade-plans/execution-ledger-1440.png',fullPage:true});
+});
+
+// A plan with no recorded entry price still compares what it can: the figures
+// that cannot be derived stay labelled in text and are never rendered as 0.
+test('Trade Plan execution labels individually unavailable figures after a selection', async ({page}) => {
+ await signInTradePlan(page);
+ const headers=await tradePlanCsrf(page);
+ const diary=await (await page.request.post('/api/diaries',{headers,data:{
+  title:`Partial execution fixture ${randomUUID()}`,content:'Synthetic fills without a planned entry.',date:'2026-10-01',
+  transactions:[{symbol:'AAPL',type:'BUY',quantity:'4',price:'120',tradeDate:'2026-10-01T09:00:00Z'}],
+ }})).json() as {id:string};
+ const plan=await (await page.request.post('/api/trade-plans',{headers,data:{diaryId:diary.id,symbol:'AAPL',setupType:'No planned entry'}})).json() as {id:string};
+ await page.goto(`/trade-plans/${plan.id}`); await selectLocale(page,'en');
+ await page.getByRole('button',{name:'Confirm current plan',exact:true}).click();
+ await page.getByRole('button',{name:'Choose transactions',exact:true}).click();
+ const picker=page.getByRole('dialog',{name:'Recorded transactions'});
+ await picker.locator('input[type="checkbox"]').nth(0).check();
+ await picker.getByRole('button',{name:'Select',exact:true}).click();
+ await page.getByRole('button',{name:'Save execution selection',exact:true}).click();
+ await expect(page.getByText('Execution selection saved.',{exact:true})).toBeVisible();
+ const rows=page.locator('.plan-execution .execution-values .ledger-row');
+ await expect(rows).toHaveCount(5);
+ await expect(rows.nth(0)).toContainText('4');
+ await expect(rows.nth(1)).toContainText('120');
+ // Derived against a planned entry that does not exist: labelled, never 0.
+ await expect(rows.nth(3)).toContainText('Unavailable');
+ await expect(rows.nth(4)).toContainText('Unavailable');
+ await expect(rows.nth(3)).not.toContainText('0.00');
+});
