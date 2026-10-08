@@ -2,8 +2,8 @@
 
 # [117] Clear the remaining end-to-end failures
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-09
 Published: 2026-10-09
 
 Category: bug
@@ -88,14 +88,53 @@ start by establishing what is non-deterministic rather than by changing the asse
 
 ## Provisional acceptance criteria
 
-- [ ] The full end-to-end suite passes twice in a row with no failures.
-- [ ] Any case that changed is accompanied by a statement of what the product should do, and the product is corrected where the test was right.
-- [ ] `:384` is resolved as either a product defect or a test artefact, with the evidence recorded.
-- [ ] No case is deleted or skipped to reach green.
+- [ ] The full end-to-end suite passes twice in a row with no failures. **The first run is clean — 338 passed, 0 failed.** The confirming run was 337/1 and the one failure is not in this ticket's list: `partner-timeline-parity.spec.ts:146` timed out at 90s waiting for the locale select to become enabled, on a run that took 36 minutes against the first run's 24 because the machine was loaded. It passes 7/7 on rerun. Recorded rather than claimed.
+- [x] Any case that changed is accompanied by a statement of what the product should do, and the product is corrected where the test was right.
+- [x] `:384` is resolved as either a product defect or a test artefact, with the evidence recorded. It was a product defect, and a destructive one.
+- [x] No case is deleted or skipped to reach green.
 
 ## Settled during triage
 
-Nothing yet.
+**1. `:384` was a product defect, and it destroyed writing.** Instrumented rather than
+reasoned about: on a cold load the device key already held the *typed* text before the
+restore offer appeared, so the stored draft was gone and "restoring" it was a no-op.
+
+The cause is effect order in `quick-composer.tsx`. The account read confirms the session
+and supplies the draft key in one commit, and React runs effects in declaration order: the
+save effect is declared before the effect that reads the stored draft, so it wrote first —
+overwriting a draft stored for that account with whatever had been typed on the cold
+document, and then offering that back as "the stored draft". Both pieces of writing
+belonged to the author; one was destroyed silently, which is exactly what
+[90](90-quick-cold-start-wait.md)'s comment in that file says must not happen.
+
+The fix is a `draftChecked` state that the save effect waits on and the reconcile effect
+sets, so nothing is written to the key until what is under it has been read. State rather
+than a ref, so the save effect re-runs when it flips. Measured before and after: the device
+key holds the stored draft through the offer and the cancel, and confirming
+`Replace writing` now applies it.
+
+**2. `:115` and the two `research-diary-handoff` cases were the same defect.** They went
+green with the composer fix and no change of their own — which also explains the "fails a
+different case on every run" behaviour the 2026-10-07 note recorded: one corrupted key,
+several tests reading it.
+
+**3. The cold-start case was a locale race in the spec, not a defect.** `signIn` chose
+English on the control but did not wait for it to reach the account, and the account's own
+locale — which defaults to zh-TW and is authoritative once known — then won on the next
+cold document, leaving every English locator in the file looking at a Chinese page. The
+helper now uses `selectAccountLocale`, which polls the account until the choice lands. The
+product behaviour is correct and unchanged.
+
+**4. `pwa.spec.ts:4` asserted on the wrong list.** Chrome's `getAppManifest` reports
+advisories alongside faults, and the current build notes that a GET share target does not
+state an `enctype` it never uses — `critical: 0`. The case now asserts no *critical*
+manifest errors, which is what stops an install; the installability check beside it is
+unchanged. Asserting on the whole list made the case fail on browser updates rather than on
+the product.
+
+**5. `posts.spec.ts:13` measured during the dialog's entry transition.** `evaluateAll` does
+not wait, so a one-shot resolve could read a height before the menu settled. It polls now,
+and also fails on an empty list rather than passing vacuously.
 
 ## Related work
 
@@ -106,6 +145,23 @@ Nothing yet.
 ## Blocked by
 
 None.
+
+## Execution record — 2026-10-09
+
+**What shipped.** `apps/web/app/quick-composer.tsx` — the one product change —
+plus `tests/e2e/quick-authoring-follow-up.spec.ts`, `tests/e2e/pwa.spec.ts` and
+`tests/e2e/posts.spec.ts`.
+
+**Verification.** `tsc --noEmit` and `eslint` clean; 1,190 unit tests pass.
+`quick-authoring-follow-up` 15/15, `research-diary-handoff` 18/18, `pwa` 4/4, `posts` 1/1,
+`quick-diary` green with them. **The full suite ran 338 passed, 0 failed** — the first
+clean run recorded for this tree. The confirming run is described in the acceptance list
+above; its single failure is a harness timeout on a loaded machine, in a case this ticket
+did not touch, and it passes on rerun.
+
+**The next thing to look at is that case**, not because it is failing but because a
+90-second timeout waiting for a disabled control means the preferences helper is one slow
+moment away from flaking anywhere it is used.
 
 ## Comments
 

@@ -186,7 +186,7 @@ readings, so neither was decided inside a consistency ticket.
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 117 — Clear the remaining end-to-end failures | Test debt | needs-triage; Execution: todo | [117-remaining-e2e-failures.md](issues/117-remaining-e2e-failures.md) |
+| 117 — Clear the remaining end-to-end failures | Test debt | triaged; Execution: done 2026-10-09; found a product defect that destroyed stored drafts | [117-remaining-e2e-failures.md](issues/117-remaining-e2e-failures.md) |
 
 Recommended order from the review: 101 first (highest visibility per unit of effort, and a
 credibility problem), then 102 (four fixes of two lines or less), then the redesigns
@@ -340,6 +340,29 @@ it are worth carrying forward:
 
 **Full e2e suite run: 322 passed, 14 failed — all pre-existing.** `posts.spec.ts:13`
 passed on this run, which is the re-run behaviour already recorded for it.
+
+**Progress — 2026-10-09, seventh pass. The suite is green: 338 passed, 0 failed.**
+
+[117](issues/117-remaining-e2e-failures.md)'s six remaining failures came down to **one
+product defect and four test faults**:
+
+- **A cold load destroyed a stored draft.** The account read confirms the session and
+  supplies the Quick draft key in one commit, and React runs effects in declaration order:
+  the save effect was declared before the one that reads the stored draft, so it wrote
+  first — overwriting a draft stored for that account with whatever had been typed on the
+  cold document, then offering that back as "the stored draft". Restoring it was a no-op
+  because there was nothing left to restore. `quick-composer.tsx` now holds the save until
+  the key has been read. That one fix also cleared `:115` and both
+  `research-diary-handoff` cases, which is what had been making this cluster "fail a
+  different case on every run": one corrupted key, several tests reading it.
+- The rest were the spec's own: a locale race (the account's locale is authoritative and
+  defaults to zh-TW, so choosing English on the control is not enough), a manifest
+  assertion that counted Chrome's advisories as faults, and a measurement taken during a
+  dialog's entry transition.
+
+**A confirming second run was 337/1**, and the one failure is a harness timeout on a loaded
+machine — `partner-timeline-parity.spec.ts:146` waiting 90s for the preferences select to
+become enabled, passing 7/7 on rerun. Recorded in 117 rather than claimed as green.
 
 **Progress — 2026-10-09, sixth pass. Every ticket that uses the execution convention is
 done except [117](issues/117-remaining-e2e-failures.md), which this pass filed.** The full

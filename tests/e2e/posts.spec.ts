@@ -246,7 +246,11 @@ test('admin authors a public article end to end without weakening public or role
     await ordinary.getByTestId('mobile-menu').click()
     const publicMenu = ordinary.getByTestId('mobile-menu-dialog')
     await expect(publicMenu).toBeVisible()
-    expect(await publicMenu.locator('.public-menu-tools a').evaluateAll(links => links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+    // The dialog enters with a fade and a 4px rise, so measure once it has
+    // settled rather than on the first resolve; `evaluateAll` does not wait.
+    const toolLinks = publicMenu.locator('.public-menu-tools a')
+    await expect(toolLinks.first()).toBeVisible()
+    await expect.poll(async () => toolLinks.evaluateAll(links => links.length > 0 && links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
     await publicMenu.press('Escape')
     await ordinary.screenshot({ path: 'docs/design/evidence/article-publishing/list-user-390-dark.png', fullPage: true })
   } finally { await ordinaryContext.close() }
