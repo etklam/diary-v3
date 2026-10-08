@@ -241,6 +241,17 @@
   border-top: 1px solid var(--border);
 }
 
+/* Denied and first-run are one region, not the two-column scaffold with a
+   sentence in each well. They take the workspace's place and its separation. */
+.ai-state {
+  gap: var(--space-4);
+  margin-block: var(--section-gap);
+}
+
+.ai-state .button {
+  margin-top: var(--space-2);
+}
+
 .ai-history h2 {
   margin-bottom: var(--space-4);
 }

@@ -2,8 +2,8 @@
 
 # [107] Give the AI reports page honest denied, empty and first-run states
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: implemented 2026-10-08; spec extended and all 11 AI report e2e cases green, guard mutation-checked
 Published: 2026-10-06
 
 Category: bug
@@ -83,22 +83,91 @@ actual defect, and it should be mutation-checked by reverting the `:630` guard.
 
 ## Provisional acceptance criteria
 
-- [ ] A denied account sees no copy inviting it to generate a report, and no generate control.
-- [ ] Denied, granted-and-empty, granted-and-out-of-quota, and granted-with-reports are four visibly distinct states.
-- [ ] The denied state names the next step as a human action rather than offering a control the account cannot use.
-- [ ] The granted-and-empty state names the precondition and carries exactly one filled action.
-- [ ] Neither the denied nor the empty state renders two empty wells side by side.
-- [ ] Consent scope and remaining quota are legible wherever they apply.
-- [ ] The lede copy about nothing being generated automatically is preserved verbatim in all three locales.
-- [ ] Report content, snapshot immutability, cancellation and regeneration behaviour are unchanged.
-- [ ] Each new state is covered by a test, and the `:630` guard is mutation-checked.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] A denied account sees no copy inviting it to generate a report, and no generate control.
+- [x] Denied, granted-and-empty, granted-and-out-of-quota, and granted-with-reports are four visibly distinct states.
+- [x] The denied state names the next step as a human action rather than offering a control the account cannot use.
+- [x] The granted-and-empty state names the precondition and carries exactly one filled action.
+- [x] Neither the denied nor the empty state renders two empty wells side by side.
+- [x] Consent scope and remaining quota are legible wherever they apply.
+- [x] The lede copy about nothing being generated automatically is preserved verbatim in all three locales (asserted in the denied and first-run states).
+- [x] Report content, snapshot immutability, cancellation and regeneration behaviour are unchanged — all ten pre-existing cases still pass.
+- [x] Each new state is covered by a test, and the guard is mutation-checked.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440 — the new states have English desktop evidence only; the existing coverage carries the three locales and dark 390 for the report state.
 
 ## Settled during triage
 
-Nothing yet. Step 2's wording depends on whether users can request a grant in-product or
-must contact an administrator out of band; the [AI Reports V1 record](../../../docs/features/ai-reports-v1.md)
-should settle that before the copy is written.
+Taken by the implementing agent, not by the user. Each is reversible.
+
+**1. The denied copy tells the reader to ask a person, because there is no other
+answer.** `/admin/ai/access` is the only path that issues a grant, through
+`PUT /api/admin/ai/access/{userId}`; no self-service request exists anywhere in the
+product. The copy therefore says so plainly rather than implying a request route that
+does not exist: "An administrator grants access in the AI administration pages. There is
+no way to request it from here — ask whoever runs this deployment."
+
+**2. "Denied" was wider than the ticket's reading, and the fix is structural rather
+than the one-line guard.** The ticket proposed adding `listDenied` to the `reportNone`
+condition. Tracing it found three different ways the same state arrives:
+`GET /api/ai/capabilities` answers **200** with `reason: 'AI_ACCESS_DENIED'` for an
+account that never had a grant (so `denied`, which only sets on a 403, was false for the
+exact case the review screenshotted), while `GET /api/ai/reports` 403s and sets
+`listDenied`, and a mid-session revocation sets `listDenied` and `detailDenied` together.
+One `accessDenied` derivation now covers all three, and the whole two-column workspace is
+replaced by one region instead of guarding one sentence inside it. The report column's
+invitation is now true wherever it renders, because only a granted account with a history
+reaches it.
+
+**3. The first-run region sits above the generate panel, not in the report column.**
+Placed where the old empty well was it read backwards — the reader scrolled past the form
+to be told to use the form. Its one filled action is `Pick a period`, an in-page link to
+the generate panel (which gained `id="ai-generate"` and `tabIndex={-1}` so focus follows
+the fragment). The history column is not rendered at all while there is nothing to list,
+which is what removes the second empty well.
+
+**4. Quota exhaustion names itself beside Generate.** `AI_QUOTA_EXCEEDED` previously
+appeared only as a note at the top of the page while the disabled Generate button carried
+its reason in a `title` attribute. It is now a line beside the control
+(`data-testid="ai-generate-blocked"`), matching the rule
+[102](102-confirmed-markup-defects.md) wrote into DESIGN.md: a disabled control names its
+unmet precondition where the control is. This is also what makes out-of-quota legible as
+a *granted* state rather than a missing grant.
+
+**5. The delete control in the revoked-detail branch is gone.** It offered
+`DELETE /api/ai/reports/{id}`, which `report-service.ts` rejects with
+`AI_ACCESS_DENIED` for exactly the account that could see the button. It was an action
+the user could not take, which is the defect this ticket is about.
+
+**6. The top-of-page consent gate is suppressed.** `AI_CONSENT_REQUIRED` was stated
+three times on one screen: the page-top note, the consent card's own heading and button,
+and the line beside Generate. The two that sit next to their controls are kept.
+
+## Execution record — 2026-10-08
+
+Changed: `apps/web/app/routes/ai-reports.tsx`, `apps/web/app/routes/ai-reports.css`,
+`apps/web/app/ai-copy.ts` (six new keys in all three locales),
+`tests/e2e/ai-reports-worker.spec.ts`.
+
+**Verification.** `tsc --noEmit` and `eslint` clean; 1184 unit tests pass. The whole AI
+spec passes: **11 of 11**, the ten pre-existing cases plus a new one covering denied,
+first-run and out-of-quota in a single session.
+
+**The guard is mutation-checked.** Replacing the denied branch's condition with `false`
+restores the old structure, and the test fails on the denied region and again on
+`.ai-workspace` rendering with the report column's invitation inside it. Worth recording
+for whoever writes the next absence assertion on this page: an absence assertion placed
+before the page settles passes for the wrong reason — the first draft asserted
+`reportNone` absence immediately after `selectLocale` and passed under the mutation
+because the workspace had not rendered yet. The assertions now wait on the denied region
+first, and that ordering is what makes the rest meaningful.
+
+`workspace-navigation.spec.ts` was run because it visits this route: its active-route case
+passes; its three other failures are the pre-existing ones recorded in 101 (a nav width
+assertion on `/diaries`, `/timeline`, `/calendar` and the admin nav Guru links), unrelated
+to this page.
+
+**Not done.** zh-TW/zh-CN and dark/390/768 evidence for the two new regions. They are
+plain `.empty-state` blocks with no layout of their own, so the risk is copy length
+rather than structure, but it is not verified.
 
 ## Related work
 

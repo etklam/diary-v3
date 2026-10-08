@@ -54,6 +54,74 @@ test('synthetic browser server dispatches a persisted report once and replays th
   } finally { await admin.close() }
 })
 
+/**
+ * The four states of this page have to look different: an account with no grant,
+ * a granted account with nothing yet, a granted account out of quota, and a
+ * granted account with a history. The first three are checked here; the fourth is
+ * every other test in this file.
+ */
+test('AI reports separate the denied, first-run and out-of-quota states', async ({ page, browser }) => {
+  const { selectLocale } = await import('../support/e2e')
+  const lede = 'Private review reports you trigger yourself. Pick a period, check the local data scope, agree once per data recipient, then generate. Nothing is ever generated on its own.'
+  const admin = await configureSyntheticAi(browser)
+  try {
+    // Denied: registered, authenticated, never granted.
+    const email = `ai-denied-${randomUUID()}@example.test`
+    const password = 'synthetic-ai-denied-password'
+    expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
+    expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
+    await gotoAiPage(page, '/reviews/ai-reports')
+    await selectLocale(page, 'en')
+    // Wait on the region before asserting absence: an absence assertion that runs
+    // before the page settles passes for the wrong reason.
+    await expect(page.getByTestId('ai-denied')).toContainText('AI reports are not enabled for your account')
+    await expect(page.getByTestId('ai-denied')).toContainText('ask whoever runs this deployment')
+    // The defect this test exists for: a denied account was shown "generate a new
+    // one" beside "you do not have access", with no control that could do it.
+    await expect(page.getByText('Select a report from the history, or generate a new one.')).toHaveCount(0)
+    await expect(page.getByTestId('ai-generate')).toHaveCount(0)
+    await expect(page.getByTestId('ai-preview')).toHaveCount(0)
+    // One region, not two empty wells under a History heading with no history.
+    await expect(page.locator('.ai-workspace')).toHaveCount(0)
+    await expect(page.getByTestId('ai-history')).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Generate a report', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'History', exact: true })).toHaveCount(0)
+    await expect(page.locator('.ai-quota')).toHaveCount(0)
+    await expect(page.locator('.lede')).toHaveText(lede)
+    await page.locator('.ai-page').screenshot({ path: 'docs/design/evidence/ai-reports/denied-en.png' })
+
+    // Granted with nothing yet: one region, one filled action, no empty history column.
+    const owner = await registerAiOwner(page, admin)
+    await gotoAiPage(page, '/reviews/ai-reports')
+    await selectLocale(page, 'en')
+    await expect(page.getByTestId('ai-denied')).toHaveCount(0)
+    await expect(page.getByTestId('ai-first-run')).toContainText('No reports yet')
+    await expect(page.getByTestId('ai-first-run')).toContainText('check what local data that period covers')
+    await expect(page.locator('.lede')).toHaveText(lede)
+    await expect(page.getByTestId('ai-first-run').locator('.button')).toHaveCount(1)
+    await expect(page.locator('.ai-workspace')).toHaveCount(0)
+    await expect(page.getByText('Select a report from the history, or generate a new one.')).toHaveCount(0)
+    await expect(page.getByTestId('ai-generate')).toBeVisible()
+    await page.locator('.ai-page').screenshot({ path: 'docs/design/evidence/ai-reports/first-run-en.png' })
+    await page.getByTestId('ai-first-run').getByRole('link', { name: 'Pick a period', exact: true }).click()
+    await expect(page.getByTestId('ai-period-select')).toBeVisible()
+
+    // Granted and out of quota: still granted, and it says so where the control is.
+    expect((await aiMutation(admin, admin.request, 'PUT', `/api/admin/ai/access/${owner.userId}`, { enabled: true, monthlyQuota: 10 })).status()).toBe(200)
+    await page.getByTestId('ai-period-select').selectOption(owner.periodStart)
+    await page.getByTestId('ai-preview').click()
+    await page.getByTestId('ai-consent-accept').click()
+    await expect(page.getByTestId('ai-generate')).toBeEnabled()
+    expect((await aiMutation(admin, admin.request, 'PUT', `/api/admin/ai/access/${owner.userId}`, { enabled: true, monthlyQuota: 0 })).status()).toBe(200)
+    await page.reload()
+    await expect(page.getByTestId('ai-generate-blocked')).toHaveText('This month’s generation quota is used up.')
+    await expect(page.getByTestId('ai-generate')).toBeDisabled()
+    await expect(page.locator('.ai-quota')).toContainText('0 of 0')
+    await expect(page.getByTestId('ai-denied')).toHaveCount(0)
+    await expect(page.getByTestId('ai-first-run')).toBeVisible()
+  } finally { await admin.close() }
+})
+
 test('AI report UI requires explicit consent and generation, survives refresh, and keeps report language fixed', async ({ page, browser }) => {
   const { selectLocale, selectTheme, signOut } = await import('../support/e2e')
   const admin = await configureSyntheticAi(browser)

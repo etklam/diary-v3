@@ -502,10 +502,19 @@ export default function AiReports() {
   }
 
   const statusLabel = (status: AiReportStatus) => c[`status${status[0]!.toUpperCase()}${status.slice(1)}` as 'statusQueued' | 'statusRunning' | 'statusSucceeded' | 'statusFailed' | 'statusCancelled']
+  // No grant is one state however it is learned: capabilities answers 200 with
+  // AI_ACCESS_DENIED for an account that never had one, while a revocation
+  // mid-session arrives as a 403 on the list or the detail. All of them mean the
+  // same thing to the reader, so they render one region and no generate path.
+  const accessDenied = denied || listDenied || detailDenied || capabilities?.reason === 'AI_ACCESS_DENIED'
   // `reason` is a stable error code from the server; map it to localized text.
-  const gateLine = !denied && capabilities && !capabilities.canGenerate
+  const gateLine = !accessDenied && capabilities && !capabilities.canGenerate
     ? aiFailureText(capabilities.reason ?? undefined, locale) ?? c.gateLocked
     : null
+  // A granted account with no reports is not the same state as a denied one: it
+  // gets the first-run region, and the history column that has nothing to list
+  // does not render at all.
+  const firstRun = !accessDenied && list !== null && list.items.length === 0 && !listFailure
   const evidenceBadgeClass = (level: EvidenceLevel) => level === 'interpretation' ? 'badge badge-info' : level === 'insufficient' ? 'badge badge-warn' : 'badge'
   const sourceTypeLabel = (source: AiReportSource) => source.sourceType === 'diary' ? c.sourceDiary : source.sourceType === 'transaction' ? c.sourceTransaction : source.sourceType === 'discipline' ? c.sourceDiscipline : c.sourceHolding
   const sourceChip = (alias: string): ReactNode => {
@@ -543,16 +552,30 @@ export default function AiReports() {
   return <section className="ai-page">
     <header className="ai-header"><h1>{c.title}</h1><p className="lede">{c.lede}</p></header>
 
-    {denied && <div className="ai-gate" role="note"><p>{c.gateLocked}</p></div>}
-    {gateLine && <div className="ai-gate" role="note"><p>{gateLine}</p></div>}
-    {capabilities && capabilities.remainingQuota !== null && capabilities.monthlyQuota !== null && <p className="ai-quota muted">{c.quotaLine.replace('{n}', String(capabilities.remainingQuota)).replace('{total}', String(capabilities.monthlyQuota))}</p>}
+    {/* Consent is named by its own card and again beside Generate, so a third
+        statement at the top of the page says nothing the reader has not been told. */}
+    {gateLine && capabilities?.reason !== 'AI_CONSENT_REQUIRED' && <div className="ai-gate" role="note"><p>{gateLine}</p></div>}
+    {!accessDenied && capabilities && capabilities.remainingQuota !== null && capabilities.monthlyQuota !== null && <p className="ai-quota muted">{c.quotaLine.replace('{n}', String(capabilities.remainingQuota)).replace('{total}', String(capabilities.monthlyQuota))}</p>}
 
     <FailureNotice failure={pageFailure} />
     {pageFailure && !retained && <button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>{t('retry')}</button>}
     {notice && <p className="success" role="status">{notice}</p>}
     {retained?.id && <button type="button" className="secondary" data-testid="ai-retry-submission" disabled={pending !== null} onClick={() => void regenerateSelected()}>{c.retrySubmission}</button>}
 
-    {!denied && !listDenied && !detailDenied && capabilities && <section className="card ai-generate" aria-labelledby="ai-generate-title">
+    {/* The state comes before the form it describes: a first-run reader should not
+        have to scroll past the generate panel to be told to use it. */}
+    {accessDenied && <section className="empty-state ai-state" data-testid="ai-denied" aria-labelledby="ai-denied-title">
+      <h2 id="ai-denied-title">{c.deniedTitle}</h2>
+      <p>{c.deniedBody}</p>
+      <p>{c.deniedNext}</p>
+    </section>}
+    {firstRun && <section className="empty-state ai-state" data-testid="ai-first-run" aria-labelledby="ai-first-run-title">
+      <h2 id="ai-first-run-title">{c.firstRunTitle}</h2>
+      <p>{c.firstRunBody}</p>
+      <a className="button" href="#ai-generate">{c.firstRunAction}</a>
+    </section>}
+
+    {!accessDenied && capabilities && <section className="card ai-generate" id="ai-generate" tabIndex={-1} aria-labelledby="ai-generate-title">
       <h2 id="ai-generate-title">{c.sectionGenerate}</h2>
       <fieldset className="ai-period" disabled={retained !== null || pending !== null}>
         <legend className="ai-sr">{c.period}</legend>
@@ -596,6 +619,9 @@ export default function AiReports() {
           onClick={() => void generate()}>{c.generate}</button>
         {!preview && retained?.id !== null && <p className="muted">{c.generateNeedPreview}</p>}
         {!consentCurrent && <p className="muted">{c.gateConsent}</p>}
+        {/* A disabled Generate names its own precondition: quota exhaustion is a
+            granted state, and must not read as a missing grant. */}
+        {consentCurrent && !capabilities.canGenerate && gateLine && <p className="muted" data-testid="ai-generate-blocked">{gateLine}</p>}
       </div>
       <p className="muted ai-quota-note">{c.quotaChargeNote}</p>
       <p className="muted ai-language-note">{c.reportLanguageNote}</p>
@@ -606,14 +632,12 @@ export default function AiReports() {
       <button type="button" className="secondary" data-testid="ai-cancel" disabled={pending !== null} onClick={() => void cancelJob()}>{c.cancelJob}</button>
     </div>}
 
-    <div className="ai-workspace">
+    {!accessDenied && !firstRun && <div className="ai-workspace">
       <nav className="ai-history" aria-labelledby="ai-history-title">
         <h2 id="ai-history-title">{c.historyTitle}</h2>
         <FailureNotice failure={listFailure} />
-        {listDenied && <div className="ai-gate" role="note"><p>{aiFailureText('AI_ACCESS_DENIED', locale)!}</p></div>}
-        {list === null && !listFailure && !listDenied ? <p role="status">{t('loading')}</p>
-          : list !== null && list.items.length === 0 ? <div className="empty-state"><p>{c.historyEmpty}</p></div>
-            : list !== null && <><ul className="ai-history-list" data-testid="ai-history">
+        {list === null && !listFailure ? <p role="status">{t('loading')}</p>
+          : list !== null && <><ul className="ai-history-list" data-testid="ai-history">
               {list.items.map(item => <li key={item.id}>
                 <button type="button" className="ai-history-item" data-testid="ai-history-item" aria-current={item.id === selectedId || undefined} onClick={() => { setSelectedId(item.id); setNotice(null); setPageFailure(null); setDetailDenied(false) }}>
                   <span className="ai-history-period"><time dateTime={item.period.periodStart}>{periodLabel(item.period)}</time></span>
@@ -627,10 +651,11 @@ export default function AiReports() {
             </>}
       </nav>
       <div className="ai-report-column">
+        {/* This column is only reached by a granted account with a history, so the
+            invitation to select or generate is now true wherever it renders. */}
         {!selectedId ? <div className="empty-state"><p>{c.reportNone}</p></div>
-          : detailDenied ? <div className="ai-gate" role="note"><p>{aiFailureText('AI_ACCESS_DENIED', locale)!}</p><button type="button" className="secondary ai-delete" data-testid="ai-delete" disabled={pending !== null} onClick={() => void deleteReport()}>{c.deleteReport}</button></div>
-            : detailPending && !showReport ? <p role="status">{c.reportLoading}</p>
-              : showReport && <article className="ai-report" data-testid="ai-report">
+          : detailPending && !showReport ? <p role="status">{c.reportLoading}</p>
+            : showReport && <article className="ai-report" data-testid="ai-report">
               <div className="ai-report-actions">
                 {detail!.status === 'succeeded' && <button type="button" className="secondary button-compact" data-testid="ai-regenerate" disabled={pending !== null || !consentCurrent || (retained !== null && retained.id !== detail!.id)} onClick={() => void regenerateSelected()}>{c.regenerate}</button>}
                 {activeJob && <button type="button" className="secondary button-compact" data-testid="ai-cancel-inline" disabled={pending !== null} onClick={() => void cancelJob()}>{c.cancelJob}</button>}
@@ -690,7 +715,7 @@ export default function AiReports() {
               </> : detail!.status === 'succeeded' ? <p className="ai-note" role="note">{c.sourceInvalidated}</p> : null}
             </article>}
       </div>
-    </div>
+    </div>}
   </section>
 }
 
