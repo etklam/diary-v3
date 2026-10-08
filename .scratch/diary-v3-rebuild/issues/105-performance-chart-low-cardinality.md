@@ -2,8 +2,8 @@
 
 # [105] Make strategy performance readable at low cardinality
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: implemented (2026-10-08); chart geometry unit-tested, e2e not run
 Published: 2026-10-06
 
 Category: bug
@@ -101,21 +101,96 @@ width, and that the axis renders one label rather than two identical ones.
 
 ## Provisional acceptance criteria
 
-- [ ] With one closed trade, no bar exceeds the capped width and no chart reads as a solid block.
-- [ ] No chart renders the same axis label at both ticks; a single category renders one centred label.
-- [ ] A charted series below the agreed cardinality threshold renders its table instead of an empty or near-empty plot frame.
-- [ ] The nine-metric grid is replaced by a ledger; at most one `.stat` remains.
-- [ ] "Not recorded" and other absent values render at muted body weight, never at figure size.
-- [ ] A section whose only content is an absent value does not occupy a full ruled section.
-- [ ] Every statistic, the disclosure copy about closed trades, drawdown, Sharpe and unlabelled trades, and the market-colour semantics are unchanged.
-- [ ] Zero, one and two closed-trade states are covered by tests; the zero-trade state is reachable and sensible.
-- [ ] Series colours still imply no direction, and positive drawdown magnitudes still read as losses.
+`~` marks a criterion covered by unit tests and by assertions added to the e2e spec, which could not be run here.
+
+- [x] With one closed trade, no bar exceeds the capped width and no chart reads as a solid block.
+- [x] No chart renders the same axis label at both ticks; a single category renders one centred label.
+- [x] A charted series below the agreed cardinality threshold renders its table instead of an empty or near-empty plot frame.
+- [x] The nine-metric grid is replaced by a ledger; at most one `.stat` remains.
+- [x] "Not recorded" and other absent values render at muted body weight, never at figure size.
+- [x] A section whose only content is an absent value does not occupy a full ruled section.
+- [x] Every statistic, the disclosure copy about closed trades, drawdown, Sharpe and unlabelled trades, and the market-colour semantics are unchanged.
+- [~] Zero, one and two closed-trade states are covered by tests; the zero-trade state is reachable and sensible.
+- [x] Series colours still imply no direction, and positive drawdown magnitudes still read as losses.
 - [ ] Verified in all three locales, light and dark, all three market-colour preferences, at 390/768/1440.
 
 ## Settled during triage
 
-Nothing yet. The cardinality threshold in step 1 — below how many points a chart is
-replaced by its table — is the open decision.
+**The threshold is three points.** `MIN_CHART_POINTS = 3` in `performance-chart.tsx`; below it the
+chart is not drawn and the table beneath it carries the data.
+
+The reasoning, recorded because the number is a judgement: one point has nothing to compare and
+no trend to show. Two is the case worth arguing about, and two loses — a pair of bars is a
+comparison the table states exactly, and a two-point line reads as a *trajectory* drawn from two
+samples. For a product whose whole premise is not over-reading thin evidence, drawing a trend
+line through two trades is the wrong default. Three is the smallest count where the plot shows
+something the table does not.
+
+Two was the alternative considered: it keeps a chart on screen sooner, and a two-bar comparison
+is at least legible. It was rejected because the line variant shares the component, so a
+threshold of two would license the two-point trend line, and splitting the threshold by chart
+type adds a rule nobody can predict from the screen.
+
+## Execution record — 2026-10-08
+
+Both defects were confirmed in source rather than inferred, so both fixes are unit-tested rather
+than screenshotted. `tests/unit/performance-chart.test.ts` pins the geometry through two helpers
+extracted from the component:
+
+| | before | after |
+| --- | --- | --- |
+| Bar width at 1 category | **448px** (against a 160px plot height) | 48px — and not drawn at all below three |
+| Bar width at 3 categories | 149px | 48px |
+| Bar width at 10 categories | 44.8px | 44.8px — the populated case is untouched |
+| Axis labels when first and last are equal | `2026-09 … 2026-09` | one centred `2026-09` |
+
+The cap matters independently of the threshold: at exactly three categories the old formula still
+drew a 149px bar against a 160px plot. `MAX_BAR_WIDTH = 48` was chosen so the sparse case matches
+the density of the ten-category case the page was designed against, which is why `chartBarWidth`
+returns an unchanged value from ten points up.
+
+**The dead single-point branch is gone.** `points.length === 1 && <circle>` guarded the line
+chart's one-point case; below the threshold that code is unreachable, so the guard went with it
+rather than being left as a claim about a state that can no longer occur.
+
+**The nine metrics are a ledger.** Six `.ledger-row`s — closed trades, wins, losses, win rate,
+realized drawdown, monthly Sharpe — closed by `Realized gain / loss` as `.ledger-row-total`,
+which is the figure the page exists to report. Best and worst *strategy* are names, not amounts,
+so they left the figure column for one muted line; that is also what stops "Not recorded"
+rendering at 1.45rem/650 beside `+69.60`. Every `data-testid` is preserved, including
+`performance-totalRealizedPnL` on the total row, so the existing assertions still address the
+same figures.
+
+**Three sections stop being sections when empty.** `By strategy`, `By emotion` and the two
+largest-trade tables collapse to one muted line each — `By strategy: Not recorded` — until they
+have rows. On a new account that is most of the page's former 2,847px.
+
+**The curve's disclosure is conditional.** Its table hides behind `Read chart data` because the
+chart is normally the answer; below the threshold the table *is* the answer, so it renders
+directly instead of behind a summary.
+
+### Item 4 — every call site, checked
+
+`PerformanceChart` has exactly one consumer, `routes/performance.tsx`, using it three times
+(periods, curve, symbols); all three are fixed by the component change. The rotation PNG export
+flagged in the plan does **not** use this component — it composes its own SVG of `rect` rows,
+i.e. a rendered table, so neither the bar-width nor the axis defect exists there. The rotation
+sparkline already prints its own insufficient-data copy instead of an empty plot. Nothing to
+propagate.
+
+### Not done
+
+- **The e2e suite was not run** — the harness needs the tunnelled Postgres, closed for this
+  session. The spec gained assertions at the **two closed-trade** state, which the existing
+  fixture already reaches via the quarter+AAPL filter: all three plots absent, the note present,
+  the curve table visible and no longer behind its disclosure. Those assertions are unverified.
+- **One and zero closed trades still have no browser coverage.** The zero state was already
+  reachable and asserted (`No closed trades for this selection.`); the one-trade state would need
+  a new fixture, which is new e2e work rather than an addition to an existing scenario.
+- The zero-trade state is a bare paragraph and a link rather than the system's `.empty-state`.
+  It is sensible as it stands and the ticket asks no more, so it was left alone rather than
+  restyled without the means to look at it.
+- The locale, theme and market-colour sweep was not performed.
 
 ## Related work
 
