@@ -166,7 +166,7 @@ the set is cross-cutting consistency work and four focused reworks.
 | 111 — Fix the trade plan execution comparison region | Design follow-up | triaged; Execution: done 2026-10-08, 10/10 trade-plan e2e cases green | [111-trade-plan-execution-comparison.md](issues/111-trade-plan-execution-comparison.md) |
 | 112 — Standardize empty states and list sections | Cross-cutting visual bug | triaged; Execution: done 2026-10-08, 13/13 affected e2e cases green | [112-empty-states-and-list-sections.md](issues/112-empty-states-and-list-sections.md) |
 | 113 — Correct the research tool pages | Design follow-up | triaged; Execution: done 2026-10-08, tool-page e2e green | [113-research-tool-page-corrections.md](issues/113-research-tool-page-corrections.md) |
-| 114 — Quiet the article management rows and size its columns | Design follow-up | needs-triage; Execution: todo | [114-admin-article-list-rows.md](issues/114-admin-article-list-rows.md) |
+| 114 — Quiet the article management rows and size its columns | Design follow-up | triaged; Execution: done 2026-10-08, 3/3 article-management e2e cases green | [114-admin-article-list-rows.md](issues/114-admin-article-list-rows.md) |
 
 ## Navigation and capture decisions filed from 112 (115–116)
 
@@ -313,6 +313,28 @@ Three things are worth reading before picking it up:
 
 **Full e2e suite run: 320 passed, 15 failed — the same fifteen as the previous run, none
 new.**
+
+**Progress — 2026-10-08, fifth pass. 114 is done, which closes 101–114.** Two things from
+it are worth carrying forward:
+
+- **A confirmation existed but was the wrong one.** `/admin/blog`'s `action()` helper
+  raised `window.confirm` for every DELETE using the *bulk* copy, so deleting one article
+  asked "Delete the selected articles?" about a selection the reader had not made. Both
+  deletions now use the project dialog with copy that names what each does. Worth
+  remembering that a confirmation in a shared helper can be invisible at the call site —
+  the ticket read the row as having none.
+- **DESIGN.md gained the worked example the ticket asked for.** The quiet-row-control rule
+  was stated but never shown, and three tables had each worked it out separately. The
+  Buttons section now names the convention and the three pages that follow it: every row
+  control quiet at compact height except a destructive one, and no filled action in a row,
+  because one per row multiplies into a page of them.
+
+**Full e2e suite run: 322 passed, 14 failed — all pre-existing.** `posts.spec.ts:13`
+passed on this run, which is the re-run behaviour already recorded for it.
+
+The 101–114 set from the 2026-10-06 page score is now complete. What remains open from
+that review is the "Scored but not filed" list below, plus [115](issues/115-duplicate-quick-diary-action.md)
+and [116](issues/116-sidebar-navigation-depth.md), and the stale-test list above.
 
 ### Scored but not filed
 

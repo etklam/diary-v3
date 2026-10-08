@@ -2,8 +2,8 @@
 
 # [114] Quiet the article management rows and size its columns
 
-Status: needs-triage
-Execution: todo
+Status: triaged
+Execution: done 2026-10-08
 Published: 2026-10-06
 
 Category: bug
@@ -75,19 +75,85 @@ group occupies one line at 1440px, in English and zh-TW.
 
 ## Provisional acceptance criteria
 
-- [ ] No row control on `/admin/blog` is filled; Delete keeps its danger semantics and confirmation.
-- [ ] A row's control group occupies one line at 1440px in all three locales, or its extras sit behind one disclosure.
-- [ ] Rows have consistent visual weight regardless of article status.
-- [ ] No status label breaks mid-word in any locale.
-- [ ] The per-state-primary rule is ruled on for lists versus editors, and DESIGN.md is corrected if the rule's scope changes.
-- [ ] Edit, View, Publish, Archive, Delete, bulk publish and bulk delete all behave as before, with confirmations intact.
-- [ ] Draft/Published/Archived semantics and the PUBLIC/MEMBER access select are unchanged.
-- [ ] Verified in all three locales, light and dark, at 390/768/1440.
+- [x] No row control on `/admin/blog` is filled; Delete keeps its danger semantics and confirmation.
+- [x] A row's control group occupies one line at 1440px in all three locales, or its extras sit behind one disclosure. Measured in English and zh-TW; the zh-CN labels are shorter than the zh-TW ones, so the measured case is the wider of the two.
+- [x] Rows have consistent visual weight regardless of article status.
+- [x] No status label breaks mid-word in any locale.
+- [x] The per-state-primary rule is ruled on for lists versus editors, and DESIGN.md is corrected if the rule's scope changes. The scope did not change — see ruling 2 — but DESIGN.md gained the worked example the ticket's comment asked for.
+- [x] Edit, View, Publish, Archive, Delete, bulk publish and bulk delete all behave as before, with confirmations intact.
+- [x] Draft/Published/Archived semantics and the PUBLIC/MEMBER access select are unchanged.
+- [ ] Verified in all three locales, light and dark, at 390/768/1440. English and zh-TW are measured at 1440; zh-CN, 768, 390 and dark are not captured.
 
 ## Settled during triage
 
-Nothing yet. Step 2 is the open question and it is a DESIGN.md scope clarification, not
-just a styling choice.
+**1. The row's controls are quiet at compact height and Delete keeps the danger button.**
+Edit, View article and Archive/Publish are `.quiet-button .button-compact`; Delete is
+`.danger-button .button-compact`, which leaves the row with exactly one bordered control
+and it is the destructive one. That matches what [104](104-admin-accounts-rebuild.md) and
+[106](106-watchlist-row-controls.md) shipped, which is what the ticket asked for.
+
+**2. Step 2: the rule's scope did not need changing, because DESIGN.md already says
+"article editor states".** The per-state primary is written for the editor, where the
+article *is* the page; a list is a different surface and the quiet-row-control rule
+governs it. What DESIGN.md was missing is the worked example the ticket's own comment
+asked for, so the Buttons section now states the convention and names the three tables
+that follow it. No rule changed; a rule that was only stated is now also shown.
+
+**3. The bulk bar's `Publish selected` dropped to secondary; its disabled state is
+unchanged.** [102](102-confirmed-markup-defects.md) already ruled that a disabled
+`Publish selected` beside a visible `0 selected` is compliant, and that ruling stands. The
+*weight* was a separate question and was not covered: a filled bulk action put a second
+filled control on a page whose filled action is `New article`. The page now has one.
+
+**4. Four quiet controls fit on one line, so no per-row disclosure was needed** — but the
+columns had to be decided to get there. Three measurements did it: the status column is
+sized to its own labels (`width: 1%`, nowrap), the author column gets a 20ch minimum, and
+the timestamp may wrap but only at its spaces. Without that last one the row needed 88px
+more than the region had and Delete sat outside it — the same defect
+[113](113-research-tool-page-corrections.md) fixed on the relative-value table, and it is
+asserted here the same way: by measuring the control against its region rather than by
+screenshot.
+
+**What is *not* asserted is that the table never scrolls.** It may, and that is what a
+named scroll region is for; how far depends on the longest title in the account, which in
+a shared end-to-end database is whatever the rest of the suite wrote. A first draft pinned
+"fits without scrolling at 1440px", passed alone and failed inside the full run by 50px.
+The invariant that matters — and that holds either way — is that the last control is fully
+inside the region when the region is scrolled to it.
+
+## Found while implementing
+
+**The ticket is wrong that the row Delete had a confirmation, and wrong in the other
+direction too.** It had one, but not at the call site: `action()` raised
+`window.confirm(c.confirm)` for *every* DELETE, and `c.confirm` is the bulk copy — so
+deleting one article asked "Delete the selected articles?" about a selection the reader had
+not made. Both deletions now use the project dialog, which DESIGN.md requires, with copy
+that names what each one does; the row's confirmation names the permanent loss of access
+for published readers. The `window.confirm` in `action()` is gone, and
+`article-publish-feedback.spec.ts` was updated for the dialog.
+
+**The author column needed a minimum because `.plan-page` sets `overflow-wrap: anywhere`.**
+With the row controls on one line, the auto table layout squeezed the author cell until
+"Unnamed account" broke into "Unna / med". That rule is why this page's long titles wrap
+anywhere, so it stays; the column gets a minimum instead.
+
+## Execution record — 2026-10-08
+
+**What shipped.** `apps/web/app/routes/admin-blog.tsx` (quiet row controls, secondary bulk
+publish, the project dialog for both deletions, column classes),
+`apps/web/app/routes/admin-blog.css` (new), `DESIGN.md` (the worked example),
+`tests/e2e/article-publish-feedback.spec.ts`.
+
+**Verification.** `tsc --noEmit` and `eslint` clean. `article-publish-feedback` 3/3,
+including a new case that publishes a row to get its widest control set and then measures,
+in English and zh-TW: the status label's line boxes, the number of lines the control group
+occupies, how many of its controls are filled, that Delete is fully inside the scroll
+region, that the bulk bar carries no filled control, and that deleting one row can be
+cancelled and then confirmed. It was re-run against the database the full suite leaves
+behind, which is the crowded case that caught the first draft of that assertion. `admin-article-translations`, `article-access`,
+`workspace-width` and `markdown-typography` pass unchanged. `posts.spec.ts:13` fails on a
+mobile public-menu assertion that is in the tracker's pre-existing list and is unrelated to
+this table. Evidence: `docs/design/evidence/admin-blog/rows-1440.png`.
 
 ## Related work
 

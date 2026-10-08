@@ -1,0 +1,49 @@
+/* Row controls are quiet and stay on one line: four full-weight buttons made
+   the row two rows tall at 1440px, with Delete dropped onto its own line. The
+   table already lives in a named scroll region, so it pans rather than wraps. */
+.admin-blog-row-actions {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
+.admin-blog-row-actions > * {
+  white-space: nowrap;
+}
+
+/* The status column is sized by its own labels, not by the grid. "Published"
+   broke mid-word as "Publishe / d" at 1440px, and the zh-TW and zh-CN labels
+   differ in width from the English ones. */
+.admin-blog-status {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* A page-specific minimum width, which is what the scroll region is for. With
+   the row controls on one line the remaining columns were squeezed until an
+   author email broke into five lines; the table now keeps its own width and
+   the region pans. */
+.admin-blog-table table {
+  min-width: 1040px;
+}
+
+/* The timestamp may wrap, but only at its spaces: `.plan-page` sets
+   `overflow-wrap: anywhere`, which otherwise breaks "2026," across lines. Held
+   to nowrap it took 190px of minimum width and pushed Delete out of the
+   region. */
+.admin-blog-updated {
+  min-width: 12ch;
+  overflow-wrap: normal;
+}
+
+/* `.plan-page` sets `overflow-wrap: anywhere`, so without a minimum the auto
+   table layout squeezes this column until "Unnamed account" breaks into
+   "Unna / med". The name keeps whole words; the email may still break, because
+   an address has no better break point. */
+.admin-blog-author {
+  min-width: 20ch;
+  overflow-wrap: normal;
+}
+
+.admin-blog-author .muted {
+  overflow-wrap: anywhere;
+}
