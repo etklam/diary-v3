@@ -157,13 +157,13 @@ the set is cross-cutting consistency work and four focused reworks.
 | 102 — Correct the confirmed text and markup defects | Cross-cutting visual bug | triaged; Execution: done 2026-10-07, no assertion pins the seven fixes | [102-confirmed-markup-defects.md](issues/102-confirmed-markup-defects.md) |
 | 103 — Split AI administration into task-scoped views | Design follow-up | triaged; Execution: implemented, e2e not run | [103-admin-ai-split-into-views.md](issues/103-admin-ai-split-into-views.md) |
 | 104 — Rebuild the admin accounts page around a readable table | Design follow-up | triaged; Execution: implemented, overflow fix measured, e2e not run | [104-admin-accounts-rebuild.md](issues/104-admin-accounts-rebuild.md) |
-| 105 — Make strategy performance readable at low cardinality | Design follow-up | needs-triage; Execution: todo | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
-| 106 — Reduce the Watchlist row to a readable company | Design follow-up | needs-triage; Execution: todo | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
-| 107 — AI reports denied, empty and first-run states | Design follow-up | needs-triage; Execution: todo | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |
-| 108 — Rebuild Diary reminders as a usable page | Design follow-up | needs-triage; Execution: todo | [108-diary-reminders-page.md](issues/108-diary-reminders-page.md) |
-| 109 — Design the authentication pages | Design follow-up | needs-triage; Execution: todo | [109-authentication-pages-design.md](issues/109-authentication-pages-design.md) |
-| 110 — Section the company research page into legible jobs | Design follow-up | needs-triage; Execution: todo | [110-company-research-page-sections.md](issues/110-company-research-page-sections.md) |
-| 111 — Fix the trade plan execution comparison region | Design follow-up | needs-triage; Execution: todo | [111-trade-plan-execution-comparison.md](issues/111-trade-plan-execution-comparison.md) |
+| 105 — Make strategy performance readable at low cardinality | Design follow-up | triaged; Execution: implemented, chart geometry unit-tested, e2e not run | [105-performance-chart-low-cardinality.md](issues/105-performance-chart-low-cardinality.md) |
+| 106 — Reduce the Watchlist row to a readable company | Design follow-up | triaged; Execution: implemented 2026-10-08, both watchlist e2e specs updated and green | [106-watchlist-row-controls.md](issues/106-watchlist-row-controls.md) |
+| 107 — AI reports denied, empty and first-run states | Design follow-up | triaged; Execution: implemented 2026-10-08, 11/11 AI e2e cases green, guard mutation-checked | [107-ai-reports-states.md](issues/107-ai-reports-states.md) |
+| 108 — Rebuild Diary reminders as a usable page | Design follow-up | triaged; Execution: done 2026-10-08, 7/7 alerts e2e cases green | [108-diary-reminders-page.md](issues/108-diary-reminders-page.md) |
+| 109 — Design the authentication pages | Design follow-up | triaged; Execution: done 2026-10-08, 8/8 new auth e2e cases green | [109-authentication-pages-design.md](issues/109-authentication-pages-design.md) |
+| 110 — Section the company research page into legible jobs | Design follow-up | triaged; Execution: done 2026-10-08, company/notes/evidence e2e green | [110-company-research-page-sections.md](issues/110-company-research-page-sections.md) |
+| 111 — Fix the trade plan execution comparison region | Design follow-up | triaged; Execution: done 2026-10-08, 10/10 trade-plan e2e cases green | [111-trade-plan-execution-comparison.md](issues/111-trade-plan-execution-comparison.md) |
 | 112 — Standardize empty states and list sections | Cross-cutting visual bug | needs-triage; Execution: todo | [112-empty-states-and-list-sections.md](issues/112-empty-states-and-list-sections.md) |
 | 113 — Correct the research tool pages | Design follow-up | needs-triage; Execution: todo | [113-research-tool-page-corrections.md](issues/113-research-tool-page-corrections.md) |
 | 114 — Quiet the article management rows and size its columns | Design follow-up | needs-triage; Execution: todo | [114-admin-article-list-rows.md](issues/114-admin-article-list-rows.md) |
@@ -200,6 +200,80 @@ during the work are worth reading before picking up 103–114:
 - 102's seven fixes are still unpinned — the repo has no DOM test harness and no spec
   covers them. The local e2e harness now runs (OrbStack + `docker compose --profile redis
   up -d` + `npm run db:migrate`), so writing them is a small follow-up.
+
+**Progress — 2026-10-08.** 103, 104, 105, 106 and 107 are implemented, in the review's
+recommended order. Each ticket carries its own rulings and execution record; two things
+are worth reading before picking up 108–114:
+
+- **106 and 107 both chose structure over the guard the ticket proposed.** 106 replaced
+  six peer row controls with a page-level arrange mode rather than a per-row overflow
+  menu, after weighing the keyboard cost the ticket asked to weigh. 107 found that the
+  denied state arrives three different ways — capabilities answers **200** with
+  `AI_ACCESS_DENIED` for an account that never had a grant, so the `denied` flag the page
+  already had was false for the exact case the review screenshotted — and replaced the
+  two-column scaffold rather than guarding one sentence inside it.
+- **The stale-e2e ticket that 101 asked for has one more case.** `evidence.spec.ts:44`
+  ("Diary evidence retains captured summary and opens its original source") fails at both
+  widths on a missing `Add research evidence` disclosure on `/diaries/:id`. Confirmed
+  pre-existing by rerunning it with 106 stashed. It was not in the nine failures 101
+  recorded, so that list is now ten.
+
+**Progress — 2026-10-08, second pass.** 108 and 109 are implemented, continuing the
+review's recommended order. Three things are worth reading before picking up 110–114:
+
+- **108 found a live defect in [100](issues/100-shell-swap-destroys-page-state.md) and fixed
+  it.** A cold load of a private page could show `AUTH_UNAUTHORIZED` while every API
+  response was `200`: `fetchSession` discarded an in-flight private read whenever the
+  session *revision* advanced between request and answer, and the first confirmation of
+  the session advances exactly that revision, normally while the page's own reads are
+  open. The guard now keys on `identity`, the distinction 100 introduced for this.
+  Confirmed pre-existing by reproducing it on a stashed tree. It was costing real tests:
+  `alerts.spec.ts` failed every cold-load case, `quick-authoring-follow-up.spec.ts` went
+  from 7 failures to 4 with the fix in place, and `evidence.spec.ts:44` — recorded as
+  pre-existing in the first 2026-10-08 note — now passes at both widths, so it leaves the
+  stale list.
+- **109's step 3 was wrong as written and the tests said so.** Hiding the recovery link
+  whenever account email is unconfigured broke `ui-ux-audit-regressions.spec.ts`, which
+  pins that recovery stays discoverable when a support route is configured. The shipped
+  rule offers the link when *either* path exists. Read 109's ruling 4 before touching the
+  sign-in page.
+- **Full e2e suite run: 316 passed, 16 failed.** Two of the sixteen were caused by this
+  work and are fixed (`layout-theme`'s gutter selector, `ui-ux-audit-regressions` above);
+  the other fourteen are pre-existing, and the list below is now the authoritative one.
+
+### Pre-existing e2e failures, as of 2026-10-08
+
+Still unfiled as a ticket. Three in `account-security.spec.ts` (the ambiguous
+`getByLabel('Content')` from 97), three in `workspace-navigation.spec.ts` (nav width, and
+the admin nav's Guru links), one in `pwa.spec.ts`, four in
+`quick-authoring-follow-up.spec.ts` (115, 338, 380, 412 — the Quick draft state machine,
+one of them failing inside the spec's own `/api/auth/me` hold helper), two in
+`research-diary-handoff.spec.ts` (212 and 563, still a different pair on each run), and
+`admin-users.spec.ts:22`, which fails at a different assertion depending on suite order —
+on the row guard in a full run and on the region count in isolation, so it is
+order-dependent rather than broken outright.
+
+**Progress — 2026-10-08, third pass.** 110 and 111 are implemented, finishing the
+review's 107–111 band. Three things are worth reading before picking up 112–114:
+
+- **110 rejected its own recommended mechanism, and the tests are why.** The ticket
+  preferred deferred disclosures and offered sub-routes as an alternative; both were
+  rejected. `company-hub.spec.ts` carries an accepted acceptance that the hub, notes,
+  evidence and quote readers sit on **one** page and fail independently there, so moving
+  notes and evidence to their own addresses would have deleted that claim rather than
+  satisfied the ticket. Disclosures alone leave a populated page exactly as long as it is
+  today. What shipped is in-page section navigation plus a deferred *capture form* — the
+  recorded evidence timeline stays standing.
+- **A second router blocker was found on the company page.** Deferring the evidence
+  capture mounted its navigation guard permanently, and a router supports one blocker at a
+  time: it silently took the registration from the notes editor, whose unsaved-note
+  confirmation then stopped holding the navigation. `stock-notes.spec.ts` caught it. The
+  guard now mounts only while there is unsaved capture. Worth remembering for any page
+  that grows a second surface with unsaved work.
+- **Full e2e suite run: 319 passed, 15 failed, none new.** Every failure is in the
+  pre-existing list above, plus `posts.spec.ts:13`, which the 2026-10-07 note already
+  recorded as passing on re-run. The run before this one failed 16 including two caused by
+  109; both were fixed.
 
 ### Scored but not filed
 

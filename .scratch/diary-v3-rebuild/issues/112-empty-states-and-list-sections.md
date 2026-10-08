@@ -111,6 +111,13 @@ one assertion per converted page that the empty state is reachable and names an 
 
 Nothing yet. Step 3 is the open decision and it affects five pages.
 
+**Scope reduced by 108, 2026-10-08.** `/alerts` is done: it now renders `.empty-state` with
+a next action, states the 100-reminder bound and the display timezone only when reminders
+are shown, and gives its list a headed region with a rule. Two of this ticket's three bare
+empty states remain (`/stocks/alerts`, `/etf/watchlist`), and the conditional-timezone item
+now applies to `/stocks/alerts` only. 108 also moved row controls to quiet weight on
+`/alerts`, which is the convention step 3 should stay consistent with.
+
 ## Related work
 
 - [108 — Diary reminders page](108-diary-reminders-page.md) — `/alerts` is one of the three empty states; if 108 lands first it owns that one.
