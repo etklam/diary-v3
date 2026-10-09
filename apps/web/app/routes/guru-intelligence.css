@@ -34,7 +34,7 @@
 .guru-intelligence-tabs a {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 var(--space-3);
   border: 1px solid var(--rule);
   border-radius: var(--radius-control);
@@ -75,7 +75,7 @@
 .guru-intelligence-toolbar select,
 .guru-intelligence-filters input,
 .guru-intelligence-filters select {
-  min-height: 42px;
+  min-height: 44px;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
@@ -93,7 +93,7 @@
 .guru-intelligence-export {
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 var(--space-4);
   text-decoration: none;
 }
@@ -118,6 +118,7 @@
 }
 
 .guru-intelligence-coverage strong {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -200,6 +201,7 @@
 }
 
 .guru-net-buyer {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-semibold);
 }
@@ -355,6 +357,7 @@
 
   .guru-intelligence-card dd {
     margin: var(--space-1) 0 0;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }

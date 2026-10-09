@@ -81,7 +81,7 @@ export default function GurusDirectory() {
     <section className="guru-discovery" aria-label={c.directoryTitle}>
       <form className="guru-search" onSubmit={search}>
         <label htmlFor="guru-search-input">{c.search}</label>
-        <div><input id="guru-search-input" value={draftSearch} maxLength={200} onChange={event => setDraftSearch(event.target.value)} /><button type="submit" disabled={pending}>{c.searchAction}</button></div>
+        <div><input id="guru-search-input" value={draftSearch} maxLength={200} onChange={event => setDraftSearch(event.target.value)} /><button type="submit" className="secondary" disabled={pending}>{c.searchAction}</button></div>
       </form>
       <div className="guru-filters">
         <label>{c.style}<select value={filters.style} onChange={event => updateFilter('style', event.target.value)}><option value="">{c.all}</option>{(result?.facets.styles ?? []).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
