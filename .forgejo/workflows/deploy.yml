@@ -67,16 +67,6 @@ jobs:
       - name: Validate source deployment manifests
         run: npm run manifests:check
 
-      - name: PostgreSQL backup and restore smoke
-        run: |
-          set -euo pipefail
-          JOB_CONTAINER=$(cat /etc/hostname)
-          docker inspect "$JOB_CONTAINER" >/dev/null || { echo "cannot resolve job container '$JOB_CONTAINER'" >&2; exit 1; }
-          RESTORE_SMOKE_CONTAINER=diary-v3-ci-restore-smoke \
-          RESTORE_SMOKE_JOB_CONTAINER="$JOB_CONTAINER" \
-          RESTORE_SMOKE_PORT=5432 \
-          npm run db:restore-smoke
-
       - name: Start disposable PostgreSQL
         run: |
           set -euo pipefail
@@ -104,32 +94,10 @@ jobs:
           docker logs diary-v3-ci-postgres
           exit 1
 
-      - name: API integration tests
-        continue-on-error: true
-        env:
-          JWT_SECRET: ci-only-diary-secret-not-for-use-outside-tests-123456
-          NODE_ENV: test
-        run: npm run test:integration
+      - name: Install Chromium for release smoke
+        run: npx playwright install --with-deps chromium
 
-      - name: Production build
-        run: npm run build
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-
-      - name: Full Chromium regression
-        continue-on-error: true
-        env:
-          CI: "true"
-        run: npm run test:e2e
-
-      - name: WebKit critical path
-        continue-on-error: true
-        env:
-          CI: "true"
-        run: npm run test:e2e:webkit:critical
-
-      - name: Build Docker images for release acceptance
+      - name: Build Docker images for release smoke
         run: |
           set -euo pipefail
           API_IMAGE="$REGISTRY/$OWNER/diary-v3-api:$GITHUB_SHA"
@@ -141,8 +109,7 @@ jobs:
           echo "RELEASE_API_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$API_IMAGE")" >> "$GITHUB_ENV"
           echo "RELEASE_WEB_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$WEB_IMAGE")" >> "$GITHUB_ENV"
 
-      - name: Release artifact acceptance
-        continue-on-error: true
+      - name: Blocking release smoke
         env:
           CI: "true"
         run: |

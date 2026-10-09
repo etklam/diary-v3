@@ -3,7 +3,7 @@ import { e2eBaseURL } from './tests/support/e2e-origin';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: 'release-artifacts.spec.ts',
+  testMatch: ['release-smoke.spec.ts', 'release-artifacts.spec.ts'],
   workers: 1,
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],

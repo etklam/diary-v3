@@ -5,16 +5,23 @@ WORKDIR /app
 ENV CI=true
 
 COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/api-client/package.json ./packages/api-client/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/db/package.json ./packages/db/package.json
+COPY packages/domain/package.json ./packages/domain/package.json
+
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --no-audit --no-fund
+
 COPY apps ./apps
 COPY packages ./packages
 COPY scripts ./scripts
-COPY tests ./tests
 COPY openapi ./openapi
 COPY tsconfig.json drizzle.config.ts eslint.config.js ./
 COPY .env.example ./
 
-RUN npm ci --ignore-scripts --no-audit --no-fund
-RUN npm run build
+RUN npm run build:artifacts
 RUN npm prune --omit=dev
 
 FROM node:24-bookworm-slim AS api

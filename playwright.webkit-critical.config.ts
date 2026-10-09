@@ -3,7 +3,7 @@ import { e2eBaseURL, e2eWebPort } from './tests/support/e2e-origin';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testIgnore: '**/release-artifacts.spec.ts',
+  testIgnore: ['**/release-smoke.spec.ts', '**/release-artifacts.spec.ts'],
   grep: /@webkit-critical/,
   fullyParallel: false,
   workers: 1,

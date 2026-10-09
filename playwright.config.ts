@@ -8,9 +8,8 @@ const remoteDb = process.env.REMOTE_TEST_DB === '1';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  // The built-artifact acceptance suite targets production bundles and the
-  // release harness; Forgejo runs it through `test:e2e:release`.
-  testIgnore: '**/release-artifacts.spec.ts',
+  // Built-image smoke and regression suites use the dedicated release harness.
+  testIgnore: ['**/release-smoke.spec.ts', '**/release-artifacts.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,

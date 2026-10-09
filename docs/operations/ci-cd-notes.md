@@ -13,23 +13,33 @@ not start this workflow. The separate `.forgejo/workflows/staging.yml` is a
 manual `workflow_dispatch` workflow that consumes a successful production
 source SHA, immutable API/Web image digests, and an isolated staging hostname.
 
-The current production tiering is:
+The production critical path runs the tracked-secret scan, dependency install,
+lint, one explicit typecheck, unit tests, contracts and source-manifest checks,
+then builds and smoke-tests the exact Docker API/Web images before pushing.
+Image IDs are checked again before publication; rendered production manifests
+must use registry digests. Migrations, system seed, production rollout, public
+and API smoke checks, and mutation-aware rollback remain blocking. The
+disposable PostgreSQL used by the three-test artifact smoke is cleaned up even
+when a gate fails.
 
-- **Blocking checks and release steps**: tracked-secret checks, lint,
-  typecheck, unit tests, contracts check, source-manifest validation,
-  PostgreSQL backup/restore smoke, production build, Docker image identity
-  checks, digest-pinned manifest rendering/validation, image publication, and
-  the deploy/rollback smoke path.
-- **Advisory** (`continue-on-error: true`): API integration tests, full
-  Chromium regression, WebKit critical path, and release artifact acceptance.
-  Their failures remain visible in the run and do not stop the later deploy
-  steps. Treat an advisory failure as release evidence to review, not as proof
-  that the tested behavior passed.
+The separate `.forgejo/workflows/regression.yml` runs nightly at 02:00 Taiwan
+time and supports `workflow_dispatch`. It runs the full API integration suite,
+the PostgreSQL backup/restore smoke, full Chromium and WebKit critical suites,
+and the extended release-artifact flows against Docker-built images. These
+checks remain blocking in that workflow; they no longer delay or silently
+permit a production deployment from the same run.
+
+Production concurrency stays on `cancel-in-progress: false`. Forgejo applies
+the concurrency group to the whole workflow, so cancellation could stop a run
+after it has begun changing production. The current single-job workflow has no
+safe phase-aware cancellation point. Forgejo also describes grouped execution
+as best-effort rather than a strict FIFO queue, so inspect the deployed source
+SHA after multiple pushes close together.
 
 The source checks and staging workflow use Node `22.22.0`. The Dockerfile uses
 Node 24 and the production API bundle targets `node24`; account for this recorded runtime split when diagnosing build-only differences.
 
-The tiering is locked by `tests/unit/deploy-workflow.test.ts`. Run
+The safety intent is covered by `tests/unit/deploy-workflow.test.ts`. Run
 `npx vitest run tests/unit/deploy-workflow.test.ts` after any workflow edit.
 
 ## Trap 1 — Disposable PostgreSQL must share the job's network namespace
@@ -119,11 +129,12 @@ output.
    [`staging-smoke.md`](staging-smoke.md) and starts with
    `bash scripts/staging-smoke.sh https://<staging-hostname>`.
 
-## Known flaky advisory failures (do not chase)
+## Known historical regression failures
 
 - Full Chromium regression: i18n text assertions (e.g. expected
-  `"Partner management"`, page rendered `伙伴管理`) — run 34. These are
-  advisory; fix separately, never under deploy pressure.
+  `"Partner management"`, page rendered `伙伴管理`) — run 34. The suite now
+  runs in the nightly/manual regression workflow; diagnose failures there
+  without extending the production critical path.
 
 ## Incident log
 
