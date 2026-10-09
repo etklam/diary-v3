@@ -236,7 +236,7 @@ export default function AdminArticleTranslations() {
             <option value="">{c.none}</option>
             {data.providers.map(provider => <option key={provider.id} value={provider.id} disabled={!ready(provider)}>{provider.name} — {provider.model || '—'}{!ready(provider) ? ` · ${provider.enabled ? provider.secretConfigured ? c.incomplete : c.noKey : c.disabled}` : ''}</option>)}
           </select></label>
-          <button type="submit" disabled={pending || dirty || defaultSelection === (data.defaultProviderId ?? '')}>{pending ? c.applying : c.apply}</button>
+          <button type="submit" className="secondary" disabled={pending || dirty || defaultSelection === (data.defaultProviderId ?? '')}>{pending ? c.applying : c.apply}</button>
         </form>
       </section>
       <section className="article-translation-provider-list" aria-labelledby="article-translation-providers-heading">

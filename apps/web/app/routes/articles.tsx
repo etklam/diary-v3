@@ -110,7 +110,7 @@ export default function Articles() {
       {params.get('lang') && <input type="hidden" name="lang" value={params.get('lang')!} />}
       <label>{c.search}<input name="search" defaultValue={params.get('search') ?? ''} /><small>{c.searchHint}</small></label>
       <label>{c.category}<select name="category" defaultValue={params.get('category') ?? ''}><option value="">{c.all}</option><option value="fundamental">{c.fundamental}</option><option value="technical">{c.technical}</option><option value="market">{c.market}</option><option value="strategy">{c.strategy}</option></select></label>
-      <button type="submit">{c.submit}</button>
+      <button type="submit" className="secondary">{c.submit}</button>
     </Form>
     {loaded.searchFailed ? <div role="alert"><p>{c.failed}</p><button type="button" onClick={() => revalidator.revalidate()}>{c.retry}</button></div> : loaded.data.length === 0 ? <div className="empty-state" role="status"><p>{c.empty}</p></div> : <ol className="plan-list">{loaded.data.map(post => <li key={post.id}>
       <h2><Link to={articleHref(post.slug, post.requestedLocale)} state={articleNavigationState}>{post.title}</Link></h2>

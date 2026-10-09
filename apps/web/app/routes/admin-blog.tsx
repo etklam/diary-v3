@@ -105,7 +105,7 @@ export default function AdminBlog() {
   const formatDate = (value: string) => formatInstantUtc(locale, value)
   return <section className="plan-page">
     <header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link className="button" to="/admin/blog/new">{c.new}</Link></header>
-    <form method="get" className="plan-filters" onSubmit={event => { event.preventDefault(); refresh() }}><label>{c.search}<input value={search} onChange={event => setSearch(event.target.value)} /></label><label>{c.status}<select value={status} onChange={event => setStatus(event.target.value)}><option value="">{c.all}</option>{postStatusSchema.options.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label><button type="submit">{c.apply}</button></form>
+    <form method="get" className="plan-filters" onSubmit={event => { event.preventDefault(); refresh() }}><label>{c.search}<input value={search} onChange={event => setSearch(event.target.value)} /></label><label>{c.status}<select value={status} onChange={event => setStatus(event.target.value)}><option value="">{c.all}</option>{postStatusSchema.options.map(value => <option key={value} value={value}>{statusLabel(value)}</option>)}</select></label><button type="submit" className="secondary">{c.apply}</button></form>
     <FailureNotice failure={failure} />
     {publishFeedback && <div className="article-save-result admin-publish-result" role="status">
       <p>{publishCopy[locale].published(publishFeedback.count)}</p>

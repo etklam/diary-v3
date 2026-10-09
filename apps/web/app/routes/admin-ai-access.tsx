@@ -109,7 +109,9 @@ export default function AdminAiAccess() {
           return <tr key={item.userId}>
             <th scope="row"><span className="admin-ai-email">{item.email}</span></th>
             <td>{item.name ?? '—'}</td>
-            <td><input type="checkbox" aria-label={`${c.accessEnabled}: ${item.email}`} checked={row.enabled} disabled={pending !== null} onChange={event => setDrafts(current => ({ ...current, [item.userId]: { ...row, enabled: event.target.checked } }))} /></td>
+            {/* The label gives the box a 44px hit area; on its own the control
+                is an 18px pointer target in the middle of a table cell. */}
+            <td><label className="access-toggle"><input type="checkbox" aria-label={`${c.accessEnabled}: ${item.email}`} checked={row.enabled} disabled={pending !== null} onChange={event => setDrafts(current => ({ ...current, [item.userId]: { ...row, enabled: event.target.checked } }))} /></label></td>
             <td><input type="number" min={0} max={10000} aria-label={`${c.accessQuota}: ${item.email}`} value={row.quota} disabled={pending !== null} onChange={event => setDrafts(current => ({ ...current, [item.userId]: { ...row, quota: event.target.value } }))} /></td>
             <td><button type="button" className="secondary" disabled={pending !== null || (row.enabled === item.enabled && Number(row.quota) === item.monthlyQuota)} onClick={() => void saveAccess(item)}>{pending === item.userId ? '…' : c.accessSave}</button></td>
           </tr>

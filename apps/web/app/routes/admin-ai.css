@@ -310,3 +310,18 @@
     margin-top: var(--space-3);
   }
 }
+
+/* The access table's checkbox is wrapped in a label so the pointer target is
+   the full 44px cell rather than the 18px box. */
+.access-toggle {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.access-toggle input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}

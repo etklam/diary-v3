@@ -548,10 +548,12 @@
   font-size: 0.875rem;
 }
 
+/* A field keeps the 44px floor; the 36px compact height is for toolbar
+   buttons, not for inputs and selects. */
 .tool-actions label select,
 .tool-actions label input {
-  min-height: 40px;
-  padding: 7px 10px;
+  min-height: 44px;
+  padding: 9px 10px;
 }
 
 .tool-title-row {
