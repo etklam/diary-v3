@@ -487,6 +487,17 @@ kbd {
 
 /* Financial direction. Colour is always redundant with the sign that
    `formatMarketValue` writes; it never carries direction on its own. */
+/* The Figure Rule, at the root of the market palette: `marketClass` is only
+   ever applied to a value from `formatMarketValue`, so anything wearing these
+   classes is a figure and takes the mono cut. A `td` or `dd` that also carries
+   a direction class therefore cannot fall back to the prose face. */
+.market-up,
+.market-down,
+.market-flat {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 .market-up {
   color: var(--market-up);
 }

@@ -146,9 +146,11 @@
   font-size: var(--text-xs);
 }
 
+/* A field keeps the 44px floor even in a compact filter bar: the 36px compact
+   height in DESIGN.md is for toolbar buttons, not for inputs. */
 .timeline-filters label input {
-  min-height: 36px;
-  padding: 6px 9px;
+  min-height: 44px;
+  padding: 8px 9px;
   font-size: var(--text-sm);
 }
 
@@ -194,6 +196,7 @@
 .timeline-month > header span {
   flex: 0 0 auto;
   font-size: var(--text-xs);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

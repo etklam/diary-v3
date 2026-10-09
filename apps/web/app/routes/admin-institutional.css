@@ -63,6 +63,7 @@
 
 .admin-institutional-metrics dd {
   margin: 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }

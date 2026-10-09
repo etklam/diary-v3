@@ -16,6 +16,7 @@
 
 .portfolio-exposure dd {
   margin: 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -95,6 +96,12 @@
   min-width: 640px;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
+}
+
+/* The Figure Rule: body cells only — `thead` labels stay prose. */
+.portfolio-exposure-table-scroll tbody th,
+.portfolio-exposure-table-scroll tbody td {
+  font-family: var(--font-mono);
 }
 
 .portfolio-exposure-table-scroll th,

@@ -33,6 +33,7 @@
   margin-bottom: var(--space-3);
   color: var(--muted);
   font-size: 0.875rem;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -307,6 +308,7 @@
 }
 
 .overview-watchlist strong {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }

@@ -126,6 +126,7 @@
 }
 
 .queue-priority strong {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

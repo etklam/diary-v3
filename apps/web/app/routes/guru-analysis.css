@@ -49,6 +49,7 @@
 
 .guru-analysis-coverage dd {
   margin: 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -72,6 +73,7 @@
 
 .guru-analysis-facts dd {
   margin: 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }

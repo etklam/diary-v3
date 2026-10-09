@@ -70,6 +70,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The Figure Rule, applied where the reading ledger is all figures. The diary
+   ledger is not — it carries strategy, emotion and notes in the same `dd` — so
+   there the figure fields are marked `.num` by the component instead. */
+.portfolio-valuation dd,
+.realized-results dd {
+  font-family: var(--font-mono);
+}
+
 .ledger-reading dt {
   color: var(--muted);
   font-size: 0.875rem;
@@ -91,6 +99,14 @@
   min-width: 560px;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
+}
+
+/* The Figure Rule: the row header carries the ticker and every body cell
+   carries an amount, so both take the mono cut. The column labels in `thead`
+   are prose and stay in the sans face. */
+.holdings-table tbody th,
+.holdings-table tbody td {
+  font-family: var(--font-mono);
 }
 
 .holdings-table th,

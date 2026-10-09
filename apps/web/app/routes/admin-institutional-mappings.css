@@ -138,6 +138,7 @@
 .admin-mapping-table td > strong,
 .admin-mapping-detail code,
 .admin-mapping-mobile-row code {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }

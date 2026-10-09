@@ -92,6 +92,7 @@
   margin: var(--space-1) 0 0;
   overflow-wrap: anywhere;
   font-weight: 650;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -114,6 +115,7 @@
   font-size: 2.25rem;
   font-weight: 650;
   line-height: 1.2;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -140,6 +142,7 @@
 .position-sizing-cash dd {
   margin: var(--space-1) 0 0;
   overflow-wrap: anywhere;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -216,6 +219,12 @@
 
 .position-sizing-table td {
   text-align: right;
+}
+
+/* The Figure Rule: body cells carry the batch figures; `thead` labels stay prose. */
+.position-sizing-table tbody th,
+.position-sizing-table tbody td {
+  font-family: var(--font-mono);
 }
 
 .position-sizing-markdown {

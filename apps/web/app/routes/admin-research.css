@@ -213,6 +213,7 @@
 .research-settings-meta dd,
 .research-metric-grid dd {
   margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }

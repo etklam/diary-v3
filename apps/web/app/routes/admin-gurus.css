@@ -98,6 +98,7 @@
 .admin-guru-mobile-row code,
 .admin-guru-metadata dd,
 .admin-guru-form input[inputmode='numeric'] {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

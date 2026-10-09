@@ -69,6 +69,7 @@
   overflow-wrap: anywhere;
   font-size: 1.125rem;
   font-weight: 600;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -104,6 +105,7 @@
 
 .market-table td {
   min-width: 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

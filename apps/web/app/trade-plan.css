@@ -94,6 +94,7 @@
 
 .plan-list dd {
   margin: var(--space-2) 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -375,6 +376,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The Figure Rule: the row's heading is the trade — type, quantity and price.
+   The explanatory paragraphs below it are prose and stay in the sans face. */
+.execution-selected-heading strong {
+  font-family: var(--font-mono);
+}
+
 .execution-selected-heading {
   display: flex;
   align-items: center;
@@ -424,6 +431,7 @@
 
 .execution-snapshot dd {
   margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

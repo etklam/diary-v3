@@ -51,6 +51,7 @@
   margin: 0;
   overflow-wrap: anywhere;
   font-weight: 600;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -75,6 +76,7 @@
 
 .fire-projection td {
   text-align: right;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

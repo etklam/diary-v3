@@ -111,7 +111,7 @@ export default function AdminPrompts() {
         <label>{c.prompt}<select value={key} disabled={pending || dirty} onChange={event => setKey(event.target.value as SharedPromptKey)}><option value="ai-report.weekly">{c.weekly}</option><option value="ai-report.monthly">{c.monthly}</option></select></label>
         <label>{c.version}<select value={selected} disabled={pending} onChange={event => { setSelected(event.target.value); setPlayground(null) }}><option value="">{c.default} · {item.systemDefault.systemVersion}</option>{item.versions.map(row => <option key={row.id} value={row.id}>{row.name} · v{row.revision}{row.archivedAt ? ` · ${c.archived}` : row.id === item.activeVersionId ? ` · ${c.active}` : ''}</option>)}</select></label>
       </div>
-      <p className="admin-prompt-state">{c.source}: <strong>{item.effectiveSource === 'override' ? c.override : c.default}</strong> · {c.revision}: <span className="number">{item.revision}</span></p>
+      <p className="admin-prompt-state">{c.source}: <strong>{item.effectiveSource === 'override' ? c.override : c.default}</strong> · {c.revision}: <span className="num">{item.revision}</span></p>
       <form className="admin-prompt-editor panel" onSubmit={event => { event.preventDefault(); void mutate() }}>
         <h2>{version ? `${version.name} · v${version.revision}` : c.default}</h2>
         {!version && <p className="muted">{c.immutable}</p>}

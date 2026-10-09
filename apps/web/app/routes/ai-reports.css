@@ -139,6 +139,7 @@
 .ai-coverage-list dd {
   margin: var(--space-1) 0 0;
   font-size: 1.25rem;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -182,6 +183,7 @@
 
 .ai-metric-value {
   font-size: 1.125rem;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -299,6 +301,7 @@
 .ai-history-period {
   flex-basis: 100%;
   font-weight: 600;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

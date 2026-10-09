@@ -205,6 +205,11 @@
   font-weight: 600;
 }
 
+/* The Figure Rule: accession numbers, dates and sizes sit in the body cells. */
+.sec-filing-table tbody td {
+  font-family: var(--font-mono);
+}
+
 .sec-filing-table a {
   color: var(--action);
 }
