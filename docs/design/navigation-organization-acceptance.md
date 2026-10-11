@@ -61,3 +61,88 @@ The bar, page clearance and full-page Quick Diary sticky submit share a safe-are
 Acceptance uses synthetic accounts and a disposable local PostgreSQL database. The navigation scenario verifies fixed positioning before and after scrolling, all four destinations, full/quick save clearance, reachable end-of-page content, three locales at 320px, 390px light/dark themes, drawer focus return and desktop/admin behavior. The full workspace-navigation and quick-diary suites pass seven Chromium scenarios. Typecheck, scoped ESLint, the production build, 38 existing navigation unit cases and independent code review pass. Desktop and mobile screenshots were reviewed together; only relevant mobile evidence is retained.
 
 The same mobile navigation scenario also passes WebKit with `npx playwright test tests/e2e/workspace-navigation.spec.ts --config=playwright.webkit-critical.config.ts --grep 'mobile bottom navigation' --reporter=list`. This is browser automation evidence, not a physical-device test.
+
+## Public articles moves out of Account — 2026-10-11
+
+A signed-in reader reported that the workspace navigation offers no way to the
+public articles. The link existed, but the original "Account: Public articles
+and Settings" grouping above put it in the wrong place twice over. By category,
+the article list is public reading rather than a setting about this reader, so
+Account is not where anyone looks for it. By position, Account is the last group
+in a column that scrolls past the viewport at 1440x900 — the recorded evidence
+screenshot already ends mid-way through Markets & tools — and the platform
+scrollbar is hidden until the pointer moves, so nothing signals that the group
+exists at all.
+
+Public articles now sits beside Tools, the other destination that opens in the
+public chrome. Route ownership, the command palette entry and the public header
+are untouched.
+
+Placement alone does not fix the second half. The column overflowed its viewport
+by 537px at 1440x900, measured against the shipped stylesheet, and Public
+articles was below the fold before the move as after it. `useScrollAffordance`
+therefore marks the sidebar `data-scroll-more` while content remains past its
+bottom edge, and the account controls grow a 24px gradient above themselves
+while that holds, so the rows sliding under them fade instead of ending against
+an edge. The cue clears at the end of the list, where it would otherwise claim
+content that is not there.
+
+The alternative — forcing a permanently visible scrollbar — was rejected.
+Safari does not implement `scrollbar-color`, and the global
+`* { scrollbar-color: ... }` at the top of `styles.css` makes Chromium ignore
+`::-webkit-scrollbar` on any element it touches, so the same signal would have
+needed three engine-specific mechanisms and would still have cost gutter width
+on every scroll container that inherited it.
+
+## Shortening the column — 2026-10-12
+
+The cue tells the truth about a column that is still too long. Measuring where
+its 1437px went made the waste obvious, and four changes removed 277px of it
+without costing any destination a click it did not already cost.
+
+| Change | Saved |
+| --- | --- |
+| The sidebar ticker field is gone | 96px |
+| Account moved into the pinned block, losing its heading, rule and gap | 79px net of the 48px it now occupies there |
+| Markets & tools merged into Investing & markets, losing a heading | 70px |
+| AI reports, Diary reminders and Partner management behind a Diary management disclosure | 68px |
+
+The ticker field duplicated the command palette four rows above it: the palette
+already resolves a bare ticker to that company, so the field spent 96px —
+nearly three rows — on a second way in. `destinations()` now lists Market
+research at the ticker the field opened on an empty submit, so that default
+survives. `/stocks/:symbol` consequently has no marked entry anywhere, which is
+honest: it never had one of its own.
+
+The 2026-09-12 arrangement kept the three supporting diary functions open on the
+grounds that none should cost an extra click. That reasoning did not survive
+measurement — all three sat below the fold, so reaching them cost a blind scroll
+*and* a hunt. One labelled disclosure that opens itself on the routes it owns is
+cheaper than what it replaced. The capture-read-review loop stays open, as it
+must; only its supporting functions moved.
+
+The column now measures 1160px. It fits a 1200px viewport whole, overflows a
+1050px one by 110px, and a 900px one by 260px, where the first row hidden under
+the account block is Guru portfolios — four rows above Public articles, which
+still needs a scroll on a laptop. Closing the remaining 260px would mean
+collapsing the three diary views into one entry and reusing the existing
+`DiaryNavigation` switcher on desktop, and that still leaves ~148px. Fitting
+everything at 900px is not reachable without cutting into the diary loop, so the
+cue is permanent, not a stopgap.
+
+Verification: 133 unit files / 1190 tests, TypeScript, ESLint, the production
+build, and the contrast check (74 pairs per theme). The column was measured in
+Chromium at 1440x900 in both themes against the built stylesheet — overflow
+537px before and 260px after, cue on with a 24px gradient at the top of the
+column, cue off and the gradient collapsed at the end of it, Public articles
+under the account block before scrolling and clear of it after.
+`tests/e2e/workspace-navigation.spec.ts` asserts the same sequence, the two
+group headings, the pinned Account links and the absent ticker field in the real
+app; that suite needs a database and was not run here.
+
+One correction worth recording: visibility in this column is not viewport
+containment. The account block is opaque and sticky, so a row can intersect the
+viewport and still be painted underneath it. A first measurement that tested
+only `top >= 0 && bottom <= viewport` reported Public articles as visible at
+900px when it was not; both the harness and the Playwright assertion now compare
+against the block's top edge.

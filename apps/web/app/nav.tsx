@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router'
-import { stockSymbolSchema } from '@diary/contracts/watchlist'
+import { Link, NavLink, useLocation } from 'react-router'
 import { useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
@@ -13,15 +12,15 @@ import { useReviewCount } from './use-review-count'
 type Role = 'USER' | 'ADMIN' | null
 
 const sectionCopy = {
-  'zh-TW': { diary: '日記與複盤', investing: '投資與交易', markets: '市場與工具', account: '帳戶', admin: '管理' },
-  'zh-CN': { diary: '日记与复盘', investing: '投资与交易', markets: '市场与工具', account: '账户', admin: '管理' },
-  en: { diary: 'Diary & review', investing: 'Investing & trading', markets: 'Markets & tools', account: 'Account', admin: 'Administration' },
+  'zh-TW': { diary: '日記與複盤', investing: '投資與市場', account: '帳戶', admin: '管理' },
+  'zh-CN': { diary: '日记与复盘', investing: '投资与市场', account: '账户', admin: '管理' },
+  en: { diary: 'Diary & review', investing: 'Investing & markets', account: 'Account', admin: 'Administration' },
 } as const
 
 const navCopy = {
-  'zh-TW': { lookup: '查公司行情', lookupHint: '輸入代號，或直接查看 SPY。', lookupSubmit: '查看', waiting: '項待複盤' },
-  'zh-CN': { lookup: '查公司行情', lookupHint: '输入代号，或直接查看 SPY。', lookupSubmit: '查看', waiting: '项待复盘' },
-  en: { lookup: 'Look up a company', lookupHint: 'Enter a ticker, or open SPY.', lookupSubmit: 'Open', waiting: 'waiting for review' },
+  'zh-TW': { waiting: '項待複盤' },
+  'zh-CN': { waiting: '项待复盘' },
+  en: { waiting: 'waiting for review' },
 } as const
 
 /**
@@ -47,6 +46,54 @@ function usePersistedDisclosure(key: string, forcedOpen: boolean) {
 
 function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': string; 'zh-TW': string }) {
   return values[locale]
+}
+
+/**
+ * Reports whether a scroll container still has content past its bottom edge,
+ * as `data-scroll-more` on the element itself.
+ *
+ * The sidebar scrolls the whole column — roughly thirty destinations never fit
+ * a laptop viewport — and the account controls are glued over its bottom edge
+ * with an opaque background, so the list slides under a block that has no edge
+ * of its own. A list that continues then looks exactly like a list that ended,
+ * and the platform scrollbar is no help: macOS and iOS keep overlay scrollbars
+ * hidden until the pointer actually moves, so at rest nothing at all says the
+ * column goes on. This reports the one fact a reader needs, and stops
+ * reporting it at the end of the list so the cue never claims more than there is.
+ *
+ * Returns a ref callback rather than taking a ref object: confirming the
+ * session swaps the chrome, so the element this measures mounts and unmounts
+ * during the session's life and the measurement has to follow it.
+ */
+export function useScrollAffordance() {
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    if (!element) return
+    let frame = 0
+    const measure = () => {
+      frame = 0
+      // A fractional scroll offset is a sub-pixel artifact, not content.
+      const remaining = element.scrollHeight - element.scrollTop - element.clientHeight
+      element.dataset.scrollMore = remaining > 1 ? 'true' : 'false'
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure) }
+    measure()
+    element.addEventListener('scroll', schedule, { passive: true })
+    // The column's own height answers a viewport resize; the list's height
+    // changes without one every time a disclosure opens or the admin group
+    // mounts, so both the box and what it holds are watched.
+    const resize = new ResizeObserver(schedule)
+    resize.observe(element)
+    const content = new MutationObserver(schedule)
+    content.observe(element, { childList: true, subtree: true, attributeFilter: ['open'] })
+    return () => {
+      element.removeEventListener('scroll', schedule)
+      resize.disconnect()
+      content.disconnect()
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [element])
+  return setElement
 }
 
 function usePageScrollLock(locked: boolean) {
@@ -93,43 +140,13 @@ export function navigationOwner(pathname: string): NavigationOwner {
   return null
 }
 
-/**
- * Market research always opens on a company, because `/stocks/:symbol` has no
- * index — so the entry point asks which one instead of naming "Market research"
- * and silently meaning SPY. An empty submit still opens that former default,
- * shown as the placeholder, so the no-ticker-in-mind case keeps working.
- */
-const LOOKUP_DEFAULT_SYMBOL = 'SPY'
-
-function CompanyLookup({ idPrefix, onNavigate, current }: { idPrefix: string; onNavigate?: () => void; current: boolean }) {
-  const { locale } = useUi()
-  const c = navCopy[locale]
-  const navigate = useNavigate()
-  const [symbol, setSymbol] = useState('')
-  const trimmed = symbol.trim()
-  const parsed = stockSymbolSchema.safeParse(trimmed)
-  const destination = trimmed === '' ? LOOKUP_DEFAULT_SYMBOL : parsed.success ? parsed.data : null
-  // A company page has no nav link to mark, so the field that opens it carries
-  // the current state. `aria-current` is a global state, valid off a link.
-  return <form className="nav-lookup" data-testid={`${idPrefix}-lookup-form`}
-    aria-current={current ? 'page' : undefined} onSubmit={event => {
-    event.preventDefault()
-    if (destination === null) return
-    setSymbol('')
-    onNavigate?.()
-    navigate(`/stocks/${destination}`)
-  }}>
-    <label htmlFor={`${idPrefix}-lookup`}>{c.lookup}</label>
-    <div className="nav-lookup-row">
-      <input id={`${idPrefix}-lookup`} name="symbol" value={symbol} maxLength={32}
-        autoCapitalize="characters" autoCorrect="off" spellCheck={false}
-        placeholder={LOOKUP_DEFAULT_SYMBOL} aria-describedby={`${idPrefix}-lookup-hint`}
-        onChange={event => setSymbol(event.target.value)} />
-      <button type="submit" className="secondary" disabled={destination === null}>{c.lookupSubmit}</button>
-    </div>
-    <p id={`${idPrefix}-lookup-hint`} className="nav-lookup-hint">{c.lookupHint}</p>
-  </form>
-}
+/* Market research has no sidebar entry of its own. `/stocks/:symbol` has no
+   index, so naming it in the list would mean silently picking a company; the
+   list used to carry a ticker field instead, which cost 96px — nearly three
+   rows — to duplicate the command palette four rows above it. The palette
+   already resolves a bare ticker to that company, and `destinations()` lists
+   Market research at the ticker the field defaulted to, so both ways in
+   survive the field's removal. */
 
 /** Tool shortcuts from the shared registry, so a signed-in reader reaches every
  * tool the public header already discloses instead of only the index. */
@@ -148,7 +165,7 @@ function NavToolShortcuts({ onNavigate, forcedOpen }: { onNavigate?: () => void;
   </details>
 }
 
-export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true, showSettings = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean; showSettings?: boolean }) {
+export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true, showAccount = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean; showAccount?: boolean }) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
@@ -156,14 +173,18 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
   const n = navCopy[locale]
   const owner = navigationOwner(location.pathname)
   const waiting = useReviewCount()
+  const diary = usePersistedDisclosure('diary-management', owner === 'aiReports' || owner === 'diaryReminders' || owner === 'partners')
   const trade = usePersistedDisclosure('trade-management', owner === 'priceReminders' || owner === 'discipline')
   const admin = usePersistedDisclosure('administration', location.pathname.startsWith('/admin'))
   const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
   return <>
     <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
-    {/* Diary sub-items stay in the open list rather than behind a disclosure:
-        reminders and partner sharing are diary functions, and the product is
-        the diary loop, so none of them should cost an extra click. */}
+    {/* The capture-read-review loop is the product, so those four stay in the
+        open list. AI reports, reminders and partner sharing support that loop
+        rather than close it, and the earlier arrangement — all seven open —
+        pushed them below the fold anyway, where finding them cost a blind
+        scroll instead of one labelled click. A disclosure is the cheaper of
+        the two, and it opens itself on the routes it owns. */}
     <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}><h2 id={`${idPrefix}-diary`}>{sections.diary}</h2><div className="nav-group-links">
       {showDiaryViews && <>
         {link('/diaries', c.diaryLibrary, 'book', 'diary')}
@@ -171,34 +192,39 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
         {link('/calendar', c.calendar, 'calendar', 'calendar')}
       </>}
       {link('/reviews', c.reviewQueue, 'check', 'reviews', waiting ?? 0)}
-      {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
-      {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
-      {link('/partners', c.partners, 'users', 'partners')}
-    </div></section>
+    </div><details className="nav-more" open={diary.open} onToggle={event => diary.remember(event.currentTarget.open)}>
+      <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
+      <div className="nav-group-links nav-secondary-links">
+        {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
+        {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
+        {link('/partners', c.partners, 'users', 'partners')}
+      </div>
+    </details></section>
+    {/* Tools and the public articles join the investing group rather than hold
+        a heading of their own: once the ticker field left, three rows were
+        paying for a heading, a rule and the gap around them. */}
     <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}><h2 id={`${idPrefix}-investing`}>{sections.investing}</h2><div className="nav-group-links">
       {link('/stocks', c.holdings, 'briefcase', 'holdings')}
       {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
       {link('/gurus', label(locale, { en: 'Guru portfolios', 'zh-CN': '投资大师', 'zh-TW': '投資大師' }), 'layers', 'gurus')}
       {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
+      {link('/tools', c.tools, 'wrench', 'tools')}
+      {link('/articles', c.publicArticles, 'fileText', 'articles')}
     </div><details className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
       <summary><Icon name="chevronDown" />{c.tradeManagement}</summary>
       <div className="nav-group-links nav-secondary-links">
         {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
         {link('/discipline', c.principles, 'shield', 'discipline')}
       </div>
-    </details></section>
-    <section className="nav-group" aria-labelledby={`${idPrefix}-markets`}><h2 id={`${idPrefix}-markets`}>{sections.markets}</h2>
-      <CompanyLookup idPrefix={idPrefix} onNavigate={onNavigate} current={owner === 'marketResearch'} />
-      <div className="nav-group-links">
-        {link('/tools', c.tools, 'wrench', 'tools')}
-      </div>
-      <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
+    </details>
+    <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
     </section>
-    <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
-      {link('/articles', c.publicArticles, 'fileText', 'articles')}
+    {/* Desktop renders these two in the pinned block at the foot of the column
+        instead, where they are always visible; see `AccountLinks`. */}
+    {showAccount && <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
       {link('/achievements', c.achievements, 'target', 'achievements')}
-      {showSettings && link('/settings', c.settings, 'settings', 'settings')}
-    </div></section>
+      {link('/settings', c.settings, 'settings', 'settings')}
+    </div></section>}
     {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><details className="nav-more" open={admin.open} onToggle={event => admin.remember(event.currentTarget.open)}>
       <summary><Icon name="chevronDown" />{sections.admin}</summary><div className="nav-group-links nav-secondary-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
@@ -213,11 +239,21 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
   </>
 }
 
-export function SettingsLink({ onNavigate }: { onNavigate?: () => void }) {
+/**
+ * The Account group, rendered into the pinned block at the foot of the desktop
+ * column. Two links do not earn a heading, a rule and the gap around them at
+ * the end of a list that scrolls — and down there both were below the fold.
+ * Pinned, they cost nothing and are always reachable.
+ */
+export function AccountLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { locale } = useUi()
   const location = useLocation()
   const c = workspaceCopy[locale]
-  return <Link to="/settings" onClick={onNavigate} aria-current={navigationOwner(location.pathname) === 'settings' ? 'page' : undefined}><Icon name="settings" />{c.settings}</Link>
+  const owner = navigationOwner(location.pathname)
+  return <>
+    <Link to="/achievements" onClick={onNavigate} aria-current={owner === 'achievements' ? 'page' : undefined}><Icon name="target" />{c.achievements}</Link>
+    <Link to="/settings" onClick={onNavigate} aria-current={owner === 'settings' ? 'page' : undefined}><Icon name="settings" />{c.settings}</Link>
+  </>
 }
 
 export function MobileMenu({ role, authenticated, preferences, onLogout, logoutPending, logoutError }: { role: Role; authenticated: boolean | null; preferences: ReactNode; onLogout: () => void; logoutPending: boolean; logoutError: boolean }) {

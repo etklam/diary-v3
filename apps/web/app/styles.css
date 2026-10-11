@@ -1266,53 +1266,6 @@ kbd {
   text-align: center;
 }
 
-/* Market research opens on a company, so the group leads with the field that
-   chooses one instead of a link to a fixed symbol. */
-.nav-lookup {
-  display: grid;
-  gap: var(--space-1);
-  margin-bottom: var(--space-2);
-  padding-inline: var(--space-3);
-}
-
-.nav-lookup > label {
-  color: var(--muted);
-  font-size: var(--text-xs);
-}
-
-/* Same ink the current link uses, so "you are on a company page" reads the
-   same as every other current marker. */
-.nav-lookup[aria-current='page'] > label {
-  color: var(--action-strong);
-  font-weight: var(--weight-semibold);
-}
-
-.nav-lookup-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2);
-}
-
-.nav-lookup-row input {
-  min-width: 0;
-  min-height: 36px;
-  padding: 6px 8px;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-}
-
-.nav-lookup-row button {
-  min-height: 36px;
-  padding-inline: 10px;
-  font-size: var(--text-xs);
-}
-
-.nav-lookup-hint {
-  margin: 0;
-  color: var(--faint);
-  font-size: var(--text-2xs);
-}
-
 .preferences {
   display: grid;
   gap: var(--space-3);
@@ -2148,6 +2101,29 @@ dialog::backdrop {
     margin-bottom: calc(var(--space-5) * -1);
     padding-bottom: var(--space-5);
     background: var(--muted-surface);
+  }
+
+  /* That opaque block is what the list scrolls under, and it has no edge of
+     its own, so a column that continues reads exactly like one that ended —
+     which is how Public articles and the tool shortcuts went unfound. The
+     last rows now fade into it, telling the reader the list goes on. The cue
+     is gated on there actually being something below: at the end of the list
+     it clears, so it only ever means what it looks like. Height, not opacity,
+     carries the state — an animated opacity would pulse on every scroll to
+     the bottom, and this has nothing to say about motion. */
+  .desktop-preferences::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 0;
+    background: linear-gradient(to top, var(--muted-surface), transparent);
+    pointer-events: none;
+  }
+
+  .sidebar[data-scroll-more='true'] .desktop-preferences::before {
+    height: var(--space-6);
   }
 
   .mobile-menu-dialog {

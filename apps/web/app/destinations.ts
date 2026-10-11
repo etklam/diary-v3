@@ -58,6 +58,10 @@ export function destinations(locale: Locale): Destination[] {
     { path: '/gurus/consensus', label: locale === 'en' ? 'Guru consensus' : locale === 'zh-CN' ? '大师共识' : '大師共識', icon: 'layers' },
     { path: '/gurus/stocks', label: locale === 'en' ? 'Most-owned stocks' : locale === 'zh-CN' ? '大师持仓排行' : '大師持倉排行', icon: 'layers' },
     { path: '/gurus/sectors', label: locale === 'en' ? 'Guru sector direction' : locale === 'zh-CN' ? '大师板块方向' : '大師板塊方向', icon: 'layers' },
+    // `/stocks/:symbol` has no index, so this names the ticker the sidebar's
+    // former lookup field opened on an empty submit. A reader with a company
+    // in mind types it instead: `symbolCandidate` routes a bare ticker here.
+    { path: '/stocks/SPY', label: c.marketResearch, icon: 'chart' },
     { path: '/stocks/watchlist', label: c.watchlist, icon: 'star' },
     { path: '/stocks/alerts', label: c.priceReminders, icon: 'bell' },
     { path: '/strategy-performance', label: e.performance, icon: 'chart' },

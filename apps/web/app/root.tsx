@@ -9,7 +9,7 @@ import './tokens.css';
 import './styles.css';
 import './public.css';
 import { QuickEntry } from './quick-entry';
-import { MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks, SettingsLink } from './nav';
+import { AccountLinks, MobileMenu, NavigationLinks, PublicMenu, PublicNavLinks, useScrollAffordance } from './nav';
 import { CommandPalette, CommandPaletteTrigger } from './command-palette';
 import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
@@ -55,6 +55,7 @@ function Shell() {
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
   const [viewer, setViewer] = useState<{ id: string; role: 'USER' | 'ADMIN' } | null>(null);
+  const sidebar = useScrollAffordance();
   const routePath = location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : location.pathname;
   const wideDiaryBrowsePath = ['/diaries', '/timeline', '/calendar'].includes(routePath);
   useEffect(() => {
@@ -175,21 +176,24 @@ function Shell() {
               <PublicMenu preferences={mobilePreferences} authenticated={session.authenticated} role={role} />
             </div>
           </header>
-        : <aside className="sidebar">
+        : <aside className="sidebar" ref={sidebar}>
             <div className="desktop-shell-header"><Link className="brand" to="/"><BrandMark /><div><span className="brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link></div>
             <div className="desktop-quick-entry"><QuickEntry/></div>
             {/* Search sits above the list because the route count exceeds what any
                 sidebar can hold; the list below is the always-visible subset. */}
             <div className="desktop-palette-trigger"><CommandPaletteTrigger/></div>
-            <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role} showSettings={false}/></nav>
+            <nav className="desktop-nav" aria-label={t('navigation')}><NavigationLinks role={role} showAccount={false}/></nav>
             {/* Language, theme and market colour change about twice a year, so they
                 sit behind a disclosure and stop spending ~120px of standing
                 sidebar height; sign-out stays directly reachable. */}
             {/* The account controls are pinned to the bottom of the column, so a
-                navigation list long enough to scroll never takes Settings,
-                Sign out or Preferences below the fold (ticket 116). */}
+                navigation list long enough to scroll never takes Achievements,
+                Settings, Sign out or Preferences below the fold (ticket 116).
+                The whole Account group lives here now rather than as a heading
+                at the end of the list, where both its links were unreachable
+                without scrolling. */}
             <div className="desktop-preferences">
-              <SettingsLink/>
+              <AccountLinks/>
               {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
               <details className="desktop-preferences-disclosure">
                 <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>

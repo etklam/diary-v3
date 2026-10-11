@@ -22,16 +22,50 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
 
   const primary = page.locator('.desktop-nav')
   for (const [name, href] of [
-    ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['AI reports', '/reviews/ai-reports'], ['Trade plans', '/trade-plans'],
+    ['Overview', '/'], ['Diary library', '/diaries'], ['Timeline', '/timeline'], ['Calendar', '/calendar'], ['Review queue', '/reviews'], ['Trade plans', '/trade-plans'],
     ['Holdings', '/stocks'], ['Watchlist', '/stocks/watchlist'], ['Tools', '/tools'],
-    ['Diary reminders', '/alerts'], ['Partner management', '/partners'],
   ] as const) {
     await expect(primary.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
   }
   expect(await primary.locator('.nav-diary-view').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))).toBe(true)
-  await expect(primary.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
-  await expect(primary.locator('.nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account'])
+  // Public articles reads as public material, not as a setting about this
+  // reader, so it sits with Tools rather than under Account at the end of a
+  // column that scrolls past the viewport.
+  const articles = primary.getByRole('link', { name: 'Public articles', exact: true })
+  await expect(articles).toHaveAttribute('href', '/articles')
+  await expect(primary.locator('.nav-group').filter({ hasText: 'Investing & markets' }).getByRole('link', { name: 'Public articles', exact: true })).toHaveCount(1)
+  // Two groups, not four: Account moved into the pinned block at the foot of
+  // the column, and Markets & tools lost its heading once the ticker field
+  // that justified it left.
+  await expect(primary.locator('.nav-group > h2')).toHaveText(['Diary & review', 'Investing & markets'])
   await expect(primary.getByText('Daily work', { exact: true })).toHaveCount(0)
+  const accountControls = page.locator('.desktop-preferences')
+  await expect(accountControls.getByRole('link', { name: 'Achievements and goals', exact: true })).toHaveAttribute('href', '/achievements')
+  await expect(accountControls.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
+  await expect(primary.locator('.nav-account')).toHaveCount(0)
+
+  // The column does not fit 1440x900 and scrolls under the opaque account
+  // controls, so the rows it hides are faded into them rather than cut off
+  // against an edge that looks like the end of the list. Overlay scrollbars
+  // say nothing at rest, so without this there is no signal at all.
+  const sidebar = page.locator('.sidebar')
+  const fadeHeight = () => sidebar.locator('.desktop-preferences').evaluate(element => getComputedStyle(element, '::before').height)
+  expect(await sidebar.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0)
+  await expect(sidebar).toHaveAttribute('data-scroll-more', 'true')
+  expect(Number.parseFloat(await fadeHeight())).toBeGreaterThan(0)
+  await sidebar.evaluate(element => { element.scrollTop = element.scrollHeight })
+  await expect(sidebar).toHaveAttribute('data-scroll-more', 'false')
+  // At the end of the list the cue clears, so it never claims more than there is.
+  expect(Number.parseFloat(await fadeHeight())).toBe(0)
+  // Not `toBeInViewport`: the account block is opaque, so a row can intersect
+  // the viewport and still be painted underneath it. Reachable means above it.
+  expect(await articles.evaluate(link => {
+    const block = document.querySelector('.desktop-preferences')!.getBoundingClientRect()
+    const row = link.getBoundingClientRect()
+    return row.top >= 0 && row.bottom <= block.top
+  })).toBe(true)
+  await sidebar.evaluate(element => { element.scrollTop = 0 })
+  await expect(sidebar).toHaveAttribute('data-scroll-more', 'true')
   await expect(page.getByTestId('quick-entry')).toHaveAttribute('href', '/diaries/quick')
 
   const disclosure = page.locator('.desktop-quick-entry .quick-capture-disclosure')
@@ -88,23 +122,22 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
     if (width === 1440) await page.screenshot({ path: `docs/design/evidence/navigation/${selector.slice(1)}-1440.png`, fullPage: true })
   }
 
-  // Diary reminders and partner sharing are diary functions, so they are in the
-  // open list rather than behind a "Diary management" disclosure.
-  await expect(page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })).toHaveCount(0)
-  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Partner management', exact: true })).toBeVisible()
-  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Diary reminders', exact: true })).toBeVisible()
+  // The capture-read-review loop stays open; the functions that support it sit
+  // behind one labelled disclosure, which opens itself on the routes it owns.
+  const diaryManagement = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Diary management' })
+  await expect(diaryManagement).toHaveCount(1)
+  await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Partner management', exact: true })).toBeHidden()
+  await diaryManagement.locator('summary').click()
+  for (const [name, href] of [['AI reports', '/reviews/ai-reports'], ['Diary reminders', '/alerts'], ['Partner management', '/partners']] as const) {
+    await expect(diaryManagement.getByRole('link', { name, exact: true })).toHaveAttribute('href', href)
+  }
+  await page.goto('/alerts')
+  await expect(diaryManagement).toHaveAttribute('open', '')
 
-  // Market research opens on a company, so the group leads with a lookup field;
-  // an empty submit keeps the former fixed default reachable.
-  const lookup = page.locator('.desktop-nav').getByTestId('nav-lookup-form')
-  await expect(lookup.getByRole('textbox')).toHaveAttribute('placeholder', 'SPY')
-  await lookup.getByRole('textbox').fill('nvda')
-  await lookup.getByRole('button', { name: 'Open', exact: true }).click()
-  await expect(page).toHaveURL(/\/stocks\/NVDA$/)
-  await expect(lookup).toHaveAttribute('aria-current', 'page')
-  await page.goto('/')
-  await lookup.getByRole('button', { name: 'Open', exact: true }).click()
-  await expect(page).toHaveURL(/\/stocks\/SPY$/)
+  // The sidebar carries no ticker field: it cost 96px to duplicate the command
+  // palette above it, which resolves a bare ticker to that company.
+  await expect(page.locator('.desktop-nav').getByTestId('nav-lookup-form')).toHaveCount(0)
+  await expect(page.locator('.desktop-nav').getByRole('textbox')).toHaveCount(0)
 
   // Every tool the public header discloses is reachable from the workspace too.
   const toolShortcuts = page.locator('.desktop-nav .nav-more').filter({ hasText: 'Tools' })
@@ -144,9 +177,11 @@ test('desktop workspace navigation marks the active route exactly once', async (
     await expect(marked).toHaveCount(1)
   }
 
+  // A company page owns no entry in the list, and nothing in the column
+  // pretends otherwise now that the ticker field is gone.
   await page.goto('/stocks/NVDA')
-  await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveCount(0)
-  await expect(page.locator('.desktop-nav').getByTestId('nav-lookup-form')).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('.desktop-nav a[aria-current="page"], .desktop-preferences a[aria-current="page"]')).toHaveCount(0)
+  await expect(page.locator('.desktop-nav [aria-current="page"]')).toHaveCount(0)
 })
 
 test('mobile bottom navigation carries the whole diary loop without covering content @webkit-critical', async ({ page }) => {
@@ -179,14 +214,22 @@ test('mobile bottom navigation carries the whole diary loop without covering con
   await expect(dialog.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/settings')
   await expect(dialog.getByRole('link', { name: 'Public articles', exact: true })).toHaveAttribute('href', '/articles')
   // Rounded: a fractional layout height is a sub-pixel artifact, not a target
-  // smaller than the 44px minimum.
-  expect(await dialog.locator('nav a').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))).toBe(true)
+  // smaller than the 44px minimum. Links inside a closed disclosure are not
+  // targets at all, so they are measured only once their group is open.
+  const touchTargets = async () => dialog.locator('nav a:visible').evaluateAll(links => links.every(link => Math.round(link.getBoundingClientRect().height) >= 44))
+  expect(await touchTargets()).toBe(true)
+  for (const group of ['Diary management', 'Trade management']) {
+    await dialog.locator('.nav-more').filter({ hasText: group }).locator('summary').click()
+  }
+  expect(await touchTargets()).toBe(true)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(trigger).toBeFocused()
 
   await trigger.press('Enter')
   await expect(dialog).toBeVisible()
+  // The disclosure remembers the open state set above, so the link is reachable
+  // without reopening it — which is the point of persisting that choice.
   await dialog.getByRole('link', { name: 'Partner management', exact: true }).click()
   await expect(page).toHaveURL(/\/partners$/)
   await expect(dialog).toBeHidden()
@@ -261,7 +304,7 @@ test('admin navigation is role-gated and ordered with article management first',
   await page.goto('/admin/blog/new')
   await selectAccountLocale(page, 'en')
   const admin = page.locator('.desktop-nav .nav-group').filter({ has: page.getByRole('heading', { name: 'Administration', exact: true }) })
-  await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & trading', 'Markets & tools', 'Account', 'Administration'])
+  await expect(page.locator('.desktop-nav .nav-group > h2')).toHaveText(['Diary & review', 'Investing & markets', 'Administration'])
   await expect(admin.getByRole('link')).toHaveText(['Article management', 'User management', 'Guru management', 'Institutional mappings', 'AI administration', 'Research Studio', 'ETF catalog', 'Mail settings'])
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Article management')
   await page.goto('/admin/blog/123/edit')
