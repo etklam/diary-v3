@@ -62,7 +62,14 @@ for (const width of [1440, 390]) test(`Overview composes bounded decision projec
   expect(await page.getByTestId('overview-attention-item').count()).toBeLessThanOrEqual(5)
 
   const attention = page.getByRole('region', { name: 'Needs your attention', exact: true })
-  await attention.getByTestId('overview-attention-item').first().getByRole('link', { name: 'Open', exact: true }).click()
+  // No action is named "Open" any more; the row is the target and its
+  // accessible name carries the reason and the subject (ticket 119).
+  await expect(attention.getByRole('link', { name: 'Open', exact: true })).toHaveCount(0)
+  const firstRow = attention.getByTestId('overview-attention-item').first()
+  await expect(firstRow).toHaveAttribute('data-attention-band', /high|medium|low/)
+  const firstTarget = firstRow.getByRole('link').first()
+  expect(await firstTarget.getAttribute('aria-label') ?? await firstTarget.innerText()).toMatch(/AAPL|Overview diary/)
+  await firstTarget.click()
   await expect(page).toHaveURL(new RegExp(`/stocks/AAPL/thesis$|/diaries/${diary.id}/review$`))
   await page.goBack()
   await expect(page.getByRole('heading', { name: "Today's workspace", exact: true })).toBeVisible()

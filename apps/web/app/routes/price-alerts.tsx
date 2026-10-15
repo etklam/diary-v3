@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useSearchParams } from 'react-router'
 import { createPriceAlertRequestSchema, PRICE_ALERT_MOVING_AVG_PERIODS, priceAlertTypeSchema, priceAlertListResponseSchema, updatePriceAlertRequestSchema, type CreatePriceAlertRequest, type PriceAlertResponse, type UpdatePriceAlertRequest } from '@diary/contracts/price-alerts'
-import { api, useUi } from '../ui'
+import { ActionButton, api, useConfirm, useUi } from '../ui'
 import { CaptureEntry } from '../capture-entry'
 import { useSessionState, signInPath } from '../session'
 import { FailureNotice, apiFailure, type Failure } from '../api-error'
@@ -21,7 +21,7 @@ function conditionLabel(row: PriceAlertResponse, copy: typeof priceAlertCopy.en)
 }
 
 export default function PriceAlerts() {
- const { locale, t } = useUi(), c = priceAlertCopy[locale], session = useSessionState(), [params] = useSearchParams()
+ const { locale, t } = useUi(), c = priceAlertCopy[locale], session = useSessionState(), [params] = useSearchParams(), confirm = useConfirm()
  const [rows, setRows] = useState<PriceAlertResponse[] | null>(null), [error, setError] = useState<Failure | null>(null), [attempt, retry] = useState(0), [timezone, setTimezone] = useState('UTC')
  const [symbol, setSymbol] = useState(params.get('symbol') ?? ''), [type, setType] = useState<PriceAlertType>('PRICE_ABOVE'), [threshold, setThreshold] = useState(''), [direction, setDirection] = useState<MovingAverageDirection>('above'), [message, setMessage] = useState('')
  const [editing, setEditing] = useState<string | null>(null), [pending, setPending] = useState(false), [writeError, setWriteError] = useState<Failure | null>(null), [notice, setNotice] = useState('')
@@ -36,7 +36,7 @@ export default function PriceAlerts() {
   if (editingRow?.type === 'MOVING_AVG') periodInput.current?.focus()
   else priceInput.current?.focus()
  }, [editing, editingRow?.type])
- useEffect(() => { if (blocker.state === 'blocked') { if (window.confirm(c.discard)) blocker.proceed(); else blocker.reset() } }, [blocker, c.discard])
+ useEffect(() => { if (blocker.state !== 'blocked') return; void confirm({ title: c.discard, confirm: t('discard') }).then(ok => { if (ok) blocker.proceed(); else blocker.reset() }) }, [blocker, c.discard, confirm, t])
  useEffect(() => { const leave = (event: BeforeUnloadEvent) => { if (dirty.current) { event.preventDefault(); event.returnValue = '' } }; window.addEventListener('beforeunload', leave); return () => { mutation.current?.abort(); window.removeEventListener('beforeunload', leave) } }, [])
  useEffect(() => {
   const controller = new AbortController(); setError(null)
@@ -96,7 +96,7 @@ export default function PriceAlerts() {
    <label className="field-sm">{thresholdLabel}{formType === 'MOVING_AVG' ? <select ref={periodInput} aria-label={c.period} required value={threshold} onChange={event => { dirty.current = true; setThreshold(event.target.value) }}><option value="">—</option>{PRICE_ALERT_MOVING_AVG_PERIODS.map(period => <option key={period} value={period}>{period}</option>)}</select> : <input ref={priceInput} aria-label={thresholdLabel} required inputMode="decimal" value={threshold} onChange={event => { dirty.current = true; setThreshold(event.target.value) }}/>}<span className="muted">{thresholdUnit}</span>{thresholdHelp && <small id="price-alert-threshold-help">{thresholdHelp}</small>}</label>
    {formType === 'MOVING_AVG' && <label>{c.direction}<select aria-label={c.direction} value={direction} onChange={event => { dirty.current = true; setDirection(event.target.value as MovingAverageDirection) }}><option value="above">{c.above}</option><option value="below">{c.below}</option></select></label>}
    <label className="plan-wide">{c.message}<textarea aria-label={c.message} rows={2} maxLength={500} value={message} onChange={event => { dirty.current = true; setMessage(event.target.value) }}/></label>
-  </div><p>{c.rearmHint}</p><div className="actions"><button type="submit">{pending ? t('pending') : editing ? c.save : c.create}</button>{editing && <button className="secondary" type="button" onClick={clearForm}>{c.cancel}</button>}</div></fieldset></form>
+  </div><p>{c.rearmHint}</p><div className="actions"><ActionButton type="submit" pending={pending}>{editing ? c.save : c.create}</ActionButton>{editing && <button className="secondary" type="button" onClick={clearForm}>{c.cancel}</button>}</div></fieldset></form>
   <FailureNotice failure={writeError}/>{notice && <p role="status">{notice}</p>}
   <section className="panel" aria-labelledby="price-alert-list-title"><div className="section-head"><h2 id="price-alert-list-title">{c.listTitle} ({rows.length})</h2></div>
   {!rows.length ? <div className="empty-state"><p>{c.empty}</p><button type="button" className="secondary" onClick={() => { symbolInput.current?.scrollIntoView({ block: 'center', behavior: 'auto' }); symbolInput.current?.focus() }}>{c.emptyAction}</button></div> : <><p className="muted">{c.scope}</p><p className="muted">{c.timezone}: {timezone}</p><ul className="plan-list">{rows.map(row => <li key={row.id} data-testid="price-reminder"><header className="plan-header"><h2><Link to={`/stocks/${row.symbol}`}>{row.symbol}</Link> · {conditionLabel(row, c)} {row.type === 'CHANGE_PERCENT' ? `${row.threshold}%` : row.type === 'MOVING_AVG' ? '' : row.threshold}</h2><span>{row.isTriggered ? c.triggered : c.armed}</span></header><p style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{row.message}</p>{row.triggeredAt && <p><time dateTime={row.triggeredAt}>{formatInstantIn(locale, row.triggeredAt, timezone)}</time></p>}<div className="actions"><CaptureEntry symbol={row.symbol}/><button className="secondary" disabled={pending || editing !== null || dirty.current} onClick={() => { setEditing(row.id); setThreshold(row.type === 'MOVING_AVG' ? String(Number(row.threshold)) : row.threshold); setDirection(row.movingAverageDirection ?? 'above'); setMessage(row.message); setWriteError(null) }}>{c.edit}</button>{row.isTriggered && <button className="secondary" disabled={pending || editing !== null} onClick={() => void changeState(row.id, false)}>{c.rearm}</button>}<button className="secondary" disabled={pending || editing !== null} onClick={() => void changeState(row.id, true)}>{c.remove}</button></div></li>)}</ul></>}</section>

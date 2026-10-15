@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { tradePlanExecutionComparisonSchema, type TradePlanExecutionComparison } from '@diary/contracts/trade-plan-execution';
-import { api, useUi } from './ui';
+import { api, Disclosure, DisclosureSummary, useUi } from './ui';
 import { useSessionState } from './session';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 import { planCopy } from './trade-plan-copy';
@@ -24,9 +24,9 @@ export function ReviewPlanExecution({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, open, attempt, session.authenticated, session.revision]);
   const data = confirmed?.revision === session.revision ? confirmed.data : null;
-  return <details className="review-plan-execution" onToggle={event => setOpen(event.currentTarget.open)}><summary>{c.executionTitle}</summary>
+  return <Disclosure className="review-plan-execution" onToggle={event => setOpen(event.currentTarget.open)}><DisclosureSummary>{c.executionTitle}</DisclosureSummary>
     {session.authenticated === true && open && <>{error ? <><FailureNotice failure={error}/><button type="button" onClick={() => retry(value => value + 1)}>{t('retry')}</button></> : !data ? <p role="status">{t('loading')}</p> : <>
       <ExecutionEvidence data={data} c={c} locale={locale} planId={id} retryText={t('retry')}/>
     </>}<Link to={`/trade-plans/${id}`}>{c.edit}</Link></>}
-  </details>;
+  </Disclosure>;
 }

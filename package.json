@@ -15,7 +15,7 @@
     "dev:web": "npm run dev --workspace=@diary/web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "design:check": "node scripts/check-design-contrast.mjs && node scripts/check-figure-rule.mjs",
+    "design:check": "node scripts/check-design-contrast.mjs && node scripts/check-figure-rule.mjs && node scripts/check-native-edges.mjs && node scripts/check-register-assignment.mjs",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/integration/**' --exclude 'tests/e2e/**'",
     "test:integration": "vitest run tests/integration",

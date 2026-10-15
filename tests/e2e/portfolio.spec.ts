@@ -40,6 +40,8 @@ for(const width of [1440,390])test(`Portfolio complete and incomplete valuation 
  const missing=await buy('UNKNOWN','2026-09-01');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Quotes unavailable');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('—');await expect(page.getByTestId('valuation-unpricedCostBasis')).toHaveText('200.00');
  const priced=await buy('AAPL','2026-09-02');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('220.00');await expect(page.getByTestId('valuation-unrealizedAmount')).toHaveText('+20.00');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('50.00%');
  await expect(page.getByRole('table',{name:'Holdings',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'})).toContainText('—');
+ // Absent and stale are different facts and the table keeps them apart (ticket 123).
+ await expect(page.getByRole('table',{name:'Holdings',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'}).locator('.holdings-quote')).toHaveText('No quote');
  if(width===390)await selectTheme(page, 'dark');await page.screenshot({path:`.impeccable/review/portfolio-${width}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.route('**/api/portfolio/overview',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'portfolio-retry'}})}));await page.reload();await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-retry');await page.unroute('**/api/portfolio/overview');await page.locator('.portfolio-valuation').getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');
  await page.request.delete(`/api/diaries/${missing.id}`,{headers});await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('100.00%');
@@ -62,9 +64,52 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
  await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('123,456,850,743.83');
  await expect(page.getByTestId('valuation-unrealizedPct')).toHaveText('+12,400.01%');
- await expect(page.getByText('Quotes older than 72 hours: 1', { exact: true })).toBeVisible();
+ await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1');
+
+ // One caveat, stated once per region and attached to the figures it limits
+ // rather than repeated in prose between them (ticket 121).
+ const caveat = 'Values cover priced positions only. Unpriced cost remains separate.';
+ await expect(page.getByTestId('coverage-note')).toHaveCount(1);
+ await expect(page.getByTestId('coverage-note')).toContainText(caveat);
+ await expect(page.getByText(caveat)).toHaveCount(1);
+ // The valuation region is figures and labels; its prose sits below the rule
+ // that closes it, so nothing interleaves the label/value pairs.
+ expect(await page.locator('.portfolio-valuation > dl p').count()).toBe(0);
+ const coverageId = await page.getByTestId('coverage-note').getAttribute('id');
+ expect(coverageId).toBeTruthy();
+ for (const figure of ['valuation-currentMarketValue', 'valuation-quoteCoveragePct', 'risk-largest', 'risk-top3']) {
+  expect((await page.getByTestId(figure).getAttribute('aria-describedby'))?.split(' ')).toContain(coverageId);
+ }
+ // The complement of the caveat is not limited by it and carries no mark.
+ expect(await page.getByTestId('valuation-unpricedCostBasis').getAttribute('aria-describedby')).toBeNull();
+ // The affordance is real text that is always on screen: no hover, no title.
+ expect(await page.getByTestId('coverage-note').getAttribute('title')).toBeNull();
  const table = page.getByRole('table', { name: 'Holdings', exact: true });
  await expect(table).toBeVisible();
+
+ // Quote state is a word and a mark, not the table's widest cell (ticket 123).
+ const staleRow = table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' });
+ const freshRow = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' });
+ // Both fixture quotes predate the staleness window, so both rows carry the
+ // same short state; what matters is that it is one word and a mark rather than
+ // a wrapped timestamp repeated per row.
+ for (const row of [staleRow, freshRow]) await expect(row.locator('.holdings-quote')).toContainText('Stale');
+ // The exact instant is still reachable for the row — machine-readable on the
+ // element and announced to assistive technology — without being printed in
+ // every row, which is what made this the table's widest column.
+ await expect(staleRow.locator('.holdings-quote time')).toHaveAttribute('datetime', '2026-08-01T10:00:00.000Z');
+ await expect(staleRow.locator('.holdings-quote')).toContainText('Aug 1, 2026');
+ await expect(staleRow.locator('.holdings-quote')).toHaveCSS('white-space', 'nowrap');
+ // The headline finding: quote state no longer holds the table's widest column.
+ const rowWidths = await staleRow.locator('th, td').evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
+ const quoteWidth = await staleRow.locator('.holdings-quote').evaluate(cell => cell.getBoundingClientRect().width);
+ expect(quoteWidth).toBeLessThan(Math.max(...rowWidths));
+ // The reclaimed width goes to the money columns, which can no longer break
+ // mid-phrase — "Average / cost", "Current / price", "Market / value".
+ for (const header of ['Average cost', 'Current price', 'Market value', 'Gain / loss']) {
+  await expect(table.getByRole('columnheader', { name: header, exact: true })).toHaveCSS('white-space', 'nowrap');
+ }
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
  await expect(table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' })).toContainText('12.35');
  await expect(table.getByRole('row')).toHaveCount(3);
  if (width === 390) {
@@ -90,7 +135,7 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
 
  for (const [locale, stale] of [['zh-TW', '超過 72 小時的報價: 1'], ['zh-CN', '超过 72 小时的报价: 1'], ['en', 'Quotes older than 72 hours: 1']] as const) {
   await selectLocale(page, locale);
-  await expect(page.getByText(stale, { exact: true })).toBeVisible();
+  await expect(page.getByTestId('quote-age-note')).toContainText(stale);
  }
 
  await selectLocale(page, 'en');
@@ -113,7 +158,7 @@ for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keybo
  retryEnabled = true;
  await page.keyboard.press('Enter');
  await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
- await expect(page.getByText('Quotes older than 72 hours: 1', { exact: true })).toBeVisible();
+ await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1');
  expect(retrySuccesses).toBeGreaterThan(0);
  await page.unroute('**/api/portfolio/overview');
  await page.unroute('**/api/portfolio/ledger');

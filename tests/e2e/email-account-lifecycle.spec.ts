@@ -1,4 +1,4 @@
-import { expect, test, selectTheme } from '../support/e2e'
+import { acceptConfirmation, expect, selectTheme, test } from '../support/e2e'
 
 const syntheticToken = 'synthetic-token-abcdefghijklmnopqrstuvwxyz123456'
 
@@ -98,8 +98,8 @@ test('admin can test and enable a synthetic SMTP configuration with explicit sta
   await expect(page.getByRole('status')).toContainText('Test passed.')
   await page.getByRole('button', { name: 'Enable mail', exact: true }).click()
   await expect(serviceState.getByText('Enabled', { exact: true })).toBeVisible()
-  page.once('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: 'Disable mail', exact: true }).click()
+  await acceptConfirmation(page, 'Disable mail')
   await expect(serviceState.getByText('Disabled', { exact: true })).toBeVisible()
   await selectTheme(page, 'dark')
   await page.setViewportSize({ width: 390, height: 844 })

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect, selectLocale, selectTheme } from '../support/e2e'
+import { acceptConfirmation, confirmation, expect, selectLocale, selectTheme, test } from '../support/e2e'
 
 for (const width of [1440, 390]) test(`personal achievements CRUD and responsive layout at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
@@ -35,8 +35,10 @@ for (const width of [1440, 390]) test(`personal achievements CRUD and responsive
   await page.getByRole('button', { name: 'Save achievement', exact: true }).click()
   await expect(page.getByTestId('achievement')).toContainText('Updated account milestone')
 
-  page.once('dialog', dialog => dialog.accept())
   await page.getByTestId('achievement').getByRole('button', { name: 'Delete', exact: true }).click()
+  // The confirmation quotes the achievement it is about to destroy.
+  await expect(confirmation(page)).toContainText('Updated account milestone')
+  await acceptConfirmation(page, 'Delete')
   await expect(page.getByText('No achievements recorded yet.', { exact: true })).toBeVisible()
   await expect(page.getByText('Achievement deleted.', { exact: true })).toBeVisible()
 
@@ -109,8 +111,8 @@ for (const width of [1440, 390]) test(`personal goals CRUD and achievement hando
   await overdue.getByRole('button', { name: 'Resume', exact: true }).click()
   await expect(overdue).toContainText('Overdue')
 
-  page.once('dialog', dialog => dialog.accept())
   await overdue.getByRole('button', { name: 'Delete', exact: true }).click()
+  await acceptConfirmation(page, 'Delete')
   await expect(page.getByTestId('goal')).toHaveCount(1)
   await expect(page.getByText('Goal deleted.', { exact: true })).toBeVisible()
 

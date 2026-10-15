@@ -2,7 +2,7 @@ import { useEffect,useRef,useState } from 'react';
 import { Link,useLocation } from 'react-router';
 import { QuickComposer,QuickSavedState } from './quick-composer';
 import { useSessionState } from './session';
-import { useUi } from './ui';
+import { Disclosure, DisclosureSummary, useUi } from './ui';
 import { Icon } from './icons';
 import type { CaptureContext } from './capture-context';
 
@@ -31,10 +31,10 @@ export function CaptureChoices({ mobile = false, onNavigate }: { mobile?: boolea
  const navigate = () => { closeDisclosure(); onNavigate?.(); };
  return <>
   <Link className="button quick-capture-primary" data-testid={mobile ? 'mobile-quick-entry' : 'quick-entry'} to="/diaries/quick" onClick={navigate}>{t('quick')}</Link>
-  {!mobile && <details ref={disclosure} className="quick-capture-disclosure" onKeyDown={event => { if (event.key === 'Escape' && disclosure.current?.open) { event.preventDefault(); closeDisclosure(true); } }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeDisclosure(); }} onClick={event => { if (event.target instanceof Element && event.target.closest('a')) closeDisclosure(); }}>
-    <summary aria-label={c.more}><Icon name="chevronDown" size={17} /></summary>
+  {!mobile && <Disclosure ref={disclosure} className="quick-capture-disclosure" onKeyDown={event => { if (event.key === 'Escape' && disclosure.current?.open) { event.preventDefault(); closeDisclosure(true); } }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeDisclosure(); }} onClick={event => { if (event.target instanceof Element && event.target.closest('a')) closeDisclosure(); }}>
+    <DisclosureSummary aria-label={c.more}></DisclosureSummary>
     <div className="quick-capture-options"><Link to="/diaries/new" onClick={navigate}><Icon name="pen" />{c.write}</Link></div>
-  </details>}
+  </Disclosure>}
  </>;
 }
 

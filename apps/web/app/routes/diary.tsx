@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import type { LedgerTransactionResponse } from '@diary/contracts/ledger';
 import { Evidence } from '../evidence';
@@ -11,7 +11,7 @@ import '../ledger.css';
 import '../diary-editor.css';
 import './diary-reading.css';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useConfirm, useUi } from '../ui';
 import { signInPath } from '../session';
 import { buildCompanyPath, normalizeCaptureContext, type CaptureContext } from '../capture-context';
 import { diaryCopy } from '../diary-copy';
@@ -36,7 +36,7 @@ export default function DiaryPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const dialog = useRef<HTMLDialogElement>(null);
+  const confirm = useConfirm();
   const [diary, setDiary] = useState<Diary | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [pending, setPending] = useState(true);
@@ -73,24 +73,35 @@ export default function DiaryPage() {
     }
   }
 
+  // The dialog this page used to own was the model the shared one was built
+  // from: it named the entry, autofocused Cancel and disabled both controls in
+  // flight. It now runs the delete inside the shared dialog, so that behaviour
+  // reaches the other thirty call sites instead of only this one (ticket 122).
   async function remove() {
-    setDeleting(true);
-    try {
-      const result = await api.DELETE('/api/diaries/{id}', { params: { path: { id: id ?? '' } } });
-      if (result.response.ok) {
-        dialog.current?.close();
-        setDiary(null);
-        navigate('/diaries/new', { replace: true, state: { deleted: true } });
-      } else {
-        dialog.current?.close();
-        setError(apiFailure(result.error, t('failed')));
-      }
-    } catch {
-      dialog.current?.close();
-      setError(apiFailure(null, t('connection')));
-    } finally {
-      setDeleting(false);
-    }
+    if (!diary) return;
+    await confirm({
+      title: labels.confirm,
+      body: diary.title,
+      confirm: labels.remove,
+      cancel: labels.cancel,
+      tone: 'danger',
+      action: async () => {
+        setDeleting(true);
+        try {
+          const result = await api.DELETE('/api/diaries/{id}', { params: { path: { id: id ?? '' } } });
+          if (result.response.ok) {
+            setDiary(null);
+            navigate('/diaries/new', { replace: true, state: { deleted: true } });
+          } else {
+            setError(apiFailure(result.error, t('failed')));
+          }
+        } catch {
+          setError(apiFailure(null, t('connection')));
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   }
 
   useEffect(() => { void load(); }, [id]);
@@ -130,7 +141,15 @@ export default function DiaryPage() {
             <time dateTime={diary.date}>{diary.date}</time>
             <h1>{diary.title}</h1>
           </div>
-          <Link className="button secondary" to={`/diaries/${id}/edit`}>{labels.edit}</Link>
+          {/* Delete sits with the record it destroys, not at the end of a page
+              that runs to 2,984px on a phone — where it was the last thing in
+              the reader's path after finishing an entry, and the first control
+              in that row whenever there was no company to return to
+              (ticket 122). */}
+          <div className="diary-reading-title-actions">
+            <Link className="button secondary" to={`/diaries/${id}/edit`}>{labels.edit}</Link>
+            <ActionButton type="button" className="danger-button button-compact" pending={deleting} onClick={() => void remove()}>{labels.remove}</ActionButton>
+          </div>
         </div>
         {diary.createdVia && diary.createdVia !== 'WEB' && <p data-testid="diary-source">{diary.createdVia === 'API_KEY' ? (locale === 'en' ? 'Created via API key' : locale === 'zh-CN' ? '通过 API 密钥创建' : '透過 API 金鑰建立') : 'Telegram'}{diary.createdByLabel ? ` · ${diary.createdByLabel}` : ''}</p>}
       </header>
@@ -149,15 +168,20 @@ export default function DiaryPage() {
       </section>
       {Boolean(diary.transactions?.length) && <section className="ledger-reading"><h2>{ledgerCopy[locale].title}</h2>{diary.transactions?.map(transaction => <section key={transaction.id}><h3>{transaction.symbol} · {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}</h3><dl>{(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => <div key={field}><dt>{ledgerCopy[locale][field]}</dt><dd className={field === 'quantity' || field === 'price' || field === 'tradeDate' ? 'num' : undefined}>{field === 'tradeDate' ? `${formatInstantIn(locale, transaction.tradeDate, deviceZone)} · ${deviceZone}` : field === 'quantity' ? formatQuantity(locale, transaction.quantity) : field === 'price' ? formatAmount(locale, transaction.price) : field === 'emotion' && transaction.emotion && Object.hasOwn(ledgerEmotions[locale], transaction.emotion) ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en] : transaction[field] || '—'}</dd></div>)}</dl></section>)}<Link className="inline-link" to="/stocks">{ledgerCopy[locale].view}</Link></section>}
       </div>
-      <aside className="diary-reading-aside">
+      {/* The reading register: the record and its original reasoning are the
+          page; everything attached to it is grouped under one heading and set
+          one step down, so an optional module no longer sits at the same
+          visual rank as Transactions (ticket 120). */}
+      <aside className="diary-reading-aside" aria-labelledby="diary-aside-title">
+      <h2 id="diary-aside-title" className="diary-aside-title">{locale === 'en' ? 'Attached to this entry' : locale === 'zh-CN' ? '与这篇记录相关' : '與這篇記錄相關'}</h2>
       <ul className="diary-tags" aria-label={labels.tags}>{diary.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
       {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
       <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : reviewLabels.duePrefix}{' '}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
       <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
       <DiaryGuruSnapshots diaryId={diary.id} symbols={diary.stockSymbols ?? []} />
       </aside>
-      <footer><div className="diary-actions">{companyPath && captureReturn && <Link className="button secondary" data-testid="capture-return" to={companyPath}>{locale === 'en' ? `Return to ${captureReturn.symbol} research` : `返回 ${captureReturn.symbol} 研究`}</Link>}<button type="button" className="danger-button" onClick={() => dialog.current?.showModal()}>{labels.remove}</button><Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></footer>
-      <dialog ref={dialog} className="delete-dialog" aria-labelledby="delete-title"><h2 id="delete-title">{labels.confirm}</h2><p>{diary.title}</p><div className="actions"><button className="secondary" autoFocus onClick={() => dialog.current?.close()} disabled={deleting}>{labels.cancel}</button><button className="danger-button" disabled={deleting} onClick={() => void remove()}>{deleting ? t('pending') : labels.remove}</button></div></dialog>
+      {/* The footer offers the next thing to do, not the way to undo this one. */}
+      <footer><div className="diary-actions">{companyPath && captureReturn && <Link className="button secondary" data-testid="capture-return" to={companyPath}>{locale === 'en' ? `Return to ${captureReturn.symbol} research` : `返回 ${captureReturn.symbol} 研究`}</Link>}<Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></footer>
     </>}
   </article>;
 }

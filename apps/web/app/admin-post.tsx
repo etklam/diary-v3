@@ -6,7 +6,7 @@ import { csrfToken, invalidateArticleCache, sessionFetch, signInPath, wasExplici
 import { Markdown } from './markdown'
 import './diary-editor.css'
 import './trade-plan.css'
-import { useUi } from './ui'
+import { useConfirm, useUi } from './ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from './api-error'
 import type { ShellOutletContext } from './root'
 import { ArticleLanguagesPanel } from './article-languages'
@@ -56,7 +56,7 @@ function storedDraft(value: unknown): RecoveryDraft | null {
 async function bodyOf(response: Response) { return response.json().catch(() => null) as Promise<unknown> }
 
 export function AdminPostEditor({ id }: { id?: string }) {
-  const { locale } = useUi(), c = { ...copy[locale], ...accessCopy[locale] }
+  const { locale, t } = useUi(), c = { ...copy[locale], ...accessCopy[locale] }, confirm = useConfirm()
   const { viewer } = useOutletContext<ShellOutletContext>()
   const navigate = useNavigate(), location = useLocation()
   const [draft, setDraft] = useState<Draft>(blank)
@@ -118,8 +118,8 @@ export function AdminPostEditor({ id }: { id?: string }) {
   useEffect(() => {
     if (blocker.state !== 'blocked') return
     if (pendingRef.current) { blocker.reset(); return }
-    if (window.confirm(c.discard)) { dirtyRef.current = false; blocker.proceed() } else blocker.reset()
-  }, [blocker, c.discard])
+    void confirm({ title: c.discard, confirm: t('discard') }).then(ok => { if (ok) { dirtyRef.current = false; blocker.proceed() } else blocker.reset() })
+  }, [blocker, c.discard, confirm, t])
   useEffect(() => {
     const before = (event: BeforeUnloadEvent) => { if (dirtyRef.current) { event.preventDefault(); event.returnValue = '' } }
     window.addEventListener('beforeunload', before)

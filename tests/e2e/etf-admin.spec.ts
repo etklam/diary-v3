@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme } from '../support/e2e';
+import { acceptConfirmation, confirmation, expect, selectLocale, selectTheme, test } from '../support/e2e';
 test('Admin manages ETF history and catalog at desktop and mobile sizes', async ({ page }) => {
  await page.goto('/login?returnTo=%2Fadmin%2Fetf'); await selectLocale(page, 'en');
  await page.getByLabel('Email', { exact:true }).fill('etf-admin@example.test'); await page.getByLabel('Password', { exact:true }).fill('synthetic-etf-admin-password'); await page.getByRole('button', {name:'Sign in',exact:true}).click();
@@ -17,7 +17,7 @@ test('Admin manages ETF history and catalog at desktop and mobile sizes', async 
  await page.getByRole('button',{name:'Refresh catalog',exact:true}).click();await expect(page.getByTestId('etf-catalog-item')).toHaveCount(0);await expect(page.getByRole('alert')).toBeVisible();
  await page.unroute('**/api/admin/etf');await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('etf-catalog-item')).toHaveCount(24);
  for(const width of [1440,390]) { await page.setViewportSize({width,height:900}); if(width===390)await selectTheme(page, 'dark'); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true); await page.locator('.plan-page').screenshot({path:`docs/design/evidence/etf-admin/${width}.png`}); }
- page.once('dialog',dialog=>dialog.accept()); await spy.getByRole('button',{name:'Delete ETF',exact:true}).click(); await expect(spy).toHaveCount(0); await expect(page.getByRole('status')).toContainText('Monthly prices: 2');
+ await spy.getByRole('button',{name:'Delete ETF',exact:true}).click(); await expect(confirmation(page)).toContainText('SPY'); await acceptConfirmation(page,'Delete ETF'); await expect(spy).toHaveCount(0); await expect(page.getByRole('status')).toContainText('Monthly prices: 2');
  await page.getByRole('textbox',{name:'ETF symbol',exact:true}).fill('CUSTOM'); await page.getByRole('button',{name:'Add ETF',exact:true}).click(); await expect(page.getByTestId('etf-catalog-item').filter({has:page.getByRole('heading',{name:'CUSTOM',exact:true})})).toBeVisible();
 });
 

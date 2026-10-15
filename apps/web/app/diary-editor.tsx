@@ -8,7 +8,7 @@ import { BuyTransactionFields,type BuyDraft } from './buy-transaction-fields';
 import { ledgerCopy } from './ledger-copy';
 import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
 import { Link,useBlocker,useNavigate } from 'react-router';
-import { api,useUi } from './ui';
+import { ActionButton, api, Disclosure, DisclosureSummary, useConfirm, useUi } from './ui';
 import { signInPath,useSessionState,wasExplicitSignOut } from './session';
 import { NO_AUTOMATIC_SESSION_RETRY_HEADER } from '@diary/api-client';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
@@ -19,10 +19,9 @@ import { diaryResponseSchema, type CreateDiaryRequest, type DiaryResponse } from
 import { createEmptyQuickNoteTemplateData,deriveQuickTitle,generateTemplateDraft } from '@diary/domain';
 import { buildCapturePath, normalizeCaptureContext, type CaptureContext } from './capture-context';
 import { CaptureNotice } from './capture-notice';
-import { Icon } from './icons';
 import { readDraftEnvelope, useDraftLifecycle, writeDraftEnvelope } from './draft-lifecycle';
 import { useRecentTags } from './recent-tags';
-import { ConfirmDialog, TagField, WritingToolbar, authoringCopy, joinTags, splitTags } from './authoring-controls';
+import { TagField, WritingToolbar, authoringCopy, joinTags, splitTags } from './authoring-controls';
 export type DiaryFields={revision?:number;alerts?:AlertResponse[];date:string;title:string;content:string;tags:string[];thesis:string|null;risk:string|null;execution:string|null;stockSymbols?:string[];reviewDueAt?:string|null;transactions?:LedgerTransactionResponse[];reviewStatus?:'none'|'pending'|'reviewed'|null};
 
 const writeRecoveryCopy = {
@@ -242,13 +241,13 @@ function editorContinuationPath(id:string,returnTo:string|null|undefined,focusSc
  */
 function EditorSection({id,title,note,initialOpen,children}:{id:string;title:string;note?:string;initialOpen:boolean;children:React.ReactNode}){
  const [open,setOpen]=useState(initialOpen);
- return <details className="authoring-section" data-testid={`editor-section-${id}`} open={open} onToggle={event=>setOpen(event.currentTarget.open)}>
-  <summary><Icon name="chevronDown" size={16}/><span className="authoring-summary-row"><span>{title}</span>{note&&<span className="authoring-section-note">{note}</span>}</span></summary>
+ return <Disclosure className="authoring-section" data-testid={`editor-section-${id}`} open={open} onToggle={event=>setOpen(event.currentTarget.open)}>
+  <DisclosureSummary><span className="authoring-summary-row"><span>{title}</span>{note&&<span className="authoring-section-note">{note}</span>}</span></DisclosureSummary>
   {children}
- </details>;
+ </Disclosure>;
 }
 export function DiaryEditor({initial,id,accountId,quick=false,captureContext,captureIssue,returnTo,focusSchedule=false}:{initial:DiaryFields;id?:string;accountId?:string;quick?:boolean;captureContext?:CaptureContext|null;captureIssue?:import('./capture-context').CaptureContextIssue|null;returnTo?:string|null;focusSchedule?:boolean}){
- const {t,locale}=useUi();const labels=diaryCopy[locale];const session=useSessionState();const sessionRef=useRef(session);sessionRef.current=session;const navigate=useNavigate();
+ const {t,locale}=useUi();const confirm=useConfirm();const labels=diaryCopy[locale];const session=useSessionState();const sessionRef=useRef(session);sessionRef.current=session;const navigate=useNavigate();
  const captureRef=useRef(normalizeCaptureContext(captureContext));
  const [reminders,setReminders]=useState(()=>editableFromDiary(initial).reminders);
  const revisionRef=useRef<number>(initial.revision??1);
@@ -279,8 +278,7 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
  const {flushDraft,suppressDraft}=useDraftLifecycle({key:draftKey,value:draftValue,dirty,paused:Boolean(restorable)});
  const appendLocked=appendUncertain||Boolean(restorable?.uncertainAppend);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
- const [confirmLeave,setConfirmLeave]=useState(false);
- useEffect(()=>{if(blocker.state!=='blocked')return;if(pending){blocker.reset();return;}setConfirmLeave(true);},[blocker,pending]);
+ useEffect(()=>{if(blocker.state!=='blocked')return;if(pending){blocker.reset();return;}void confirm({title:labels.discardTitle,body:labels.discard,confirm:labels.discardConfirm,tone:'danger'}).then(ok=>{if(ok){dirtyRef.current=false;blocker.proceed?.();}else blocker.reset?.();});},[blocker,confirm,labels.discard,labels.discardConfirm,labels.discardTitle,pending]);
  useEffect(()=>{const nextKey=buildCapturePath('new',captureContext,initial.date);if(nextKey===incomingKey.current)return;if(dirtyRef.current)return;incomingKey.current=nextKey;const nextContext=normalizeCaptureContext(captureContext);captureRef.current=nextContext;if(restorable)return;const next=editableFromDiary(initial);setForm(next.form);setReminders(next.reminders);setTransactions(next.transactions);setStockSymbols(next.stockSymbols);setReviewTime(next.reviewTime);setReviewInstant(next.reviewInstant);const confirmed=canonicalState(next);baselineRef.current=confirmed;setBaseline(confirmed);setSaveState('idle');setError(null);},[captureContext,initial.date,restorable]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
  // Draft persistence is shared with Review for TTL, debounce, pause, flush,
@@ -443,7 +441,6 @@ export function DiaryEditor({initial,id,accountId,quick=false,captureContext,cap
   {(error?.code==='AUTH_TOKEN_INVALID'||error?.code==='AUTH_UNAUTHORIZED')&&<p className="editor-signin"><Link className="button secondary" to={signInPath(id?editorContinuationPath(id,returnTo,focusSchedule):buildCapturePath('new',captureRef.current,form.date))}>{t('login')}</Link></p>}
   {error?.code==='DIARY_REVISION_CONFLICT'&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadServerVersion}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadServerVersion}</button></div>}
   {recoveryState&&<div className="actions" role="group" aria-label={writeRecoveryCopy[locale].loadLatest}><button type="button" className="secondary" onClick={()=>void loadLatest()} disabled={pending}>{writeRecoveryCopy[locale].loadLatest}</button><button type="button" className="secondary" onClick={discardDraft} disabled={pending}>{labels.discardDraft}</button></div>}
-  <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<button type="submit" disabled={pending||Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||error?.code==='DIARY_REVISION_CONFLICT'||!form.content.trim()}>{t(pending?'pending':'save')}</button></div></div>
-  <ConfirmDialog open={confirmLeave} title={labels.discardTitle} body={labels.discard} confirmLabel={labels.discardConfirm} danger onConfirm={()=>{setConfirmLeave(false);dirtyRef.current=false;blocker.proceed?.();}} onCancel={()=>{setConfirmLeave(false);if(blocker.state==='blocked')blocker.reset();}}/>
+  <div className="editor-footer"><span className={saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status'} data-testid="save-status" role="status">{saveState==='saving'?labels.statusSaving:saveState==='failed'?labels.statusFailed:dirty?labels.statusDirty:''}</span><div className="actions">{id&&<button type="button" className="secondary" onClick={()=>navigate(returnTo??`/diaries/${id}`)}>{labels.cancel}</button>}<ActionButton type="submit" pending={pending} disabled={Boolean(recoveryState)||Boolean(dateConflict)||appendLocked||error?.code==='DIARY_REVISION_CONFLICT'||!form.content.trim()}>{t('save')}</ActionButton></div></div>
  </form>;
 }

@@ -3,7 +3,7 @@ import { defaultWorkspacePath, markSignedIn, safeAuthReturnPath } from './sessio
 import { apiFailure, FailureNotice, invalidField, type Failure } from './api-error'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { api, useUi } from './ui'
+import { ActionButton, api, useUi } from './ui'
 import { AuthPage } from './auth-page'
 import { authAsideCopy } from './auth-copy'
 import { recoveryPathOffered } from './auth-recovery'
@@ -170,7 +170,7 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
           : emailSent && emailMode ? <div className="auth-request-complete">
             <p role="status">{text.verificationSent}</p>
             <p className="muted" aria-live="off">{cooldownSeconds > 0 ? text.resendWait(cooldownSeconds) : text.resendReady}</p>
-            <button type="button" className="secondary" disabled={pending || cooldownSeconds > 0} onClick={() => void resend()}>{pending ? t('pending') : text.resend}</button>
+            <ActionButton type="button" className="secondary" pending={pending} disabled={cooldownSeconds > 0} onClick={() => void resend()}>{text.resend}</ActionButton>
             <button type="button" className="secondary" onClick={() => { setEmailSent(false); setError(null); setCooldownUntil(null) }}>{text.changeEmail}</button>
             <p className="form-alternate"><Link to={`/login${returnQuery}`}>{t('login')}</Link></p>
           </div>
@@ -183,7 +183,7 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
               {register && !emailMode && <label>{text.confirm}<input disabled={!ready || pending} name="confirm" value={confirm} onChange={event => setConfirm(event.target.value)} aria-invalid={invalidField(error, 'confirm')} type="password" autoComplete="new-password" minLength={8} required aria-describedby={['password-hint', error ? 'form-error' : ''].filter(Boolean).join(' ')} /></label>}
               {register && !emailMode && <p id="password-hint" className="muted">{t('registerHint')}</p>}
               <FailureNotice failure={error} messageOverride={error?.fields.includes('confirm') ? text.mismatch : undefined} />
-              <button disabled={pending || !ready} type="submit">{pending ? t('pending') : emailMode ? text.sendVerification : register ? t('register') : t('login')}</button>
+              <ActionButton pending={pending} disabled={!ready} type="submit">{emailMode ? text.sendVerification : register ? t('register') : t('login')}</ActionButton>
             </form>
             {/* The alternative journey carries weight; recovery stays quiet and
                 only appears when account email can actually deliver it. */}

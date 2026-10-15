@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { postAdminDetailSchema, postAdminListResponseSchema, postBulkResponseSchema, postStatusSchema } from '@diary/contracts/post'
 import { csrfToken, invalidateArticleCache, sessionFetch, signInPath } from '../session'
-import { useUi } from '../ui'
+import { useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { TranslationBatch } from '../admin-translation-batch'
-import { ConfirmDialog } from '../authoring-controls'
 import { formatInstantUtc } from '../market-display'
 import '../trade-plan.css'
 import './admin-blog.css'
@@ -40,14 +39,13 @@ const publishCopy = {
 type PublishFeedback = { count: number; warningCount: number; resumeAt: string | null; articles: Array<{ id: string; title: string }> }
 
 export default function AdminBlog() {
-  const { locale } = useUi(), c = copy[locale]
+  const { locale } = useUi(), c = copy[locale], confirm = useConfirm()
   const [search, setSearch] = useState(''), [status, setStatus] = useState(''), [submitted, setSubmitted] = useState(0)
   const [rows, setRows] = useState<Awaited<ReturnType<typeof postAdminListResponseSchema.parse>> | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set()), [failure, setFailure] = useState<Failure | null>(null)
   // 'bulk' for the selection, an article id for one row. Deletion names its
   // consequence in the project dialog; the row control had no confirmation at
   // all and the bulk one used window.confirm.
-  const [doomed, setDoomed] = useState<string | null>(null)
   const [publishFeedback, setPublishFeedback] = useState<PublishFeedback | null>(null)
   useEffect(() => {
     let active = true
@@ -64,6 +62,14 @@ export default function AdminBlog() {
     return () => { active = false }
   }, [submitted, search, status, c.connection, c.forbidden])
   const refresh = () => setSubmitted(value => value + 1)
+  // Deleting one article and deleting a selection are different consequences,
+  // so each names its own; the shared helper used to raise the bulk copy for
+  // both (ticket 114), which is why this asks here rather than inside it.
+  async function askDelete(target: string) {
+    if (!await confirm({ title: c.remove, body: target === 'bulk' ? c.confirm : c.confirmOne, confirm: c.remove, tone: 'danger' })) return
+    if (target === 'bulk') await action('/api/blog/admin/bulk-delete', 'POST', { ids: [...selected] })
+    else await action(`/api/blog/${target}`, 'DELETE')
+  }
   async function action(path: string, method = 'POST', body?: unknown) {
     // Both delete paths confirm in the project dialog before they get here.
     // This helper used to raise `window.confirm` for every DELETE, with the
@@ -114,13 +120,10 @@ export default function AdminBlog() {
       {publishFeedback.warningCount > 0 && publishFeedback.articles.length > 0 && <p>{publishCopy[locale].review}: {publishFeedback.articles.map(article => <span key={article.id}><Link to={`/admin/blog/${article.id}/edit`}>{article.title}</Link>{' '}</span>)}</p>}
     </div>}
     {rows === null && !failure ? <p role="status">{c.loading}</p> : rows?.data.length === 0 ? <div className="empty-state"><p>{c.empty}</p></div> : rows && <>
-      <div className="actions"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={allSelected} onChange={event => setSelected(event.target.checked ? new Set(rows.data.map(row => row.id)) : new Set())} />{selected.size} {c.selected}</label><button type="button" className="secondary" disabled={!selected.size} onClick={() => void action('/api/blog/admin/bulk-publish', 'POST', { ids: [...selected] })}>{c.bulkPublish}</button><button type="button" className="secondary danger-button" disabled={!selected.size} onClick={() => setDoomed('bulk')}>{c.bulkDelete}</button></div>
+      <div className="actions"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={allSelected} onChange={event => setSelected(event.target.checked ? new Set(rows.data.map(row => row.id)) : new Set())} />{selected.size} {c.selected}</label><button type="button" className="secondary" disabled={!selected.size} onClick={() => void action('/api/blog/admin/bulk-publish', 'POST', { ids: [...selected] })}>{c.bulkPublish}</button><button type="button" className="secondary danger-button" disabled={!selected.size} onClick={() => void askDelete('bulk')}>{c.bulkDelete}</button></div>
       <TranslationBatch selected={[...selected]} />
-      <div className="table-scroll admin-blog-table"><table><caption>{c.caption}</caption><thead><tr><th scope="col">{c.articleColumn}</th><th scope="col" className="admin-blog-status">{c.status}</th><th scope="col">{c.author}</th><th scope="col">{c.updated}</th><th scope="col">{c.actions}</th></tr></thead><tbody>{rows.data.map(row => <tr key={row.id}><th scope="row"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={selected.has(row.id)} onChange={event => setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(row.id); else next.delete(row.id); return next })} />{row.title}</label></th><td className="admin-blog-status">{statusLabel(row.status)}</td><td className="admin-blog-author">{row.author.name ?? <span className="muted">{c.noAuthor}</span>}<br /><span className="muted">{row.author.email}</span></td><td className="admin-blog-updated"><time dateTime={row.updatedAt}>{formatDate(row.updatedAt)}</time></td><td><div className="actions admin-blog-row-actions"><Link className="button quiet-button button-compact" to={`/admin/blog/${row.id}/edit`}>{c.edit}</Link>{row.status === 'PUBLISHED' && <Link className="button quiet-button button-compact" to={`/articles/${encodeURIComponent(row.slug)}`}>{c.view}</Link>}{row.status === 'PUBLISHED' ? <button type="button" className="quiet-button button-compact" onClick={() => void action(`/api/blog/admin/${row.id}/archive`)}>{c.archive}</button> : <button type="button" className="quiet-button button-compact" onClick={() => void action(`/api/blog/admin/${row.id}/publish`)}>{c.publish}</button>}<button type="button" className="danger-button button-compact" onClick={() => setDoomed(row.id)}>{c.remove}</button></div></td></tr>)}</tbody></table></div>
+      <div className="table-scroll admin-blog-table"><table><caption>{c.caption}</caption><thead><tr><th scope="col">{c.articleColumn}</th><th scope="col" className="admin-blog-status">{c.status}</th><th scope="col">{c.author}</th><th scope="col">{c.updated}</th><th scope="col">{c.actions}</th></tr></thead><tbody>{rows.data.map(row => <tr key={row.id}><th scope="row"><label style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={selected.has(row.id)} onChange={event => setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(row.id); else next.delete(row.id); return next })} />{row.title}</label></th><td className="admin-blog-status">{statusLabel(row.status)}</td><td className="admin-blog-author">{row.author.name ?? <span className="muted">{c.noAuthor}</span>}<br /><span className="muted">{row.author.email}</span></td><td className="admin-blog-updated"><time dateTime={row.updatedAt}>{formatDate(row.updatedAt)}</time></td><td><div className="actions admin-blog-row-actions"><Link className="button quiet-button button-compact" to={`/admin/blog/${row.id}/edit`}>{c.edit}</Link>{row.status === 'PUBLISHED' && <Link className="button quiet-button button-compact" to={`/articles/${encodeURIComponent(row.slug)}`}>{c.view}</Link>}{row.status === 'PUBLISHED' ? <button type="button" className="quiet-button button-compact" onClick={() => void action(`/api/blog/admin/${row.id}/archive`)}>{c.archive}</button> : <button type="button" className="quiet-button button-compact" onClick={() => void action(`/api/blog/admin/${row.id}/publish`)}>{c.publish}</button>}<button type="button" className="danger-button button-compact" onClick={() => void askDelete(row.id)}>{c.remove}</button></div></td></tr>)}</tbody></table></div>
     </>}
     {failure?.code === 'AUTH_UNAUTHORIZED' && <Link to={signInPath('/admin/blog')}>Sign in</Link>}
-    <ConfirmDialog open={doomed !== null} title={c.remove} body={doomed === 'bulk' ? c.confirm : c.confirmOne} confirmLabel={c.remove} danger
-      onConfirm={() => { const target = doomed; setDoomed(null); if (target === 'bulk') void action('/api/blog/admin/bulk-delete', 'POST', { ids: [...selected] }); else if (target) void action(`/api/blog/${target}`, 'DELETE') }}
-      onCancel={() => setDoomed(null)} />
   </section>
 }

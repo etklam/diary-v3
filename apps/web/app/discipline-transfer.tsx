@@ -2,7 +2,7 @@ import { disciplineListSchema, type DisciplineResponse } from '@diary/contracts/
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { decodeDisciplineShare, parseDisciplineShare, disciplineShareUrl, exportDisciplineResponseSchema } from '@diary/contracts/discipline-share';
-import { api, useUi } from './ui';
+import { api, Disclosure, DisclosureSummary, useConfirm, useUi } from './ui';
 import { FailureNotice, apiFailure, type Failure } from './api-error';
 const copy = {
  en: { heading: 'Import and share', importHeading: 'Import from a file or link', exportHeading: 'Export and share', json: 'Share JSON', file: 'Choose JSON file', preview: 'Preview import', mode: 'Import mode', append: 'Append to existing principles', replace: 'Replace all existing principles', import: 'Import principles', replaceTitle: 'Replace every stored principle?', replaceBody: 'Your current principles are deleted and replaced by this preview. This cannot be undone.', replaceConfirm: 'Replace all', cancel: 'Cancel', invalid: 'This is not a valid principles file.', title: 'Share title', description: 'Share description', author: 'Include my profile name', prepare: 'Prepare export', download: 'Download JSON', link: 'Public share link', open: 'Open public preview', copy: 'Copy link', copyFailed: 'Copy was blocked. Select the link and copy it manually.', copied: 'Link copied.', imported: 'Import completed.', uncertain: 'Import status is uncertain. The list was checked; keep this preview and refresh before trying again.', notice: 'Anyone with the link can read the exported principles and included name.', count: 'Principles to import' },
@@ -10,14 +10,13 @@ const copy = {
  'zh-CN': { heading: '导入与分享', importHeading: '从文件或链接导入', exportHeading: '导出与分享', json: '分享 JSON', file: '选择 JSON 文件', preview: '预览导入', mode: '导入方式', append: '追加至现有纪律', replace: '替换所有现有纪律', import: '导入纪律', replaceTitle: '替换所有已保存的纪律？', replaceBody: '现有纪律会被删除，并以这份预览替换，之后无法恢复。', replaceConfirm: '全部替换', cancel: '取消', invalid: '这不是有效的纪律文件。', title: '分享标题', description: '分享说明', author: '包含我的个人名称', prepare: '准备导出', download: '下载 JSON', link: '公开分享链接', open: '打开公开预览', copy: '复制链接', copyFailed: '无法自动复制，请选中链接后手动复制。', copied: '链接已复制。', imported: '导入完成。', uncertain: '导入结果尚未确定。系统已检查清单；请保留这份预览并刷新后再决定是否重试。', notice: '任何持有链接的人都可以阅读导出的纪律及所包含的名称。', count: '将导入的纪律' },
 };
 export function DisciplineTransfer({ disabled, onImported, principles, draftState }: { disabled: boolean; onImported: () => void; principles: readonly DisciplineResponse[]; draftState: { current: boolean } }) {
- const { locale, t } = useUi(), c = copy[locale], [params, setParams] = useSearchParams();
+ const { locale, t } = useUi(), c = copy[locale], [params, setParams] = useSearchParams(), confirm = useConfirm();
  const [json, setJson] = useState(''), [preview, setPreview] = useState<ReturnType<typeof parseDisciplineShare> | null>(null), [replace, setReplace] = useState(false);
  const [title, setTitle] = useState(''), [description, setDescription] = useState(''), [author, setAuthor] = useState(false);
  const [preparedSnapshot, setPrepared] = useState<{ json: string; url: string; source: readonly DisciplineResponse[] } | null>(null), [pending, setPending] = useState(false), [error, setError] = useState<Failure | null>(null), [notice, setNotice] = useState<'imported' | 'copied' | null>(null);
  const encoded = params.get('import');
  const [open, setOpen] = useState(Boolean(encoded));
  const prepared = preparedSnapshot?.source === principles ? preparedSnapshot : null;
- const replaceDialog = useRef<HTMLDialogElement>(null);
  useEffect(() => { draftState.current = pending || Boolean(json || (!prepared && (title || description || author))); return () => { draftState.current = false; }; }, [draftState, pending, json, prepared, title, description, author]);
  const request = useRef<AbortController | null>(null), invalidMessage = useRef(c.invalid); invalidMessage.current = c.invalid;
  useEffect(() => () => request.current?.abort(), []);
@@ -54,7 +53,7 @@ export function DisciplineTransfer({ disabled, onImported, principles, draftStat
   setPrepared({ source: principles, json: parsed.data.json, url: disciplineShareUrl(parsed.data.data, window.location.origin) });
  }); }
  function download() { if (!prepared) return; const url = URL.createObjectURL(new Blob([prepared.json], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = 'trading-disciplines.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
- return <section aria-label={c.heading}><details className="discipline-transfer" open={open} onToggle={event => setOpen(event.currentTarget.open)}><summary>{c.heading}</summary>
+ return <section aria-label={c.heading}><Disclosure className="discipline-transfer" open={open} onToggle={event => setOpen(event.currentTarget.open)}><DisclosureSummary>{c.heading}</DisclosureSummary>
   <div className="discipline-transfer-body">
    <section className="panel discipline-import" aria-labelledby="discipline-import-title">
     <header><h3 id="discipline-import-title">{c.importHeading}</h3></header>
@@ -66,7 +65,7 @@ export function DisciplineTransfer({ disabled, onImported, principles, draftStat
       <h4>{c.count}: {preview.count}</h4>
       <ol className="discipline-preview">{preview.disciplines.map((row, index) => <li key={index}>{row.content}</li>)}</ol>
       <div className="discipline-field"><label htmlFor="transfer-mode">{c.mode}</label><select id="transfer-mode" value={replace ? 'replace' : 'append'} onChange={event => setReplace(event.target.value === 'replace')}><option value="append">{c.append}</option><option value="replace">{c.replace}</option></select></div>
-      <div className="actions"><button type="button" onClick={() => { if (replace) replaceDialog.current?.showModal(); else importRows(); }}>{c.import}</button></div>
+      <div className="actions"><button type="button" onClick={() => { void (async () => { if (replace && !await confirm({ title: c.replaceTitle, body: c.replaceBody, confirm: c.replaceConfirm, cancel: c.cancel, tone: 'danger' })) return; importRows(); })(); }}>{c.import}</button></div>
      </>}
     </fieldset>
    </section>
@@ -85,15 +84,7 @@ export function DisciplineTransfer({ disabled, onImported, principles, draftStat
     </fieldset>
    </section>
   </div>
- </details>
+ </Disclosure>
  <FailureNotice failure={error} id="transfer-error"/>{notice && <p role="status">{c[notice]}</p>}
- <dialog ref={replaceDialog} className="delete-dialog" aria-labelledby="discipline-replace-title">
-  <h2 id="discipline-replace-title">{c.replaceTitle}</h2>
-  <p>{c.replaceBody}</p>
-  <div className="actions">
-   <button type="button" className="secondary" autoFocus onClick={() => replaceDialog.current?.close()}>{c.cancel}</button>
-   <button type="button" className="danger-button" onClick={() => { replaceDialog.current?.close(); importRows(); }}>{c.replaceConfirm}</button>
-  </div>
- </dialog>
  </section>;
 }

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { acceptConfirmation, cancelConfirmation, confirmation, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e';
 for (const width of [1440, 390]) test(`Company notes edit and recover at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `notes-${randomUUID()}@example.test`, password = 'synthetic-notes-password';
@@ -28,7 +28,7 @@ for (const width of [1440, 390]) test(`Company notes edit and recover at ${width
   await notes.screenshot({ path: `docs/design/evidence/stock-notes/${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await notes.getByLabel('Note source').selectOption('AGENT'); await expect(notes.getByText('No notes yet.', { exact: true })).toBeVisible(); await notes.getByLabel('Note source').selectOption('USER'); await expect(notes.getByTestId('stock-note')).toHaveCount(1);
   for (const [locale, title] of [['zh-TW', '公司筆記'], ['zh-CN', '公司笔记'], ['en', 'Company notes']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
-  page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(0);
+  await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(confirmation(page)).toContainText('Updated view'); await acceptConfirmation(page, 'Delete note'); await expect(notes.getByTestId('stock-note')).toHaveCount(0);
 });
 
 test('Company note pagination, exact instant preservation and unsaved navigation', async ({ page, context }) => {
@@ -43,14 +43,14 @@ test('Company note pagination, exact instant preservation and unsaved navigation
   await expect(notes.getByTestId('stock-note')).toHaveCount(20); await expect(notes.getByTestId('stock-note').first()).toContainText('Research 20');
   await notes.getByRole('button', { name: 'Next notes', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(1); await expect(notes.getByTestId('stock-note')).toContainText('Research 0');
   await notes.getByRole('button', { name: 'Edit note', exact: true }).click(); await notes.getByLabel('Note title', { exact: true }).fill('Preserve precise time');
-  page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL$/); await expect(notes.getByLabel('Note title', { exact: true })).toHaveValue('Preserve precise time');
+  await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await cancelConfirmation(page); await expect(page).toHaveURL(/\/stocks\/AAPL$/); await expect(notes.getByLabel('Note title', { exact: true })).toHaveValue('Preserve precise time');
   await notes.locator('.plan-form').screenshot({ path: '.impeccable/review/stock-notes-editor.png' });
   await notes.getByRole('button', { name: 'Save note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toContainText('Preserve precise time');
   const listed = await (await page.request.get('/api/stocks/AAPL/notes?page=2&limit=20')).json(); expect(listed.data[0].date).toBe('2026-09-05T10:30:45.123Z');
-  page.once('dialog', dialog => dialog.accept()); await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await expect(notes.getByTestId('stock-note')).toHaveCount(20);
+  await notes.getByRole('button', { name: 'Delete note', exact: true }).click(); await acceptConfirmation(page, 'Delete note'); await expect(notes.getByTestId('stock-note')).toHaveCount(20);
   // One page of results carries no pagination at all (ticket 110).
   await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toHaveCount(0);
   await notes.getByRole('button', { name: 'New note', exact: true }).click(); await notes.getByLabel('Note title', { exact: true }).fill('Discard me');
-  page.once('dialog', dialog => dialog.accept()); await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/watchlist$/);
+  await page.getByRole('link', { name: 'Watchlist', exact: true }).click(); await acceptConfirmation(page); await expect(page).toHaveURL(/\/stocks\/watchlist$/);
   await page.goto('/stocks/AAPL'); await expect(notes.getByTestId('stock-note')).toHaveCount(20); await signOut(page); await expect(page.getByTestId('stock-note')).toHaveCount(0);
 });

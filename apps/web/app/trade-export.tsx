@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { sessionFetch, signInPath } from './session';
-import { useUi } from './ui';
+import { ActionButton, useUi } from './ui';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 
 const copy = {
@@ -32,7 +32,7 @@ export function TradeExport() {
     finally { if (!controller.signal.aborted) setPending(false); }
   }
   return <section aria-labelledby="trade-export-title"><h2 id="trade-export-title">{c.title}</h2><p className="muted">{c.hint}</p>
-    <form onSubmit={download} className="actions"><label>{c.symbol}<input name="symbol" maxLength={20} autoCapitalize="characters" disabled={pending}/></label><button className="secondary" disabled={pending}>{pending ? t('pending') : c.action}</button></form>
+    <form onSubmit={download} className="actions"><label>{c.symbol}<input name="symbol" maxLength={20} autoCapitalize="characters" disabled={pending}/></label><ActionButton className="secondary" pending={pending}>{c.action}</ActionButton></form>
     {ready && <p role="status">{c.ready}</p>}{error && <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/stocks')}>{t('login')}</Link>}</>}
   </section>;
 }

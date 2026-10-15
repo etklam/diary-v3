@@ -17,7 +17,7 @@ import {
   type AiReportSummary,
 } from '@diary/contracts/ai-reports'
 import { z } from 'zod'
-import { api, useUi } from '../ui'
+import { api, useConfirm, useUi } from '../ui'
 import { useSessionState } from '../session'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { aiCopy, aiFailureText, aiMetricText, type AiCopy as AiCopyTable } from '../ai-copy'
@@ -70,6 +70,7 @@ const evidenceLabels = (c: AiCopyTable): { recorded: string; interpretation: str
 export default function AiReports() {
   const { locale, t } = useUi()
   const c = aiCopy[locale]
+  const confirm = useConfirm()
   const session = useSessionState()
   const { authenticated } = useOutletContext<ShellOutletContext>()
   // Guards for async completions: the outlet remounts on session change, and
@@ -341,7 +342,7 @@ export default function AiReports() {
   }
 
   async function withdrawConsent() {
-    if (!window.confirm(c.consentWithdrawConfirm)) return
+    if (!await confirm({ title: c.consentWithdrawConfirm, confirm: c.consentWithdraw, tone: 'danger' })) return
     setPending('withdraw'); setPageFailure(null)
     const revision = sessionRevRef.current
     try {
@@ -405,7 +406,7 @@ export default function AiReports() {
     const prior = retained?.id ? retained : null
     const reportId = prior?.id ?? report?.id
     if (!reportId || (!prior && !report)) return
-    if (!prior && !window.confirm(c.regenerateConfirm)) return
+    if (!prior && !await confirm({ title: c.regenerateConfirm,  confirm: c.regenerate })) return
     setPending('generate'); setPageFailure(null); setNotice(null)
     const revision = sessionRevRef.current
     let body: AiReportGenerateBody | undefined
@@ -452,7 +453,8 @@ export default function AiReports() {
   async function cancelJob() {
     // Always targets the report actually in flight, not whichever one is selected.
     const id = activeJobId
-    if (!id || !window.confirm(c.cancelConfirm)) return
+    if (!id) return
+    if (!await confirm({ title: c.cancelConfirm, confirm: c.cancelJob, tone: 'danger' })) return
     setPending('cancel'); setPageFailure(null)
     const revision = sessionRevRef.current
     try {
@@ -471,7 +473,8 @@ export default function AiReports() {
 
   async function deleteReport() {
     const id = selectedId
-    if (!id || !window.confirm(c.deleteConfirm)) return
+    if (!id) return
+    if (!await confirm({ title: c.deleteConfirm, confirm: c.deleteReport, tone: 'danger' })) return
     setPending('delete'); setPageFailure(null)
     const revision = sessionRevRef.current
     try {

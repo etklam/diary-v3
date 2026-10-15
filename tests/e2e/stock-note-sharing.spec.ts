@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { e2eBaseURL, test, expect, selectLocale } from '../support/e2e';
+import { acceptConfirmation, e2eBaseURL, expect, selectLocale, test } from '../support/e2e';
 
 test('shared Stock Notes stay visible in the list and Hub until sharing is revoked or unlinked', async ({ page: owner, browser }) => {
   const partnerContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -65,7 +65,7 @@ test('shared Stock Notes stay visible in the list and Hub until sharing is revok
     expect(revokedHub.notes).toEqual(expect.arrayContaining([expect.objectContaining({ title: 'Owner view', source: 'owner' })]));
 
     await partner.goto(`${e2eBaseURL}/partners`);
-    partner.once('dialog', dialog => dialog.accept()); await partner.getByRole('button', { name: 'Remove connection', exact: true }).click();
+    await partner.getByRole('button', { name: 'Remove connection', exact: true }).click(); await acceptConfirmation(partner, 'Remove connection');
     const denied = await owner.request.get(`${e2eBaseURL}/api/stocks/AAPL/notes?partnerId=${link.partner.id}`);
     expect(denied.status()).toBe(403);
     const unlinkedHubResponse = owner.waitForResponse(response => {

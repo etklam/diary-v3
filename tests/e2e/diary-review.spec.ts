@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect,test, selectAccountLocale, selectLocale, selectTheme, openEditorSection } from '../support/e2e';
+import { acceptConfirmation, cancelConfirmation, confirmation, expect, openEditorSection, selectAccountLocale, selectLocale, selectTheme, test } from '../support/e2e';
 
 test.use({timezoneId:'America/New_York'});
 // Wall time (device timezone) the editor turns back into the exact instant.
@@ -31,13 +31,12 @@ for(const width of [1440,390]){
   await expect(page.getByTestId('save-status')).toHaveText('');
   await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('Temporary learning note.');
   // The route blocker confirms before an internal navigation leaves a dirty reflection.
-  let dialogMessage='';const readDialog=(dialog:import('playwright').Dialog)=>{dialogMessage=dialog.message();void dialog.dismiss();};
-  page.once('dialog',readDialog);
   await page.getByRole('link',{name:'Back to diary',exact:true}).click();
+  await expect(confirmation(page)).toContainText(/unsaved/i);
+  await cancelConfirmation(page);
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}/review$`));
-  await expect.poll(()=>dialogMessage).toMatch(/unsaved/i);
-  page.once('dialog',dialog=>void dialog.accept());
   await page.getByRole('link',{name:'Back to diary',exact:true}).click();
+  await acceptConfirmation(page);
   await expect(page).toHaveURL(new RegExp(`/diaries/${id}$`));
   // Leaving while dirty flushed a device draft; returning offers it and an
   // explicit discard clears the offer.
@@ -62,11 +61,11 @@ for(const width of [1440,390]){
   await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Edit reflection',exact:true}).click();
   await page.getByRole('textbox',{name:'What I learned',exact:true}).fill('A cancelled learning note.');
-  page.once('dialog',dialog=>void dialog.dismiss());
-  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.locator('main').getByRole('button',{name:'Cancel',exact:true}).click();
+  await cancelConfirmation(page);
   await expect(page.getByRole('textbox',{name:'What I learned',exact:true})).toBeVisible();
-  page.once('dialog',dialog=>void dialog.accept());
-  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.locator('main').getByRole('button',{name:'Cancel',exact:true}).click();
+  await acceptConfirmation(page);
   await expect(page.getByRole('heading',{name:'Review completed',exact:true})).toBeVisible();
   // A 401 save fails closed: the shared session layer treats it as expiry and the
   // layout redirects to the sign-in return flow, while the account-scoped device

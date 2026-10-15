@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { stockWatchlistCreateRequestSchema, stockWatchlistDeleteResponseSchema, stockWatchlistMutationResponseSchema, stockWatchlistReorderResponseSchema, stockWatchlistResponseSchema, type StockWatchlistItem } from '@diary/contracts/watchlist'
-import { api, useUi } from '../ui'
+import { ActionButton, api, useUi } from '../ui'
 import { CaptureEntry } from '../capture-entry'
 import { Icon } from '../icons'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
@@ -367,15 +367,15 @@ export default function Watchlist() {
       </div>
       <Link className="button secondary" to="/stocks">{c.holdings}</Link>
     </header>
-    <form className="watch-add card" onSubmit={add}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><button disabled={adding}>{adding ? t('pending') : c.add}</button></div><p className="muted watch-add-hint">{c.limit}</p></form>
+    <form className="watch-add card" onSubmit={add}><h2>{c.addTitle}</h2><div className="watch-add-row"><label>{c.symbol}<input value={symbol} onChange={event => setSymbol(event.target.value)} maxLength={32} required autoCapitalize="characters" spellCheck={false} placeholder={c.placeholder}/></label><ActionButton pending={adding}>{c.add}</ActionButton></div><p className="muted watch-add-hint">{c.limit}</p></form>
     {saved && <p role="status">{c.saved}</p>}
     {writeError && <><FailureNotice failure={writeError}/>{writeError.code?.startsWith('AUTH_') && <Link to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}</>}
     {!sessionItems && loading && <p role="status">{t('loading')}</p>}
     {!sessionItems && !loading && refreshError && <><FailureNotice failure={refreshError}/>{refreshError.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" onClick={() => retry(value => value + 1)}>{t('retry')}</button></>}
     {sessionItems && <>
       {!loading && refreshError && <div className="watch-refresh-error"><FailureNotice failure={refreshError}/>{refreshError.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/stocks/watchlist')}>{t('login')}</Link>}<button type="button" className="secondary" onClick={() => retry(value => value + 1)}>{t('retry')}</button></div>}
-      {sessionUndo && <div className="watch-undo" role="status" aria-live="polite"><span>{c.removed} {sessionUndo.stock.symbol}</span><button type="button" className="secondary" disabled={undoPending} onClick={() => void restore()}>{undoPending ? t('pending') : c.undo}</button>{undoError && <span className="error">{undoError.message}</span>}</div>}
-      <div className="section-head watch-list-head"><h2>{c.listTitle} ({visible.length}{visible.length !== sessionItems.length ? ` / ${sessionItems.length}` : ''})</h2><div className="watch-list-head-actions">{loading && <span className="watch-refreshing" role="status" aria-live="polite">{c.refreshing}</span>}{canArrange && <button type="button" className="secondary" onClick={() => setArranging(value => !value)}>{arranging ? c.arrangeDone : c.arrange}</button>}<button type="button" className="secondary" disabled={loading} onClick={() => retry(value => value + 1)}>{loading ? t('pending') : c.refresh}</button></div></div>
+      {sessionUndo && <div className="watch-undo" role="status" aria-live="polite"><span>{c.removed} {sessionUndo.stock.symbol}</span><ActionButton type="button" className="secondary" pending={undoPending} onClick={() => void restore()}>{c.undo}</ActionButton>{undoError && <span className="error">{undoError.message}</span>}</div>}
+      <div className="section-head watch-list-head"><h2>{c.listTitle} ({visible.length}{visible.length !== sessionItems.length ? ` / ${sessionItems.length}` : ''})</h2><div className="watch-list-head-actions">{loading && <span className="watch-refreshing" role="status" aria-live="polite">{c.refreshing}</span>}{canArrange && <button type="button" className="secondary" onClick={() => setArranging(value => !value)}>{arranging ? c.arrangeDone : c.arrange}</button>}<ActionButton type="button" className="secondary" pending={loading} onClick={() => retry(value => value + 1)}>{c.refresh}</ActionButton></div></div>
       <div className="watch-toolbar">
         <label>{c.search}<input type="search" value={search} onChange={event => setSearch(event.target.value)} maxLength={100}/></label>
         <label>{c.filterLabel}<select value={filter} onChange={event => setFilter(event.target.value as FilterMode)}><option value="all">{c.all}</option><option value="researched">{c.hasResearch}</option><option value="unresearched">{c.noResearch}</option></select></label>

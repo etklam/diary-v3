@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { cancelConfirmation, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e';
 for (const width of [1440, 390]) test(`Thesis activation review and snapshot at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); const email = `thesis-${randomUUID()}@example.test`, password = 'synthetic-thesis-password';
   await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
@@ -31,7 +31,7 @@ test('Thesis failed save preserves both edits and unsaved reflection', async ({ 
   await current.getByRole('button', { name: 'Save thesis', exact: true }).click(); await expect(page.getByTestId('request-id')).toHaveText('thesis-retry'); await expect(current.getByRole('textbox', { name: 'Summary', exact: true })).toHaveValue('Updated thesis');
   await page.unroute('**/api/stocks/AAPL/thesis'); await current.getByRole('button', { name: 'Save thesis', exact: true }).click(); await expect(page.getByText('Thesis saved.', { exact: true })).toBeVisible();
   await expect(review.getByRole('textbox', { name: 'What changed', exact: true })).toHaveValue('Keep this unsaved reflection');
-  page.once('dialog', dialog => dialog.dismiss()); await page.getByRole('link', { name: 'Back to company', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/);
+  await page.getByRole('link', { name: 'Back to company', exact: true }).click(); await cancelConfirmation(page); await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/);
   const state = await (await page.request.get('/api/stocks/AAPL/thesis')).json(); expect(state.thesis.reviewDueAt).toBe('2026-09-05T10:30:45.123Z'); expect(state.reviews).toEqual([]);
   await review.getByRole('button', { name: 'Complete thesis review', exact: true }).click(); await expect(page.getByTestId('thesis-review')).toContainText('Keep this unsaved reflection');
   await page.getByRole('link', { name: 'Back to company', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL$/);

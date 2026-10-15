@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { alertCreateRequestSchema, alertListResponseSchema, type AlertResponse } from '@diary/contracts/alerts';
 import { diarySummaryListResponseSchema, type DiarySummary } from '@diary/contracts/diary-summary';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { signInPath } from '../session';
 import { reminderCopy, type ReminderDraft } from '../alert-fields';
@@ -96,7 +96,7 @@ export default function Alerts() {
                 {choices.length > 1 && <label>UTC<select aria-label="UTC" required value={draft.instant} onChange={event => setDraft(current => ({ ...current, instant: event.target.value }))}><option value="">—</option>{choices.map(instant => <option key={instant}>{instant}</option>)}</select></label>}
                 <label>{rc.mode}<select aria-label={rc.mode} value={draft.mode} onChange={event => setDraft(current => ({ ...current, mode: event.target.value as ReminderDraft['mode'] }))}><option value="">{rc.once}</option><option value="WEEK">{rc.week}</option><option value="MONTH">{rc.month}</option></select></label>
                 <label className="plan-wide">{rc.message}<textarea aria-label={rc.message} rows={2} required maxLength={500} value={draft.message} onChange={event => setDraft(current => ({ ...current, message: event.target.value }))}/></label>
-              </div><p className="muted">{rc.device} {deviceTimeZone()}</p>{draft.mode && <p className="muted">{rc.recurrence}</p>}<div className="actions"><button type="submit">{pending === 'create' ? t('pending') : rc.add}</button></div></fieldset></form>}
+              </div><p className="muted">{rc.device} {deviceTimeZone()}</p>{draft.mode && <p className="muted">{rc.recurrence}</p>}<div className="actions"><ActionButton type="submit" pending={pending === 'create'}>{rc.add}</ActionButton></div></fieldset></form>}
       </section>
       {created && <p role="status">{c.created}</p>}{done && <p role="status">{c.done}</p>}{writeError && <FailureNotice failure={writeError}/>}
       <section className="panel reminder-list" aria-labelledby="reminder-list-title">
@@ -111,7 +111,7 @@ export default function Alerts() {
             // the list carries overdue reminders, so the distinction cannot rest
             // on the row simply sorting first.
             const overdue = Date.parse(row.triggerAt) <= asOf;
-            return <li key={row.id} data-testid="diary-reminder" data-overdue={overdue ? 'true' : undefined}><div className="reminder-meta"><time dateTime={row.triggerAt}>{formatInstantIn(locale, row.triggerAt, timezone)}</time>{overdue && <span className="badge badge-warn">{c.overdue}</span>}{row.recurringMode && <span className="badge">{row.recurringMode === 'WEEK' ? c.week : c.month} · {row.instanceNumber}{row.isPaused ? ` · ${c.paused}` : ''}</span>}</div><h3>{row.message}</h3><div className="plan-header"><Link to={`/diaries/${row.diaryId}`}>{row.diary?.title ?? c.open}</Link><button className="quiet-button" disabled={pending !== null} onClick={() => void dismiss(row.id)}>{pending === row.id ? t('pending') : root ? c.series : c.dismiss}</button></div></li>;
+            return <li key={row.id} data-testid="diary-reminder" data-overdue={overdue ? 'true' : undefined}><div className="reminder-meta"><time dateTime={row.triggerAt}>{formatInstantIn(locale, row.triggerAt, timezone)}</time>{overdue && <span className="badge badge-warn">{c.overdue}</span>}{row.recurringMode && <span className="badge">{row.recurringMode === 'WEEK' ? c.week : c.month} · {row.instanceNumber}{row.isPaused ? ` · ${c.paused}` : ''}</span>}</div><h3>{row.message}</h3><div className="plan-header"><Link to={`/diaries/${row.diaryId}`}>{row.diary?.title ?? c.open}</Link><ActionButton className="quiet-button" pending={pending === row.id} disabled={pending !== null} onClick={() => void dismiss(row.id)}>{root ? c.series : c.dismiss}</ActionButton></div></li>;
           })}</ol></>}
       </section>
     </>}

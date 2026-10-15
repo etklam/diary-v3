@@ -15,7 +15,7 @@ import {
 } from '@diary/contracts/admin-institutional'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath } from '../session'
-import { api, LoadingBlock, useUi } from '../ui'
+import { api, Disclosure, DisclosureSummary, LoadingBlock, useUi } from '../ui'
 import './admin-institutional-mappings.css'
 import { formatInstantUtc } from '../market-display';
 
@@ -168,8 +168,8 @@ function SecurityIdentityEvents({ security, locale, c }: { security: SecurityCho
       <SourceLink href={item.evidenceUrl} label={c.adminVerified} />
     </li>)}</ol> : <p className="admin-mapping-empty-note">{c.noEvents}</p>)}
     {notice && <p role="status" className="admin-mapping-success">{notice}</p>}
-    <details className="admin-mapping-event-create">
-      <summary>{c.addEvent}</summary>
+    <Disclosure className="admin-mapping-event-create">
+      <DisclosureSummary>{c.addEvent}</DisclosureSummary>
       <form onSubmit={saveEvent} aria-busy={pending}>
         <label>{c.eventKind}<select value={kind} onChange={event => { setKind(event.target.value as typeof kind); setRelatedSecurity(null); setFormFailure(null) }} disabled={pending}>
           <option value="TICKER_CHANGE">{c.tickerChange}</option><option value="STOCK_SPLIT">{c.split}</option><option value="MERGER">{c.merger}</option><option value="SPIN_OFF">{c.spinOff}</option><option value="DELISTING">{c.delisting}</option><option value="SHARE_CLASS_CONTINUITY">{c.classContinuity}</option>
@@ -190,7 +190,7 @@ function SecurityIdentityEvents({ security, locale, c }: { security: SecurityCho
         <FailureNotice failure={formFailure} messageOverride={failureMessage(formFailure, c, c.eventSaveFailed)} />
         <button type="submit" disabled={pending || (needsRelated && !relatedSecurity)}>{pending ? c.saving : c.saveEvent}</button>
       </form>
-    </details>
+    </Disclosure>
   </section>
 }
 

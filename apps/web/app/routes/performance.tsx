@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { performanceQuerySchema, performanceResponseSchema, type PerformanceResponse } from '@diary/contracts/performance';
-import { api, useUi } from '../ui';
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { signInPath } from '../session';
 import { performanceCopy } from '../performance-copy';
@@ -62,7 +62,7 @@ export default function Performance() {
           must not be the thing behind a summary. */}
       {(() => {
         const curveTable = <PerformanceTable key={query} title={c.curve} headers={[c.date,c.pnl]} rows={data.equityCurve.map(row=>[row.date,<span className={marketClass(row.cumPnL)}>{signed(row.cumPnL)}</span>])}/>;
-        return <section><h2>{c.curve}</h2><PerformanceChart title={c.curve} points={data.equityCurve.map(row=>({label:row.date,value:row.cumPnL}))}/>{data.equityCurve.length < MIN_CHART_POINTS ? curveTable : <details><summary>{c.data}</summary>{curveTable}</details>}</section>;
+        return <section><h2>{c.curve}</h2><PerformanceChart title={c.curve} points={data.equityCurve.map(row=>({label:row.date,value:row.cumPnL}))}/>{data.equityCurve.length < MIN_CHART_POINTS ? curveTable : <Disclosure><DisclosureSummary>{c.data}</DisclosureSummary>{curveTable}</Disclosure>}</section>;
       })()}
       <section><h2>{c.symbols}</h2><PerformanceChart title={c.symbols} bars points={data.symbolBreakdown.slice(0,10).map(row=>({label:row.symbol,value:row.realizedPnL}))}/><PerformanceTable key={query} title={c.symbols} headers={[c.symbolLabel,c.count,c.pnl,c.winRate]} rows={data.symbolBreakdown.map(row=>[<Link key={row.symbol} to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link>,number(row.tradeCount,0),<span className={marketClass(row.realizedPnL)}>{signed(row.realizedPnL)}</span>,percent(row.winRate)])}/></section>
       {breakdown(c.strategy,data.strategyBreakdown)}{breakdown(c.emotion,data.emotionBreakdown)}{trades(c.topWins,data.topWins)}{trades(c.topLosses,data.topLosses)}

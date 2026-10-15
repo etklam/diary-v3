@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { test, expect } from '../support/e2e'
+import { acceptConfirmation, expect, test } from '../support/e2e'
 import { aiMutation, configureSyntheticAi, gotoAiPage, registerAiOwner } from '../support/ai-e2e'
 
 /**
@@ -9,7 +9,7 @@ import { aiMutation, configureSyntheticAi, gotoAiPage, registerAiOwner } from '.
  * to the open dialog is what keeps the two apart.
  */
 async function confirmAdminAction(page: Page, name: string) {
-  const dialog = page.locator('dialog.delete-dialog[open]')
+  const dialog = page.getByTestId('confirm-dialog')
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name, exact: true }).click()
 }
@@ -374,14 +374,14 @@ test('monthly reports remain readable after consent withdrawal and can be delete
     expect(reports.data[0].period.periodType).toBe('monthly')
     await page.reload()
     await expect(page.locator('.ai-coverage')).toHaveCount(0)
-    page.once('dialog', dialog => dialog.accept())
     await page.getByRole('button', { name: 'Withdraw consent', exact: true }).click()
+    await acceptConfirmation(page, 'Withdraw consent')
     await expect(page.getByTestId('ai-consent-accept')).toBeVisible()
     await page.getByTestId('ai-history-item').first().click()
     await expect(page.getByTestId('ai-report')).toContainText('The saved synthetic record describes a decision')
     await expect(page.getByTestId('ai-generate')).toBeDisabled()
-    page.once('dialog', dialog => dialog.accept())
     await page.getByTestId('ai-delete').click()
+    await acceptConfirmation(page, 'Delete report')
     await expect(page.getByTestId('ai-report')).toHaveCount(0)
     await expect(page.getByTestId('ai-history-item')).toHaveCount(0)
     expect((await page.request.get(`/api/ai/reports/${reports.data[0].id}`)).status()).toBe(404)
@@ -477,8 +477,8 @@ test('deleting a report last observed as running clears its active-job controls'
     await expect(page.getByTestId('ai-generate')).toBeEnabled()
     await page.getByTestId('ai-generate').click()
     await expect(page.getByTestId('ai-active')).toBeVisible()
-    page.once('dialog', dialog => dialog.accept())
     await page.getByTestId('ai-delete').click()
+    await acceptConfirmation(page, 'Delete report')
     await expect(page.getByTestId('ai-active')).toHaveCount(0)
     await expect(page.getByTestId('ai-history-item')).toHaveCount(0)
     await expect(page.getByTestId('ai-generate')).toBeEnabled()

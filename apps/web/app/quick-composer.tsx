@@ -3,7 +3,7 @@ import { recentClosedTradeSchema } from '@diary/contracts/ledger';
 import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
 import { Link,useBlocker,useNavigate } from 'react-router';
 import { calendarDateInTimezone,createEmptyQuickNoteTemplateData,deriveQuickTitle,generateTemplateDraft,mergeQuickTemplate,quickSnippets,type QuickNoteTemplateData,type QuickNoteTemplateKind } from '@diary/domain';
-import { api,useUi } from './ui';
+import { ActionButton, api, Disclosure, DisclosureSummary, useConfirm, useUi } from './ui';
 import './diary-editor.css';
 import { signInPath,useSessionState,wasExplicitSignOut } from './session';
 import { apiFailure,FailureNotice,invalidField,type Failure } from './api-error';
@@ -15,9 +15,8 @@ import { CaptureReminder,VoiceCapture } from './quick-capture-tools';
 import { NO_AUTOMATIC_SESSION_RETRY_HEADER } from '@diary/api-client';
 import { buildCapturePath, buildCompanyPath, composeSharedContent, normalizeCaptureContext, type CaptureContext, type CaptureContextIssue, type CaptureShare } from './capture-context';
 import { CaptureNotice } from './capture-notice';
-import { Icon } from './icons';
 import { useRecentTags } from './recent-tags';
-import { ConfirmDialog, TagField, WritingToolbar, authoringCopy, splitTags } from './authoring-controls';
+import { TagField, WritingToolbar, authoringCopy, splitTags } from './authoring-controls';
 import { diaryResponseSchema, type DiaryResponse } from '@diary/contracts';
 export type Draft={date:string;title:string;content:string;tags:string;stockSymbols:string;kind:QuickNoteTemplateKind;data:QuickNoteTemplateData;mode:'create'|'append';titleTouched:boolean;contentTouched:boolean;applied:string;captureContext?:CaptureContext;uncertain?:boolean};
 type Snippet={id:string;name:string;content:string};
@@ -71,7 +70,7 @@ function SnippetManager({open,snippets,onSave,onClose}:{open:boolean;snippets:Sn
  </dialog>;
 }
 function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,captureContext,captureIssue,onSaved,onNavigate,autoFocusContent}:{accountId:string|null;accountDate:string|null;deviceDate:string;onTyped:()=>void;share?:CaptureShare;initialDate?:string;captureContext?:CaptureContext|null;captureIssue?:CaptureContextIssue|null;onSaved?: (id:string,captureContext?:CaptureContext|null)=>void;onNavigate?:()=>void;autoFocusContent?:boolean}){
- const {locale,t}=useUi(),c=quickCopy[locale],navigate=useNavigate(),session=useSessionState();const key=accountId?`diary-quick-draft:${accountId}`:'',snippetKey=accountId?`diary-quick-snippets:${accountId}`:'';
+ const {locale,t}=useUi(),c=quickCopy[locale],navigate=useNavigate(),session=useSessionState(),confirm=useConfirm();const key=accountId?`diary-quick-draft:${accountId}`:'',snippetKey=accountId?`diary-quick-snippets:${accountId}`:'';
  const sessionRef=useRef(session);sessionRef.current=session;
  const incomingDate=initialDate??accountDate??deviceDate;
  const seed=composeSharedContent(share);
@@ -82,7 +81,7 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  const [recentTags,rememberTags]=useRecentTags(accountId??'');
  const a=authoringCopy[locale];
  const formRef=useRef<HTMLFormElement>(null),queued=useRef(false);
- const [confirming,setConfirming]=useState<'leave'|'snippet'|'template'|'restore'|null>(null),[manageOpen,setManageOpen]=useState(false),[announce,setAnnounce]=useState(''),[queuedNotice,setQueuedNotice]=useState(false);
+ const [manageOpen,setManageOpen]=useState(false),[announce,setAnnounce]=useState(''),[queuedNotice,setQueuedNotice]=useState(false);
  useEffect(()=>{if(!announce)return;const timer=setTimeout(()=>setAnnounce(''),4000);return()=>clearTimeout(timer);},[announce]);
  const [uncertain,setUncertain]=useState(()=>Boolean(restorable?.uncertain));
  useEffect(()=>{active.current=true;return()=>{active.current=false;}},[]);
@@ -90,7 +89,7 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  // caret away from them.
  useEffect(()=>{if(!autoFocusContent)return;if(restorable){if(!dirtyRef.current)restoreRef.current?.focus();return;}contentRef.current?.focus();},[autoFocusContent,restorable]);
  const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
- useEffect(()=>{if(blocker.state==='blocked')setConfirming('leave');},[blocker.state]);
+ useEffect(()=>{if(blocker.state!=='blocked')return;void confirm({title:c.discardTitle,body:c.discardBody,confirm:c.discardConfirm,tone:'danger'}).then(ok=>{if(ok){dirtyRef.current=false;blocker.proceed?.();}else blocker.reset?.();});},[blocker,c.discardBody,c.discardConfirm,c.discardTitle,confirm]);
  useEffect(()=>{const before=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
  const suggested=useMemo(()=>generateTemplateDraft({templateKind:form.kind,date:form.date,locale,templateData:form.data}),[form.kind,form.date,locale,form.data]);
  useEffect(()=>{if(skipSuggested.current){skipSuggested.current=false;return;}setForm(current=>({...current,title:current.titleTouched?current.title:current.kind==='blank'?'':suggested.title,content:current.contentTouched?current.content:suggested.content,applied:current.contentTouched?current.applied:suggested.content}));},[suggested]);
@@ -129,7 +128,7 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  function clearUncertainMarker(valueForm=form){if(!key||!active.current||session.authenticated===false||wasExplicitSignOut())return false;const value=draftValueForStorage(valueForm,false);try{localStorage.setItem(key,JSON.stringify({at:Date.now(),value}));setUncertain(false);setDraftError(false);return true;}catch{setUncertain(true);setDraftError(true);return false;}}
  function markUncertain(valueForm=form){if(!persistUncertainMarker(valueForm)){setError({message:c.storageUnavailable,code:'SYS_INTERNAL_ERROR',fields:[]});return;}setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});}
  function insertSnippet(replace:boolean){const item=[...quickSnippets,...snippets].find(item=>item.id===snippet);if(!item)return;change({content:replace||!form.content?item.content:[form.content,item.content].join('\n\n'),contentTouched:true});}
- function insert(replace:boolean){if(replace&&form.content){setConfirming('snippet');return;}insertSnippet(replace);}
+ function insert(replace:boolean){if(replace&&form.content){void replaceWriting(()=>insertSnippet(true));return;}insertSnippet(replace);}
  const uncertainCopy=locale==='en'?'The append result could not be confirmed. Your writing is locked until you inspect the existing diary or discard this draft.':locale==='zh-CN'?'追加结果无法确认。你的内容仍保存在此设备上；请先检查现有日记或丢弃这份草稿。':'追加結果無法確認。你的內容仍保存在此裝置上；請先檢查現有日記或捨棄這份草稿。';
  /**
   * Is the session this write began under still the session now? The question is
@@ -144,7 +143,9 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
  async function save(event:FormEvent){event.preventDefault();if(pending||uncertain)return;const writeIdentity=session.identity;const companies=parseCompanyContext(form.stockSymbols);if(!companies.success){setError({message:companyContextCopy[locale].invalid,fields:['stockSymbols']});return;}const append=form.mode==='append',target=destination?.date===form.date?destination:null,tags=splitTags(form.tags);const protectedForm=append&&target?{...form,title:target.title,titleTouched:false}:form;if(checking){queued.current=true;setQueuedNotice(true);setError(null);return;}if(destination&&destination.date!==form.date){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(!liveWrite(writeIdentity)){setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});return;}if(append&&target&&form.title!==target.title)setForm(current=>({...current,title:target.title,titleTouched:false}));if(append&&!persistUncertainMarker(protectedForm)){setError({message:c.storageUnavailable,code:'SYS_INTERNAL_ERROR',fields:[]});return;}setPending(true);setError(null);try{const result=await api.POST('/api/diaries',{headers:append?{[NO_AUTOMATIC_SESSION_RETRY_HEADER]:'1'}:undefined,body:{title:append&&target?target.title:form.title.trim()||deriveQuickTitle(form.content,suggested.title),content:form.content.trim(),date:form.date,tags,stockSymbols:companies.data??[],appendToToday:append}});if(!liveWrite(writeIdentity))return;if(result.response.ok&&result.data&&typeof result.data.id==='string'){skipSave.current=true;dirtyRef.current=false;modeTouched.current=false;if(liveWrite(writeIdentity))rememberTags(tags);try{localStorage.removeItem(key);localStorage.removeItem(`diary-quick-reminder:${accountId}`);}catch{/* In-memory draft cleared on success. */}window.dispatchEvent(new Event('diary-quick-saved'));setForm(empty(incomingDate));setSavedDraft(false);setLookupAttempt(value=>value+1);if(onSaved)onSaved(result.data.id,captureRef.current);else navigate(`/diaries/${result.data.id}`,{state:{saved:true,captureContext:captureRef.current}});}else{const failure=apiFailure(result.error,t('failed'));if(append&&isDefiniteAppendRejection(result.response.status,failure.code)){if(!clearUncertainMarker(protectedForm))setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});else setError(failure);}else if(append)markUncertain(protectedForm);else setError(failure);}}catch{if(liveWrite(writeIdentity)){if(append)markUncertain(protectedForm);else setError(apiFailure(null,t('connection')));}}finally{if(active.current)setPending(false);}}
  function applyRestore(){if(!restorable)return;modeTouched.current=true;dirtyRef.current=true;skipSuggested.current=true;captureRef.current=normalizeCaptureContext(restorable.captureContext);setUncertain(Boolean(restorable.uncertain));const next={...restorable,titleTouched:restorable.titleTouched||Boolean(restorable.title),contentTouched:restorable.contentTouched||Boolean(restorable.content)};setForm(next);if(restorable.uncertain)setError({message:uncertainCopy,code:'DIARY_WRITE_UNCERTAIN',fields:[]});setRestorable(null);}
  /** Restoring replaces the writing area, so it asks first when there is writing in it. */
- function restore(){if(!restorable)return;if(dirtyRef.current){setConfirming('restore');return;}applyRestore();}
+ // One question for every action that overwrites what is already written.
+ async function replaceWriting(apply:()=>void){if(await confirm({title:c.replaceTitle,body:c.replaceBody,confirm:c.replaceConfirm}))apply();}
+ function restore(){if(!restorable)return;if(dirtyRef.current){void replaceWriting(applyRestore);return;}applyRestore();}
  /** Drops the stored draft and leaves writing already in progress untouched. */
  function discardStored(){setRestorable(null);if(!key)return;try{localStorage.removeItem(key);}catch{setDraftError(true);}}
  function discard(){modeTouched.current=false;dirtyRef.current=false;skipSuggested.current=false;captureRef.current=captureContext??null;setUncertain(false);setError(null);setRestorable(null);setForm(empty(incomingDate,captureRef.current?.symbol,captureRef.current??undefined,seed));setLookupAttempt(value=>value+1);if(!key)return;try{localStorage.removeItem(key);}catch{setDraftError(true);}}
@@ -173,43 +174,39 @@ function Composer({accountId,accountDate,deviceDate,onTyped,share,initialDate,ca
     </section>
     {form.kind!=='blank'&&<section className="authoring-fields" aria-label={c[form.kind]}>
      <QuickFields kind={form.kind} data={form.data} change={patch=>change({data:{...form.data,...patch}})}/>
-     {form.contentTouched&&form.applied!==suggested.content&&<div className="actions"><button type="button" className="secondary button-compact" onClick={()=>{change({content:mergeQuickTemplate(form.content,suggested.content,form.applied),applied:suggested.content});setAnnounce(c.templateApplied);}}>{c.apply}</button><button type="button" className="secondary button-compact" onClick={()=>setConfirming('template')}>{c.regenerate}</button></div>}
+     {form.contentTouched&&form.applied!==suggested.content&&<div className="actions"><button type="button" className="secondary button-compact" onClick={()=>{change({content:mergeQuickTemplate(form.content,suggested.content,form.applied),applied:suggested.content});setAnnounce(c.templateApplied);}}>{c.apply}</button><button type="button" className="secondary button-compact" onClick={()=>void replaceWriting(()=>{change({content:suggested.content,applied:suggested.content});setAnnounce(c.templateApplied);})}>{c.regenerate}</button></div>}
     </section>}
     <div className="authoring-aside">
      {/* Destination is correct by default on nearly every capture, so it reads as
          one line and expands; the occupied-date note stays visible either way. */}
-     <details className="quick-destination"><summary><Icon name="chevronDown" size={16}/><span className="authoring-summary-row"><span>{c.destination}</span><span className="quick-destination-value"><time dateTime={form.date}>{form.date}</time> · {form.mode==='append'?c.append:c.create}</span></span></summary>
+     <Disclosure className="quick-destination"><DisclosureSummary><span className="authoring-summary-row"><span>{c.destination}</span><span className="quick-destination-value"><time dateTime={form.date}>{form.date}</time> · {form.mode==='append'?c.append:c.create}</span></span></DisclosureSummary>
       <div className="quick-meta">
        <div className="authoring-field"><label htmlFor="quick-date">{t('date')}</label><input id="quick-date" required type="date" value={form.date} onChange={event=>{modeTouched.current=false;dateTouched.current=true;setChecking(true);setLookupError(false);setDestination(null);destinationRef.current=null;change({date:event.target.value});}} aria-invalid={invalidField(error,'date')} aria-describedby={error?'quick-error':undefined}/></div>
        <div className="authoring-field"><label htmlFor="quick-mode">{c.mode}</label><select id="quick-mode" value={form.mode} onChange={event=>{modeTouched.current=true;change({mode:event.target.value as Draft['mode']});}}><option value="create" disabled={Boolean(currentDestination)}>{c.create}</option><option value="append">{c.append}</option></select></div>
       </div>
       {currentDestination&&<p className="muted">{c.createBlocked}</p>}
-     </details>
+     </Disclosure>
      {currentDestination&&<p className="muted quick-existing" data-testid="quick-existing-destination">{c.exists} <span>{c.titleLocked}</span>{' '}<strong data-testid="quick-existing-title">{currentDestination.title}</strong> · <time dateTime={currentDestination.date}>{currentDestination.date}</time></p>}
-     <details className="quick-options"><summary><Icon name="chevronDown" size={16}/><span className="authoring-summary-row">{c.options}</span></summary>
+     <Disclosure className="quick-options"><DisclosureSummary><span className="authoring-summary-row">{c.options}</span></DisclosureSummary>
       <CompanyContextInput value={form.stockSymbols} onChange={stockSymbols=>change({stockSymbols})} invalid={invalidField(error,'stockSymbols')} errorId="quick-error"/>
       {!(currentDestination&&form.mode==='append')&&<div className="authoring-field"><label htmlFor="quick-title">{t('diaryTitle')}</label><input id="quick-title" maxLength={500} value={form.title} onChange={event=>change({title:event.target.value,titleTouched:true})}/></div>}
       <TagField id="quick-tags" value={form.tags} onChange={tags=>change({tags})} recent={recentTags} selected={selectedTags} onToggle={toggleTag}/>
-     </details>
-     <details className="quick-snippets"><summary><Icon name="chevronDown" size={16}/><span className="authoring-summary-row">{c.snippets}</span></summary>
+     </Disclosure>
+     <Disclosure className="quick-snippets"><DisclosureSummary><span className="authoring-summary-row">{c.snippets}</span></DisclosureSummary>
       <div className="authoring-field"><label htmlFor="quick-snippet">{c.snippets}</label><select id="quick-snippet" value={snippet} onChange={event=>setSnippet(event.target.value)}>{[...quickSnippets,...snippets].map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select></div>
       <div className="actions"><button type="button" className="secondary button-compact" onClick={()=>insert(false)}>{c.insert}</button><button type="button" className="secondary button-compact" onClick={()=>insert(true)}>{c.replace}</button><button type="button" className="quiet-button button-compact" onClick={()=>setManageOpen(true)}>{c.manage}</button></div>
-     </details>
+     </Disclosure>
     </div>
     <div className="authoring-footer">
      <FailureNotice focusField failure={error} id="quick-error"/>
      {!uncertain&&lookupError&&<div role="alert"><p>{t('connection')}</p><button type="button" className="secondary" onClick={()=>setLookupAttempt(value=>value+1)}>{t('retry')}</button></div>}
-     <div className="quick-submit"><button type="submit" disabled={submitDisabled}>{pending?t('pending'):form.mode==='append'?c.append:c.create}</button><span className="quick-submit-shortcut" id="quick-submit-shortcut">{c.submitShortcut} <kbd>⌘ / Ctrl Enter</kbd></span>{checking&&<span className="quick-submit-note" role="status">{queuedNotice?c.queuedSave:c.checking}</span>}</div>
+     <div className="quick-submit"><ActionButton type="submit" pending={pending} disabled={submitDisabled}>{form.mode==='append'?c.append:c.create}</ActionButton><span className="quick-submit-shortcut" id="quick-submit-shortcut">{c.submitShortcut} <kbd>⌘ / Ctrl Enter</kbd></span>{checking&&<span className="quick-submit-note" role="status">{queuedNotice?c.queuedSave:c.checking}</span>}</div>
     </div>
    </div>
   </fieldset>
   {uncertain&&!restorable&&<div className="quick-recovery" role="alert"><p>{uncertainCopy}</p>{currentDestination?<Link className="button secondary" to={`/diaries/${currentDestination.id}`} onClick={onNavigate}>{c.inspect}</Link>:null}<button type="button" className="secondary" onClick={()=>setLookupAttempt(value=>value+1)}>{c.retryReadback}</button><button type="button" className="secondary" onClick={discard}>{c.discard}</button></div>}
   </form>
   {accountId&&<CaptureReminder accountId={accountId}/>}
-  <ConfirmDialog open={confirming==='leave'} title={c.discardTitle} body={c.discardBody} confirmLabel={c.discardConfirm} danger onConfirm={()=>{setConfirming(null);dirtyRef.current=false;blocker.proceed?.();}} onCancel={()=>{setConfirming(null);if(blocker.state==='blocked')blocker.reset();}}/>
-  <ConfirmDialog open={confirming==='restore'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);applyRestore();}} onCancel={()=>setConfirming(null)}/>
-  <ConfirmDialog open={confirming==='snippet'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);insertSnippet(true);}} onCancel={()=>setConfirming(null)}/>
-  <ConfirmDialog open={confirming==='template'} title={c.replaceTitle} body={c.replaceBody} confirmLabel={c.replaceConfirm} onConfirm={()=>{setConfirming(null);change({content:suggested.content,applied:suggested.content});setAnnounce(c.templateApplied);}} onCancel={()=>setConfirming(null)}/>
   <SnippetManager open={manageOpen} snippets={snippets} onSave={saveSnippets} onClose={()=>setManageOpen(false)}/>
  </div>;
 }

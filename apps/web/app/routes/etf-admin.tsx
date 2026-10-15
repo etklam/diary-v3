@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { adminEtfCreateSchema, adminEtfListSchema } from '@diary/contracts/etf';
 import type { z } from 'zod';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useConfirm, useUi } from '../ui';
 import { signInPath } from '../session';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
 import '../trade-plan.css';
@@ -12,7 +12,7 @@ const copy = {
  'zh-CN': { title:'ETF 目录', intro:'管理共用研究目录及五年月线价格。', symbol:'ETF 代码', name:'名称（选填）', skip:'跳过市场代码验证', add:'新增 ETF', seed:'加入常用 ETF', refresh:'刷新目录', initialize:'初始化月线历史', remove:'删除 ETF', confirm:'删除此 ETF、全部历史价格及用户 watchlist 项目？', empty:'目录目前没有 ETF。', prices:'月线价格', watches:'Watchlist 项目', added:'新增', skipped:'跳过', total:'总数', deleted:'已删除', from:'日期范围', invalid:'请检查代码及名称。', back:'偏好设置', created:'已新增 ETF。', seedHint:'加入 24 项常用 ETF，保留已有项目。' },
 };
 export default function EtfAdmin() {
- const { locale, t } = useUi(), c = copy[locale];
+ const { locale, t } = useUi(), c = copy[locale], confirm = useConfirm();
  const [rows, setRows] = useState<z.infer<typeof adminEtfListSchema> | null>(null), [error, setError] = useState<Failure | null>(null), [writeError, setWriteError] = useState<Failure | null>(null), [attempt, refresh] = useState(0);
  const [symbol, setSymbol] = useState(''), [name, setName] = useState(''), [skip, setSkip] = useState(false), [pending, setPending] = useState(false), [notice, setNotice] = useState('');
  const request = useRef<AbortController | null>(null), translate = useRef(t); translate.current = t;
@@ -24,7 +24,7 @@ export default function EtfAdmin() {
  }, [attempt]);
  async function perform(action: 'create'|'seed'|'initialize'|'delete', id = '', itemSymbol = '') {
   if (request.current) return;
-  if (action === 'delete' && !window.confirm(`${c.confirm} (${itemSymbol})`)) return;
+  if (action === 'delete' && !await confirm({ title: c.confirm, body: itemSymbol, confirm: c.remove, tone: 'danger' })) return;
   const input = adminEtfCreateSchema.safeParse({ symbol, name, skipValidation: skip });
   if (action === 'create' && !input.success) { setWriteError({ message: c.invalid, fields: input.error.issues.flatMap(issue => typeof issue.path[0] === 'string' ? [issue.path[0]] : []) }); return; }
   const controller = new AbortController(); request.current = controller; setPending(true); setWriteError(null); setNotice('');
@@ -43,7 +43,7 @@ export default function EtfAdmin() {
  }
  return <section className="plan-page"><header className="plan-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link to="/settings">{c.back}</Link></header>
  {error?<><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_')&&error.code!=='AUTH_FORBIDDEN'&&<Link to={signInPath('/admin/etf')}>{t('login')}</Link>}<button onClick={()=>refresh(n=>n+1)}>{t('retry')}</button></>:rows===null?<p role="status">{t('loading')}</p>:<>
- <form className="plan-form" onSubmit={event=>{event.preventDefault();void perform('create');}}><fieldset disabled={pending}><div className="plan-grid"><label>{c.symbol}<input id="etf-admin-symbol" required maxLength={20} value={symbol} onChange={event=>setSymbol(event.target.value)} aria-invalid={invalidField(writeError,'symbol')} aria-describedby={writeError?'etf-admin-error':undefined}/></label><label>{c.name}<input id="etf-admin-name" maxLength={255} value={name} onChange={event=>setName(event.target.value)} aria-invalid={invalidField(writeError,'name')} aria-describedby={writeError?'etf-admin-error':undefined}/></label></div><label style={{display:'flex',gap:12,alignItems:'center',minHeight:44,margin:'20px 0'}}><input type="checkbox" checked={skip} onChange={event=>setSkip(event.target.checked)} style={{width:20,height:20,flexShrink:0}}/>{c.skip}</label><button>{pending?t('pending'):c.add}</button></fieldset></form>
+ <form className="plan-form" onSubmit={event=>{event.preventDefault();void perform('create');}}><fieldset disabled={pending}><div className="plan-grid"><label>{c.symbol}<input id="etf-admin-symbol" required maxLength={20} value={symbol} onChange={event=>setSymbol(event.target.value)} aria-invalid={invalidField(writeError,'symbol')} aria-describedby={writeError?'etf-admin-error':undefined}/></label><label>{c.name}<input id="etf-admin-name" maxLength={255} value={name} onChange={event=>setName(event.target.value)} aria-invalid={invalidField(writeError,'name')} aria-describedby={writeError?'etf-admin-error':undefined}/></label></div><label style={{display:'flex',gap:12,alignItems:'center',minHeight:44,margin:'20px 0'}}><input type="checkbox" checked={skip} onChange={event=>setSkip(event.target.checked)} style={{width:20,height:20,flexShrink:0}}/>{c.skip}</label><ActionButton pending={pending}>{c.add}</ActionButton></fieldset></form>
  <p>{c.seedHint}</p><div className="actions"><button className="secondary" disabled={pending} onClick={()=>void perform('seed')}>{c.seed}</button><button className="secondary" disabled={pending} onClick={()=>refresh(n=>n+1)}>{c.refresh}</button></div><FailureNotice failure={writeError} id="etf-admin-error"/>{notice&&<p role="status">{notice}</p>}
  {!rows.length?<div className="empty-state"><p>{c.empty}</p></div>:<ul className="plan-list">{rows.map(row=><li key={row.id} data-testid="etf-catalog-item" aria-label={`${row.symbol}${row.name?` · ${row.name}`:''} ${c.initialize} ${c.remove}`}><h2 id={`etf-catalog-${row.id}`}>{row.symbol}{row.name?` · ${row.name}`:''}</h2><p>{c.prices}: {row.priceCount} · {c.watches}: {row.watchlistCount}</p><div className="actions"><button className="secondary" disabled={pending} aria-describedby={`etf-catalog-${row.id}`} onClick={()=>void perform('initialize',row.id)}>{c.initialize}</button><button className="secondary danger-button" disabled={pending} aria-describedby={`etf-catalog-${row.id}`} onClick={()=>void perform('delete',row.id,row.symbol)}>{c.remove}</button></div></li>)}</ul>}
  </>}</section>;

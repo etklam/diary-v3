@@ -137,9 +137,10 @@ export async function clickNav(page: Page, name: string) {
   const view = (page.viewportSize()?.width ?? 1280) < 768;
   const normalized = name === 'Start' ? 'Overview' : name;
   const diaryView = ['Diary library', 'Timeline', 'Calendar'].includes(name);
-  // Only the trade-management group is still a disclosure; diary sub-items sit
-  // in the open list.
-  const secondary = ['Trading principles', 'Price reminders'].includes(name);
+  // Both management groups are disclosures: the open list holds the four
+  // destinations of the capture-read-review loop, and everything that supports
+  // that loop rather than closing it sits one click deeper.
+  const secondary = ['Trading principles', 'Price reminders', 'Diary reminders', 'Partners'].includes(name);
   const secondaryHref: Record<string, string> = { Partners: '/partners', 'Trading principles': '/discipline', 'Diary reminders': '/alerts', 'Price reminders': '/stocks/alerts' };
   const tool = ['Position sizing', 'Financial freedom', 'Relative value', 'Seasonality', 'ETF research', 'Market rotation', 'SEC filings'].includes(name);
   const toolHref: Record<string, string> = { 'Position sizing': '/tools/position-sizing', 'Financial freedom': '/tools/financial-freedom', 'Relative value': '/tools/relative-value', Seasonality: '/tools/seasonality', 'ETF research': '/tools/etf', 'Market rotation': '/tools/market-rotation', 'SEC filings': '/tools/sec-filings' };
@@ -203,4 +204,31 @@ export async function clickNav(page: Page, name: string) {
     return;
   }
   await page.getByRole('link', { name: normalized, exact: true }).click();
+}
+
+/**
+ * The project confirmation dialog, which replaced every `window.confirm` in
+ * ticket 122. A native confirm could only be accepted or dismissed from a
+ * `page.on('dialog')` handler registered before the click; this one is real DOM
+ * and can be read — so these helpers also assert it actually appeared, which
+ * the old handler-based form could not.
+ */
+export function confirmation(page: Page) {
+  return page.getByTestId('confirm-dialog');
+}
+
+export async function acceptConfirmation(page: Page, name?: string | RegExp) {
+  const dialog = confirmation(page);
+  await expect(dialog).toBeVisible();
+  // Cancel is first in the dialog and confirm is last, so the affirmative
+  // choice is never the one a stray Enter lands on.
+  await (name ? dialog.getByRole('button', { name, exact: true }) : dialog.getByRole('button').last()).click();
+  await expect(dialog).toBeHidden();
+}
+
+export async function cancelConfirmation(page: Page) {
+  const dialog = confirmation(page);
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button').first().click();
+  await expect(dialog).toBeHidden();
 }

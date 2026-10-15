@@ -107,7 +107,7 @@ test('admin account inventory preserves current-account guard and manages a synt
   await page.setViewportSize({ width: 1440, height: 900 })
   await targetRow.getByRole('button', { name: 'Delete account', exact: true }).click()
   // Deletion confirms in the project dialog and names the account it removes.
-  const confirm = page.locator('dialog.delete-dialog[open]')
+  const confirm = page.getByTestId('confirm-dialog')
   await expect(confirm).toContainText(targetEmail)
   await confirm.getByRole('button', { name: 'Delete account', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Account deleted.')

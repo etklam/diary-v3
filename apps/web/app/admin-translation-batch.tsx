@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ARTICLE_TRANSLATION_BATCH_LIMIT,
   articleLocaleSchema,
@@ -7,7 +7,7 @@ import {
   type ArticleLocale,
 } from '@diary/contracts';
 import { csrfToken, sessionFetch } from './session';
-import { useUi } from './ui';
+import { useConfirm, useUi } from './ui';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 import './admin-article-translations.css';
 import './authoring.css';
@@ -79,14 +79,13 @@ const copy = {
  * and locale.
  */
 export function TranslationBatch({ selected }: { selected: string[] }) {
-  const { locale } = useUi(), c = copy[locale];
+  const { locale } = useUi(), c = copy[locale], confirm = useConfirm();
   const [states, setStates] = useState<States | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [provider, setProvider] = useState<'edge' | 'ai'>('edge');
   const [targets, setTargets] = useState<ArticleLocale[]>([]);
   const [results, setResults] = useState<Results | null>(null);
   const [pending, setPending] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
   const ids = selected.slice(0, ARTICLE_TRANSLATION_BATCH_LIMIT).join(',');
 
   useEffect(() => {
@@ -157,7 +156,7 @@ export function TranslationBatch({ selected }: { selected: string[] }) {
         </fieldset>
         {/* Per the Buttons rule: a disabled action names the precondition it is
             waiting on, so the reader is not left guessing why it is dead. */}
-        <div className="actions"><button type="button" disabled={pending || !chosen.length || jobs === 0} onClick={() => dialog.current?.showModal()}>{c.dispatch}</button>{!pending && !chosen.length && available.length > 0 && <span className="muted">{c.needTargets}</span>}</div>
+        <div className="actions"><button type="button" disabled={pending || !chosen.length || jobs === 0} onClick={() => { void (async () => { if (await confirm({ title: c.confirmTitle, body: c.confirmBody(jobs, provider === 'ai' ? c.ai : c.edge), confirm: c.confirm, cancel: c.cancel })) await dispatch(); })(); }}>{c.dispatch}</button>{!pending && !chosen.length && available.length > 0 && <span className="muted">{c.needTargets}</span>}</div>
       </div>
     </>}
     {results && <div className="admin-translation-results" role="status">
@@ -166,13 +165,5 @@ export function TranslationBatch({ selected }: { selected: string[] }) {
         {title(result.articleId)} · {result.locale} · <strong>{c.outcome[result.outcome]}</strong>{result.message ? ` — ${result.message}` : ''}
       </li>)}</ul>
     </div>}
-    <dialog ref={dialog} className="delete-dialog" aria-labelledby="admin-translation-confirm-title">
-      <h2 id="admin-translation-confirm-title">{c.confirmTitle}</h2>
-      <p>{c.confirmBody(jobs, provider === 'ai' ? c.ai : c.edge)}</p>
-      <div className="actions">
-        <button type="button" className="secondary" autoFocus onClick={() => dialog.current?.close()}>{c.cancel}</button>
-        <button type="button" disabled={pending} onClick={() => { dialog.current?.close(); void dispatch(); }}>{c.confirm}</button>
-      </div>
-    </dialog>
   </section>;
 }

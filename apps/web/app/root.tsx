@@ -2,8 +2,8 @@ import { ForegroundReminders } from './foreground-reminders';
 import { useEffect, useRef, useState } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, Link, useLocation, useMatches, useNavigate, useRevalidator, useRouteError, isRouteErrorResponse, type MetaFunction } from 'react-router';
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session';
-import { api, UiProvider, useUi } from './ui';
-import { BrandMark, Icon } from './icons';
+import { ActionButton, api, ConfirmProvider, Disclosure, DisclosureSummary, UiProvider, useUi } from './ui';
+import { BrandMark } from './icons';
 // Tokens first: every rule in styles.css and public.css consumes them.
 import './tokens.css';
 import './styles.css';
@@ -15,6 +15,8 @@ import { DiaryNavigation } from './diary-navigation';
 import { PwaStatus } from './pwa';
 import { pageTitle } from './page-title';
 import { isAdminPath, shellChrome } from './shell-chrome';
+import { NavigationProgress } from './navigation-progress';
+import { registerFor } from './registers';
 
 export const meta: MetaFunction = () => [{ title: 'Trade basic — Investment decision diary' }];
 
@@ -90,6 +92,11 @@ function Shell() {
   }
   const previousPath = useRef(location.pathname);
   useEffect(() => { if(previousPath.current!==location.pathname){document.getElementById('main')?.focus();previousPath.current=location.pathname;} },[location.pathname]);
+  // Route announcement state for assistive technology; `announcedPath` holds
+  // the last path announced so the first settled title of a session — which is
+  // a page load, not a navigation — stays silent.
+  const announcedPath = useRef<string | null>(null);
+  const [routeAnnouncement, setRouteAnnouncement] = useState('');
   const { t, locale } = useUi();
   const loginPath = location.pathname === '/login';
   const previousAuthentication = useRef(session.authenticated);
@@ -110,6 +117,15 @@ function Shell() {
       if (next === applied) return;
       applied = next;
       document.title = next;
+      // A client-side route change fires no document event, so a screen-reader
+      // user got nothing at all on navigation. The destination is announced
+      // once it has actually arrived — this reads the same resolved heading the
+      // title does, and only on the first settled title for a new path, so a
+      // live preview rewriting its own h1 cannot turn into chatter (ticket 118).
+      if (announcedPath.current === location.pathname) return;
+      const firstPath = announcedPath.current === null;
+      announcedPath.current = location.pathname;
+      if (!firstPath) setRouteAnnouncement(next.replace(/ — Trade basic$/u, ''));
     };
     updateTitle();
     if (!main) return;
@@ -162,6 +178,12 @@ function Shell() {
   // diary navigation — is mounted and unmounted.
   return <>
     <a className="skip" href="#main">{t('skip')}</a>
+    <NavigationProgress />
+    {/* `aria-live` without `role="status"` on purpose: the role would add a
+        second status landmark to every page in the product, and most pages
+        already own one for their save and refresh states. The live attributes
+        alone announce exactly the same way. */}
+    <p className="sr-only" aria-live="polite" aria-atomic="true" data-testid="route-announcement">{routeAnnouncement}</p>
     <div className={publicChrome ? 'public-shell' : 'app-shell'}>
       {publicChrome
         ? <header className="public-header">
@@ -194,15 +216,17 @@ function Shell() {
                 without scrolling. */}
             <div className="desktop-preferences">
               <AccountLinks/>
-              {(session.authenticated||logoutError||logoutPending)&&<><button type="button" className="secondary" data-testid="sign-out" disabled={logoutPending} onClick={()=>void logout()}>{t(logoutPending?'pending':'logout')}</button>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
-              <details className="desktop-preferences-disclosure">
-                <summary><Icon name="chevronDown" size={16}/>{t('preferences')}</summary>
+              {(session.authenticated||logoutError||logoutPending)&&<><ActionButton type="button" className="secondary" data-testid="sign-out" pending={logoutPending} onClick={()=>void logout()}>{t('logout')}</ActionButton>{logoutError&&<p className="error" role="alert">{t('logoutFailed')}</p>}</>}
+              <Disclosure className="desktop-preferences-disclosure">
+                <DisclosureSummary>{t('preferences')}</DisclosureSummary>
                 {preferences}
-              </details>
+              </Disclosure>
             </div>
             <MobileMenu role={role} authenticated={session.authenticated} preferences={mobilePreferences} onLogout={() => void logout()} logoutPending={logoutPending} logoutError={logoutError}/>
           </aside>}
-      <main id="main" className={!publicChrome && wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}>
+      {/* The register this route is written in. One vocabulary, three
+          rhythms: capture, ledger, reading (DESIGN.md, ticket 120). */}
+      <main id="main" data-register={registerFor(location.pathname) ?? undefined} className={!publicChrome && wideDiaryBrowsePath ? 'wide-diary-main' : undefined} tabIndex={-1}>
         {!publicChrome && <ForegroundReminders/>}
         <PwaStatus/>
         <Outlet context={{ authenticated: session.authenticated, viewer }} key={session.identity} />
@@ -226,7 +250,7 @@ function Shell() {
 
 export type ShellOutletContext = { authenticated: boolean | null; viewer: { id: string; role: 'USER' | 'ADMIN' } | null };
 
-export default function App() { return <UiProvider><Shell /></UiProvider>; }
+export default function App() { return <UiProvider><ConfirmProvider><Shell /></ConfirmProvider></UiProvider>; }
 
 const boundaryCopy = {
   'zh-TW': {

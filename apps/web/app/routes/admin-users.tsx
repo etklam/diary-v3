@@ -8,10 +8,9 @@ import {
   type AdminUserListItem,
 } from '@diary/contracts/admin-users'
 import { authUserResponseSchema } from '@diary/contracts'
-import { api, useUi } from '../ui'
+import { api, useConfirm, useUi } from '../ui'
 import { signInPath } from '../session'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
-import { ConfirmDialog } from '../authoring-controls'
 import './admin-users.css'
 
 const copy = {
@@ -34,6 +33,7 @@ function formatDate(value: string, locale: string) {
 
 export default function AdminUsers() {
   const { locale } = useUi()
+  const confirm = useConfirm()
   const c = copy[locale]
   const [rows, setRows] = useState<ReturnType<typeof adminUserListResponseSchema.parse> | null>(null)
   const [stats, setStats] = useState<ReturnType<typeof adminStatsResponseSchema.parse>['data'] | null>(null)
@@ -49,7 +49,6 @@ export default function AdminUsers() {
   const [failure, setFailure] = useState<Failure | null>(null)
   // Deletion names its consequence in the project dialog; `window.confirm` is
   // not a confirmation this design system has.
-  const [doomed, setDoomed] = useState<AdminUserListItem | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -96,6 +95,12 @@ export default function AdminUsers() {
     finally { setPending(null) }
   }
 
+  // The account is named in the confirmation; the table row alone would not
+  // survive the dialog taking over the screen.
+  async function askDelete(row: AdminUserListItem) {
+    if (!await confirm({ title: c.remove, body: c.confirmDelete(row.email), confirm: c.remove, tone: 'danger' })) return
+    await deleteUser(row)
+  }
   async function deleteUser(row: AdminUserListItem) {
     if (pending) return
     setPending(`delete:${row.id}`); setNotice(''); setFailure(null)
@@ -126,7 +131,7 @@ export default function AdminUsers() {
   // on is a note below the table that the chip points at.
   const rowAction = (row: AdminUserListItem) => row.id === currentUserId
     ? <span className="badge" aria-describedby="admin-users-self-note">{c.current}</span>
-    : <button type="button" className="danger-button button-compact admin-users-delete" disabled={pending !== null} onClick={() => setDoomed(row)}>{pending === `delete:${row.id}` ? '…' : c.remove}</button>
+    : <button type="button" className="danger-button button-compact admin-users-delete" disabled={pending !== null} onClick={() => void askDelete(row)}>{pending === `delete:${row.id}` ? '…' : c.remove}</button>
 
   return <section className="admin-users-page">
     <header className="admin-users-header"><div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div><Link className="secondary admin-users-back" to="/settings">{c.back}</Link></header>
@@ -162,8 +167,5 @@ export default function AdminUsers() {
       </>}
     </section>
     <section className="admin-users-section"><h2 id="admin-users-recent">{c.recent}</h2>{recent?.data.length ? <div className="table-scroll admin-users-table-wrap" role="region" aria-labelledby="admin-users-recent" tabIndex={0}><table className="admin-users-table admin-users-diary-table" aria-labelledby="admin-users-recent"><thead><tr><th scope="col" className="num">{c.date}</th><th scope="col">{c.name}</th><th scope="col">{c.author}</th><th scope="col" className="num">{c.alerts}</th><th scope="col" className="num">{c.transactions}</th></tr></thead><tbody>{recent.data.map(row => <tr key={row.id}><td className="num"><time dateTime={row.date}>{row.date}</time></td><th scope="row">{row.title}</th><td>{row.author.name ?? row.author.email}</td><td className="num">{row.alertCount}</td><td className="num">{row.transactionCount}</td></tr>)}</tbody></table></div> : <p>{c.loading}</p>}</section>
-    <ConfirmDialog open={doomed !== null} title={c.remove} body={doomed ? c.confirmDelete(doomed.email) : ''} confirmLabel={c.remove} danger
-      onConfirm={() => { const row = doomed; setDoomed(null); if (row) void deleteUser(row) }}
-      onCancel={() => setDoomed(null)} />
   </section>
 }

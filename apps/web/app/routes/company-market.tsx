@@ -7,7 +7,7 @@ import { StockGuruPanel } from '../stock-guru-panel';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { marketSymbolSchema, type MarketQuote, type MarketHistorical, type MarketRange } from '@diary/contracts/market';
-import { api, useUi } from '../ui';
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { useSessionState } from '../session';
 import { formatAmount, formatDay, formatInstantUtc, formatMarketValue, formatSignedPercent, marketClass } from '../market-display';
@@ -73,8 +73,8 @@ export default function CompanyMarket(){
     <section id="market-history" tabIndex={-1} className="market-section" aria-labelledby="market-history-title"><div className="market-heading"><h2 id="market-history-title">{text.history}</h2><label>{text.range}<select value={range} onChange={event=>setRange(event.target.value as MarketRange)}>{ranges.map((value,index)=><option key={value} value={value}>{text.ranges[index]}</option>)}</select></label></div>
       {history.pending?<p role="status">{t('loading')}</p>:history.error?<><FailureNotice failure={historyFailure} id="history-error"/><button type="button" className="secondary" onClick={()=>void loadHistory()}>{t('retry')}</button></>:<>
         {history.source==='stale'&&<p role="status" className="market-stale">{text.stale}</p>}
-        {rows.length===0?<p>{text.empty}</p>:<details className="market-history-details"><summary>{text.showHistory} · {rows.length}</summary><><div className="market-table"><table><caption>{symbol} · {text.history}</caption><thead><tr><th scope="col">{text.date}</th><th scope="col">{text.close}</th></tr></thead><tbody>{rows.slice(page*50,page*50+50).map((row,index)=><tr key={`${row.timestamp}-${index}`}><td><time dateTime={new Date(row.timestamp*1000).toISOString()}>{formatDay(new Date(row.timestamp*1000).toISOString())}</time></td><td>{number(row.close)}</td></tr>)}</tbody></table></div>
-          {count>1&&<div className="market-pagination"><button className="secondary" disabled={page===0} onClick={()=>setPage(value=>value-1)}>{text.previousPage}</button><span>{text.page} {page+1} / {count}</span><button className="secondary" disabled={page+1===count} onClick={()=>setPage(value=>value+1)}>{text.nextPage}</button></div>}</></details>}
+        {rows.length===0?<p>{text.empty}</p>:<Disclosure className="market-history-details"><DisclosureSummary>{text.showHistory} · {rows.length}</DisclosureSummary><><div className="market-table"><table><caption>{symbol} · {text.history}</caption><thead><tr><th scope="col">{text.date}</th><th scope="col">{text.close}</th></tr></thead><tbody>{rows.slice(page*50,page*50+50).map((row,index)=><tr key={`${row.timestamp}-${index}`}><td><time dateTime={new Date(row.timestamp*1000).toISOString()}>{formatDay(new Date(row.timestamp*1000).toISOString())}</time></td><td>{number(row.close)}</td></tr>)}</tbody></table></div>
+          {count>1&&<div className="market-pagination"><button className="secondary" disabled={page===0} onClick={()=>setPage(value=>value-1)}>{text.previousPage}</button><span>{text.page} {page+1} / {count}</span><button className="secondary" disabled={page+1===count} onClick={()=>setPage(value=>value+1)}>{text.nextPage}</button></div>}</></Disclosure>}
         </>}
         <p className="market-timestamp">{text.fetched}: <time dateTime={history.fetchedAt??undefined}>{instant(history.fetchedAt)}</time></p>
     </section><p className="muted">{text.readSource}</p></>}

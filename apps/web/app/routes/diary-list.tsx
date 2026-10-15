@@ -4,7 +4,7 @@ import { diaryListQuerySchema } from '@diary/contracts/diary-list'
 import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
 import { diarySavedViewCreateRequestSchema, diarySavedViewListResponseSchema, diarySavedViewQuerySchema, diarySavedViewSchema, diarySavedViewUpdateRequestSchema } from '@diary/contracts/diary-saved-view'
 import type { z } from 'zod'
-import { api, useUi } from '../ui'
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
 import { getSessionRevision, signInPath, useSessionState } from '../session'
 import { diaryListCopy } from '../diary-list-copy'
@@ -393,11 +393,11 @@ export default function DiaryListPage() {
       <label>{c.status}<select name="reviewStatus" defaultValue={params.get('reviewStatus') ?? ''}>
         <option value="">{c.all}</option><option value="none">{c.none}</option><option value="pending">{c.pending}</option><option value="reviewed">{c.reviewed}</option>
       </select></label>
-      <details className="diary-advanced" open={advancedActive || undefined} data-testid="diary-advanced">
-        <summary>
+      <Disclosure className="diary-advanced" open={advancedActive || undefined} data-testid="diary-advanced">
+        <DisclosureSummary>
           {c.moreFilters}
           {advancedCount > 0 && <span className="diary-advanced-count">{advancedCount} {c.activeFilters}</span>}
-        </summary>
+        </DisclosureSummary>
         <div className="diary-advanced-grid">
           <label>{c.from}<input name="dateFrom" type="date" defaultValue={params.get('dateFrom') ?? ''} aria-invalid={invalidField(error, 'dateFrom')} /></label>
           <label>{c.to}<input name="dateTo" type="date" defaultValue={params.get('dateTo') ?? ''} aria-invalid={invalidField(error, 'dateTo')} /></label>
@@ -406,7 +406,7 @@ export default function DiaryListPage() {
           </select></label>
           <label>{c.limit}<select name="limit" defaultValue={params.get('limit') ?? '20'}>{[10, 20, 50, 100].map(value => <option value={value} key={value}>{value}</option>)}</select></label>
         </div>
-      </details>
+      </Disclosure>
       <div className="actions"><button type="submit">{c.apply}</button><button type="button" className="secondary" onClick={() => { focusResults.current = true; if (queryString) setParams({}); else setRetry(value => value + 1) }}>{c.reset}</button></div>
     </form>
     <div className="diary-results" aria-busy={loading}>

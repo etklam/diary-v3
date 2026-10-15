@@ -3,7 +3,7 @@ import { Link, useBlocker } from 'react-router';
 import { STOCK_TIMELINE_SOURCE_TYPES, stockSymbolTimelineResponseSchema, stockTimelineRecordSchema, webEvidenceRequestSchema, type StockTimelineRecord } from '@diary/contracts/evidence';
 import { stockSymbolSchema } from '@diary/contracts/watchlist';
 import type { z } from 'zod';
-import { api, useUi } from './ui';
+import { ActionButton, api, useConfirm, useUi } from './ui';
 import { apiFailure, FailureNotice, type Failure } from './api-error';
 import { evidenceCopy } from './evidence-copy';
 import { useSessionState, signInPath } from './session';
@@ -16,16 +16,20 @@ type EvidenceSource = { title: string; path: string };
 
 function EvidenceNavigationGuard({ dirty, authenticated, discardMessage, onProceed }: { dirty: boolean; authenticated: boolean | null; discardMessage: string; onProceed: () => void }) {
   const blocker = useBlocker(() => dirty && authenticated !== false);
+  const { t } = useUi();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
-    if (window.confirm(discardMessage)) {
-      onProceed();
-      blocker.proceed();
-    } else {
-      blocker.reset();
-    }
-  }, [blocker, discardMessage, onProceed]);
+    void confirm({ title: discardMessage, confirm: t('discard') }).then(discarded => {
+      if (discarded) {
+        onProceed();
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    });
+  }, [blocker, confirm, discardMessage, onProceed, t]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -197,7 +201,7 @@ export function Evidence({ symbol: fixedSymbol, source, collapsed = false }: { s
         </div></fieldset>
         {uncertain && <p role="status">{c.uncertain}</p>}
         {error && <FailureNotice failure={error} />}
-        <button disabled={busy || !date}>{busy ? t('pending') : uncertain ? c.retry : c.save}</button>
+        <ActionButton pending={busy} disabled={!date}>{uncertain ? c.retry : c.save}</ActionButton>
         {saved && <p role="status" className="evidence-saved"><span>{c.saved}</span>{destination && <> · {destination}</>}</p>}
       </form>
     </div>}

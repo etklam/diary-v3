@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { aiProviderSettingsSchema } from '@diary/contracts/admin-ai'
 import { z } from 'zod'
-import { api, useUi } from '../ui'
+import { api, useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { adminAiCopy } from '../ai-copy'
-import { ConfirmDialog } from '../authoring-controls'
 import { AdminAiShell, AdminAiStatusBadge, useAdminAiDateTime, useAdminAiSettings, type AdminSettings } from './admin-ai-shell'
 
 type ProviderForm = {
@@ -56,6 +55,7 @@ const intOr = (value: string, fallback: number) => intOrNull(value) ?? fallback
  */
 export default function AdminAiProvider() {
   const { locale, t } = useUi()
+  const confirm = useConfirm()
   const c = adminAiCopy[locale]
   const state = useAdminAiSettings()
   const { settings, setSettings, alive, sessionRevision } = state
@@ -69,7 +69,6 @@ export default function AdminAiProvider() {
   const [pending, setPending] = useState<'save' | 'test' | 'publish' | 'models' | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState<'test' | 'publish' | null>(null)
 
   useEffect(() => { setNotice(null) }, [locale])
   useEffect(() => { setDraftHydrated(false); setModels(null) }, [settings === null])
@@ -134,6 +133,11 @@ export default function AdminAiProvider() {
     finally { if (alive(revision)) setPending(null) }
   }
 
+  // Both of these spend money or publish; each names what it is about to do.
+  async function askThen(label: string, body: string, run: () => Promise<void>) {
+    if (!await confirm({ title: label, body, confirm: label, tone: 'danger' })) return
+    await run()
+  }
   async function testProvider() {
     setPending('test'); setFailure(null); setNotice(null)
     const revision = sessionRevision()
@@ -230,12 +234,12 @@ export default function AdminAiProvider() {
           <div className="admin-ai-actions">
             <button type="submit" data-testid="admin-ai-provider-save" disabled={pending !== null}>{pending === 'save' ? '…' : c.saveDraft}</button>
             <button type="button" className="secondary" disabled={pending !== null} onClick={() => void refreshModels()}>{c.refreshModels}</button>
-            <button type="button" className="secondary" data-testid="admin-ai-provider-publish" disabled={pending !== null || providerDirty || provider === null || provider.status !== 'draft' || provider.lastTestStatus !== 'passed'} onClick={() => setConfirming('publish')}>{c.publishProvider}</button>
+            <button type="button" className="secondary" data-testid="admin-ai-provider-publish" disabled={pending !== null || providerDirty || provider === null || provider.status !== 'draft' || provider.lastTestStatus !== 'passed'} onClick={() => void askThen(c.publishProvider, c.publishConfirm, publishProvider)}>{c.publishProvider}</button>
           </div>
           {/* Spending is not a sibling of saving: the one action that costs money
               is named as such and kept out of the save row. */}
           <div className="admin-ai-paid">
-            <button type="button" className="secondary admin-ai-paid-action" data-testid="admin-ai-provider-test" disabled={pending !== null || providerDirty || provider?.status !== 'draft'} onClick={() => setConfirming('test')}>{pending === 'test' ? '…' : c.testProvider}</button>
+            <button type="button" className="secondary admin-ai-paid-action" data-testid="admin-ai-provider-test" disabled={pending !== null || providerDirty || provider?.status !== 'draft'} onClick={() => void askThen(c.testProvider, c.testConfirm, testProvider)}>{pending === 'test' ? '…' : c.testProvider}</button>
             <span className="badge admin-ai-paid-badge">{c.paidAction}</span>
           </div>
           {provider && <p className="muted admin-ai-provider-meta">
@@ -245,7 +249,5 @@ export default function AdminAiProvider() {
         </fieldset>
       </form>
     </>}
-    <ConfirmDialog open={confirming === 'test'} title={c.testProvider} body={c.testConfirm} confirmLabel={c.testProvider} danger onConfirm={() => { setConfirming(null); void testProvider() }} onCancel={() => setConfirming(null)} />
-    <ConfirmDialog open={confirming === 'publish'} title={c.publishProvider} body={c.publishConfirm} confirmLabel={c.publishProvider} danger onConfirm={() => { setConfirming(null); void publishProvider() }} onCancel={() => setConfirming(null)} />
   </AdminAiShell>
 }

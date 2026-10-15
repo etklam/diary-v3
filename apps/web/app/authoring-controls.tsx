@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useUi } from './ui';
 import './authoring.css';
 
@@ -8,9 +8,9 @@ import './authoring.css';
  * machine, and passes state in and out through these props.
  */
 export const authoringCopy = {
- en: { tags: 'Tags (one per line or comma)', recentTags: 'Recent tags', preview: 'Preview Markdown', writing: 'Back to writing', previewRegion: 'Markdown preview', cancel: 'Cancel' },
- 'zh-TW': { tags: '標籤（每行一個，或以逗號分隔）', recentTags: '最近使用的標籤', preview: '預覽 Markdown', writing: '回到編寫', previewRegion: 'Markdown 預覽', cancel: '取消' },
- 'zh-CN': { tags: '标签（每行一个，或以逗号分隔）', recentTags: '最近使用的标签', preview: '预览 Markdown', writing: '回到编写', previewRegion: 'Markdown 预览', cancel: '取消' },
+ en: { tags: 'Tags (one per line or comma)', recentTags: 'Recent tags', preview: 'Preview Markdown', writing: 'Back to writing', previewRegion: 'Markdown preview' },
+ 'zh-TW': { tags: '標籤（每行一個，或以逗號分隔）', recentTags: '最近使用的標籤', preview: '預覽 Markdown', writing: '回到編寫', previewRegion: 'Markdown 預覽' },
+ 'zh-CN': { tags: '标签（每行一个，或以逗号分隔）', recentTags: '最近使用的标签', preview: '预览 Markdown', writing: '回到编写', previewRegion: 'Markdown 预览' },
 };
 
 /**
@@ -46,19 +46,3 @@ export function WritingToolbar({ preview, onTogglePreview, children, status }: {
  </div>;
 }
 
-/**
- * One confirmation language across both paths, replacing the native confirm()
- * calls. Rendered inline so it works inside the capture dialog too.
- */
-export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCancel, danger = false }: { open: boolean; title: string; body?: string; confirmLabel: string; onConfirm: () => void; onCancel: () => void; danger?: boolean }) {
- const { locale } = useUi(), c = authoringCopy[locale], ref = useRef<HTMLDialogElement>(null), id = useRef(`confirm-${Math.random().toString(36).slice(2)}`);
- useEffect(() => { if (open) ref.current?.showModal(); else ref.current?.close(); }, [open]);
- return <dialog ref={ref} className="delete-dialog" aria-labelledby={id.current} onClose={onCancel}>
-  <h2 id={id.current}>{title}</h2>
-  {body && <p>{body}</p>}
-  <div className="actions">
-   <button type="button" className="secondary" autoFocus onClick={onCancel}>{c.cancel}</button>
-   <button type="button" className={danger ? 'danger-button' : ''} onClick={onConfirm}>{confirmLabel}</button>
-  </div>
- </dialog>;
-}

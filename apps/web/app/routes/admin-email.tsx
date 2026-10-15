@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import type { ShellOutletContext } from '../root'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
-import { api, useUi } from '../ui'
+import { api, useConfirm, useUi } from '../ui'
 import './admin-email.css'
 
 const copy = {
@@ -33,7 +33,7 @@ const hydrate = (settings: Settings): FormState => ({ host: settings.host ?? '',
 const dateTime = (value: string, locale: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 
 export default function AdminEmail() {
-  const { locale } = useUi()
+  const { locale } = useUi(), confirm = useConfirm()
   const c = copy[locale]
   const { authenticated, viewer } = useOutletContext<ShellOutletContext>()
   const adminReady = authenticated === true && viewer?.role === 'ADMIN'
@@ -95,8 +95,8 @@ export default function AdminEmail() {
   }
   async function action(kind: 'enable' | 'disable' | 'clear') {
     if (!response || pending) return
-    if (kind === 'disable' && !window.confirm(c.disableConfirm)) return
-    if (kind === 'clear' && !window.confirm(c.removeConfirm)) return
+    if (kind === 'disable' && !await confirm({ title: c.disableConfirm, confirm: c.disable, tone: 'danger' })) return
+    if (kind === 'clear' && !await confirm({ title: c.removeConfirm, confirm: c.clear, tone: 'danger' })) return
     setPending(kind); setFailure(null); setNotice('')
     try {
       const body = { expectedRevision: response.settings.revision }

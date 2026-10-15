@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, selectLocale, selectTheme, signOut, test } from '../support/e2e'
+import { acceptConfirmation, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e'
 
 const password = 'synthetic-timeline-parity-password'
 
@@ -245,8 +245,8 @@ test('sharing withdrawal and unlinking remove partner content on revalidation', 
   await expect(page.locator('.pair-page')).not.toContainText('Shared before withdrawal')
 
   // Removing the connection entirely moves an explicit selection to the removed state.
-  other.once('dialog', dialog => dialog.accept())
   await other.getByRole('button', { name: 'Remove connection', exact: true }).click()
+  await acceptConfirmation(other, 'Remove connection')
   await expect(other.getByTestId('partner')).toHaveCount(0)
   await page.getByRole('button', { name: 'Refresh comparison', exact: true }).click()
   await expect(page.getByText('This partner connection is no longer available.')).toBeVisible()

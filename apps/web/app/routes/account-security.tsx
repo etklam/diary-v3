@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useUi } from '../ui';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from '../session';
 import './account-security.css';
@@ -120,8 +120,8 @@ export default function AccountSecurity() {
                 <label>{text.confirm}<input name="confirmation" type="password" autoComplete="new-password" required disabled={pending} aria-invalid={invalidField(failure, 'confirmation')} aria-describedby={failure ? 'password-error' : undefined} /></label>
                 <FailureNotice failure={failure?.code === 'AUTH_LOGIN_INVALID_CREDENTIALS' ? { ...failure, code: undefined } : failure} id="password-error" />
                 {failure?.code === 'AUTH_LOGIN_INVALID_CREDENTIALS' && <p className="error"><code data-testid="error-code">{failure.code}</code></p>}
-                <button type="submit" disabled={pending}>{pending ? t('pending') : text.change}</button>
+                <ActionButton type="submit" pending={pending}>{text.change}</ActionButton>
               </form></section>
-              <section className="security-section" aria-labelledby="devices-title"><h2 id="devices-title">{text.devices}</h2><p>{text.deviceHint}</p><FailureNotice failure={logoutFailure} id="logout-error" /><button type="button" className="secondary" disabled={pending} onClick={() => void logoutAll()}>{pending ? t('pending') : text.logoutAll}</button></section></>}
+              <section className="security-section" aria-labelledby="devices-title"><h2 id="devices-title">{text.devices}</h2><p>{text.deviceHint}</p><FailureNotice failure={logoutFailure} id="logout-error" /><ActionButton type="button" className="secondary" pending={pending} onClick={() => void logoutAll()}>{text.logoutAll}</ActionButton></section></>}
   </section>;
 }

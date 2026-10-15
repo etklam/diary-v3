@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import { e2eBaseURL, test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { acceptConfirmation, e2eBaseURL, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e';
 test('two independent accounts accept, share separately and remove a partnership', async ({ page: a, browser, playwright }) => {
  const context = await browser.newContext({ viewport: { width: 390, height: 900 } }); const b = await context.newPage();
  const emailA = `partner-a-${randomUUID()}@example.test`, emailB = `partner-b-${randomUUID()}@example.test`, password = 'synthetic-partner-password';
@@ -88,7 +88,7 @@ test('two independent accounts accept, share separately and remove a partnership
   await notes.getByLabel('Whose notes').selectOption('');
   await expect(notes.getByRole('button', { name: 'New note', exact: true })).toBeVisible();
   await a.goto('/partners');
-  b.once('dialog', dialog => dialog.accept()); await b.getByRole('button', { name: 'Remove connection', exact: true }).click(); await expect(b.getByTestId('partner')).toHaveCount(0);
+  await b.getByRole('button', { name: 'Remove connection', exact: true }).click(); await acceptConfirmation(b, 'Remove connection'); await expect(b.getByTestId('partner')).toHaveCount(0);
   await a.getByRole('button', { name: 'Refresh partners', exact: true }).click(); await expect(a.getByTestId('partner')).toHaveCount(0);
   await signOut(a); await expect(a.getByLabel('Partner email', { exact: true })).toHaveCount(0);
  } finally { await context.close(); }

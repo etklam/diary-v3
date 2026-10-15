@@ -3,21 +3,22 @@ import { PortfolioExposure } from '../portfolio-exposure';
 import { PortfolioValuation } from '../portfolio-valuation';
 import { TradeExport } from '../trade-export';
 import { RecentRealizedTrades } from '../recent-realized-trades';
+import { CaveatMark } from '../figure-caveat';
 import { CaptureEntry } from '../capture-entry';
 import { useEffect, useRef, useState } from 'react';
 import { signInPath, useSessionState } from '../session';
 import { Link } from 'react-router';
 import { portfolioLedgerResponseSchema, portfolioOverviewResponseSchema, type PortfolioLedgerResponse, type PortfolioOverviewResponse } from '@diary/contracts/portfolio-overview';
-import { api, useUi, LoadingBlock } from '../ui';
+import { api, Disclosure, DisclosureSummary, LoadingBlock, useUi } from '../ui';
 import { apiFailure, FailureNotice, type Failure } from '../api-error';
 import { ledgerCopy } from '../ledger-copy';
 import { formatAmount, formatInstantUtc, formatMarketValue, formatQuantity, marketClass } from '../market-display';
 import '../ledger.css';
 
 const copy = {
-  en: { scroll: 'Scroll across the table to see prices and quote status.', title: 'Holdings', price: 'Current price', value: 'Market value', pnl: 'Gain / loss', status: 'Quote status', missing: 'No quote', stale: 'Stale quote', timeUnknown: 'Quote time unknown', updated: 'Last updated', refreshing: 'Updating; showing the last confirmed results.', details: 'Risk, exposure and realized trades', strategy: 'Strategy performance', changed: 'Transactions changed during loading. Refresh to align prices and holdings.', refresh: 'Refresh prices' },
-  'zh-TW': { scroll: '橫向捲動表格，可查看價格與報價狀態。', title: '持倉', price: '現價', value: '市值', pnl: '盈虧', status: '報價狀態', missing: '缺少報價', stale: '報價已過時', timeUnknown: '報價時間未知', updated: '最後更新', refreshing: '正在更新，暫時顯示上次確認的結果。', details: '風險、曝險及已實現交易', strategy: '策略績效', changed: '載入期間交易已有變更，請重新整理以對齊持倉與估值。', refresh: '更新報價' },
-  'zh-CN': { scroll: '横向滚动表格，可查看价格与报价状态。', title: '持仓', price: '现价', value: '市值', pnl: '盈亏', status: '报价状态', missing: '缺少报价', stale: '报价已过时', timeUnknown: '报价时间未知', updated: '最后更新', refreshing: '正在更新，暂时显示上次确认的结果。', details: '风险、敞口及已实现交易', strategy: '策略绩效', changed: '加载期间交易已有变更，请刷新以对齐持仓与估值。', refresh: '更新报价' },
+  en: { scroll: 'Scroll across the table to see prices and quote status.', title: 'Holdings', price: 'Current price', value: 'Market value', pnl: 'Gain / loss', status: 'Quote status', missing: 'No quote', stale: 'Stale', current: 'Current', timeUnknown: 'Quote time unknown', updated: 'Last updated', refreshing: 'Updating; showing the last confirmed results.', details: 'Risk, exposure and realized trades', strategy: 'Strategy performance', changed: 'Transactions changed during loading. Refresh to align prices and holdings.', refresh: 'Refresh prices' },
+  'zh-TW': { scroll: '橫向捲動表格，可查看價格與報價狀態。', title: '持倉', price: '現價', value: '市值', pnl: '盈虧', status: '報價狀態', missing: '缺少報價', stale: '已過時', current: '最新', timeUnknown: '報價時間未知', updated: '最後更新', refreshing: '正在更新，暫時顯示上次確認的結果。', details: '風險、曝險及已實現交易', strategy: '策略績效', changed: '載入期間交易已有變更，請重新整理以對齊持倉與估值。', refresh: '更新報價' },
+  'zh-CN': { scroll: '横向滚动表格，可查看价格与报价状态。', title: '持仓', price: '现价', value: '市值', pnl: '盈亏', status: '报价状态', missing: '缺少报价', stale: '已过时', current: '最新', timeUnknown: '报价时间未知', updated: '最后更新', refreshing: '正在更新，暂时显示上次确认的结果。', details: '风险、敞口及已实现交易', strategy: '策略绩效', changed: '加载期间交易已有变更，请刷新以对齐持仓与估值。', refresh: '更新报价' },
 };
 
 export default function Holdings() {
@@ -73,18 +74,20 @@ export default function Holdings() {
         const price = compatible ? quote.price : undefined;
         const value = price === undefined ? null : price * Number(row.quantity), pnl = value === null ? null : value - Number(row.totalCost);
         const stale = quote?.source === 'stale' || (quote?.quoteAsOf && Date.now() - Date.parse(quote.quoteAsOf) > 72 * 3600_000);
-        return <tr key={row.symbol}><th scope="row"><span className="holdings-symbol"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link><CaptureEntry symbol={row.symbol}/></span></th><td>{formatQuantity(locale, row.quantity)}</td><td>{amount(row.avgCost)}</td><td>{amount(row.totalCost)}</td><td>{amount(price ?? null)}</td><td>{amount(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td>{price === undefined ? c.missing : <>{stale && <span>{c.stale} · </span>}{quote?.quoteAsOf ? <time dateTime={quote.quoteAsOf}>{formatInstantUtc(locale, quote.quoteAsOf)}</time> : c.timeUnknown}</>}</td></tr>;
+        return <tr key={row.symbol}><th scope="row"><span className="holdings-symbol"><Link to={`/stocks/${encodeURIComponent(row.symbol)}`}>{row.symbol}</Link><CaptureEntry symbol={row.symbol}/></span></th><td>{formatQuantity(locale, row.quantity)}</td><td>{amount(row.avgCost)}</td><td>{amount(row.totalCost)}</td><td>{amount(price ?? null)}</td><td>{amount(value)}</td><td className={marketClass(pnl)}>{formatMarketValue(locale, pnl, 2)}</td><td className="holdings-quote">{price === undefined ? c.missing : stale ? <>{quote?.quoteAsOf
+          ? <time dateTime={quote.quoteAsOf}>{c.stale}<span className="sr-only"> · {formatInstantUtc(locale, quote.quoteAsOf)}</span></time>
+          : <>{c.stale}<span className="sr-only"> · {c.timeUnknown}</span></>}<CaveatMark mark="†"/></> : c.current}</td></tr>;
       })}</tbody></table></div><p className="muted">{c.updated}: <time dateTime={data.asOf}>{formatInstantUtc(locale, data.asOf)}</time></p>
     </>}
     <div className="actions"><Link className="button" to="/diaries/new">{l.record}</Link>{data && data.holdings.length > 0 && <button className="secondary" onClick={() => { retryBook(); retryPrices(); }} disabled={ledgerLoading || marketLoading}>{c.refresh}</button>}</div>
     {marketLoading && quotes && <p role="status">{c.refreshing}</p>}
     {mismatch && <p role="status">{c.changed}</p>}
     {!mismatch && data && data.holdings.length > 0 && <PortfolioValuation showHoldings={false} source={{ data: valuation, error: sectionError(quotes?.valuation, marketError), retry: retryPrices }}/>}
-    <details className="holdings-details"><summary>{c.details}</summary>
+    <Disclosure className="holdings-details"><DisclosureSummary>{c.details}</DisclosureSummary>
       {!mismatch && <PortfolioAttention source={{ data: attention, error: sectionError(quotes?.attention, marketError), retry: retryPrices }}/>}
       <PortfolioExposure source={{ data: exposure, error: sectionError(data?.exposure, ledgerError), retry: retryBook }}/>
       <RecentRealizedTrades source={{ data: data?.recent.trades ?? null, error: ledgerError, retry: retryBook }}/>
       <p><Link to="/strategy-performance">{c.strategy}</Link></p><TradeExport/>
-    </details>
+    </Disclosure>
   </section>;
 }

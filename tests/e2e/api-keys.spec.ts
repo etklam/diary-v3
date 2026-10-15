@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { e2eBaseURL, test, expect, selectLocale, selectTheme } from '../support/e2e';
+import { acceptConfirmation, confirmation, e2eBaseURL, expect, selectLocale, selectTheme, test } from '../support/e2e';
 for (const width of [1440, 390]) test(`API key external diary and revocation at ${width}px`, async ({ page, playwright }) => {
  await page.setViewportSize({ width, height: 900 });
  const email = `keys-${randomUUID()}@example.test`, password = 'synthetic-keys-password';
@@ -34,7 +34,7 @@ for (const width of [1440, 390]) test(`API key external diary and revocation at 
   await page.goto('/settings/api-keys'); await expect(page.getByTestId('api-key')).toContainText('Last used'); await expect(page.locator('textarea[readonly]')).toHaveCount(0); await expect(page.locator('.plan-page')).not.toContainText(rawKey);
   if (width === 390) await selectTheme(page, 'dark');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.locator('.plan-page').screenshot({ path: `docs/design/evidence/api-keys/${width}.png` });
-  page.once('dialog', dialog => dialog.accept()); await page.getByRole('button', { name: 'Revoke key', exact: true }).click(); await expect(page.getByTestId('api-key')).toContainText('Revoked');
+  await page.getByRole('button', { name: 'Revoke key', exact: true }).click(); await expect(confirmation(page)).toContainText('External research writer'); await acceptConfirmation(page, 'Revoke key'); await expect(page.getByTestId('api-key')).toContainText('Revoked');
   expect((await client.post('/api/agent/diaries', { data: { date: '2026-09-06', title: 'Denied', content: 'Synthetic' } })).status()).toBe(401);
  } finally { await client.dispose(); }
 });

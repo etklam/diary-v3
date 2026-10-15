@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Link, useSearchParams } from 'react-router';
 import { groupActivityDays, groupActivityEvents } from '@diary/domain';
 import { ACTIVITY_EVENT_GROUPS, type ActivityEvent } from '@diary/contracts/activity-timeline';
-import { useUi, LoadingBlock } from '../ui';
+import { Disclosure, DisclosureSummary, LoadingBlock, useUi } from '../ui';
 import { useTimeline } from '../use-timeline';
 import { timelineCopy } from '../timeline-copy';
 import { FailureNotice, invalidField } from '../api-error';
@@ -187,20 +187,20 @@ export default function TimelinePage() {
         <Link to={groupTo('')} aria-current={group === '' ? 'true' : undefined}>{c.kindAll}</Link>
         {ACTIVITY_EVENT_GROUPS.map(value => <Link key={value} to={groupTo(value)} aria-current={group === value ? 'true' : undefined}>{groupName[value]}</Link>)}
       </nav>
-      <details className="timeline-filters" open={filtersOpen} onToggle={event => setFiltersOpen(event.currentTarget.open)}>
+      <Disclosure className="timeline-filters" open={filtersOpen} onToggle={event => setFiltersOpen(event.currentTarget.open)}>
         {/* The control names itself and states its current value, so the row
             needs no separate label line above the range. */}
-        <summary aria-label={`${c.filter}: ${rangeSummary}`}>
+        <DisclosureSummary aria-label={`${c.filter}: ${rangeSummary}`}>
           <Icon name="calendarRange" size={16} aria-hidden="true" />
           <span className="timeline-filter-range" data-testid="timeline-filter-range">{rangeSummary}</span>
           <Icon name="chevronDown" size={15} aria-hidden="true" className="timeline-filter-caret" />
-        </summary>
+        </DisclosureSummary>
         <form key={params.toString()} onSubmit={filter}>
           <label>{c.from}<input name="dateFrom" type="date" defaultValue={dateFrom} aria-invalid={invalidField(timeline.error, 'dateFrom')} aria-describedby={timeline.error ? 'timeline-error' : undefined} /></label>
           <label>{c.to}<input name="dateTo" type="date" defaultValue={dateTo} aria-invalid={invalidField(timeline.error, 'dateTo')} aria-describedby={timeline.error ? 'timeline-error' : undefined} /></label>
           <div className="actions"><button type="submit" className="button-compact">{c.apply}</button><button type="button" className="secondary button-compact" onClick={clearDates}>{c.reset}</button></div>
         </form>
-      </details>
+      </Disclosure>
       {hasDateFilter && <button type="button" className="quiet-button button-compact timeline-filter-clear" onClick={clearDates}>{c.clear}</button>}
       {!timeline.loading && <p className="timeline-count muted" role="status">{timeline.events.length} {locale === 'en' && timeline.events.length === 1 ? 'record loaded' : c.loaded}</p>}
     </div>

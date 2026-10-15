@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
-import type { Dialog, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import {tradePlanExecutionComparisonSchema} from '@diary/contracts/trade-plan-execution';
-import {test,expect, selectAccountLocale, selectLocale, selectTheme, signOut} from '../support/e2e';
+import { acceptConfirmation, confirmation, expect, selectAccountLocale, selectLocale, selectTheme, signOut, test } from '../support/e2e';
 for(const width of [1440,390])test(`trade plan exact decimals, lifecycle and diary link at ${width}px`,async({page,context})=>{
  await page.setViewportSize({width,height:900});const email=`plan-${randomUUID()}@example.test`,password='synthetic-plan-password';await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectAccountLocale(page, 'en');
  const headers={'x-csrf-token':(await context.cookies()).find(c=>c.name==='csrf-token')!.value};const diary=await(await page.request.post('/api/diaries',{headers,data:{title:'Evidence for the plan',content:'Original reasoning',date:'2026-09-05'}})).json();
@@ -16,7 +16,7 @@ for(const width of [1440,390])test(`trade plan exact decimals, lifecycle and dia
  await page.goto(`/trade-plans/${id}`);await expect(page.getByRole('combobox',{name:'Status',exact:true})).toHaveValue('active');await page.getByRole('button',{name:'Remove diary link',exact:true}).click();await page.getByRole('combobox',{name:'Status',exact:true}).selectOption('closed');await page.getByRole('button',{name:'Save trade plan',exact:true}).click();await expect(page.getByText('Trade plan saved.',{exact:true})).toBeVisible();expect((await(await page.request.get(`/api/trade-plans/${id}`)).json()).diaryId).toBeNull();
  await page.goto('/trade-plans');await page.getByRole('combobox',{name:'Status',exact:true}).selectOption('active');await page.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(page.getByText('No trade plans match these filters.')).toBeVisible();await page.getByRole('combobox',{name:'Status',exact:true}).selectOption('closed');await page.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(page.getByRole('link',{name:'AAPL · Independent demand confirmation'})).toBeVisible();await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:`docs/design/evidence/trade-plans/list-${width}.png`,fullPage:true});
  for(const[locale,title]of[['zh-TW','交易計劃'],['zh-CN','交易计划'],['en','Trade plans']]as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();}expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.getByRole('link',{name:'AAPL · Independent demand confirmation'}).click();page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Delete trade plan',exact:true}).click();await expect(page).toHaveURL(/\/trade-plans$/);expect((await page.request.get(`/api/trade-plans/${id}`)).status()).toBe(404);
+ await page.getByRole('link',{name:'AAPL · Independent demand confirmation'}).click();await page.getByRole('button',{name:'Delete trade plan',exact:true}).click();await expect(confirmation(page)).toContainText('AAPL');await acceptConfirmation(page,'Delete trade plan');await expect(page).toHaveURL(/\/trade-plans$/);expect((await page.request.get(`/api/trade-plans/${id}`)).status()).toBe(404);
 });
 
 test('Trade Plan guest errors offer a safe sign-in return', async ({page}) => {
@@ -122,9 +122,8 @@ test('Trade Plan restores a local draft, clears a reverted dirty state, and repo
  const setup=page.getByRole('textbox',{name:'Setup',exact:true});
  await setup.fill('Temporary setup'); await expect(page.locator('.plan-save-status')).toContainText('Not saved to server');
  await setup.fill(''); await expect(page.locator('.plan-save-status')).toHaveText('');
- let dialogs=0; const dismissNavigation=(dialog:Dialog)=>{dialogs+=1; void dialog.dismiss();}; page.on('dialog',dismissNavigation);
- await page.getByRole('link',{name:'All trade plans',exact:true}).click(); await expect(page).toHaveURL(/\/trade-plans$/); expect(dialogs).toBe(0);
- page.off('dialog',dismissNavigation);
+ // A field typed and cleared again is not unsaved work, so leaving asks nothing.
+ await page.getByRole('link',{name:'All trade plans',exact:true}).click(); await expect(page).toHaveURL(/\/trade-plans$/); await expect(confirmation(page)).toBeHidden();
 
  await page.goto('/trade-plans/new'); await selectLocale(page,'en');
  const symbol=page.getByRole('textbox',{name:'Symbol',exact:true}); await symbol.fill('AAPL');

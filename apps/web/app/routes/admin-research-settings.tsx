@@ -4,7 +4,7 @@ import { researchProviderSettingsSchema, researchProviderUpdateSchema, researchR
 import { FailureNotice, type Failure } from '../api-error'
 import { PageHeader, ResearchFailure, ResearchStatus, researchRequest, statusTone } from '../research-studio'
 import { permissionStatusLabel, researchConfigurationCopy, researchCopy, researchSourcePurposeKeys, formatDate, type Locale } from '../research-studio-copy'
-import { useUi } from '../ui'
+import { Disclosure, DisclosureSummary, useUi } from '../ui'
 import './admin-research.css'
 
 type ProviderForm = {
@@ -138,10 +138,10 @@ export default function AdminResearchSettings() {
             <div className="research-panel-heading"><h3>{source.provider}</h3><ResearchStatus value={source.status} tone={tone} label={sourceStatusLabel(source.status)} /></div>
             <p className="muted"><code>{source.sourceId}</code> · {sourceCopy.configuredLabel}: {source.configured ? sourceCopy.configuredYes : sourceCopy.configuredNo}</p>
             <div className="research-source-purpose-badges" role="list" aria-label={`${source.sourceId}: ${c.sourceRights}`}>{permissions.map(([purpose, permission]) => <span key={purpose} role="listitem" aria-label={`${sourceCopy[purpose]}: ${permissionStatusLabel(permission.status, sourceCopy)}`} className={`research-purpose-badge research-purpose-${permission.status}`}><span>{sourceCopy[purpose]}</span><strong>{permissionStatusLabel(permission.status, sourceCopy)}</strong></span>)}</div>
-            <details className="research-source-details"><summary>{sourceCopy.sourceDetails}</summary>
+            <Disclosure className="research-source-details"><DisclosureSummary>{sourceCopy.sourceDetails}</DisclosureSummary>
               <p>{sourceStatusMessage(source.status)}</p>
               <dl className="research-source-permissions" aria-label={`${source.sourceId}: ${c.sourceRights}`}>{permissions.map(([purpose, permission]) => <div key={purpose}><dt>{sourceCopy[purpose]} <ResearchStatus value={permission.status} tone={permission.status === 'allowed' ? 'info' : permission.status === 'restricted' ? 'warn' : 'neutral'} label={permissionStatusLabel(permission.status, sourceCopy)} /></dt><dd><span><strong>{sourceCopy.conditions}:</strong> {permission.conditions.length ? permission.conditions.join(' · ') : sourceCopy.noConditions}</span><span><strong>{sourceCopy.basis}:</strong> {permission.basis ?? sourceCopy.noBasis}</span><span><strong>{sourceCopy.checkedAt}:</strong> {permission.checkedAt ? <time dateTime={permission.checkedAt}>{formatDate(permission.checkedAt, locale as Locale, true)}</time> : sourceCopy.notRecorded}</span></dd></div>)}</dl>
-            </details>
+            </Disclosure>
           </article>
         })}</div>
       </section>

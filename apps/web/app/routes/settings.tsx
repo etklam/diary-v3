@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useUi } from '../ui';
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
 import { signInPath, useSessionState } from '../session';
 import './settings.css';
@@ -74,7 +74,7 @@ export default function Settings() {
             <p className="muted" id="amount-hint">{text.exact}</p>
             <label className="holiday-option"><input name="excludeHolidaysInStats" type="checkbox" checked={form.excludeHolidaysInStats} onChange={e=>update('excludeHolidaysInStats',e.target.checked)} aria-describedby="holiday-hint"/>{text.holidays}</label><p className="muted" id="holiday-hint">{text.holidaysHint}</p>
           </fieldset>
-          <FailureNotice failure={failure} id="settings-error"/><div className="settings-actions"><button type="submit" disabled={pending}>{pending?t('pending'):text.save}</button><p role="status">{saved?text.saved:pending?t('pending'):''}</p></div>
+          <FailureNotice failure={failure} id="settings-error"/><div className="settings-actions"><ActionButton type="submit" pending={pending}>{text.save}</ActionButton><p role="status">{saved?text.saved:pending?t('pending'):''}</p></div>
         </form>}
     <p className="settings-security">{isAdmin&&<><Link to="/admin/etf">{locale==='en'?'Manage ETF catalog':locale==='zh-CN'?'管理 ETF 目录':'管理 ETF 目錄'}</Link> · </>}<Link to="/settings/api-keys">{locale==='en'?'Manage API keys':locale==='zh-CN'?'管理 API 密钥':'管理 API 金鑰'}</Link> · <Link to="/settings/security">{text.security}</Link></p>
   </section>;

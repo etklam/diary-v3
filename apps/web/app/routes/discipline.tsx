@@ -2,7 +2,7 @@ import { DisciplineTransfer } from '../discipline-transfer';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useBlocker, useLocation } from 'react-router';
 import { disciplineListSchema, randomDisciplineSchema, writeDisciplineSchema, type DisciplineResponse } from '@diary/contracts/discipline';
-import { api, useUi } from '../ui';
+import { ActionButton, api, useConfirm, useUi } from '../ui';
 import { signInPath, useSessionState } from '../session';
 import { FailureNotice, apiFailure, type Failure } from '../api-error';
 import { disciplineCopy, principleCount, principleNumber } from '../discipline-copy';
@@ -10,17 +10,17 @@ import { Icon } from '../icons';
 import '../trade-plan.css';
 const LIMIT = 255, COUNTER_FROM = 200, STATUS_MS = 6000;
 export default function Discipline() {
- const { locale, t } = useUi(), c = disciplineCopy[locale], session = useSessionState(), location = useLocation();
+ const { locale, t } = useUi(), c = disciplineCopy[locale], session = useSessionState(), location = useLocation(), confirm = useConfirm();
  const [rows, setRows] = useState<DisciplineResponse[] | null>(null), [error, setError] = useState<Failure | null>(null), [writeError, setWriteError] = useState<Failure | null>(null);
  const [attempt, retry] = useState(0), [timezone, setTimezone] = useState('UTC'), [pending, setPending] = useState(false), [status, setStatus] = useState('');
- const [content, setContent] = useState(''), [editing, setEditing] = useState<string | null>(null), [editContent, setEditContent] = useState(''), [doomed, setDoomed] = useState<DisciplineResponse | null>(null);
+ const [content, setContent] = useState(''), [editing, setEditing] = useState<string | null>(null), [editContent, setEditContent] = useState('');
  const [drawn, setDrawn] = useState<{ content: string; isCustom: boolean } | null>(null);
  const input = useRef<HTMLTextAreaElement>(null), editInput = useRef<HTMLTextAreaElement>(null), dirty = useRef(false), transferDirty = useRef(false), mutation = useRef<AbortController | null>(null), translate = useRef(t); translate.current = t;
- const deleteDialog = useRef<HTMLDialogElement>(null), discardDialog = useRef<HTMLDialogElement>(null), focusAfterEdit = useRef<string | null>(null);
+ const focusAfterEdit = useRef<string | null>(null);
  // One honest definition of unsaved work for both the router blocker and the unload guard.
  useEffect(() => { dirty.current = Boolean(content.trim()) || editing !== null; }, [content, editing]);
  const blocker = useBlocker(({ currentLocation, nextLocation }) => currentLocation.pathname !== nextLocation.pathname && (dirty.current || transferDirty.current) && session.authenticated !== false);
- useEffect(() => { if (blocker.state === 'blocked') discardDialog.current?.showModal(); else discardDialog.current?.close(); }, [blocker.state]);
+ useEffect(() => { if (blocker.state !== 'blocked') return; void confirm({ title: c.discardTitle, body: c.discard, confirm: c.discardConfirm, cancel: c.stay, tone: 'danger' }).then(ok => { if (ok) blocker.proceed?.(); else blocker.reset?.(); }); }, [blocker, c.discard, c.discardConfirm, c.discardTitle, c.stay, confirm]);
  useEffect(() => { if (editing) editInput.current?.focus(); }, [editing]);
  // Leaving the row editor must not drop focus to the body: send it back to the sentence once the row has rendered again.
  useEffect(() => { if (editing !== null || !focusAfterEdit.current) return; const id = focusAfterEdit.current; focusAfterEdit.current = null; document.getElementById(`principle-${id}`)?.focus(); }, [editing, rows]);
@@ -77,6 +77,13 @@ export default function Discipline() {
    focusAfterEdit.current = id; stopEditing(); setDrawn(null); setStatus(c.updated); retry(value => value + 1);
   });
  }
+ // The principle itself is quoted back in the dialog, trimmed the same way the
+ // page trims it elsewhere, so the confirmation names what it destroys.
+ async function askRemove(row: DisciplineResponse) {
+  const quoted = row.content.slice(0, 20) + (row.content.length > 20 ? '…' : '');
+  if (!await confirm({ title: c.confirmTitle, body: <>{c.confirmBody} <q>{quoted}</q></>, confirm: c.remove, cancel: c.cancel, tone: 'danger' })) return;
+  remove(row);
+ }
  function remove(row: DisciplineResponse) { void run(async signal => {
   const result = await api.DELETE('/api/discipline/{id}', { params: { path: { id: row.id } }, signal });
   if (signal.aborted) return;
@@ -125,14 +132,14 @@ export default function Discipline() {
      {editing === row.id ? <form className="discipline-edit" onSubmit={update}><fieldset disabled={pending}>
       <textarea ref={editInput} aria-label={c.editingLabel.replace('{n}', String(index + 1).padStart(2, '0'))} required maxLength={LIMIT} rows={3} value={editContent} onChange={event => setEditContent(event.target.value)} onKeyDown={shortcut}/>
       <p className="muted discipline-meta">{c.createdAt}: <time dateTime={row.createdAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(new Date(row.createdAt))}</time></p>
-      <div className="actions"><button type="submit">{pending ? t('pending') : c.save}</button><button type="button" className="secondary" onClick={stopEditing}>{c.cancel}</button></div>
+      <div className="actions"><ActionButton type="submit" pending={pending}>{c.save}</ActionButton><button type="button" className="secondary" onClick={stopEditing}>{c.cancel}</button></div>
      </fieldset></form> : <>
       <p id={`principle-${row.id}`} tabIndex={-1} className="discipline-sentence">{row.content}</p>
       <div className="discipline-row-actions">
        <button type="button" className="quiet-button button-compact discipline-icon-button" aria-label={c.up} disabled={pending || editing !== null || index === 0} onClick={() => move(index, -1)}><Icon name="arrowUp"/></button>
        <button type="button" className="quiet-button button-compact discipline-icon-button" aria-label={c.down} disabled={pending || editing !== null || index === rows.length - 1} onClick={() => move(index, 1)}><Icon name="arrowDown"/></button>
        <button type="button" className="quiet-button button-compact" disabled={pending || editing !== null} onClick={() => { setEditing(row.id); setEditContent(row.content); setWriteError(null); }}>{c.edit}</button>
-       <button type="button" className="danger-button button-compact discipline-icon-button" aria-label={c.remove} disabled={pending || editing !== null} onClick={() => { setDoomed(row); deleteDialog.current?.showModal(); }}><Icon name="trash"/></button>
+       <button type="button" className="danger-button button-compact discipline-icon-button" aria-label={c.remove} disabled={pending || editing !== null} onClick={() => void askRemove(row)}><Icon name="trash"/></button>
       </div>
      </>}
     </li>)}</ol>
@@ -142,26 +149,9 @@ export default function Discipline() {
     <legend>{c.addHeading}</legend>
     <div className="discipline-field"><label htmlFor="discipline-content">{c.content}</label><textarea id="discipline-content" ref={input} required maxLength={LIMIT} rows={3} value={content} onChange={event => setContent(event.target.value)} onKeyDown={shortcut}/></div>
     {content.length >= COUNTER_FROM && <p className="muted discipline-counter">{c.remaining.replace('{n}', String(remaining))}</p>}
-    <div className="actions"><button type="submit">{pending ? t('pending') : c.create}</button>{content && <button className="secondary" type="button" onClick={clear}>{c.cancel}</button>}<span className="discipline-shortcut">{c.shortcut} <kbd>⌘ / Ctrl Enter</kbd></span></div>
+    <div className="actions"><ActionButton type="submit" pending={pending}>{c.create}</ActionButton>{content && <button className="secondary" type="button" onClick={clear}>{c.cancel}</button>}<span className="discipline-shortcut">{c.shortcut} <kbd>⌘ / Ctrl Enter</kbd></span></div>
    </fieldset></form>
    <DisciplineTransfer draftState={transferDirty} principles={rows} disabled={pending || editing !== null} onImported={() => { setDrawn(null); retry(value => value + 1); }}/>
-   <dialog ref={deleteDialog} className="delete-dialog" aria-labelledby="discipline-delete-title" onClose={() => setDoomed(null)}>
-    <h2 id="discipline-delete-title">{c.confirmTitle}</h2>
-    <p>{c.confirmBody}</p>
-    <p className="discipline-doomed"><q>{doomed ? doomed.content.slice(0, 20) + (doomed.content.length > 20 ? '…' : '') : ''}</q></p>
-    <div className="actions">
-     <button type="button" className="secondary" autoFocus disabled={pending} onClick={() => deleteDialog.current?.close()}>{c.cancel}</button>
-     <button type="button" className="danger-button" disabled={pending} onClick={() => { const target = doomed; deleteDialog.current?.close(); if (target) remove(target); }}>{pending ? t('pending') : c.remove}</button>
-    </div>
-   </dialog>
   </>}
-  <dialog ref={discardDialog} className="delete-dialog" aria-labelledby="discipline-discard-title" onClose={() => { if (blocker.state === 'blocked') blocker.reset(); }}>
-   <h2 id="discipline-discard-title">{c.discardTitle}</h2>
-   <p>{c.discard}</p>
-   <div className="actions">
-    <button type="button" className="secondary" autoFocus onClick={() => blocker.reset?.()}>{c.stay}</button>
-    <button type="button" className="danger-button" onClick={() => blocker.proceed?.()}>{c.discardConfirm}</button>
-   </div>
-  </dialog>
  </section>;
 }

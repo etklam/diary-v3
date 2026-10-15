@@ -4,7 +4,7 @@ import { articleTranslationAiDefaultUpdateSchema, articleTranslationAiProviderSa
 import { FailureNotice, invalidField, type Failure } from '../api-error'
 import type { ShellOutletContext } from '../root'
 import { csrfToken, sessionFetch, signInPath } from '../session'
-import { useUi } from '../ui'
+import { useConfirm, useUi } from '../ui'
 import '../admin-article-translations.css'
 
 type Provider = ReturnType<typeof articleTranslationAiProviderSchema.parse>
@@ -78,7 +78,7 @@ async function readBody(response: Response): Promise<unknown> { return response.
 function ready(provider: Provider): boolean { return provider.enabled && provider.secretConfigured && Boolean(provider.baseUrl && provider.model) }
 
 export default function AdminArticleTranslations() {
-  const { locale } = useUi()
+  const { locale, t } = useUi(), confirm = useConfirm()
   const c = copy[locale]
   const { authenticated, viewer } = useOutletContext<ShellOutletContext>()
   const isAdmin = authenticated === true && viewer?.role === 'ADMIN'
@@ -143,23 +143,29 @@ export default function AdminArticleTranslations() {
     if (form) formHeading.current?.focus()
   }, [Boolean(form), editingId, creating])
 
-  function confirmDiscard(): boolean { return !dirty || window.confirm(c.discard) }
+  async function confirmDiscard(): Promise<boolean> { return !dirty || confirm({ title: c.discard, confirm: t('discard') }) }
 
   function startNew() {
-    if (!confirmDiscard()) return
-    setFailure(null); setNotice(''); setCreating(true); setEditingId(null)
-    setForm({ ...defaults }); setBaseline({ ...defaults })
+    void (async () => {
+      if (!await confirmDiscard()) return
+      setFailure(null); setNotice(''); setCreating(true); setEditingId(null)
+      setForm({ ...defaults }); setBaseline({ ...defaults })
+    })()
   }
 
   function editProvider(provider: Provider) {
-    if (provider.id === editingId || !confirmDiscard()) return
-    const next = fromProvider(provider)
-    setFailure(null); setNotice(''); setCreating(false); setEditingId(provider.id); setForm(next); setBaseline(next)
+    void (async () => {
+      if (provider.id === editingId || !await confirmDiscard()) return
+      const next = fromProvider(provider)
+      setFailure(null); setNotice(''); setCreating(false); setEditingId(provider.id); setForm(next); setBaseline(next)
+    })()
   }
 
   function closeForm() {
-    if (!confirmDiscard()) return
-    setForm(null); setBaseline(null); setCreating(false); setEditingId(null)
+    void (async () => {
+      if (!await confirmDiscard()) return
+      setForm(null); setBaseline(null); setCreating(false); setEditingId(null)
+    })()
   }
 
   async function saveProvider(event: FormEvent<HTMLFormElement>) {

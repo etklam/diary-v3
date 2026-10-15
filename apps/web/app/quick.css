@@ -360,3 +360,21 @@
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Capture register (ticket 120)
+   The writing area is the subject of this page, so it takes the canvas the page
+   is given. At 1440 it used to be a 690×280 box in the top-left of a 1,225px
+   region with roughly 550px of nothing under it — the most important writing
+   surface in the product had the least considered composition. The dialog keeps
+   its own clamp: it is bounded by the viewport already.
+   --------------------------------------------------------------------------- */
+.quick-page .quick-writing textarea {
+  min-height: clamp(280px, calc(100dvh - 420px), 720px);
+}
+
+@media (max-width: 767px) {
+  .quick-page .quick-writing textarea {
+    min-height: min(42dvh, 360px);
+  }
+}

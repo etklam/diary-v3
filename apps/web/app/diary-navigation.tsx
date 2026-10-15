@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router'
 import { Icon, type IconName } from './icons'
 import { useUi } from './ui'
 import { useReviewCount } from './use-review-count'
+import { usePendingPathname } from './navigation-progress'
 
 const copy = {
   'zh-TW': { nav: '日記快捷導覽', capture: '記錄', library: '日記庫', timeline: '時間軸', calendar: '日曆', reviews: '複盤', waiting: '項待複盤' },
@@ -33,11 +34,15 @@ export function DiaryNavigation() {
   const c = copy[locale]
   const active = activeView(location.pathname)
   const waiting = useReviewCount()
+  // Optimistic selection while the route loads; see `usePendingPathname`.
+  const pendingPath = usePendingPathname()
+  const pending = pendingPath === null ? null : activeView(pendingPath)
 
   // The badge is decorative; the count reaches assistive technology through the
   // link's own accessible name so it is never announced twice.
   const item = (view: View, to: string, icon: IconName, text: string, badge = 0) =>
     <Link key={view} to={to} aria-current={active === view ? 'page' : undefined}
+      data-nav-pending={pending === view && active !== view ? 'true' : undefined}
       aria-label={badge > 0 ? `${text} · ${badge} ${c.waiting}` : undefined}>
       <span className="mobile-diary-icon">
         <Icon name={icon} size={20} />

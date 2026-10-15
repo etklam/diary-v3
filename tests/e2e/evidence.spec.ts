@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
+import { acceptConfirmation, cancelConfirmation, confirmation, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e';
 for (const width of [1440, 390]) test(`Evidence capture and immutable retry at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   const email = `evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
@@ -74,22 +74,17 @@ for (const width of [1440, 390]) test(`Diary evidence retains captured summary a
 
   // A changed collapsed capture blocks in-app navigation until the user
   // explicitly chooses whether to discard the unfinished record.
-  let blocked = 0;
   const timelineTarget = width < 768
     ? page.getByTestId('mobile-diary-navigation').getByRole('link', { name: 'Timeline', exact: true })
     : page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true });
-  page.once('dialog', async dialog => {
-    blocked += 1;
-    expect(dialog.message()).toBe('You have unsaved evidence. Leave this page?');
-    await dialog.dismiss();
-  });
   await timelineTarget.click({ noWaitAfter: true });
+  await expect(confirmation(page)).toContainText('You have unsaved evidence. Leave this page?');
+  await cancelConfirmation(page);
   await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
-  await expect.poll(() => blocked).toBe(1);
   await expect(evidence.getByLabel('Evidence summary')).toHaveValue('Frozen evidence before the diary changed.');
 
-  page.once('dialog', dialog => dialog.accept());
   await timelineTarget.click({ noWaitAfter: true });
+  await acceptConfirmation(page);
   await expect(page).toHaveURL(/\/timeline$/);
   await page.goto(`/diaries/${diary.id}`);
   const reopenedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true });

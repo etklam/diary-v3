@@ -13,7 +13,7 @@ import {
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import type { Locale } from '../destinations'
 import { compactUsd, formatExactDecimal, formatSignedDecimal, formatSignedPercent, percent } from '../guru-format'
-import { api, useUi } from '../ui'
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui'
 import { guruCopy, type GuruCopy } from './gurus-copy'
 import { guruResearchCopy } from '../guru-research-copy'
 import './guru-research.css'
@@ -49,15 +49,15 @@ function PositionHistory({ slug, holding, locale, copy }: { slug: string; holdin
     }).catch(() => { if (!controller.signal.aborted) setFailure(true) })
     return () => controller.abort()
   }, [holding.positionKey, open, slug])
-  return <details className="guru-position-history" onToggle={event => setOpen(event.currentTarget.open)}>
-    <summary>{copy.details}</summary>
+  return <Disclosure className="guru-position-history" onToggle={event => setOpen(event.currentTarget.open)}>
+    <DisclosureSummary>{copy.details}</DisclosureSummary>
     {failure && <p role="alert">{copy.failed}</p>}
     {!history && !failure && open && <p role="status">{copy.loading}</p>}
     {history && <>
       <a className="secondary guru-export-link" href={`/api/gurus/${encodeURIComponent(slug)}/position-history.csv?${new URLSearchParams({ positionKey: holding.positionKey })}`}>{copy.export}</a>
       <ol>{history.history.map(row => <li key={row.periodEnd}><time>{row.periodEnd}</time><span>{copy.action}: {row.action}</span><span>{copy.shares}: {formatExactDecimal(row.quantity, locale)}</span><span>{copy.weight}: {percent(row.weightPercent, locale)}</span><span>{copy.reported}: {compactUsd(row.reportedValueUsd, locale)}</span><span>{copy.rankLabel}: {row.rank ?? '—'}</span><span>{row.source.map(source => <a key={source.accession} href={source.sourceUrl} target="_blank" rel="noreferrer">{source.accession}</a>)}</span></li>)}</ol>
     </>}
-  </details>
+  </Disclosure>
 }
 
 function HoldingTable({ slug, rows, locale, c }: { slug: string; rows: Holding[]; locale: Locale; c: ReturnType<typeof guruResearchCopy> }) {
@@ -266,7 +266,7 @@ export default function GuruResearchPage() {
       <dl><div><dt>{copy.filed}</dt><dd>{filing.filedAt ? new Date(filing.filedAt).toLocaleDateString(locale) : filing.filingDate}</dd></div><div><dt>{copy.coverage}</dt><dd>{percent(filing.mappingCoveragePercent, locale)}</dd></div><div><dt>{copy.parser}</dt><dd>{filing.parserVersion ?? '—'}</dd></div><div><dt>{copy.amendment}</dt><dd>{filing.amendmentType ?? filing.amendmentNumber ?? '—'}</dd></div></dl>
       <a href={filing.sourceUrl} target="_blank" rel="noreferrer">{copy.source} ↗</a>
       {filing.effectiveOperations.length > 0 && <p>{filing.effectiveOperations.map(item => `${item.operation} · ${item.parserVersion}`).join(' | ')}</p>}
-      {filing.documents.length > 0 && <details><summary>{copy.documents}</summary><ul>{filing.documents.map(document => <li key={document.basename}><a href={document.sourceUrl} target="_blank" rel="noreferrer">{document.basename}</a>{document.description ? ` · ${document.description}` : ''}</li>)}</ul></details>}
+      {filing.documents.length > 0 && <Disclosure><DisclosureSummary>{copy.documents}</DisclosureSummary><ul>{filing.documents.map(document => <li key={document.basename}><a href={document.sourceUrl} target="_blank" rel="noreferrer">{document.basename}</a>{document.description ? ` · ${document.description}` : ''}</li>)}</ul></Disclosure>}
     </article>)}</div>}
   </section>
 }

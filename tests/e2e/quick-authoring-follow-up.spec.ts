@@ -405,7 +405,7 @@ test('restoring a stored draft over writing typed before the account confirmed a
   await expect(content).toHaveValue(typed)
 
   await restore.click()
-  const confirm = page.locator('dialog.delete-dialog[open]')
+  const confirm = page.getByTestId('confirm-dialog')
   await expect(confirm.getByRole('heading', { name: 'Replace the current writing?', exact: true })).toBeVisible()
   await confirm.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(content).toHaveValue(typed)

@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
-import { useUi } from './ui'
+import { ActionButton, Disclosure, DisclosureSummary, useUi } from './ui'
 import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
 import { CommandPaletteTrigger } from './command-palette'
 import { workspaceCopy } from './destinations'
 import { useReviewCount } from './use-review-count'
+import { usePendingPathname } from './navigation-progress'
 
 type Role = 'USER' | 'ADMIN' | null
 
@@ -154,15 +155,15 @@ function NavToolShortcuts({ onNavigate, forcedOpen }: { onNavigate?: () => void;
   const { locale } = useUi()
   const c = workspaceCopy[locale]
   const disclosure = usePersistedDisclosure('tools', forcedOpen)
-  return <details className="nav-more" open={disclosure.open}
+  return <Disclosure className="nav-more" open={disclosure.open}
     onToggle={event => disclosure.remember(event.currentTarget.open)}>
-    <summary><Icon name="chevronDown" />{c.tools}</summary>
+    <DisclosureSummary>{c.tools}</DisclosureSummary>
     <div className="nav-group-links nav-secondary-links">
       {TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={onNavigate}>
         <Icon name={tool.icon} />{tool.name[locale]}
       </Link>)}
     </div>
-  </details>
+  </Disclosure>
 }
 
 export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true, showAccount = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean; showAccount?: boolean }) {
@@ -172,11 +173,18 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
   const c = workspaceCopy[locale]
   const n = navCopy[locale]
   const owner = navigationOwner(location.pathname)
+  // The destination a click is still loading. It takes the selection treatment
+  // immediately, so the list answers the click in the frame it happens rather
+  // than when the loader resolves; `aria-current` below still moves only on the
+  // route that arrived, so assistive technology is never told otherwise
+  // (ticket 118).
+  const pendingPath = usePendingPathname()
+  const pendingOwner = pendingPath === null ? null : navigationOwner(pendingPath)
   const waiting = useReviewCount()
   const diary = usePersistedDisclosure('diary-management', owner === 'aiReports' || owner === 'diaryReminders' || owner === 'partners')
   const trade = usePersistedDisclosure('trade-management', owner === 'priceReminders' || owner === 'discipline')
   const admin = usePersistedDisclosure('administration', location.pathname.startsWith('/admin'))
-  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
+  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} data-nav-pending={pendingOwner === destination && owner !== destination ? 'true' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
   return <>
     <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
     {/* The capture-read-review loop is the product, so those four stay in the
@@ -192,14 +200,14 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
         {link('/calendar', c.calendar, 'calendar', 'calendar')}
       </>}
       {link('/reviews', c.reviewQueue, 'check', 'reviews', waiting ?? 0)}
-    </div><details className="nav-more" open={diary.open} onToggle={event => diary.remember(event.currentTarget.open)}>
-      <summary><Icon name="chevronDown" />{c.diaryManagement}</summary>
+    </div><Disclosure className="nav-more" open={diary.open} onToggle={event => diary.remember(event.currentTarget.open)}>
+      <DisclosureSummary>{c.diaryManagement}</DisclosureSummary>
       <div className="nav-group-links nav-secondary-links">
         {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
         {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
         {link('/partners', c.partners, 'users', 'partners')}
       </div>
-    </details></section>
+    </Disclosure></section>
     {/* Tools and the public articles join the investing group rather than hold
         a heading of their own: once the ticker field left, three rows were
         paying for a heading, a rule and the gap around them. */}
@@ -210,13 +218,13 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
       {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
       {link('/tools', c.tools, 'wrench', 'tools')}
       {link('/articles', c.publicArticles, 'fileText', 'articles')}
-    </div><details className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
-      <summary><Icon name="chevronDown" />{c.tradeManagement}</summary>
+    </div><Disclosure className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
+      <DisclosureSummary>{c.tradeManagement}</DisclosureSummary>
       <div className="nav-group-links nav-secondary-links">
         {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
         {link('/discipline', c.principles, 'shield', 'discipline')}
       </div>
-    </details>
+    </Disclosure>
     <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
     </section>
     {/* Desktop renders these two in the pinned block at the foot of the column
@@ -225,8 +233,8 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
       {link('/achievements', c.achievements, 'target', 'achievements')}
       {link('/settings', c.settings, 'settings', 'settings')}
     </div></section>}
-    {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><details className="nav-more" open={admin.open} onToggle={event => admin.remember(event.currentTarget.open)}>
-      <summary><Icon name="chevronDown" />{sections.admin}</summary><div className="nav-group-links nav-secondary-links">
+    {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><Disclosure className="nav-more" open={admin.open} onToggle={event => admin.remember(event.currentTarget.open)}>
+      <DisclosureSummary>{sections.admin}</DisclosureSummary><div className="nav-group-links nav-secondary-links">
       {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
       {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
       {link('/admin/gurus', label(locale, { en: 'Guru management', 'zh-CN': '投资大师管理', 'zh-TW': '投資大師管理' }), 'layers', 'adminGurus')}
@@ -235,7 +243,7 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
       {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
       {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
       {link('/admin/email-settings', c.adminEmail, 'settings', 'adminEmail')}
-    </div></details></section>}
+    </div></Disclosure></section>}
   </>
 }
 
@@ -250,9 +258,12 @@ export function AccountLinks({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation()
   const c = workspaceCopy[locale]
   const owner = navigationOwner(location.pathname)
+  const pendingPath = usePendingPathname()
+  const pendingOwner = pendingPath === null ? null : navigationOwner(pendingPath)
+  const pending = (destination: NavigationOwner) => pendingOwner === destination && owner !== destination ? 'true' : undefined
   return <>
-    <Link to="/achievements" onClick={onNavigate} aria-current={owner === 'achievements' ? 'page' : undefined}><Icon name="target" />{c.achievements}</Link>
-    <Link to="/settings" onClick={onNavigate} aria-current={owner === 'settings' ? 'page' : undefined}><Icon name="settings" />{c.settings}</Link>
+    <Link to="/achievements" onClick={onNavigate} aria-current={owner === 'achievements' ? 'page' : undefined} data-nav-pending={pending('achievements')}><Icon name="target" />{c.achievements}</Link>
+    <Link to="/settings" onClick={onNavigate} aria-current={owner === 'settings' ? 'page' : undefined} data-nav-pending={pending('settings')}><Icon name="settings" />{c.settings}</Link>
   </>
 }
 
@@ -292,7 +303,7 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
         <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
         {authenticated === true && <section className="mobile-menu-capture" aria-labelledby="mobile-capture-title"><h2 id="mobile-capture-title">{label(locale, { en: 'Capture', 'zh-CN': '记录', 'zh-TW': '記錄' })}</h2><div className="quick-entry-controls"><CaptureChoices mobile onNavigate={close}/></div></section>}
         <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close} showDiaryViews={false}/></nav>
-        <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <button type="button" className="secondary" data-testid="mobile-sign-out" disabled={logoutPending} onClick={() => { close(); onLogout() }}>{t(logoutPending ? 'pending' : 'logout')}</button>}</div>
+        <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <ActionButton type="button" className="secondary" data-testid="mobile-sign-out" pending={logoutPending} onClick={() => { close(); onLogout() }}>{t('logout')}</ActionButton>}</div>
       </div>
     </dialog>
   </>

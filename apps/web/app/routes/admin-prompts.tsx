@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { sharedPromptAuditSchema, sharedPromptListSchema, sharedPromptPlaygroundResponseSchema, sharedPromptVersionSchema, type SharedPromptItem, type SharedPromptKey } from '@diary/contracts/shared-prompts'
-import { api, useUi } from '../ui'
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui'
 import { apiFailure } from '../api-error'
 import { useSessionState } from '../session'
 import { promptCopy } from './admin-prompts-copy'
@@ -97,7 +97,7 @@ export default function AdminPrompts() {
     finally { if (epoch.current === revision) { setPending(false); if (mode === 'test') setAuditAttempt(value => value + 1) } }
   }
   const confirmationCopy = confirmation === 'archive' ? c.confirmArchive : confirmation === 'disable' ? c.confirmDisable : c.confirmActivate
-  const readable = (label: string, value: unknown) => <details><summary>{label}</summary><pre tabIndex={0}>{typeof value === 'string' ? value : formatted(value)}</pre></details>
+  const readable = (label: string, value: unknown) => <Disclosure><DisclosureSummary>{label}</DisclosureSummary><pre tabIndex={0}>{typeof value === 'string' ? value : formatted(value)}</pre></Disclosure>
 
   return <AdminAiShell view="registry" state={adminAi}>
    <div className="admin-prompts">

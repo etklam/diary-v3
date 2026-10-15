@@ -91,8 +91,15 @@ test('many reminders stay bounded and do not duplicate review obligations', asyn
   }
   await page.goto('/')
   const rows = page.getByTestId('overview-attention-item')
-  await expect(rows).toHaveCount(5)
-  expect(new Set(await rows.allTextContents()).size).toBe(5)
+  // Seven reminders of one kind are one row carrying seven named targets, not
+  // seven rows crowding out every other kind (ticket 119).
+  await expect(rows).toHaveCount(1)
+  await expect(rows.first()).toHaveAttribute('data-attention-group', '7')
+  await expect(rows.first()).toContainText('7 companies')
+  await expect(rows.first().locator('.attention-subjects a')).toHaveCount(7)
+  for (let index = 1; index <= 7; index += 1) {
+    await expect(rows.first().getByRole('link', { name: new RegExp(`Reminder ${index}$`) })).toHaveCount(1)
+  }
   await expect(page.getByTestId('overview-first-use')).toHaveCount(0)
 })
 
@@ -153,7 +160,7 @@ test('completing an overview review removes the row and preserves the back path'
   await page.goto('/')
   const row = page.getByTestId('overview-attention-item').filter({ hasText: 'Review this decision' })
   await expect(row).toBeVisible()
-  await row.getByRole('link', { name: 'Open', exact: true }).click()
+  await row.getByRole('link').first().click()
   await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}/review$`))
   await page.getByRole('radio', { name: 'Partly confirmed', exact: true }).check()
   await page.getByRole('textbox', { name: 'What happened', exact: true }).fill('Synthetic later evidence.')

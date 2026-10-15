@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { achievementListSchema, writeAchievementSchema, type AchievementResponse } from '@diary/contracts/achievements'
 import { goalListSchema, writeGoalSchema, type GoalResponse, type GoalStatus } from '@diary/contracts/goals'
-import { api, useUi, LoadingBlock } from '../ui'
+import { ActionButton, api, LoadingBlock, useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath } from '../session'
 import '../achievements.css'
@@ -257,6 +257,7 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
   onAchieved: (goal: GoalResponse) => void
 }) {
   const { t } = useUi()
+  const confirm = useConfirm()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [content, setContent] = useState('')
@@ -364,7 +365,7 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
   }
 
   async function remove(goal: GoalResponse) {
-    if (pending || !window.confirm(c.confirmGoal)) return
+    if (pending || !await confirm({ title: c.confirmGoal, body: goal.content, confirm: c.remove, tone: 'danger' })) return
     await write(
       signal => api.DELETE('/api/goals/{id}', { params: { path: { id: goal.id } }, signal }),
       () => {
@@ -387,7 +388,7 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
           <label>{c.targetDate}<input data-testid="goal-date" type="date" value={targetDate} onChange={event => setTargetDate(event.target.value)} disabled={openEnded} required={!openEnded} aria-invalid={writeError?.fields.includes('targetDate') || undefined} aria-describedby={writeError ? 'goal-form-error' : undefined} /></label>
           <label className="goal-open-ended"><input data-testid="goal-open-ended" type="checkbox" checked={openEnded} onChange={event => setOpenEnded(event.target.checked)} />{c.openEnded}</label>
         </div>
-        <div className="actions"><button type="submit">{pending ? t('pending') : c.saveGoal}</button><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
+        <div className="actions"><ActionButton type="submit" pending={pending}>{c.saveGoal}</ActionButton><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
       </fieldset>
     </form>}
     <FailureNotice failure={writeError} id="goal-form-error" />
@@ -418,6 +419,7 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
   onRemoved: (id: string) => void
 }) {
   const { t } = useUi()
+  const confirm = useConfirm()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [date, setDate] = useState('')
@@ -506,7 +508,7 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
   }
 
   async function remove(row: AchievementResponse) {
-    if (pending || !window.confirm(c.confirm)) return
+    if (pending || !await confirm({ title: c.confirm, body: row.content, confirm: c.remove, tone: 'danger' })) return
     const controller = new AbortController()
     mutation.current = controller
     setPending(true)
@@ -543,7 +545,7 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
           <label>{c.date}<input ref={dateInput} data-testid="achievement-date" type="date" value={date} onChange={event => setDate(event.target.value)} required aria-invalid={writeError?.fields.includes('date') || undefined} aria-describedby={writeError ? 'achievement-form-error' : undefined} /></label>
           <label className="plan-wide">{c.content}<textarea data-testid="achievement-input" value={content} onChange={event => setContent(event.target.value)} maxLength={1000} rows={3} placeholder={c.placeholder} required aria-invalid={writeError?.fields.includes('content') || undefined} aria-describedby={writeError ? 'achievement-form-error' : undefined} /></label>
         </div>
-        <div className="actions"><button type="submit">{pending ? t('pending') : c.save}</button><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
+        <div className="actions"><ActionButton type="submit" pending={pending}>{c.save}</ActionButton><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
       </fieldset>
     </form>}
     <FailureNotice failure={writeError} id="achievement-form-error" />

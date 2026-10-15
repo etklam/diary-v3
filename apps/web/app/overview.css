@@ -163,25 +163,15 @@
   list-style: none;
 }
 
+/* Row padding and the leading severity rule now belong to `.attention-row` in
+   styles.css; the list element only carries the separators (ticket 119). */
 .overview-action-list > li {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-5);
   min-width: 0;
-  padding: var(--space-4) 0;
   border-bottom: 1px solid var(--border);
 }
 
 .overview-action-list > li:last-child {
   border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.overview-action-list > li > div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
 }
 
 .overview-action-list strong,
@@ -195,14 +185,6 @@
   font-size: 0.875rem;
 }
 
-.overview-action-list > li > div > span {
-  color: var(--muted);
-}
-
-.overview-action-list > li > a {
-  flex: 0 0 auto;
-  align-self: center;
-}
 
 .overview-recent-list > li {
   display: grid;

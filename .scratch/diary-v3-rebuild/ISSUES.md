@@ -192,6 +192,58 @@ Recommended order from the review: 101 first (highest visibility per unit of eff
 credibility problem), then 102 (four fixes of two lines or less), then the redesigns
 103–106, then 107–111, then 112–114.
 
+## Heuristics critique follow-up (118–123)
+
+Filed 2026-10-15 from a Nielsen-heuristics critique of the whole web app, archived at
+`.impeccable/critique/2026-10-14T17-44-55Z__apps-web-app.md`. It scored the app **25/40**
+against the two page scores' 80–89 per page, and **the gap between those numbers is the
+finding**: the page-score rubric measures conformance to a single texture, which tickets
+101–116 drove to near-zero mechanical findings, and it cannot see a surface that should not
+have that texture. Every item below was re-measured against the current tree before filing;
+two findings from the critique were dropped at that step because 115 and 116 had already
+fixed them.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 118 — Give navigation a pending state | Cross-cutting interaction defect | accepted; Execution: done 2026-10-15 | [118-navigation-pending-state.md](issues/118-navigation-pending-state.md) |
+| 119 — The attention list discards its own priority order | Design follow-up | accepted; Execution: done 2026-10-15 | [119-attention-list-priority.md](issues/119-attention-list-priority.md) |
+| 120 — Decide whether the system has more than one density | Design decision | accepted; ruled three registers; Execution: done 2026-10-15 | [120-system-density-ruling.md](issues/120-system-density-ruling.md) |
+| 121 — One mechanism for figure caveats | UX copy and display layer | accepted; Execution: done 2026-10-15 | [121-figure-caveat-mechanism.md](issues/121-figure-caveat-mechanism.md) |
+| 122 — Finish the system at its native edges | Cross-cutting consistency | accepted; Execution: done 2026-10-15 | [122-native-control-edges.md](issues/122-native-control-edges.md) |
+| 123 — Holdings gives its widest column to its least decisive fact | Design follow-up | accepted; Execution: done 2026-10-15 | [123-holdings-quote-status-column.md](issues/123-holdings-quote-status-column.md) |
+
+**Progress — 2026-10-15. 118–123 are all done**, taken in return-on-effort order:
+118, then 122, then 121, 123, 119, and 120 last because its ruling needed the three
+surfaces the other tickets had already touched. Four things are worth reading before
+picking up whatever comes next:
+
+- **The ruling 120 asked for was already written and unenforced.** `DESIGN.md` principle 5
+  has said "Reading and working density stay separate" since the beginning while the app
+  applied one texture to all 88 routes. The ruling is three registers — capture, ledger,
+  reading — with `ledger` being the texture 56 routes already had, so the other two read as
+  departures rather than exceptions. `registers.ts` assigns every route and
+  `scripts/check-register-assignment.mjs` fails when a new route arrives without one.
+- **122 found a second confirmation component, not none.** `authoring-controls.tsx` already
+  exported `ConfirmDialog`, built by 96 and 114 and used on six surfaces. Writing a third
+  would have been the outcome its own Related work warned about. One shipped:
+  `useConfirm()` in `ui.tsx`, with the declarative component and three hand-rolled
+  `.delete-dialog` instances deleted and all 32 `window.confirm` calls converted.
+- **Replacing `window.confirm` made 17 specs testable that were not.** Each drove the
+  native dialog through a `page.on('dialog')` handler that could only accept or dismiss and
+  asserted nothing about what was asked; seven now assert the object by name. The helpers
+  are `acceptConfirmation` / `cancelConfirmation` / `confirmation` in `tests/support/e2e.ts`.
+- **`design:check` is now four scripts.** Contrast, the Figure Rule, native edges
+  (disclosures and confirmations), and register assignment.
+
+Recommended order: **118 first** — it is the only async operation in the product with no
+feedback at all (`useNavigation()` appears zero times in `apps/web/app`), it is the one the
+user performs most often, and it is the single change most likely to answer the report that
+the product does not feel smooth. Then 122, which is mechanical and broad (29 of 35
+disclosures ship the platform marker; 35 `window.confirm` calls against one properly
+designed dialog). Then 119 and 121, which are small and visible. **120 is a ruling and
+should be taken before 119 or 121 touch `/stocks`**, since it decides whether that page's
+rhythm is correct in the first place; 123 depends on 121's outcome for its summary line.
+
 **Progress — 2026-10-07.** 101 and 102 are implemented, in one pass because they share
 call sites. Both carry rulings taken by the implementing agent rather than by the user,
 each recorded with its reasoning in the ticket's "Settled during triage". Two things found

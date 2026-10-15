@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { aiAdminSettingsResponseSchema, aiPromptVersionSchema, type AiPromptVersion } from '@diary/contracts/admin-ai'
 import { z } from 'zod'
-import { api, useUi } from '../ui'
+import { api, Disclosure, DisclosureSummary, useConfirm, useUi } from '../ui'
 import { useSessionState } from '../session'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { adminAiCopy } from '../ai-copy'
-import { ConfirmDialog } from '../authoring-controls'
 import { AdminAiShell, AdminAiStatusBadge, useAdminAiDateTime, useAdminAiSettings } from './admin-ai-shell'
 
 type PromptType = 'weekly' | 'monthly'
@@ -23,6 +22,7 @@ const promptListSchema = z.object({ data: z.array(aiPromptVersionSchema) })
  */
 export default function AdminAiReportPrompts() {
   const { locale, t } = useUi()
+  const confirm = useConfirm()
   const c = adminAiCopy[locale]
   const session = useSessionState()
   const state = useAdminAiSettings()
@@ -40,7 +40,6 @@ export default function AdminAiReportPrompts() {
   const [failure, setFailure] = useState<Failure | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
-  const [confirming, setConfirming] = useState<{ action: Action; type: PromptType } | null>(null)
 
   useEffect(() => { setNotice(null) }, [locale])
 
@@ -75,6 +74,13 @@ export default function AdminAiReportPrompts() {
     setHydrated(true)
   }, [settings, hydrated])
 
+  // One question per paid or destructive prompt action, named by the action.
+  async function askPrompt(action: Action, type: PromptType) {
+    const label = action === 'test' ? c.promptTest : action === 'publish' ? c.promptPublish : c.promptRestore
+    const body = action === 'test' ? c.testConfirm : action === 'publish' ? c.promptPublishConfirm : c.promptRestoreConfirm
+    if (!await confirm({ title: label, body, confirm: label, tone: 'danger' })) return
+    await promptAction(type, action)
+  }
   async function promptAction(type: PromptType, action: Action) {
     const key = `${action}:${type}`
     setPending(key); setFailure(null); setNotice(null)
@@ -113,8 +119,6 @@ export default function AdminAiReportPrompts() {
   }
 
   const dirty = (type: PromptType) => drafts !== null && saved !== null && drafts[type] !== saved[type]
-  const confirmBody = confirming === null ? '' : confirming.action === 'test' ? c.testConfirm : confirming.action === 'publish' ? c.promptPublishConfirm : c.promptRestoreConfirm
-  const confirmLabel = confirming === null ? '' : confirming.action === 'test' ? c.promptTest : confirming.action === 'publish' ? c.promptPublish : c.promptRestore
 
   return <AdminAiShell view="prompts" state={state}>
     <FailureNotice failure={failure} />
@@ -128,29 +132,26 @@ export default function AdminAiReportPrompts() {
         <p className="muted admin-ai-prompt-hint">{c.promptHint}</p>
         <div className="admin-ai-actions">
           <button type="submit" disabled={pending !== null}>{pending === `draft:${type}` ? '…' : c.promptSave}</button>
-          <button type="button" className="secondary" disabled={pending !== null || dirty(type)} onClick={() => setConfirming({ action: 'publish', type })}>{pending === `publish:${type}` ? '…' : c.promptPublish}</button>
-          <button type="button" className="secondary" disabled={pending !== null} onClick={() => setConfirming({ action: 'restore-default', type })}>{pending === `restore-default:${type}` ? '…' : c.promptRestore}</button>
+          <button type="button" className="secondary" disabled={pending !== null || dirty(type)} onClick={() => void askPrompt('publish', type)}>{pending === `publish:${type}` ? '…' : c.promptPublish}</button>
+          <button type="button" className="secondary" disabled={pending !== null} onClick={() => void askPrompt('restore-default', type)}>{pending === `restore-default:${type}` ? '…' : c.promptRestore}</button>
         </div>
         <div className="admin-ai-paid">
-          <button type="button" className="secondary admin-ai-paid-action" disabled={pending !== null || dirty(type)} onClick={() => setConfirming({ action: 'test', type })}>{pending === `test:${type}` ? '…' : c.promptTest}</button>
+          <button type="button" className="secondary admin-ai-paid-action" disabled={pending !== null || dirty(type)} onClick={() => void askPrompt('test', type)}>{pending === `test:${type}` ? '…' : c.promptTest}</button>
           <span className="badge admin-ai-paid-badge">{c.paidAction}</span>
         </div>
         {test[type] && <div className="admin-ai-test-result">
           <h3>{c.promptTestResult} · {c.revision.replace('{n}', String(test[type]!.revision))}</h3>
           <pre data-testid={`admin-ai-prompt-test-${type}`} tabIndex={0}>{JSON.stringify(test[type]!.analysis, null, 2)}</pre>
         </div>}
-        <details className="admin-ai-prompt-history">
-          <summary>{c.promptHistory}</summary>
+        <Disclosure className="admin-ai-prompt-history">
+          <DisclosureSummary>{c.promptHistory}</DisclosureSummary>
           <ul>{(prompts ?? []).filter(version => version.reportType === type).map(version => <li key={version.id}>
             {c.revision.replace('{n}', String(version.revision))} · <AdminAiStatusBadge status={version.status} />{version.isDefault ? <> · {c.versionDefault}</> : null} · <time dateTime={version.createdAt}>{fmtDateTime.format(new Date(version.createdAt))}</time>
           </li>)}
             {(prompts ?? []).every(version => version.reportType !== type) && <li className="muted">{c.promptNone}</li>}
           </ul>
-        </details>
+        </Disclosure>
       </form>)}
     </div>}
-    <ConfirmDialog open={confirming !== null} title={confirmLabel} body={confirmBody} confirmLabel={confirmLabel} danger
-      onConfirm={() => { const current = confirming; setConfirming(null); if (current) void promptAction(current.type, current.action) }}
-      onCancel={() => setConfirming(null)} />
   </AdminAiShell>
 }

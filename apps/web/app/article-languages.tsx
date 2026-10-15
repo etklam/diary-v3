@@ -12,6 +12,7 @@ import type { PostAccess } from '@diary/contracts/post'
 import { csrfToken, sessionFetch } from './session'
 import { Markdown } from './markdown'
 import { apiFailure } from './api-error'
+import { useConfirm, useUi } from './ui'
 import './article-languages.css'
 
 type Provider = 'edge' | 'ai'
@@ -97,6 +98,8 @@ export function ArticleLanguagesPanel({
   locale: 'zh-TW' | 'zh-CN' | 'en'
 }) {
   const c = copy[locale]
+  const { t } = useUi()
+  const confirm = useConfirm()
   const [data, setData] = useState<ReturnType<typeof articleTranslationAdminResponseSchema.parse> | null>(null)
   const [loading, setLoading] = useState(Boolean(id))
   const [busy, setBusy] = useState(false)
@@ -215,8 +218,8 @@ export function ArticleLanguagesPanel({
     await mutate(`/api/blog/admin/${encodeURIComponent(id)}/translations/${target}/retranslate`, 'POST', { provider: selectedProvider }, c.jobQueued)
   }
 
-  function beginEdit(target: ArticleLocale, row: ArticleTranslationAdminRow | null) {
-    if (editDirty && !window.confirm(c.discardTranslation)) return
+  async function beginEdit(target: ArticleLocale, row: ArticleTranslationAdminRow | null) {
+    if (editDirty && !await confirm({ title: c.discardTranslation, confirm: t('discard') })) return
     const initial = contentFor(row)
     setEditLocale(target); setEdit(initial); setEditBaseline(initial); setRecovered(false); setPreviewLocale(null); setNotice(''); setError('')
   }
@@ -254,13 +257,15 @@ export function ArticleLanguagesPanel({
   }
 
   async function unpublish(target: ArticleLocale) {
-    if (!window.confirm(c.confirmUnpublish)) return
+    if (!await confirm({ title: c.confirmUnpublish, body: localeName[target], confirm: c.unpublish, tone: 'danger' })) return
     await mutate(`/api/blog/admin/${encodeURIComponent(id!)}/translations/${target}/unpublish`, 'POST', undefined, c.unpublished)
   }
 
   function closeEdit() {
-    if (editDirty && !window.confirm(c.discardTranslation)) return
-    setEditLocale(null); setRecovered(false)
+    void (async () => {
+      if (editDirty && !await confirm({ title: c.discardTranslation, confirm: t('discard') })) return
+      setEditLocale(null); setRecovered(false)
+    })()
   }
 
   function toggleTarget(target: ArticleLocale, checked: boolean) {
@@ -312,11 +317,13 @@ export function ArticleLanguagesPanel({
         </div>
         <div className="article-language-actions">
           {hasContent && <button type="button" className="secondary" disabled={busy} onClick={() => {
-            if (editDirty && editLocale !== target && !window.confirm(c.discardTranslation)) return
-            if (editLocale !== target) setEditLocale(null)
-            setPreviewLocale(target); setError('')
+            void (async () => {
+              if (editDirty && editLocale !== target && !await confirm({ title: c.discardTranslation, confirm: t('discard') })) return
+              if (editLocale !== target) setEditLocale(null)
+              setPreviewLocale(target); setError('')
+            })()
           }}>{c.preview}</button>}
-          <button type="button" className="secondary" disabled={isBusy || !id} onClick={() => beginEdit(target, row)}>{c.edit}</button>
+          <button type="button" className="secondary" disabled={isBusy || !id} onClick={() => void beginEdit(target, row)}>{c.edit}</button>
           {status === 'NEEDS_REVIEW' && <button type="button" className="secondary" disabled={isBusy || !row?.draftIsCurrent} onClick={() => void approve(target)}>{c.approve}</button>}
           {canPublish && <button type="button" disabled={isBusy} onClick={() => void publish(target)}>{c.publish}</button>}
           {hasPublished && <button type="button" className="secondary" disabled={isBusy} onClick={() => void unpublish(target)}>{c.unpublish}</button>}

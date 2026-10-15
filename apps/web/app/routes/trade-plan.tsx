@@ -12,7 +12,7 @@ import {
   type TradePlanExecutionComparison,
 } from '@diary/contracts/trade-plan-execution'
 import type { z } from 'zod'
-import { api, useUi } from '../ui'
+import { ActionButton, api, Disclosure, DisclosureSummary, useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
 import { csrfToken, getSessionRevision, sessionFetch, signInPath, useSessionState } from '../session'
 import { clearDraftEnvelope, readDraftEnvelope, useDraftLifecycle } from '../draft-lifecycle'
@@ -326,16 +326,16 @@ function ExecutionComparison({ plan, c, locale, t }: { plan: TradePlanResponse; 
   const nothingSelected = selectedRows.length === 0 && selectedIds.length === 0
 
   return <section className="plan-execution" aria-labelledby="plan-execution-title">
-    <details open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-      <summary id="plan-execution-title">{c.executionTitle}</summary>
+    <Disclosure open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
+      <DisclosureSummary id="plan-execution-title">{c.executionTitle}</DisclosureSummary>
       <p className="muted">{c.executionHint}</p>
       {loading && <p role="status">{t('loading' as never)}</p>}
       {error && <FailureNotice failure={error} id="execution-error"/>}
       {comparison && <>
         <p className="execution-status" role="status"><span className="execution-status-label">{c.executionStatusLabel}</span><span className={`badge ${comparison.comparisonStatus === 'ready' ? 'badge-info' : 'badge-warn'}`}>{statusText(c, comparison.comparisonStatus)}</span></p>
         {comparison.baseline && <p className="muted">{c.executionVersion} {comparison.baseline.version} · {c.executionAt} {dateTime(comparison.baseline.confirmedAt, locale)}{comparison.baselineStatus === 'outdated' ? ` · ${c.executionOutdated}` : ''}{comparison.comparisonTiming === 'retrospective' ? ` · ${c.executionTimingRetrospective}` : comparison.comparisonTiming === 'unknown' ? ` · ${c.executionTimingUnknown}` : ''}</p>}
-        {(!comparison.baseline || comparison.baselineStatus === 'outdated') && <button type="button" className="secondary" disabled={pending} onClick={() => void confirmBaseline()}>{pending ? t('pending' as never) : comparison.baseline ? c.executionConfirmNewVersion : c.executionConfirm}</button>}
-        {history.length > 0 && <details className="execution-history" onToggle={event => { setHistoryOpen(event.currentTarget.open); if (event.currentTarget.open) setHistoryPage(1) }}><summary>{c.executionHistory}</summary>{historyLoading && <p role="status">{t('loading' as never)}</p>}{historyError && <><p role="status">{c.executionLoadFailed}</p><button type="button" className="secondary" onClick={() => setHistoryAttempt(value => value + 1)}>{t('retry' as never)}</button></>}<ul>{history.map(item => <li key={item.id}><strong>{c.executionVersion} {item.version}</strong> · {dateTime(item.confirmedAt, locale)} · {c.symbol} {item.snapshot.symbol} · {c.setupType} {item.snapshot.setupType ?? c.executionUnavailableValue} · {c.executionBaselineEntry} {price(item.snapshot.entryPrice)} · {c.executionBaselineZone} {[item.snapshot.entryZoneLow, item.snapshot.entryZoneHigh].filter(Boolean).map(bound => amount(bound)).join(' – ') || c.executionUnavailableValue} · {c.stopLoss} {price(item.snapshot.stopLoss)} · {c.targetPrice} {price(item.snapshot.targetPrice)} · {c.maxPositionSize} {price(item.snapshot.maxPositionSize)} · {c.invalidationCondition} {item.snapshot.invalidationCondition ?? c.executionUnavailableValue}{item.id === comparison.baseline?.id && ` · ${c.executionCurrent}`}</li>)}</ul>{historyPagination && historyPagination.totalPages > 1 && <nav className="plan-pagination" aria-label={c.executionHistory}><button type="button" className="secondary" disabled={historyPage <= 1} onClick={() => setHistoryPage(value => value - 1)}>{c.previous}</button><span>{c.pickerPage} {historyPage} / {historyPagination.totalPages}</span><button type="button" className="secondary" disabled={historyPage >= historyPagination.totalPages} onClick={() => setHistoryPage(value => value + 1)}>{c.next}</button></nav>}</details>}
+        {(!comparison.baseline || comparison.baselineStatus === 'outdated') && <ActionButton type="button" className="secondary" pending={pending} onClick={() => void confirmBaseline()}>{comparison.baseline ? c.executionConfirmNewVersion : c.executionConfirm}</ActionButton>}
+        {history.length > 0 && <Disclosure className="execution-history" onToggle={event => { setHistoryOpen(event.currentTarget.open); if (event.currentTarget.open) setHistoryPage(1) }}><DisclosureSummary>{c.executionHistory}</DisclosureSummary>{historyLoading && <p role="status">{t('loading' as never)}</p>}{historyError && <><p role="status">{c.executionLoadFailed}</p><button type="button" className="secondary" onClick={() => setHistoryAttempt(value => value + 1)}>{t('retry' as never)}</button></>}<ul>{history.map(item => <li key={item.id}><strong>{c.executionVersion} {item.version}</strong> · {dateTime(item.confirmedAt, locale)} · {c.symbol} {item.snapshot.symbol} · {c.setupType} {item.snapshot.setupType ?? c.executionUnavailableValue} · {c.executionBaselineEntry} {price(item.snapshot.entryPrice)} · {c.executionBaselineZone} {[item.snapshot.entryZoneLow, item.snapshot.entryZoneHigh].filter(Boolean).map(bound => amount(bound)).join(' – ') || c.executionUnavailableValue} · {c.stopLoss} {price(item.snapshot.stopLoss)} · {c.targetPrice} {price(item.snapshot.targetPrice)} · {c.maxPositionSize} {price(item.snapshot.maxPositionSize)} · {c.invalidationCondition} {item.snapshot.invalidationCondition ?? c.executionUnavailableValue}{item.id === comparison.baseline?.id && ` · ${c.executionCurrent}`}</li>)}</ul>{historyPagination && historyPagination.totalPages > 1 && <nav className="plan-pagination" aria-label={c.executionHistory}><button type="button" className="secondary" disabled={historyPage <= 1} onClick={() => setHistoryPage(value => value - 1)}>{c.previous}</button><span>{c.pickerPage} {historyPage} / {historyPagination.totalPages}</span><button type="button" className="secondary" disabled={historyPage >= historyPagination.totalPages} onClick={() => setHistoryPage(value => value + 1)}>{c.next}</button></nav>}</Disclosure>}
         {comparison.baseline && <dl className="execution-snapshot"><div><dt>{c.symbol}</dt><dd>{comparison.baseline.snapshot.symbol}</dd><dd className="muted">{c.executionCurrentPlan}: {comparison.planSnapshot?.symbol ?? c.executionUnavailableValue}</dd></div><div><dt>{c.setupType}</dt><dd>{comparison.baseline.snapshot.setupType ?? c.executionUnavailableValue}</dd><dd className="muted">{c.executionCurrentPlan}: {comparison.planSnapshot?.setupType ?? c.executionUnavailableValue}</dd></div><div><dt>{c.executionBaselineEntry}</dt><dd>{comparison.baseline.snapshot.entryPrice ?? c.executionUnavailableValue}</dd><dd className="muted">{c.executionCurrentPlan}: {comparison.planSnapshot?.entryPrice ?? c.executionUnavailableValue}</dd></div><div><dt>{c.executionBaselineZone}</dt><dd>{[comparison.baseline.snapshot.entryZoneLow, comparison.baseline.snapshot.entryZoneHigh].filter(Boolean).join(' – ') || c.executionUnavailableValue}</dd><dd className="muted">{c.executionCurrentPlan}: {[comparison.planSnapshot?.entryZoneLow, comparison.planSnapshot?.entryZoneHigh].filter(Boolean).join(' – ') || c.executionUnavailableValue}</dd></div><div><dt>{c.invalidationCondition}</dt><dd>{comparison.baseline.snapshot.invalidationCondition ?? c.executionUnavailableValue}</dd><dd className="muted">{c.executionCurrentPlan}: {comparison.planSnapshot?.invalidationCondition ?? c.executionUnavailableValue}</dd></div></dl>}
         <p className="muted execution-scope">{c.executionScopeUnknown} · {c.executionUnitUnknown}</p>
         {nothingSelected
@@ -345,10 +345,10 @@ function ExecutionComparison({ plan, c, locale, t }: { plan: TradePlanResponse; 
         {selectedRows.length > 0 && <ul className="execution-selected-list">{selectedRows.map(transaction => <li key={transaction.relationId} data-status={transaction.selectionStatus}><div className="execution-selected-heading"><strong>{transaction.type} · {quantity(transaction.quantity)} @ {amount(transaction.price)}</strong><button type="button" className="secondary" onClick={() => removeRelation(transaction.relationId, transaction.transactionId)}>{c.executionRemove}</button></div><time dateTime={transaction.tradeDate}>{dateTime(transaction.tradeDate, locale)}</time>{transaction.selectionStatus === 'missing' && <p className="muted">{c.executionMissing}: {transaction.snapshot.symbol} · {transaction.snapshot.type} · {quantity(transaction.snapshot.quantity)} @ {amount(transaction.snapshot.price)} · {dateTime(transaction.snapshot.tradeDate, locale)}</p>}{transaction.selectionStatus === 'changed' && transaction.current && <p className="muted">{c.executionChanged}: {transaction.snapshot.symbol !== transaction.current.symbol && `${c.symbol} ${transaction.snapshot.symbol} → ${transaction.current.symbol} · `}{transaction.snapshot.type !== transaction.current.type && `${c.executionType} ${transaction.snapshot.type} → ${transaction.current.type} · `}{transaction.snapshot.price !== transaction.current.price && `${c.entryPrice} ${amount(transaction.snapshot.price)} → ${amount(transaction.current.price)} · `}{transaction.snapshot.quantity !== transaction.current.quantity && `${c.executionQuantity} ${quantity(transaction.snapshot.quantity)} → ${quantity(transaction.current.quantity)} · `}{transaction.snapshot.tradeDate !== transaction.current.tradeDate && `${c.executionAt} ${dateTime(transaction.snapshot.tradeDate, locale)} → ${dateTime(transaction.current.tradeDate, locale)}`}</p>}</li>)}</ul>}
         {!nothingSelected && <dl className="ledger execution-values"><div className="ledger-row"><dt>{c.executionQuantity}</dt><dd>{comparison.buyQuantity == null ? c.executionUnavailableValue : quantity(comparison.buyQuantity)}</dd></div><div className="ledger-row"><dt>{c.executionAverage}</dt><dd>{price(comparison.averageExecutionPrice)}</dd></div><div className="ledger-row execution-row-text"><dt>{c.executionZone}</dt><dd>{zoneText(c, comparison.entryZoneRelation)}</dd></div><div className="ledger-row ledger-row-total"><dt>{c.executionDelta}</dt><dd>{comparison.entryPriceDelta == null ? c.executionUnavailableValue : formatSignedAmount(locale, comparison.entryPriceDelta)}</dd></div><div className="ledger-row"><dt>{c.executionDeltaPercent}</dt><dd>{comparison.entryPriceDeltaPercent == null ? c.executionUnavailableValue : formatSignedPercent(locale, comparison.entryPriceDeltaPercent)}</dd></div></dl>}
         <label className="plan-wide execution-reason">{c.executionReason}<textarea rows={3} maxLength={2000} value={reason} placeholder={c.executionReasonHint} onChange={event => setReason(event.target.value)}/></label>
-        <div className="execution-commit"><p className="muted">{c.executionSaveScope}</p><div className="actions"><button type="button" className="secondary" disabled={pending || !comparison.baseline || comparison.executionRevision === null} onClick={() => void saveSelection()}>{pending ? t('pending' as never) : c.executionSave}</button>{!pending && (!comparison.baseline || comparison.executionRevision === null) && <span className="muted">{c.executionNeedBaseline}</span>}</div></div>
+        <div className="execution-commit"><p className="muted">{c.executionSaveScope}</p><div className="actions"><ActionButton type="button" className="secondary" pending={pending} disabled={!comparison.baseline || comparison.executionRevision === null} onClick={() => void saveSelection()}>{c.executionSave}</ActionButton>{!pending && (!comparison.baseline || comparison.executionRevision === null) && <span className="muted">{c.executionNeedBaseline}</span>}</div></div>
         {notice && <p role="status">{notice}</p>}
       </>}
-    </details>
+    </Disclosure>
     <dialog ref={dialog} className="plan-dialog" aria-labelledby="execution-picker-title" onCancel={event => { event.preventDefault(); setPickerOpen(false) }}>
       <header className="plan-dialog-header"><h2 id="execution-picker-title">{c.executionCandidates}</h2><button type="button" className="secondary" onClick={() => setPickerOpen(false)}>{c.executionClose}</button></header>
       {candidates.length === 0 ? <p role="status">{c.executionNoCandidates}</p> : <ul className="picker-list execution-picker-list">{candidates.map(candidate => { const disabled = Boolean(candidate.linkedPlanId && candidate.linkedPlanId !== plan.id); return <li key={candidate.id}><label><input type="checkbox" checked={selectedIds.includes(candidate.id)} disabled={disabled} onChange={() => toggleCandidate(candidate)}/><span><strong>{candidate.type} · {amount(candidate.price)}</strong><time dateTime={candidate.tradeDate}>{formatDay(candidate.tradeDate)}</time><span className="muted">{quantity(candidate.quantity)}</span>{disabled && <span className="muted">{c.executionConflict}</span>}</span></label></li> })}</ul>}
@@ -365,6 +365,7 @@ export default function TradePlan() {
   const prefill = params.get('prefill')
   const { locale, t } = useUi()
   const c = planCopy[locale]
+  const confirm = useConfirm()
   const session = useSessionState()
   const [form, setForm] = useState<TradePlanForm>(emptyForm)
   const [plan, setPlan] = useState<TradePlanResponse | null>(null)
@@ -411,7 +412,7 @@ export default function TradePlan() {
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return
-    if (window.confirm(c.discard)) { suppressDraft(); blocker.proceed() } else blocker.reset()
+    void confirm({ title: c.discard, confirm: t('discard') }).then(ok => { if (ok) { suppressDraft(); blocker.proceed() } else blocker.reset() })
   }, [blocker, c.discard, suppressDraft])
 
   useEffect(() => {
@@ -569,7 +570,8 @@ export default function TradePlan() {
   }
 
   async function remove() {
-    if (!id || !routeReady || !accountId || session.authenticated !== true || !window.confirm(c.confirm)) return
+    if (!id || !routeReady || !accountId || session.authenticated !== true) return
+    if (!await confirm({ title: c.confirm, body: form.symbol || undefined, confirm: c.delete, tone: 'danger' })) return
     setPending(true); setError(null)
     const controller = new AbortController()
     const generation = viewGeneration.current
@@ -610,7 +612,7 @@ export default function TradePlan() {
       <FailureNotice focusField failure={error} id="plan-error"/>
       {error?.code?.startsWith('AUTH_') && <Link to={signInPath(id ? `/trade-plans/${id}` : '/trade-plans/new')}>{t('login' as never)}</Link>}
       <p className="plan-save-status" role="status">{pending ? c.saving : saved ? c.saved : dirty ? c.notSaved : ''}{!pending && !saved && draftStatus === 'saved' ? ` · ${c.localSaved}` : ''}{!pending && !saved && draftStatus === 'unavailable' ? ` · ${c.draftUnavailable}` : ''}</p>
-      <footer className="plan-actions"><button disabled={pending || !routeReady}>{pending ? t('pending' as never) : c.save}</button>{id && <button className="secondary" type="button" disabled={pending || !routeReady} onClick={() => void remove()}>{c.delete}</button>}</footer>
+      <footer className="plan-actions"><ActionButton pending={pending} disabled={!routeReady}>{c.save}</ActionButton>{id && <button className="secondary" type="button" disabled={pending || !routeReady} onClick={() => void remove()}>{c.delete}</button>}</footer>
     </form>
     {plan && <ExecutionComparison plan={plan} c={c} locale={locale} t={t as (key: never) => string}/>}
   </section>
