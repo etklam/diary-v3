@@ -461,3 +461,62 @@ Two findings were deliberately left unfiled pending a ruling and are recorded in
 holds 1,745px of content and leaves Settings, Sign out and Preferences below its own fold
 at 1440×1080 — an IA question that interacts with the standing capture → read → review
 priority.
+
+## Engineering quality hardening follow-up (124–132)
+
+Filed 2026-10-16 from a repository quality audit, not a UI or product review — the first
+batch in this tracker that is about the codebase's own health rather than a surface a user
+touches. The audit re-ran the gates directly and found the code in good shape: `tsc --noEmit`
+and `npm run lint` clean, `npm run test:unit` **134 files / 1198 tests pass in 16s**, and a
+sampled integration test **7/7** against real PostgreSQL. Zero `TODO`/`FIXME`/`HACK`, zero
+`@ts-ignore`/`@ts-expect-error`/`eslint-disable`, and two `: any` across ~968 hand-written
+TS/TSX files. The tickets below are the gaps the audit could not close by reading the code —
+governance, measurement, and the two largest shared modules, plus two findings the team had
+already recorded for itself (131, 132).
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 124 — Gate changes before they reach main | Release governance | needs-triage; Execution: todo | [124-gate-changes-before-main.md](issues/124-gate-changes-before-main.md) |
+| 125 — Measure coverage and hold a floor | Quality measurement | needs-triage; Execution: todo | [125-measure-and-floor-coverage.md](issues/125-measure-and-floor-coverage.md) |
+| 126 — Make the e2e suites own their flakiness | Test debt | needs-triage; Execution: todo | [126-own-the-e2e-flakiness.md](issues/126-own-the-e2e-flakiness.md) |
+| 127 — Enforce one code style | Tooling | needs-triage; Execution: todo | [127-enforce-one-formatting-style.md](issues/127-enforce-one-formatting-style.md) |
+| 128 — Decompose the API composition root | Architecture deepening | needs-triage; Execution: todo | [128-decompose-the-api-composition-root.md](issues/128-decompose-the-api-composition-root.md) |
+| 129 — Split the database schema module | Architecture deepening | needs-triage; Execution: todo | [129-split-the-database-schema-module.md](issues/129-split-the-database-schema-module.md) |
+| 130 — Give the locales a parity check | i18n safety | needs-triage; Execution: todo | [130-locale-copy-parity.md](issues/130-locale-copy-parity.md) |
+| 131 — Bound the SEC metadata cache by bytes | Capacity | needs-triage; Execution: todo | [131-bound-the-sec-metadata-cache.md](issues/131-bound-the-sec-metadata-cache.md) |
+| 132 — Rule on the single-replica assumption | Operations | needs-triage; Execution: todo | [132-rule-on-the-single-replica-assumption.md](issues/132-rule-on-the-single-replica-assumption.md) |
+
+**Recommended order.** [124](issues/124-gate-changes-before-main.md) first: it is the only one
+that changes what every later ticket is verified by, and [125](issues/125-measure-and-floor-coverage.md),
+[126](issues/126-own-the-e2e-flakiness.md) and [127](issues/127-enforce-one-formatting-style.md)
+all land *inside* the pre-merge workflow it creates. [132](issues/132-rule-on-the-single-replica-assumption.md)
+is a decision and should be triaged early even if implemented late, because the direction of
+its guard is a choice. [128](issues/128-decompose-the-api-composition-root.md),
+[129](issues/129-split-the-database-schema-module.md) and [130](issues/130-locale-copy-parity.md)
+are refactors with no user-visible effect and can be interleaved with product work;
+[129](issues/129-split-the-database-schema-module.md) is the safest of the three because the
+no-drift check makes it provable. [131](issues/131-bound-the-sec-metadata-cache.md) is the one
+carried finding with a live capacity rationale and should not be deferred indefinitely.
+
+**One documentation defect is folded into [124](issues/124-gate-changes-before-main.md).**
+`docs/audits/project-cleanup-2026-09-27.md:87` still claims the CI policy uses
+`continue-on-error: true`; no workflow in the tree contains that key. The nightly regression
+tiers are blocking *within* their own workflow and simply do not gate deploy, which
+`docs/operations/ci-cd-notes.md:25-30` already states correctly. The two documents disagree
+and the audit is the stale one.
+
+### Review — 2026-10-17
+
+Reviewed tickets 124–132 against the source before landing this documentation batch.
+Corrected the missing branch-protection requirement (124), the historical timeout source
+(126), the invalid whitespace-diff equivalence criterion (127), unnecessary dependency
+uniformity (128), TypeScript and translation-parity claims (130), cache-cap terminology
+(131), and the Redis-only scaling guard (132). The CI notes now distinguish general
+workflow tests from unverified BuildKit execution. These tickets remain needs-triage/todo;
+this review does not implement their proposed changes.
+
+Current verification: `npx vitest run tests/unit/deploy-workflow.test.ts` passed 10/10;
+all 166 local Markdown links across this batch and the CI notes resolved. An in-memory
+TypeScript compiler experiment removed `en.moreRegions` from `diaryCopy` and confirmed
+TS2339 on `diaryCopy[locale].moreRegions`, without editing product source. Docker image
+execution was not verified because the local Docker daemon socket was unavailable.

@@ -125,7 +125,9 @@ the runner's build toolchain supports it. Fixed in `16bfa13` (2026-10-16):
 both `deploy.yml` and `regression.yml` install a pinned buildx CLI plugin
 (`/usr/local/lib/docker/cli-plugins/docker-buildx`, v0.28.0) in the
 `Install Docker CLI` step and set `DOCKER_BUILDKIT: '1'` on the image-build
-steps. `tests/unit/deploy-workflow.test.ts` covers the step shape.
+steps. `tests/unit/deploy-workflow.test.ts` checks the general workflow gates;
+it does not currently assert the buildx installation or BuildKit environment.
+A passing unit run alone does not prove the runner can build these images.
 
 Related: job-log id drift can be much larger than the historic +7 — for run
 71 (tasks-API job id 281) the real log lived at job id 288. Always verify a
