@@ -108,6 +108,30 @@ expected noise, not an additional error.
 marker and the test summary directly above it; ignore post-failure cleanup
 output.
 
+## Trap 6 — Dockerfile `RUN --mount` needs BuildKit; the static CLI has no buildx
+
+Commit `3e5535c` (2026-10-09) introduced
+`RUN --mount=type=cache,target=/root/.npm npm ci …` in the root Dockerfile.
+The runner's `Install Docker CLI` step installs only the static docker
+binary, so `docker build` fell back to the legacy builder and every build
+died at that step with `the --mount option requires BuildKit`. Ten
+consecutive runs failed (62–71, including nightly regression runs) and
+production stayed seven days on `2388f55` — nothing visibly broke because
+pods keep running the previous release; only the tasks API comparison
+against the remote HEAD reveals it.
+
+**Rule**: when introducing BuildKit-only Dockerfile syntax, first confirm
+the runner's build toolchain supports it. Fixed in `16bfa13` (2026-10-16):
+both `deploy.yml` and `regression.yml` install a pinned buildx CLI plugin
+(`/usr/local/lib/docker/cli-plugins/docker-buildx`, v0.28.0) in the
+`Install Docker CLI` step and set `DOCKER_BUILDKIT: '1'` on the image-build
+steps. `tests/unit/deploy-workflow.test.ts` covers the step shape.
+
+Related: job-log id drift can be much larger than the historic +7 — for run
+71 (tasks-API job id 281) the real log lived at job id 288. Always verify a
+fetched log by grepping the checkout `head_sha`, and probe adjacent ids
+when it does not match.
+
 ## Verification path (do not trust the Forgejo UI)
 
 1. Confirm the release-authorized push reached the configured `main` remote and
@@ -144,3 +168,4 @@ output.
 | 2026-09-12 | 216→ | e2e authoring: linked-diary options fetched once at mount, test order wrong | `d467ef8` reordered test |
 | 2026-09-13 | 28–34 | Heavy tiers (integration/e2e) unstable, blocking every deploy | `3e789ed` advisory tiering + job-level `DATABASE_URL` (also removed committed `***` password) |
 | 2026-09-13 | 35 | `native-package-scripts` unit test timed out at 20s on slow runner | `f1a157f` raised to 120s |
+| 2026-10-09 → 10-16 | 62–71 | Dockerfile `RUN --mount=type=cache` on a static CLI without buildx: legacy builder rejected it, ten consecutive failures, production stuck on `2388f55` for a week | `16bfa13` pinned buildx plugin + `DOCKER_BUILDKIT=1` on build steps (Trap 6) |
