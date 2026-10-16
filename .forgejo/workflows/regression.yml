@@ -22,6 +22,10 @@ jobs:
           curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz -o "$archive"
           echo "$DOCKER_CLI_SHA256  $archive" | sha256sum -c -
           tar xz --strip-components=1 -C /usr/bin docker/docker < "$archive"
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -fsSL https://github.com/docker/buildx/releases/download/v0.28.0/buildx-v0.28.0.linux-amd64 -o /usr/local/lib/docker/cli-plugins/docker-buildx
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+          docker buildx version
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,6 +94,8 @@ jobs:
         run: npm run test:e2e:webkit:critical
 
       - name: Build Docker images for extended artifact regression
+        env:
+          DOCKER_BUILDKIT: '1'
         run: |
           set -euo pipefail
           API_IMAGE="diary-v3-regression-api:$GITHUB_SHA"
