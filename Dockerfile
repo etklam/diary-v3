@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-bookworm-slim AS build
+FROM node:24.22.1-bookworm-slim AS build
 WORKDIR /app
 ENV CI=true
 
@@ -24,7 +24,7 @@ COPY .env.example ./
 RUN npm run build:artifacts
 RUN npm prune --omit=dev
 
-FROM node:24-bookworm-slim AS api
+FROM node:24.22.1-bookworm-slim AS api
 WORKDIR /app
 ENV NODE_ENV=production \
     API_HOST=0.0.0.0 \
@@ -39,7 +39,7 @@ EXPOSE 3101
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 CMD node -e "fetch('http://127.0.0.1:3101/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "dist/api/server.js"]
 
-FROM node:24-bookworm-slim AS web
+FROM node:24.22.1-bookworm-slim AS web
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 COPY --from=build /app/node_modules ./node_modules

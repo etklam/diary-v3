@@ -85,7 +85,7 @@ Article documents carry an access-aware cache policy. A published PUBLIC article
 
 ## Build, verification, and release
 
-The package minimum and source CI runtime are Node.js 22.22; the production [Dockerfile](../Dockerfile) uses Node.js 24 and the API bundle targets Node.js 24. Use Node.js 24 when checking production artifacts locally. Local Compose provides PostgreSQL and an optional Redis profile.
+The package minimum and source CI runtime are Node.js 22.23.4; the production [Dockerfile](../Dockerfile) uses the patched Node.js 24.22.1 image and the API bundle targets Node.js 24. Use Node.js 24 when checking production artifacts locally. Local Compose provides PostgreSQL and an optional Redis profile.
 
 The [project README](../README.md#verification) lists source, integration, and sequential browser commands. Built-artifact browser tests exercise production bundles; the WebKit critical suite deliberately blocks service workers. Native exports and package-consumer checks have a separate [evidence boundary](native/app-ready-audit.md).
 

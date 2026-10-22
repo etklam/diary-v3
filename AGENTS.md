@@ -21,7 +21,7 @@
 
 ## Development and checks
 
-Use npm workspaces and the lockfile, from the repository root. Prefer Node 24 (Docker/API build runtime); the package minimum and source CI runtime are Node 22.22.0.
+Use npm workspaces and the lockfile, from the repository root. Prefer Node 24 (Docker/API build runtime); the package minimum and source CI runtime are Node 22.23.4.
 
 - Setup: `npm ci`, `docker compose -p diary-v3-dev up -d postgres`; configure `.env` with a random `JWT_SECRET` (32+ characters), run `npm run db:migrate`, then the static seed in [README.md](README.md#local-development).
 - `npm run dev` loads `.env`; Web/API/PostgreSQL ports are 3100/3101/55433. Standalone `dev:api`/`dev:web` need their environment supplied separately.

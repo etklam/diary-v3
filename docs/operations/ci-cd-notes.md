@@ -36,8 +36,8 @@ safe phase-aware cancellation point. Forgejo also describes grouped execution
 as best-effort rather than a strict FIFO queue, so inspect the deployed source
 SHA after multiple pushes close together.
 
-The source checks and staging workflow use Node `22.22.0`. The Dockerfile uses
-Node 24 and the production API bundle targets `node24`; account for this recorded runtime split when diagnosing build-only differences.
+The source checks and staging workflow use Node `22.23.4`. The Dockerfile pins
+Node `24.22.1` and the production API bundle targets `node24`; account for this recorded runtime split when diagnosing build-only differences.
 
 The safety intent is covered by `tests/unit/deploy-workflow.test.ts`. Run
 `npx vitest run tests/unit/deploy-workflow.test.ts` after any workflow edit.

@@ -8,7 +8,7 @@ Start with the [documentation index](docs/README.md), [product scope](PRODUCT.md
 
 ## Local development
 
-Use Node.js 24 to match the production image and API build target, npm, and Docker Compose. The package minimum and source CI runtime are Node.js 22.22. Local development uses ports 3100 (Web), 3101 (API), and 55433 (PostgreSQL).
+Use Node.js 24 to match the production image and API build target, npm, and Docker Compose. The package minimum and source CI runtime are Node.js 22.23.4; newer lines must use the October 2026 patched releases (24.22.1+, 26.12.1+). Local development uses ports 3100 (Web), 3101 (API), and 55433 (PostgreSQL).
 
 ```sh
 npm ci

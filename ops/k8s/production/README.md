@@ -36,9 +36,9 @@ Release path:
    smoke checks. Optional AI, Research Studio, and article-translation workers
    are not part of this automatic deploy or rollback set.
 
-The package declares Node `>=22.22.0`; Forgejo uses Node `22.22.0` for source
-checks, while the Dockerfile builds and runs the release images on Node 24 and
-bundles the API for `node24`. The checked-in image tags are placeholders and
+The package declares Node `^22.23.4 || ^24.22.1 || >=26.12.1`; Forgejo uses Node `22.23.4` for source
+checks, while the Dockerfile builds and runs the release images on the pinned Node
+`24.22.1` image and bundles the API for `node24`. The checked-in image tags are placeholders and
 must never be applied directly; use the renderer's digest output.
 
 Pre-deploy verification, build, push, migration, or seed failures do not roll

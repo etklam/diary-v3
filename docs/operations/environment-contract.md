@@ -42,9 +42,13 @@ probes, migration commands, and API/Web routing. Keep database URLs, JWT
 secrets, public origins, SEC contact values, TLS secrets, and persistent data
 separate between environments. Do not commit or log secret values.
 
-The repository declares Node `>=22.22.0` in `package.json`; Forgejo pins Node
-`22.22.0` for source checks and staging, while the Dockerfile builds and runs
-the production API/Web images on Node 24 and bundles the API for `node24`.
+The repository declares Node `^22.23.4 || ^24.22.1 || >=26.12.1` in `package.json`; Forgejo
+pins Node `22.23.4` for source checks and staging, while the Dockerfile builds and runs
+the production API/Web images on the pinned Node `24.22.1` image and bundles the API
+for `node24`. Those floors are the October 2026 Node.js security releases
+([v22.23.4](https://nodejs.org/en/blog/release/v22.23.4/),
+[v24.22.1](https://nodejs.org/en/blog/release/v24.22.1/),
+[v26.12.1](https://nodejs.org/en/blog/release/v26.12.1/)) and must not be lowered.
 Use `npm run build` before starting a built entry point. The API image starts
 `dist/api/server.js`; the Web image starts React Router's
 `apps/web/build/server/index.js` from `/app/apps/web`.
