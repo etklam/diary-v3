@@ -1,0 +1,2 @@
+# Keep text deterministic across Windows checkouts and Linux runtimes.
+* text=auto eol=lf

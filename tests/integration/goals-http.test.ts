@@ -10,12 +10,14 @@ import { provisionTestDatabase } from '../support/database'
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>
 let baseUrl: string
+let clock: Date
 
 beforeAll(async () => { database = await provisionTestDatabase('goals_http') })
 beforeEach(async () => {
+  clock = new Date('2026-09-22T12:00:00Z')
   const app = createApp({
     db: database.db,
-    now: () => new Date('2026-09-22T12:00:00Z'),
+    now: () => clock,
     config: { jwtSecret: 'synthetic-review-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
@@ -95,4 +97,31 @@ it('derives the achieved date from the status transition and sorts achieved goal
   const resumed = await mutate(owner, `/api/goals/${goal.id}`, { content: 'Reached 15% YTD', targetDate: goal.targetDate, status: 'active' })
   expect(await resumed.json()).toMatchObject({ status: 'active', achievedDate: null })
   expect((await (await owner.request('/api/goals')).json()).map((row: { id: string }) => row.id)).toEqual([goal.id, open.id])
+})
+
+it.each([
+  ['Asia/Hong_Kong', '2026-10-22T15:59:00Z', '2026-10-22'],
+  ['Asia/Hong_Kong', '2026-10-22T16:01:00Z', '2026-10-23'],
+  ['America/New_York', '2026-10-23T03:59:00Z', '2026-10-22'],
+  ['America/New_York', '2026-10-23T04:01:00Z', '2026-10-23'],
+])('records achieved dates in %s at %s', async (timezone, instant, expectedDate) => {
+  clock = new Date(instant)
+  const owner = await login()
+  expect((await mutate(owner, '/api/user/settings', { timezone })).status).toBe(200)
+
+  const input = { content: 'Synthetic timezone milestone', targetDate: null }
+  const created = await owner.post('/api/goals', { ...input, status: 'achieved' })
+  expect(created.status).toBe(200)
+  expect(await created.json()).toMatchObject({ status: 'achieved', achievedDate: expectedDate })
+
+  const active = await (await owner.post('/api/goals', input)).json()
+  const achieved = await mutate(owner, `/api/goals/${active.id}`, { ...input, status: 'achieved' })
+  expect(achieved.status).toBe(200)
+  expect(await achieved.json()).toMatchObject({ status: 'achieved', achievedDate: expectedDate })
+
+  // Re-confirming after the local day changes must retain the first achievement date.
+  clock = new Date(Date.parse(instant) + 120_000)
+  const repeated = await mutate(owner, `/api/goals/${active.id}`, { ...input, status: 'achieved' })
+  expect(repeated.status).toBe(200)
+  expect(await repeated.json()).toMatchObject({ achievedDate: expectedDate })
 })

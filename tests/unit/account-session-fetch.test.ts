@@ -94,3 +94,31 @@ describe('in-flight private reads across a session event', () => {
     expect((await summary).status).toBe(401);
   });
 });
+
+describe('goal reads across sign-out', () => {
+  it.each(['/api/goals', '/api/goals/1'])('discards an in-flight response from an ended identity: %s', async path => {
+    vi.resetModules();
+    const session = await import('../../apps/web/app/session');
+    session.markSignedIn();
+    let release = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    vi.spyOn(session.webSession, 'fetch').mockImplementation(async () => {
+      await gate;
+      return Response.json([{ id: '1', content: 'Synthetic private goal' }]);
+    });
+    const pending = session.sessionFetch(`http://localhost${path}`);
+    session.clearPrivateSession();
+    release();
+    expect((await pending).status).toBe(401);
+  });
+
+  it('does not send goal reads or writes while local sign-out is in progress', async () => {
+    vi.resetModules();
+    const session = await import('../../apps/web/app/session');
+    const transport = vi.spyOn(session.webSession, 'fetch');
+    session.clearPrivateSession();
+    expect((await session.sessionFetch('http://localhost/api/goals')).status).toBe(401);
+    expect((await session.sessionFetch('http://localhost/api/goals/1', { method: 'PUT', body: '{}' })).status).toBe(401);
+    expect(transport).not.toHaveBeenCalled();
+  });
+});

@@ -66,8 +66,15 @@ export async function claimNextGuruAnalysisRun(db: Database, workerId: string, n
       const [failed] = await tx.update(guruAnalysisRuns).set({
         status: 'failed', errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN', finishedAt: now, leaseToken: null, leaseExpiresAt: null, updatedAt: now,
       }).where(and(eq(guruAnalysisRuns.id, run.id), eq(guruAnalysisRuns.status, 'running'))).returning({ id: guruAnalysisRuns.id })
-      if (failed && run.reservationCostCents > 0) {
-        await settleGlobalAiBudget(tx, { month: run.reservationBucketMonth, reservationCostCents: run.reservationCostCents, actualCostCents: null, inputTokens: null, outputTokens: null })
+      if (failed && run.attemptId !== null) {
+        // The slot reaper may already own settlement. Only the attempt CAS winner
+        // accounts for an unknown outcome. Retain the slot until its provider
+        // deadline, because losing a worker lease does not stop the remote call.
+        const [attempt] = await tx.update(aiReportAttempts).set({ status: 'unknown', errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN', finishedAt: now })
+          .where(and(eq(aiReportAttempts.id, run.attemptId), eq(aiReportAttempts.status, 'dispatched'))).returning({ id: aiReportAttempts.id })
+        if (attempt && run.reservationCostCents > 0) {
+          await settleGlobalAiBudget(tx, { month: run.reservationBucketMonth, reservationCostCents: run.reservationCostCents, actualCostCents: null, inputTokens: null, outputTokens: null })
+        }
       }
     }
     if (await countActiveCallSlots(tx) >= 2) return null
@@ -139,6 +146,11 @@ export async function completeGuruAnalysisRun(db: Database, input: {
 }) {
   return db.transaction(async tx => {
     await lockAiGlobal(tx)
+    // Check and lock the run before mutating the attempt: a stale worker must
+    // never commit success or release the slot owned by a different lease.
+    const [current] = await tx.select().from(guruAnalysisRuns).where(eq(guruAnalysisRuns.id, input.run.id)).limit(1).for('update')
+    if (!current || current.status !== 'running' || current.leaseToken !== input.leaseToken || current.attemptId === null
+      || current.attemptId !== input.run.attemptId || !current.leaseExpiresAt || current.leaseExpiresAt <= input.now) return false
     const [attempt] = await tx.update(aiReportAttempts).set({
       status: 'succeeded', providerRequestId: input.usage.requestId ?? null, inputTokens: input.usage.inputTokens ?? null,
       outputTokens: input.usage.outputTokens ?? null, estimatedCostCents: input.usage.estimatedCostCents ?? null,
@@ -169,11 +181,13 @@ export async function failGuruAnalysisRun(db: Database, input: { run: GuruAnalys
     await lockAiGlobal(tx)
     const [current] = await tx.select().from(guruAnalysisRuns).where(eq(guruAnalysisRuns.id, input.run.id)).limit(1).for('update')
     if (!current || current.status !== 'running' || current.leaseToken !== input.leaseToken) return false
+    let attemptSettled = false
     if (current.dispatchedAt !== null && current.attemptId !== null) {
-      await tx.update(aiReportAttempts).set({
+      const [attempt] = await tx.update(aiReportAttempts).set({
         status: input.errorCode === 'AI_PROVIDER_OUTCOME_UNKNOWN' ? 'unknown' : 'failed',
         errorCode: input.errorCode.slice(0, 80), finishedAt: input.now, slotReleasedAt: input.now,
-      }).where(and(eq(aiReportAttempts.id, current.attemptId), eq(aiReportAttempts.status, 'dispatched')))
+      }).where(and(eq(aiReportAttempts.id, current.attemptId), eq(aiReportAttempts.status, 'dispatched'))).returning({ id: aiReportAttempts.id })
+      attemptSettled = Boolean(attempt)
     }
     const [row] = await tx.update(guruAnalysisRuns).set({
       status: 'failed', errorCode: input.errorCode.slice(0, 80), finishedAt: input.now, leaseToken: null, leaseExpiresAt: null, updatedAt: input.now,
@@ -181,7 +195,7 @@ export async function failGuruAnalysisRun(db: Database, input: { run: GuruAnalys
     if (!row) return false
     if (current.reservationCostCents > 0) {
       if (current.dispatchedAt === null) await releaseGlobalAiBudget(tx, { month: current.reservationBucketMonth, reservationCostCents: current.reservationCostCents })
-      else await settleGlobalAiBudget(tx, { month: current.reservationBucketMonth, reservationCostCents: current.reservationCostCents, actualCostCents: null, inputTokens: null, outputTokens: null })
+      else if (attemptSettled) await settleGlobalAiBudget(tx, { month: current.reservationBucketMonth, reservationCostCents: current.reservationCostCents, actualCostCents: null, inputTokens: null, outputTokens: null })
     }
     return true
   })

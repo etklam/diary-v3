@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import {
   guruConsensusSnapshots,
   guruQuarterAnalytics,
@@ -75,7 +75,7 @@ export async function buildGuruAnalysisInput(db: Executor, input: { guru: typeof
     eq(institutionalFilings.managerId, managerId), eq(institutionalFilings.periodEnd, input.periodEnd),
   )).orderBy(desc(institutionalFilings.filedAt), desc(institutionalFilings.id)).limit(1)
 
-  const historyRows = await db.select().from(guruQuarterAnalytics).where(eq(guruQuarterAnalytics.managerId, managerId))
+  const historyRows = await db.select().from(guruQuarterAnalytics).where(and(eq(guruQuarterAnalytics.managerId, managerId), lt(guruQuarterAnalytics.periodEnd, input.periodEnd)))
     .orderBy(desc(guruQuarterAnalytics.periodEnd), desc(guruQuarterAnalytics.calculatedAt), desc(guruQuarterAnalytics.id)).limit(HISTORY_LIMIT * 2)
   const seen = new Set<string>()
   const history: GuruAnalysisHistoryPoint[] = []

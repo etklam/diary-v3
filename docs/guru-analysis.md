@@ -28,9 +28,12 @@ Generation is an explicit admin request on `/api/admin/gurus/:id/analysis`. Ther
 - A `regenerate` request is auditable, ignores reuse, and is rejected within 60 seconds of the previous run for the same quarter.
 - Requests reserve the global AI budget, share the single AI call-slot gate with AI Reports and admin tests, and record their provider attempt in `ai_report_attempt`.
 - Only a pre-dispatch failure returns its reservation. A dispatched call is never retried implicitly: an unknown outcome is terminal, keeps the committed cost, and requires a new explicit regeneration.
+- Only the attempt transition from `dispatched` to a terminal state owns usage settlement. A lost worker lease retains its call slot until the provider deadline; the deadline reaper cannot settle the same attempt twice.
 - The worker re-verifies the prepared input before dispatch. If the captured `inputHash` no longer matches, the run fails with `AI_SOURCE_INVALIDATED` instead of describing stale data.
 
 ## Invalidation
+
+Reader freshness compares the complete versioned `inputHash`, including profile, earlier-quarter history, and consensus, against the published run. A change to any captured input marks the retained analysis `STALE`, even when its own quarter analytics hash is unchanged. Historical context includes only quarters earlier than the selected period.
 
 Invalidation is a separate consumer of the effective-snapshot outbox and never generates. When a rebuild changes a quarter's analytics context hash, succeeded runs for the changed quarter and the following quarter become `invalidated` with reason `GURU_ANALYTICS_REBUILT`, and queued runs for that quarter are cancelled with their reservations returned.
 

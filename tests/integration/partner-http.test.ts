@@ -61,6 +61,25 @@ it('invites, accepts and updates only each participant side before removal', asy
  expect((await (await a.browser.request('/api/partners')).json()).links).toEqual([])
  expect((await mutate(a.browser, `/api/partners/${link.id}/sharing`, { shareDiaries: true })).status).toBe(404)
 })
+it('finds mixed-case registered partner emails using the same identity as login', async () => {
+ const sender = await login()
+ const recipient = new BrowserSession(baseUrl)
+ const email = `MixedCase-${randomUUID()}@Example.Test`
+ const password = 'synthetic-review-password'
+ expect((await recipient.post('/api/auth/register', { email, password })).status).toBe(200)
+ expect((await recipient.post('/api/auth/login', { email: email.toLowerCase(), password })).status).toBe(200)
+ await recipient.request('/api/auth/me')
+ expect((await recipient.post('/api/partners', { partnerEmail: email.toUpperCase() })).status).toBe(400)
+ const invitation = await sender.browser.post('/api/partners', { partnerEmail: `  ${email.toUpperCase()}  ` })
+ expect(invitation.status).toBe(200)
+ const { link } = await invitation.json()
+ expect(link).toMatchObject({ status: 'pending_outgoing', partner: { email } })
+ expect((await sender.browser.post('/api/partners', { partnerEmail: email.toLowerCase() })).status).toBe(409)
+ expect((await recipient.post(`/api/partners/${link.id}/accept`, {})).status).toBe(200)
+ expect((await (await recipient.request('/api/partners')).json()).links[0]).toMatchObject({
+  id: link.id, status: 'connected', partner: { email: sender.email },
+ })
+})
 it('concurrent reverse invitations yield one link and recipient-only acceptance has a single winner', async () => {
  const a = await login(), b = await login()
  const results = await Promise.all([a.browser.post('/api/partners', { partnerEmail: b.email }), b.browser.post('/api/partners', { partnerEmail: a.email })])

@@ -1,6 +1,7 @@
 import { deleteGoalResponseSchema, goalListSchema, goalResponseSchema, serializedIdSchema, type ErrorCode } from '@diary/contracts'
 import { writeGoalSchema } from '@diary/contracts/goals'
-import { personalGoals, type Database } from '@diary/db'
+import { personalGoals, users, type Database } from '@diary/db'
+import { calendarDateInTimezone } from '@diary/domain'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
@@ -33,7 +34,11 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
     const parsed = serializedIdSchema.safeParse(c.req.param('id'))
     return parsed.success ? BigInt(parsed.data) : validationError(parsed.error)
   }
-  const today = () => now().toISOString().slice(0, 10)
+  const today = async (userId: bigint, timestamp: Date) => {
+    const [account] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId)).limit(1)
+    if (!account) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    return calendarDateInTimezone(timestamp, account.timezone)
+  }
   // Open-ended goals sort after dated ones so the nearest deadline leads the list.
   const list = (userId: bigint) => db.select().from(personalGoals)
     .where(eq(personalGoals.userId, userId))
@@ -55,7 +60,7 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
       content: input.content,
       targetDate: input.targetDate,
       status,
-      achievedDate: status === 'achieved' ? today() : null,
+      achievedDate: status === 'achieved' ? await today(userId, timestamp) : null,
       createdAt: timestamp,
       updatedAt: timestamp,
     }).returning()
@@ -66,16 +71,17 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
     const userId = owner(c)
     const goalId = id(c)
     const input = await parseJson(c, writeGoalSchema)
+    const timestamp = now()
     // `achievedDate` is derived from the status transition so the two can never
     // disagree; re-confirming an achieved goal keeps the original date.
     const statusChange = input.status === undefined ? {} : {
       status: input.status,
       achievedDate: input.status === 'achieved'
-        ? sql`coalesce(${personalGoals.achievedDate}, ${today()}::date)`
+        ? sql`coalesce(${personalGoals.achievedDate}, ${await today(userId, timestamp)}::date)`
         : null,
     }
     const [updated] = await db.update(personalGoals)
-      .set({ content: input.content, targetDate: input.targetDate, ...statusChange, updatedAt: now() })
+      .set({ content: input.content, targetDate: input.targetDate, ...statusChange, updatedAt: timestamp })
       .where(and(eq(personalGoals.userId, userId), eq(personalGoals.id, goalId)))
       .returning()
     if (!updated) return fail(404, 'GOAL_NOT_FOUND', 'Goal not found')

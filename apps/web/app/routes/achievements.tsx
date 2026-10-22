@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { achievementListSchema, writeAchievementSchema, type AchievementResponse } from '@diary/contracts/achievements'
-import { goalListSchema, writeGoalSchema, type GoalResponse, type GoalStatus } from '@diary/contracts/goals'
+import { goalListSchema, goalResponseSchema, writeGoalSchema, type GoalResponse, type GoalStatus } from '@diary/contracts/goals'
+import { calendarDateInTimezone } from '@diary/domain'
 import { ActionButton, api, LoadingBlock, useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
 import { signInPath } from '../session'
@@ -147,7 +148,6 @@ type Copy = (typeof copy)[keyof typeof copy]
 type Prefill = { date: string; content: string; token: number }
 
 const DAY_MS = 86_400_000
-const civilToday = () => new Date().toISOString().slice(0, 10)
 const civilDays = (from: string, to: string) =>
   Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS)
 
@@ -157,22 +157,22 @@ function useDateFormatter(locale: string) {
 }
 
 /** Deadline wording for an active goal; an achieved goal reads its own date instead. */
-function deadline(c: Copy, formatDate: (date: string) => string, targetDate: string | null) {
+function deadline(c: Copy, formatDate: (date: string) => string, targetDate: string | null, today: string) {
   if (targetDate === null) return c.noDeadline
-  const days = civilDays(civilToday(), targetDate)
+  const days = civilDays(today, targetDate)
   const remaining = days === 0 ? c.dueToday : days > 0 ? c.daysLeft(days) : c.overdueBy(-days)
   return `${c.due(formatDate(targetDate))} · ${remaining}`
 }
 
 /** Overdue is derived from the deadline, so a goal ages into it without a stored transition. */
-const isOverdue = (goal: GoalResponse) =>
-  goal.status === 'active' && goal.targetDate !== null && civilDays(civilToday(), goal.targetDate) < 0
+const isOverdue = (goal: GoalResponse, today: string) =>
+  goal.status === 'active' && goal.targetDate !== null && civilDays(today, goal.targetDate) < 0
 
-const goalStatusTone = (goal: GoalResponse) => goal.status === 'achieved' ? 'achieved' : isOverdue(goal) ? 'overdue' : 'active'
+const goalStatusTone = (goal: GoalResponse, today: string) => goal.status === 'achieved' ? 'achieved' : isOverdue(goal, today) ? 'overdue' : 'active'
 
-function goalStatusLabel(c: Copy, goal: GoalResponse) {
+function goalStatusLabel(c: Copy, goal: GoalResponse, today: string) {
   if (goal.status === 'achieved') return c.statusAchieved
-  return isOverdue(goal) ? c.statusOverdue : c.statusActive
+  return isOverdue(goal, today) ? c.statusOverdue : c.statusActive
 }
 
 /**
@@ -191,6 +191,9 @@ export default function Achievements() {
   const { locale, t } = useUi()
   const c = copy[locale]
   const formatDate = useDateFormatter(locale)
+  const [timezone, setTimezone] = useState('UTC')
+  const [clock, setClock] = useState(() => new Date())
+  const today = calendarDateInTimezone(clock, timezone)
   const [goals, setGoals] = useState<GoalResponse[] | null>(null)
   const [rows, setRows] = useState<AchievementResponse[] | null>(null)
   const [error, setError] = useState<Failure | null>(null)
@@ -200,6 +203,13 @@ export default function Achievements() {
   translate.current = t
 
   useEffect(() => {
+    const refreshClock = () => setClock(new Date())
+    const timer = setInterval(refreshClock, 60_000)
+    document.addEventListener('visibilitychange', refreshClock)
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refreshClock) }
+  }, [])
+
+  useEffect(() => {
     const controller = new AbortController()
     setGoals(null)
     setRows(null)
@@ -207,13 +217,17 @@ export default function Achievements() {
     Promise.all([
       api.GET('/api/goals', { signal: controller.signal }),
       api.GET('/api/achievements', { signal: controller.signal }),
-    ]).then(([goalResult, achievementResult]) => {
+      api.GET('/api/auth/me', { signal: controller.signal }),
+    ]).then(([goalResult, achievementResult, accountResult]) => {
       if (controller.signal.aborted) return
       const parsedGoals = goalListSchema.safeParse(goalResult.data)
       const parsedRows = achievementListSchema.safeParse(achievementResult.data)
       if (!goalResult.response.ok || !parsedGoals.success) setError(apiFailure(goalResult.error, translate.current('failed')))
       else if (!achievementResult.response.ok || !parsedRows.success) setError(apiFailure(achievementResult.error, translate.current('failed')))
+      else if (!accountResult.response.ok || !accountResult.data) setError(apiFailure(accountResult.error, translate.current('failed')))
       else {
+        setTimezone(accountResult.data.data.timezone)
+        setClock(new Date())
         setGoals(parsedGoals.data)
         setRows(parsedRows.data)
       }
@@ -232,9 +246,10 @@ export default function Achievements() {
         c={c}
         formatDate={formatDate}
         goals={goals}
+        today={today}
         onChanged={reload}
         onRemoved={id => setGoals(previous => previous?.filter(goal => goal.id !== id) ?? null)}
-        onAchieved={goal => setPrefill({ date: goal.achievedDate ?? civilToday(), content: goal.content, token: Date.now() })}
+        onAchieved={goal => setPrefill({ date: goal.achievedDate ?? today, content: goal.content, token: Date.now() })}
       />
       <AchievementsSection
         c={c}
@@ -248,10 +263,11 @@ export default function Achievements() {
   </section>
 }
 
-function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }: {
+function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAchieved }: {
   c: Copy
   formatDate: (date: string) => string
   goals: GoalResponse[] | null
+  today: string
   onChanged: () => void
   onRemoved: (id: string) => void
   onAchieved: (goal: GoalResponse) => void
@@ -305,7 +321,7 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
   }
 
   /** Every goal write funnels through here so the abort and failure handling stays in one place. */
-  async function write(action: (signal: AbortSignal) => Promise<{ response: Response; error?: unknown }>, done: () => void) {
+  async function write(action: (signal: AbortSignal) => Promise<{ response: Response; error?: unknown; data?: unknown }>, done: (data: unknown) => void) {
     if (pending) return
     const controller = new AbortController()
     mutation.current = controller
@@ -319,7 +335,7 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
         setWriteError(apiFailure(result.error, t('failed')))
         return
       }
-      done()
+      done(result.data)
     } catch {
       if (!controller.signal.aborted) setWriteError(apiFailure(null, t('connection')))
     } finally {
@@ -357,9 +373,11 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
         body: { content: goal.content, targetDate: goal.targetDate, status: next },
         signal,
       }),
-      () => {
+      data => {
+        const updated = goalResponseSchema.safeParse(data)
+        if (!updated.success) { setWriteError(apiFailure(null, t('failed'))); return }
         onChanged()
-        if (next === 'achieved') onAchieved(goal)
+        if (next === 'achieved') onAchieved(updated.data)
       },
     )
   }
@@ -397,8 +415,8 @@ function GoalsSection({ c, formatDate, goals, onChanged, onRemoved, onAchieved }
       {goals.map(goal => <li key={goal.id} data-testid="goal" data-status={goal.status}>
         <p className="achievement-content">{goal.content}</p>
         <p className="goal-meta">
-          <span className={`goal-status goal-status-${goalStatusTone(goal)}`}>{goalStatusLabel(c, goal)}</span>
-          <span>{goal.status === 'achieved' && goal.achievedDate !== null ? c.achievedOn(formatDate(goal.achievedDate)) : deadline(c, formatDate, goal.targetDate)}</span>
+          <span className={`goal-status goal-status-${goalStatusTone(goal, today)}`}>{goalStatusLabel(c, goal, today)}</span>
+          <span>{goal.status === 'achieved' && goal.achievedDate !== null ? c.achievedOn(formatDate(goal.achievedDate)) : deadline(c, formatDate, goal.targetDate, today)}</span>
         </p>
         <div className="actions">
           <button type="button" className="secondary" disabled={pending || formOpen} onClick={() => void changeStatus(goal, goal.status === 'active' ? 'achieved' : 'active')}>{goal.status === 'active' ? c.markAchieved : c.reactivate}</button>

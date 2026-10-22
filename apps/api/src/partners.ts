@@ -64,7 +64,7 @@ export function registerPartnerRoutes(app: Hono<AppEnv>, dependencies: {
  app.post('/api/partners', async c => {
   const viewer = owner(c), input = await parseJson(c, invitePartnerSchema)
   const link = await db.transaction(async tx => {
-   const [partner] = await tx.select({ id: users.id }).from(users).where(eq(users.email, input.partnerEmail))
+   const [partner] = await tx.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${input.partnerEmail}`)
    if (!partner) return fail(404, 'USER_NOT_FOUND', 'User not found')
    if (partner.id === viewer) return fail(400, 'SYS_VALIDATION_ERROR', 'Cannot invite your own account')
    const [created] = await tx.insert(partnerLinks).values({ userAId: viewer < partner.id ? viewer : partner.id, userBId: viewer < partner.id ? partner.id : viewer, initiatedByUserId: viewer, createdAt: now(), updatedAt: now() }).onConflictDoNothing({ target: [partnerLinks.userAId, partnerLinks.userBId] }).returning()

@@ -3,7 +3,9 @@ import { Hono } from 'hono'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { asc, eq } from 'drizzle-orm'
 import {
+  aiReportAttempts,
   guruAnalysisRuns,
+  guruConsensusRebuildRequests,
   gurus,
   institutionalEffectiveHoldings,
   institutionalEffectivePeriodStates,
@@ -23,8 +25,9 @@ import { guruAnalysisCaveatKeys } from '@diary/domain/guru-analysis'
 import { runPendingGuruPortfolioAnalyticsOnce } from '../../apps/api/src/institutional/portfolio-analytics.js'
 import { runPendingGuruConsensusRebuildOnce } from '../../apps/api/src/institutional/guru-consensus.js'
 import { requestGuruAnalysis, runPendingGuruAnalysisInvalidationOnce } from '../../apps/api/src/guru-analysis/service.js'
-import { runGuruAnalysisOnce } from '../../apps/api/src/guru-analysis/worker.js'
+import { admitGuruAnalysisDispatch, claimNextGuruAnalysisRun, completeGuruAnalysisRun, failGuruAnalysisRun, runGuruAnalysisOnce } from '../../apps/api/src/guru-analysis/worker.js'
 import { registerGuruAnalysisRoutes } from '../../apps/api/src/guru-analysis/routes.js'
+import { lockAiGlobal, reapExpiredCallSlots } from '../../apps/api/src/ai-reports/job-store.js'
 import { encryptAiSecret } from '../../apps/api/src/ai-reports/secrets.js'
 import type { AiTransport } from '../../apps/api/src/ai-reports/outbound-policy.js'
 import { fail, validationError, type AppEnv } from '../../apps/api/src/app-context.js'
@@ -140,6 +143,8 @@ async function preparedQuarters() {
   await publish({ periodEnd: '2026-03-31', quantity: '100', reportedValue: '1000' })
   await publish({ periodEnd: '2026-06-30', quantity: '150', reportedValue: '1500' })
   await drain(() => runPendingGuruPortfolioAnalyticsOnce(database.db, clock))
+  await database.db.insert(guruConsensusRebuildRequests).values(['2026-03-31', '2026-06-30'].map(periodEnd => ({ periodEnd, nextAttemptAt: clock })))
+    .onConflictDoUpdate({ target: guruConsensusRebuildRequests.periodEnd, set: { nextAttemptAt: clock } })
   await drain(() => runPendingGuruConsensusRebuildOnce(database.db, new Date(clock.getTime() + 1_000)))
 }
 
@@ -245,4 +250,99 @@ it('invalidates a published analysis when the prepared quarter is rebuilt and ke
   // Invalidation never regenerates; the next generation is an explicit request.
   const next = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: new Date(clock.getTime() + 120_000) })
   expect(next).toMatchObject({ reused: false, run: { status: 'queued', reason: 'INITIAL' } })
+})
+
+it('limits historical context to quarters earlier than the selected quarter', async () => {
+  await preparedQuarters()
+  const first = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-03-31', mode: 'generate', actorUserId: actorId, now: clock })
+  expect(first.run.context.history).toEqual([])
+  const second = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  expect(second.run.context.history).toMatchObject([{ periodEnd: '2026-03-31' }])
+})
+
+it.each(['profile', 'consensus'] as const)('marks a published analysis stale after its %s input changes', async source => {
+  await preparedQuarters()
+  const original = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  expect(await worker(vi.fn(async () => response()))).toMatchObject({ status: 'succeeded' })
+  expect(await readPublic()).toMatchObject({ state: 'READY' })
+  if (source === 'profile') {
+    await database.db.update(gurus).set({ styleTags: ['Growth'] }).where(eq(gurus.id, guru.id))
+    const [updated] = await database.db.select().from(gurus).where(eq(gurus.id, guru.id))
+    guru = updated!
+  } else {
+    // Model another manager entering the prepared consensus, without changing
+    // this manager's portfolio analytics.
+    const changed = await database.pool.query("update guru_consensus_snapshots set active_manager_count = active_manager_count + 1 where period_end = '2026-06-30'")
+    expect(changed.rowCount).toBe(1)
+  }
+  const stale = await readPublic()
+  expect(stale).toMatchObject({ state: 'STALE' })
+  expect(stale.analysis).not.toBeNull()
+  const next = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  expect(next.reused).toBe(false)
+  expect(next.run.analyticsContextHash).toBe(original.run.analyticsContextHash)
+  expect(next.run.inputHash).not.toBe(original.run.inputHash)
+})
+
+async function dispatchedRun(leaseMs?: number) {
+  await preparedQuarters()
+  await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  const claimed = await claimNextGuruAnalysisRun(database.db, 'synthetic-crashing-worker', clock, leaseMs)
+  expect(claimed).not.toBeNull()
+  const admitted = await admitGuruAnalysisDispatch(database.db, { run: claimed!, leaseToken: claimed!.leaseToken!, now: clock })
+  expect(admitted).toHaveProperty('attemptId')
+  const [run] = await database.db.select().from(guruAnalysisRuns).where(eq(guruAnalysisRuns.id, claimed!.id))
+  return run!
+}
+
+it('settles a crashed dispatched run once when both the call deadline and lease expire', async () => {
+  const run = await dispatchedRun()
+  clock = new Date(clock.getTime() + 600_000)
+  expect(await claimNextGuruAnalysisRun(database.db, 'synthetic-recovery-worker', clock)).toBeNull()
+  expect(await claimNextGuruAnalysisRun(database.db, 'synthetic-recovery-worker', clock)).toBeNull()
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 1, estimated_cost_cents: 10 }])
+  const [attempt] = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.id, run.attemptId!))
+  expect(attempt).toMatchObject({ status: 'unknown' })
+  const [recovered] = await database.db.select().from(guruAnalysisRuns).where(eq(guruAnalysisRuns.id, run.id))
+  expect(recovered).toMatchObject({ status: 'failed', errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN' })
+})
+
+it('does not settle again when a late worker fails after the call-slot reaper', async () => {
+  const run = await dispatchedRun()
+  clock = new Date(clock.getTime() + 600_000)
+  await database.db.transaction(async tx => {
+    await lockAiGlobal(tx)
+    await reapExpiredCallSlots(tx, clock)
+  })
+  expect(await failGuruAnalysisRun(database.db, { run, leaseToken: run.leaseToken!, now: clock, errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN' })).toBe(true)
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 1, estimated_cost_cents: 10 }])
+})
+
+it('leaves the attempt and accounting unchanged when an obsolete lease tries to complete', async () => {
+  const run = await dispatchedRun()
+  const completed = await completeGuruAnalysisRun(database.db, {
+    run, leaseToken: 'obsolete-lease-token', now: clock, result: analysisPayload,
+    usage: { inputTokens: 420, outputTokens: 90, estimatedCostCents: 2 },
+  })
+  expect(completed).toBe(false)
+  const [attempt] = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.id, run.attemptId!))
+  expect(attempt).toMatchObject({ status: 'dispatched', finishedAt: null, slotReleasedAt: null })
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 0, estimated_cost_cents: 10 }])
+  expect(await failGuruAnalysisRun(database.db, { run, leaseToken: run.leaseToken!, now: clock, errorCode: 'AI_PROVIDER_UNAVAILABLE' })).toBe(true)
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 1 }])
+})
+
+
+it('keeps a lost worker call slot until its provider deadline and settles it only once', async () => {
+  const run = await dispatchedRun(1_000)
+  clock = new Date(clock.getTime() + 2_000)
+  expect(await claimNextGuruAnalysisRun(database.db, 'synthetic-recovery-worker', clock)).toBeNull()
+  const [attempt] = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.id, run.attemptId!))
+  expect(attempt).toMatchObject({ status: 'unknown', slotReleasedAt: null })
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, unknown: 1 }])
+  clock = new Date(clock.getTime() + 600_000)
+  expect(await claimNextGuruAnalysisRun(database.db, 'synthetic-recovery-worker', clock)).toBeNull()
+  const [released] = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.id, run.attemptId!))
+  expect(released!.slotReleasedAt).not.toBeNull()
+  expect(await globalBudget()).toMatchObject([{ consumed: 1, unknown: 1 }])
 })

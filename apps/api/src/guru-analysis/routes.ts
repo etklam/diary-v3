@@ -117,7 +117,7 @@ export function registerGuruAnalysisRoutes(app: Hono<AppEnv>, dependencies: Depe
     const pending = periodEnd ? await readPendingGuruAnalysis(db, guru.managerId, periodEnd) : undefined
     const failed = periodEnd ? runs.find(run => run.periodEnd === periodEnd && run.status === 'failed') : undefined
     const fresh = built?.ok ? built : null
-    const stale = Boolean(published && (published.sourceState !== 'current' || !fresh || published.analyticsContextHash !== fresh.analytics.contextHash))
+    const stale = Boolean(published && (published.sourceState !== 'current' || !fresh || published.inputHash !== fresh.inputHash))
     const analysis = published ? guruAnalysisSchema.safeParse(published.result) : undefined
     const state = pending
       ? (pending.status === 'running' ? 'RUNNING' : 'QUEUED')
