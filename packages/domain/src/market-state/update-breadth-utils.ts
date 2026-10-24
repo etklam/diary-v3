@@ -56,15 +56,15 @@ export interface BreadthDayResult {
   isStale: boolean
 }
 
-export function toDateOnly(date: Date): Date {
+function toDateOnly(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
-export function toDateKey(date: Date): string {
+function toDateKey(date: Date): string {
   return toDateOnly(date).toISOString().slice(0, 10)
 }
 
-export function isFinitePrice(value: unknown): value is number {
+function isFinitePrice(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
@@ -96,7 +96,7 @@ export function parseDailyPrices(symbol: string, quotes: YahooChartQuote[]): Dai
     }))
 }
 
-export function groupPricesBySymbol(prices: PricePoint[]): Map<string, PricePoint[]> {
+function groupPricesBySymbol(prices: PricePoint[]): Map<string, PricePoint[]> {
   const grouped = new Map<string, PricePoint[]>()
   for (const price of prices) {
     const symbolPrices = grouped.get(price.symbol) ?? []

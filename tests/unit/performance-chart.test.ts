@@ -9,7 +9,6 @@ describe('performance chart cardinality', () => {
   it('caps a bar so one category cannot render as a slab', () => {
     // The old formula was `640 / count * 0.7` uncapped: one category drew a
     // 448px bar against a 160px plot height, which read as a rendering failure.
-    expect(640 / 1 * 0.7).toBe(448)
     expect(chartBarWidth(1)).toBe(48)
     expect(chartBarWidth(2)).toBe(48)
     expect(chartBarWidth(MIN_CHART_POINTS)).toBe(48)

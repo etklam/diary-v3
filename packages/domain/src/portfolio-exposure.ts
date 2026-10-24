@@ -167,7 +167,7 @@ export interface CombinedBuckets {
  * Single source of truth — `compareExposureToTarget` and the UI panel both
  * consume this so the bucket aggregation can't drift between them.
  */
-export function combineBetaBuckets(exposure: PortfolioExposure): CombinedBuckets {
+function combineBetaBuckets(exposure: PortfolioExposure): CombinedBuckets {
   return {
     highBeta: exposure.highBetaPct + exposure.megaCapPct + exposure.singleStockPct,
     coreIndex: exposure.coreIndexPct,

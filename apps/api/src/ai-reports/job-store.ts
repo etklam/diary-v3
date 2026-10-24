@@ -5,9 +5,9 @@ import { consumeUserQuota, recordUserQuotaUsage, releaseUserQuota, type QuotaRes
 import { consumeGlobalAiBudget, releaseGlobalAiBudget, settleGlobalAiBudget } from './budget.js'
 import { aiConsentIsValid } from './consent.js'
 
-export const AI_OWNER_LOCK_CLASS = 7441
-export const AI_GLOBAL_LOCK_CLASS = 7440
-export const AI_LEASE_MS = 180_000
+const AI_OWNER_LOCK_CLASS = 7441
+const AI_GLOBAL_LOCK_CLASS = 7440
+const AI_LEASE_MS = 180_000
 
 export async function lockAiOwner(tx: Pick<Database, 'execute'>, userId: bigint) {
   await tx.execute(sql`select pg_advisory_xact_lock(${AI_OWNER_LOCK_CLASS}, hashtext(${userId.toString()}))`)

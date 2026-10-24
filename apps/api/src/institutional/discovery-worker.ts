@@ -132,7 +132,7 @@ export type GuruFilingDiscoveryResult =
   | { status: 'notification-error' }
   | { status: 'succeeded' | 'stale' | 'failed'; managerId: bigint; discovered: number; processed: number; errorCode?: string }
 
-export async function runPendingSecurityMappingRefreshOnce(db: Database, now = new Date()) {
+async function runPendingSecurityMappingRefreshOnce(db: Database, now = new Date()) {
   const [candidate] = await db.select({ id: institutionalSecurityMappingRefreshJobs.id })
     .from(institutionalSecurityMappingRefreshJobs)
     .where(or(

@@ -53,7 +53,7 @@ export interface ResponseStreamOptions {
  * The transform rejects before forwarding the chunk that crosses the limit,
  * so a lying or missing Content-Length cannot exceed the configured budget.
  */
-export function responseNodeStream(response: Response, maxBytes: number, options: ResponseStreamOptions = {}): Readable {
+function responseNodeStream(response: Response, maxBytes: number, options: ResponseStreamOptions = {}): Readable {
   if (!response.body) throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC response body is empty', 502)
   const tooLarge = options.onTooLarge ?? defaultDocumentLimitError
   const length = contentLength(response)

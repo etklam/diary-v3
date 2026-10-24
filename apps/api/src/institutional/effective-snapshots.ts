@@ -248,13 +248,6 @@ export async function buildEffectivePortfolioSnapshot(input: {
   })
 }
 
-export async function rebuildEffectivePortfolioForFiling(db: Database, filingId: bigint, now = new Date()) {
-  const [filing] = await db.select({ managerId: institutionalFilings.managerId, periodEnd: institutionalFilings.periodEnd })
-    .from(institutionalFilings).where(eq(institutionalFilings.id, filingId)).limit(1)
-  if (!filing?.periodEnd) return undefined
-  return buildEffectivePortfolioSnapshot({ db, managerId: filing.managerId, periodEnd: filing.periodEnd, now })
-}
-
 /** Enqueue in the source-writer transaction so a committed mapping correction always has durable work. */
 export async function enqueueEffectivePortfolioForFiling(tx: DatabaseTx, filingId: bigint, now = new Date()) {
   const [filing] = await tx.select({ managerId: institutionalFilings.managerId, periodEnd: institutionalFilings.periodEnd })

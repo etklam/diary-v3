@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { recentDiaryTagsResponseSchema } from '@diary/contracts/diary-tags';
 import { api } from './ui';
 
-export const RECENT_TAG_LIMIT = 8;
+const RECENT_TAG_LIMIT = 8;
 const PREFIX = 'diary-recent-tags:';
 
-export function recentTagsKey(accountId: string): string {
+function recentTagsKey(accountId: string): string {
   return `${PREFIX}${accountId}`;
 }
 

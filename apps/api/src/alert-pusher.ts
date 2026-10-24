@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { alerts, diaries, type Database } from '@diary/db'
 import { and, asc, eq, gte, lt, sql } from 'drizzle-orm'
 
-export const ALERT_CHECK_INTERVAL = 60_000
-export const ALERT_LOOKAHEAD = 65_000
+const ALERT_CHECK_INTERVAL = 60_000
+const ALERT_LOOKAHEAD = 65_000
 export async function findUpcomingAlerts(db: Database, start: Date, end: Date) {
   return db.select({ id: alerts.id, message: alerts.message, triggerAt: alerts.triggerAt,
     diary: { id: diaries.id, title: diaries.title, userId: diaries.userId },

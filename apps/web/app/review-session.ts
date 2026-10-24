@@ -13,7 +13,7 @@ export function canonicalQueueSearch(value: string) {
   for (const [key, item] of Object.entries(parsed.data)) if (item !== undefined) query.set(key, String(item));
   return query.toString();
 }
-export function reviewItemKey(item: ReviewItem) { return item.targetType === 'diary' ? `diary:${item.id}` : `thesis:${item.thesisId}`; }
+function reviewItemKey(item: ReviewItem) { return item.targetType === 'diary' ? `diary:${item.id}` : `thesis:${item.thesisId}`; }
 export function reviewItemPath(item: ReviewItem, sessionId: string) {
   return `${item.targetType === 'diary' ? `/diaries/${item.id}/review` : `/stocks/${encodeURIComponent(item.symbol ?? '')}/thesis`}?reviewSession=${sessionId}`;
 }

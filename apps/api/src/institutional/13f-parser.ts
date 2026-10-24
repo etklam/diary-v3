@@ -1,5 +1,5 @@
 export const INSTITUTIONAL_13F_PARSER_VERSION = '13f-xml-v1'
-export const FORM_13F_DOLLAR_VALUE_CUTOFF = '2023-01-03'
+const FORM_13F_DOLLAR_VALUE_CUTOFF = '2023-01-03'
 
 export type ReportedValueUnit = 'THOUSANDS_USD' | 'USD'
 

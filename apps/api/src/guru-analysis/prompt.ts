@@ -3,7 +3,6 @@ import { guruAnalysisSchema, type GuruAnalysis } from '@diary/contracts/guru-ana
 import {
   buildGuruAnalysisContext,
   guruAnalysisCaveatKeys,
-  GURU_ANALYSIS_SCHEMA_VERSION,
   type GuruAnalysisContext,
 } from '@diary/domain/guru-analysis'
 import { DEFAULT_GURU_ACTION_THRESHOLDS, GURU_PORTFOLIO_ANALYTICS_VERSION, type GuruPortfolioAnalytics } from '@diary/domain/guru-portfolio-analytics'
@@ -159,5 +158,3 @@ export function syntheticGuruAnalysisContext(): GuruAnalysisContext {
     },
   }).context
 }
-
-export const guruAnalysisOutputSchemaVersion = GURU_ANALYSIS_SCHEMA_VERSION

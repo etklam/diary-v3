@@ -14,8 +14,8 @@ import { useSessionState } from './session';
  * interval until it reconnects. Either way a known upcoming trigger still
  * pulls the next poll forward.
  */
-export const LIVE_POLL_MS = 300_000
-export const FALLBACK_POLL_MS = 60_000
+const LIVE_POLL_MS = 300_000
+const FALLBACK_POLL_MS = 60_000
 
 /** Socket events are hints; only REST establishes the displayed reminder state. */
 export function ForegroundReminders() {

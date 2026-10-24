@@ -142,7 +142,7 @@ async function findPlan(db: Database | DbTransaction, userId: bigint, planId: bi
   return plan
 }
 
-export async function readTradePlanExecution(
+async function readTradePlanExecution(
   db: Database | DbTransaction,
   userId: bigint,
   plan: TradePlanRow,

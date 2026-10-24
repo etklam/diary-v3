@@ -4,7 +4,7 @@ import {marketRotationSnapshots,type Database} from '@diary/db';
 import {calendarDateSchema} from '@diary/contracts';
 const finite=z.number().finite();
 const decimal=(precision:number,scale:number)=>finite.transform(value=>value.toFixed(scale)).refine(value=>Math.abs(Number(value))<10**(precision-scale),'Snapshot metric exceeds database precision').nullable();
-export const rotationSnapshotWriteSchema=z.object({
+const rotationSnapshotWriteSchema=z.object({
  date:calendarDateSchema,
  symbol:z.string().max(20),
  rankScope:z.enum(['sectors','indexes','core']),

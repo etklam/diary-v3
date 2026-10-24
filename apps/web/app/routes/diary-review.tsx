@@ -32,7 +32,7 @@ function formFrom(review:Review):Form{return {reviewOutcome:review.reviewOutcome
 // clean. An outcome selection counts the moment it changes and stops when the
 // original outcome is picked again.
 export type ReviewBaseline={reviewOutcome:NonNullable<Review['reviewOutcome']>|null;reviewSummary:string|null;reviewLearning:string|null;reviewAdjustment:string|null};
-export function baselineFrom(review:Review):ReviewBaseline{return {reviewOutcome:review.reviewOutcome??null,reviewSummary:review.reviewSummary??null,reviewLearning:review.reviewLearning??null,reviewAdjustment:review.reviewAdjustment??null};}
+function baselineFrom(review:Review):ReviewBaseline{return {reviewOutcome:review.reviewOutcome??null,reviewSummary:review.reviewSummary??null,reviewLearning:review.reviewLearning??null,reviewAdjustment:review.reviewAdjustment??null};}
 export function normalizeReview(form:Form):ReviewBaseline{return {reviewOutcome:form.reviewOutcome||null,reviewSummary:form.reviewSummary.trim()||null,reviewLearning:form.reviewLearning.trim()||null,reviewAdjustment:form.reviewAdjustment.trim()||null};}
 export function sameReview(a:ReviewBaseline,b:ReviewBaseline){return a.reviewOutcome===b.reviewOutcome&&a.reviewSummary===b.reviewSummary&&a.reviewLearning===b.reviewLearning&&a.reviewAdjustment===b.reviewAdjustment;}
 

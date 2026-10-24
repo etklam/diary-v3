@@ -72,7 +72,7 @@ export interface SmtpTransportOptions {
 
 export type SmtpTransportFactory = (options: SmtpTransportOptions) => SmtpTransportClient
 
-export const SMTP_TIMEOUT_DEFAULTS = Object.freeze({ connection: 10_000, greeting: 10_000, socket: 30_000, dns: 10_000, operation: 30_000 })
+const SMTP_TIMEOUT_DEFAULTS = Object.freeze({ connection: 10_000, greeting: 10_000, socket: 30_000, dns: 10_000, operation: 30_000 })
 export const SMTP_TIMEOUT_MAX_MS = 60_000
 const SMTP_MESSAGE_MAX_BYTES = 1_048_576
 const SMTP_SUBJECT_MAX_LENGTH = 998

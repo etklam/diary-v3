@@ -243,14 +243,3 @@ async function recordFailure(db: Database, input: { table: 'event' | 'consensus'
       .onConflictDoUpdate({ target: guruNotificationConsensusDeliveries.snapshotId, set: { attemptCount: (previous?.attemptCount ?? 0) + 1, nextAttemptAt, lastError, processedAt: null } })
   })
 }
-
-export async function runGuruNotificationWorker(options: { db: Database; now?: () => Date; intervalMs?: number; signal?: AbortSignal }) {
-  const now = options.now ?? (() => new Date())
-  const intervalMs = options.intervalMs ?? 5_000
-  while (!options.signal?.aborted) {
-    const follow = await runPendingGuruFollowNotificationsOnce(options.db, now())
-    const stock = await runPendingGuruStockNotificationsOnce(options.db, now())
-    if (options.signal?.aborted) break
-    if (!follow && !stock) await new Promise<void>(resolve => setTimeout(resolve, intervalMs))
-  }
-}

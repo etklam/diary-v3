@@ -125,7 +125,7 @@ function normalizeSearchWordObjects(value: string, allowShortPrefix = false): Se
   })
 }
 
-export function parsePublicSearch(input: string): SearchGroup {
+function parsePublicSearch(input: string): SearchGroup {
   const groups: SearchGroup = { required: [], optional: [], excluded: [] }
   const add = (marker: string, value: string, phrase: boolean, allowShortPrefix = false) => {
     const wordObjects = normalizeSearchWordObjects(value, allowShortPrefix)

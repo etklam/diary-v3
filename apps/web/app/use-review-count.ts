@@ -18,7 +18,7 @@ const REFRESH_EVENTS = ['diary-quick-saved', 'diary-reminders-changed'] as const
 let cache: { revision: number; expires: number; count: number } | undefined
 let pending: { revision: number; promise: Promise<number> } | undefined
 
-export function invalidateReviewCount() {
+function invalidateReviewCount() {
   cache = undefined
   pending = undefined
 }

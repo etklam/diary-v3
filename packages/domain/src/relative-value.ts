@@ -59,7 +59,7 @@ export function calculateRelativeRatio(primaryPrice: number, relativePrice: numb
   return primaryPrice / relativePrice
 }
 
-export function calculateCorrespondingPrice(targetPrice: number, ratio: number) {
+function calculateCorrespondingPrice(targetPrice: number, ratio: number) {
   assertPositiveFinite(targetPrice, 'Target price')
   assertPositiveFinite(ratio, 'Ratio')
   return targetPrice / ratio

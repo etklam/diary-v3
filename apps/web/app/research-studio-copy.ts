@@ -202,7 +202,7 @@ export function researchCopy(locale: Locale): ResearchCopy {
   return { ...copy.en, ...copy[locale] } as ResearchCopy
 }
 
-export function dateLocale(locale: Locale) {
+function dateLocale(locale: Locale) {
   return locale === 'zh-TW' ? 'zh-TW' : locale === 'zh-CN' ? 'zh-CN' : 'en-US'
 }
 

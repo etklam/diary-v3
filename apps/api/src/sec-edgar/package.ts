@@ -119,7 +119,7 @@ async function appendStagedEntry(
   central.push({ name, crc: entry.crc, size, offset })
 }
 
-export function selectPackageDocuments(detail: SecFilingDetail, includes: string[]): SecFilingDocument[] {
+function selectPackageDocuments(detail: SecFilingDetail, includes: string[]): SecFilingDocument[] {
   const selected = new Map<string, SecFilingDocument>()
   const add = (document: SecFilingDocument) => selected.set(document.basename, document)
   const choices = includes.length ? includes : ['all']

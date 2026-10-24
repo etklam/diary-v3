@@ -41,7 +41,7 @@ function quarterStatus(state: string | undefined, analyticsStatus: string | unde
 }
 
 /** Latest prepared analytics row for a manager quarter, in the current analytics version. */
-export async function readPreparedAnalytics(db: Executor, managerId: bigint, periodEnd: string) {
+async function readPreparedAnalytics(db: Executor, managerId: bigint, periodEnd: string) {
   const [analytics] = await db.select().from(guruQuarterAnalytics)
     .where(and(eq(guruQuarterAnalytics.managerId, managerId), eq(guruQuarterAnalytics.periodEnd, periodEnd)))
     .orderBy(desc(guruQuarterAnalytics.calculatedAt), desc(guruQuarterAnalytics.id)).limit(1)

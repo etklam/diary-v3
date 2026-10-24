@@ -1,7 +1,7 @@
 import { calendarDateSchema, createDiaryRequestSchema } from '@diary/contracts';
 import { marketSymbolSchema } from '@diary/contracts/market';
 
-export const CAPTURE_CONTEXT_SOURCE = 'company' as const;
+const CAPTURE_CONTEXT_SOURCE = 'company' as const;
 export const CAPTURE_QUERY_MAX_LENGTH = 256;
 /** A share sheet sends a real URL and a real excerpt, so the share-carrying
  *  query needs more room than the company handoff — still bounded, and every

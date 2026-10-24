@@ -22,7 +22,7 @@ import { listDiaryStocks } from './diary-stocks.js'
  * select an outcome and a timestamp and nothing else, matching the boundary
  * the diary-only feed already enforces.
  */
-export async function listActivityTimeline(db: Database, userId: bigint, query: ActivityTimelineQuery) {
+async function listActivityTimeline(db: Database, userId: bigint, query: ActivityTimelineQuery) {
   const kinds = query.group ? ACTIVITY_GROUP_KINDS[query.group] : null
   const includes = (kind: ActivityEventKind) => (kinds === null || kinds.includes(kind) ? sql`true` : sql`false`)
   // Each branch filters on its own resolved local date, so the range means the

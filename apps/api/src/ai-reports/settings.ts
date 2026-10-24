@@ -128,7 +128,7 @@ export async function ensureAiRuntime(db: Database, now: Date) {
   return existing!
 }
 
-export async function ensureDefaultAiPrompts(db: Database, now: Date) {
+async function ensureDefaultAiPrompts(db: Database, now: Date) {
   for (const reportType of REPORT_TYPES) {
     const [current] = await db.select({ id: aiPromptVersions.id })
       .from(aiPromptVersions)

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { wasExplicitSignOut } from './session';
 
-export const DRAFT_TTL_MS = 86_400_000;
-export const DRAFT_DEBOUNCE_MS = 600;
+const DRAFT_TTL_MS = 86_400_000;
+const DRAFT_DEBOUNCE_MS = 600;
 
 export type DraftEnvelope<T> = { at: number; value: T };
 export type DraftSnapshot<T> = { key: string; value: T; dirty: boolean; paused: boolean };

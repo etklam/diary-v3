@@ -283,11 +283,11 @@ function stableValue(value: unknown): unknown {
 }
 
 /** Stable JSON used for hashes and deterministic fixture comparisons. */
-export function stableSerialize(value: unknown): string {
+function stableSerialize(value: unknown): string {
   return JSON.stringify(stableValue(value))
 }
 
-export async function sha256Hex(value: string): Promise<string> {
+async function sha256Hex(value: string): Promise<string> {
   const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
 }

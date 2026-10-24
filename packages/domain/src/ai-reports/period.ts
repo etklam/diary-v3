@@ -28,7 +28,7 @@ export type ReportPeriodErrorCode =
   | 'AI_REPORT_FUTURE_PERIOD'
   | 'AI_REPORT_INVALID_TIMEZONE'
 
-export class ReportPeriodError extends Error {
+class ReportPeriodError extends Error {
   constructor(readonly code: ReportPeriodErrorCode, message: string) {
     super(message)
     this.name = 'ReportPeriodError'

@@ -19,7 +19,7 @@ import { buildGuruAnalysisInput } from './context.js'
 import { buildGuruAnalysisMessages, defaultGuruAnalysisTemplate, validateGuruAnalysisOutput } from './prompt.js'
 import { GuruAnalysisError, type GuruAnalysisRun } from './service.js'
 
-export const GURU_ANALYSIS_LEASE_MS = 180_000
+const GURU_ANALYSIS_LEASE_MS = 180_000
 
 export interface GuruAnalysisWorkerOptions {
   db: Database
@@ -35,7 +35,7 @@ export type GuruAnalysisWorkerResult =
   | { status: 'succeeded'; runId: bigint }
   | { status: 'failed'; runId: bigint; errorCode: string }
 
-export function safeGuruAnalysisErrorCode(error: unknown): string {
+function safeGuruAnalysisErrorCode(error: unknown): string {
   if (error instanceof AiProviderError) return error.code
   if (error instanceof GuruAnalysisError) return error.code
   if (error instanceof Error && /^(?:AI|GURU)_[A-Z0-9_]+$/.test(error.message)) return error.message
@@ -89,7 +89,7 @@ export async function claimNextGuruAnalysisRun(db: Database, workerId: string, n
   })
 }
 
-export async function heartbeatGuruAnalysisRun(db: Database, input: { runId: bigint; leaseToken: string; now: Date; leaseMs?: number }) {
+async function heartbeatGuruAnalysisRun(db: Database, input: { runId: bigint; leaseToken: string; now: Date; leaseMs?: number }) {
   const [row] = await db.update(guruAnalysisRuns).set({ heartbeatAt: input.now, leaseExpiresAt: new Date(input.now.getTime() + (input.leaseMs ?? GURU_ANALYSIS_LEASE_MS)), updatedAt: input.now })
     .where(and(
       eq(guruAnalysisRuns.id, input.runId), eq(guruAnalysisRuns.status, 'running'),
@@ -98,7 +98,7 @@ export async function heartbeatGuruAnalysisRun(db: Database, input: { runId: big
   return Boolean(row)
 }
 
-export async function requeueGuruAnalysisRun(db: Database, input: { runId: bigint; leaseToken: string; now: Date }) {
+async function requeueGuruAnalysisRun(db: Database, input: { runId: bigint; leaseToken: string; now: Date }) {
   const [row] = await db.update(guruAnalysisRuns).set({ status: 'queued', leaseToken: null, leaseExpiresAt: null, workerId: null, heartbeatAt: null, startedAt: null, updatedAt: input.now })
     .where(and(
       eq(guruAnalysisRuns.id, input.runId), eq(guruAnalysisRuns.status, 'running'),
@@ -284,16 +284,4 @@ export async function runGuruAnalysisWorker(options: GuruAnalysisWorkerOptions &
     if (options.signal?.aborted) break
     await new Promise<void>(resolve => setTimeout(resolve, intervalMs))
   }
-}
-
-/** Cancel a queued run and return its reservation. */
-export async function cancelGuruAnalysisRun(db: Database, input: { runId: bigint; now: Date }) {
-  return db.transaction(async tx => {
-    await lockAiGlobal(tx)
-    const [row] = await tx.update(guruAnalysisRuns).set({ status: 'cancelled', errorCode: 'AI_CANCELLED', finishedAt: input.now, updatedAt: input.now })
-      .where(and(eq(guruAnalysisRuns.id, input.runId), eq(guruAnalysisRuns.status, 'queued'))).returning()
-    if (!row) return null
-    if (row.reservationCostCents > 0) await releaseGlobalAiBudget(tx, { month: row.reservationBucketMonth, reservationCostCents: row.reservationCostCents })
-    return row
-  })
 }

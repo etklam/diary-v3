@@ -15,7 +15,7 @@ import {
 } from '@diary/db'
 import type { GuruDecisionContext } from '@diary/contracts/guru-notifications'
 
-export const GURU_DECISION_CONTEXT_VERSION = 'guru-decision-context-v1'
+const GURU_DECISION_CONTEXT_VERSION = 'guru-decision-context-v1'
 
 type Executor = Pick<Database, 'select'>
 

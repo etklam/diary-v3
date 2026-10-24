@@ -16,7 +16,7 @@ export type SeasonalityMonth = {
 const localized = (en: string, tw: string, cn: string): Localized => ({ en, 'zh-TW': tw, 'zh-CN': cn })
 const reasons = (en: string[], tw: string[], cn: string[]) => ({ en, 'zh-TW': tw, 'zh-CN': cn })
 
-export const seasonalityMonths: readonly SeasonalityMonth[] = [
+const seasonalityMonths: readonly SeasonalityMonth[] = [
   { month: 1, avgReturn: 1.07, volatility: 'medium', characteristics: localized('Strong start to the year, with a common January effect.', '年初強勢，常見「January Effect」。', '年初强势，常见「January Effect」。'), reasons: reasons(['Buyback after December tax-loss selling', 'New-year investment optimism', 'Fund-manager window dressing'], ['12 月稅損賣出後回補買盤', '新年投資樂觀情緒', '基金經理粉飾報表'], ['12 月税损卖出后回补买盘', '新年投资乐观情绪', '基金经理粉饰报表']) },
   { month: 2, avgReturn: -0.01, volatility: 'medium-high', characteristics: localized('Mixed and weak, relatively flat.', '混合偏弱、較平淡。', '混合偏弱、较平淡。'), reasons: reasons(['Profit taking', 'Earnings season begins', 'Post-holiday adjustment'], ['獲利了結', '財報季開始', '節後調整'], ['获利了结', '财报季开始', '节后调整']) },
   { month: 3, avgReturn: 1.13, volatility: 'medium', characteristics: localized('Positive, with an end-of-quarter rebound.', '正面，第一季末反彈。', '正面，第一季末反弹。'), reasons: reasons(['Quarterly rebalancing', 'Institutional capital return'], ['季度再平衡', '機構資金回流'], ['季度再平衡', '机构资金回流']) },

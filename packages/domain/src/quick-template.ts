@@ -6,7 +6,7 @@ import {
 } from './quick-localization'
 import type { QuickNoteTemplateData, QuickNoteTemplateKind } from './quick-types'
 
-export function formatQuickTradeDecimal(value:string,scale:number):string {
+function formatQuickTradeDecimal(value:string,scale:number):string {
  const rounded=roundDecimalString(value,scale).replace(/^-/, '');const [integer,fraction='']=rounded.split('.');const sign=value.startsWith('-')&&/[1-9]/.test(value)?'-':'+';return sign+integer+(scale?'.'+fraction.padEnd(scale,'0'):'');
 }
 

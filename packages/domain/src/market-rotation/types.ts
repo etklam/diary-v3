@@ -2,7 +2,7 @@ export const rankScopes = ['sectors', 'indexes', 'core'] as const
 
 export type RankScope = typeof rankScopes[number]
 
-export const batchScopes = [...rankScopes, 'all'] as const
+const batchScopes = [...rankScopes, 'all'] as const
 
 export type BatchScope = typeof batchScopes[number]
 

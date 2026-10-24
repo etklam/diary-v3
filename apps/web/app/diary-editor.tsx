@@ -143,7 +143,7 @@ function sameTransaction(a:CanonicalTransaction,b:CanonicalTransaction){
 export function sameTransactionCollection(a:CanonicalTransaction[],b:CanonicalTransaction[]){
  return a.length===b.length&&a.every((row,index)=>sameTransaction(row,b[index]!));
 }
-export function sameAlerts(a:CanonicalAlert[],b:CanonicalAlert[]){
+function sameAlerts(a:CanonicalAlert[],b:CanonicalAlert[]){
  return a.length===b.length&&a.every((row,index)=>row.message===b[index]!.message&&row.triggerAt===b[index]!.triggerAt&&row.recurringMode===b[index]!.recurringMode);
 }
 export function sameEditable(a:EditableState,b:EditableState){

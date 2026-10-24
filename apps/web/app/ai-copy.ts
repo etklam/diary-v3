@@ -238,7 +238,7 @@ const aiDomainNotes: Record<string, string> = {
   'Transaction currency and account scope are not recorded; cross-currency totals are unavailable.': 'currency note',
 };
 
-export const aiMetricCopy: Record<AiLocale, {
+const aiMetricCopy: Record<AiLocale, {
   labels: Record<string, string>
   units: Record<string, string>
   notes: Record<string, string>

@@ -5,7 +5,7 @@ import { priceAlerts, type Database } from '@diary/db'
 import { isCompletedRegularMarketDay } from './market-data/ttl.js'
 import { asc, eq } from 'drizzle-orm'
 
-export const PRICE_CHECK_INTERVAL = 5 * 60_000
+const PRICE_CHECK_INTERVAL = 5 * 60_000
 export type PriceAlertHistoricalClose = { timestamp: number; close: number }
 export type PriceAlertMarketData = {
   currentPrice: number | null

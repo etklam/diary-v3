@@ -6,11 +6,11 @@
  * persistence; this module owns the v1 mathematical contract.
  */
 
-export const RESEARCH_METHOD_ID = 'us-equity-swing-report' as const
-export const RESEARCH_METHOD_VERSION = '1.0.0' as const
+const RESEARCH_METHOD_ID = 'us-equity-swing-report' as const
+const RESEARCH_METHOD_VERSION = '1.0.0' as const
 export const RESEARCH_CALCULATOR_VERSION = 'ts-research-calculator-1.0.0' as const
-export const RESEARCH_METHOD_SOURCE_FIXTURE = 'tests/fixtures/research-method/notion-pages.json' as const
-export const RESEARCH_METHOD_SOURCE_SHA256 =
+const RESEARCH_METHOD_SOURCE_FIXTURE = 'tests/fixtures/research-method/notion-pages.json' as const
+const RESEARCH_METHOD_SOURCE_SHA256 =
   'b45697fb82435cfc4c45961620be209ab8ebe59f558e36c02bcda380eff6206d' as const
 
 export type ResearchMethodAppendix = {
@@ -661,7 +661,7 @@ export function validateResearchInput(input: ResearchCalculationInput): Research
   return { valid: errorCodes.size === 0, quality, issues, gates, counts }
 }
 
-export class ResearchNormalizationError extends Error {
+class ResearchNormalizationError extends Error {
   readonly code: string
 
   constructor(code: string, message: string) {

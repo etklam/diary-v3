@@ -66,7 +66,7 @@ export function userSessionLock(userId: bigint) {
 }
 
 /** Native operations take the user lock before this family lock. */
-export function nativeFamilyLock(familyId: string) {
+function nativeFamilyLock(familyId: string) {
   return sql`select pg_advisory_xact_lock(hashtextextended(${'native-family:' + familyId}, 0::bigint))`
 }
 

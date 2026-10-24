@@ -1,6 +1,6 @@
 /** Daily trading observations. Calendar dates remain YYYY-MM-DD throughout. */
 export type EtfDailyBar = { date: string; close: number; high?: number | null; low?: number | null; volume?: number | null }
-export function canonicalEtfBars(input: readonly EtfDailyBar[]) {
+function canonicalEtfBars(input: readonly EtfDailyBar[]) {
  const days=new Map<string,EtfDailyBar>();
  for(const bar of input)if(/^\d{4}-\d{2}-\d{2}$/.test(bar.date)&&Number.isFinite(bar.close)&&bar.close>0)days.set(bar.date,{...bar});
  return [...days.values()].sort((a,b)=>a.date.localeCompare(b.date));

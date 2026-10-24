@@ -59,8 +59,8 @@ export type ResearchCalendarSnapshot = {
   synthetic: boolean
 }
 
-export const VERIFIED_US_EQUITY_CALENDAR_SOURCE_ID = 'US_EQUITY_TRADING_CALENDAR'
-export const VERIFIED_US_EQUITY_CALENDAR_VERSION = 'us-equity-calendar-2025-2028-v1'
+const VERIFIED_US_EQUITY_CALENDAR_SOURCE_ID = 'US_EQUITY_TRADING_CALENDAR'
+const VERIFIED_US_EQUITY_CALENDAR_VERSION = 'us-equity-calendar-2025-2028-v1'
 
 function addCalendarDays(dateKey: string, days: number): string {
   const date = new Date(`${dateKey}T00:00:00.000Z`)
@@ -198,7 +198,7 @@ export type ResearchSearchConfiguration = {
   query: (instrument: Pick<ResearchInstrumentProfile, 'symbol' | 'name' | 'exchange'>, asOf: Date) => string
 }
 
-export class ResearchSourceError extends Error {
+class ResearchSourceError extends Error {
   constructor(readonly code: string, message: string, readonly retryable = false) {
     super(message)
     this.name = 'ResearchSourceError'
@@ -672,7 +672,7 @@ export function createYahooResearchEvidenceProvider(options: ResearchSourceFacto
   }
 }
 
-export const VERIFIED_US_EQUITY_CALENDAR_POLICY = createSourcePolicy({
+const VERIFIED_US_EQUITY_CALENDAR_POLICY = createSourcePolicy({
   sourceId: VERIFIED_US_EQUITY_CALENDAR_SOURCE_ID,
   provider: 'NYSE and Nasdaq official trading calendars',
   scope: 'Verified full-closure and early-close dates, interpreted with IANA America/New_York timezone rules.',
@@ -713,7 +713,7 @@ export type TavilySearchResponse = {
   usage: { calls: number; returnedResults: number; billedCredits: number | null }
 }
 
-export class TavilySearchError extends Error {
+class TavilySearchError extends Error {
   constructor(readonly code: 'SEARCH_PROVIDER_UNAVAILABLE' | 'SEARCH_INVALID_RESPONSE' | 'SEARCH_POLICY_BLOCKED' | 'SEARCH_BUDGET_UNAVAILABLE', message: string) {
     super(message)
     this.name = 'TavilySearchError'

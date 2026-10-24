@@ -93,7 +93,7 @@ function periodFromRow(row: typeof aiReports.$inferSelect) {
   return { periodType: row.reportType, periodStart: row.periodStart, periodEndExclusive: row.periodEndExclusive, isPartialPeriod: row.isPartialPeriod }
 }
 
-export function serializeReportSummary(row: typeof aiReports.$inferSelect): AiReportSummary {
+function serializeReportSummary(row: typeof aiReports.$inferSelect): AiReportSummary {
   const rawCoverage = parseJson(row.coverageJson, emptyCoverage())
   const coverage = aiReportCoverageSchema.safeParse(rawCoverage).success ? rawCoverage : emptyCoverage()
   const rawMetrics = parseJson(row.metricsJson, [])

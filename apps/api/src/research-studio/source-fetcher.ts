@@ -136,7 +136,7 @@ export function createPinnedSourceTransport(options: { resolveEndpoint?: SourceE
   }
 }
 
-export const pinnedSourceTransport: SourceTransport = createPinnedSourceTransport()
+const pinnedSourceTransport: SourceTransport = createPinnedSourceTransport()
 
 export type SourceFetcher = {
   request: SourceTransport

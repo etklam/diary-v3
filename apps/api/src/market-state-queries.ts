@@ -2,7 +2,7 @@ import { and, desc, eq, lte } from 'drizzle-orm'
 import { marketBreadthDaily, type Database } from '@diary/db'
 import { toMarketState, type MarketState } from '@diary/domain/market-rotation/state'
 
-export const DEFAULT_MARKET_UNIVERSE_KEY = 'SP500_NDX'
+const DEFAULT_MARKET_UNIVERSE_KEY = 'SP500_NDX'
 
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 

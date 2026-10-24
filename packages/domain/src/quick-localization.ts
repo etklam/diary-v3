@@ -211,12 +211,12 @@ function getLocalizedLabel(label: LocalizedLabel, locale: string): string {
   return label[resolveQuickNoteLocaleVariant(locale)]
 }
 
-export function normalizeQuickNoteReflectionMarketCondition(value?: string): ReflectionMarketConditionKey | '' {
+function normalizeQuickNoteReflectionMarketCondition(value?: string): ReflectionMarketConditionKey | '' {
   if (!value) return ''
   return reflectionMarketConditionValueMap.get(value) || ''
 }
 
-export function normalizeQuickNoteObservationType(value?: string): ObservationTypeKey | '' {
+function normalizeQuickNoteObservationType(value?: string): ObservationTypeKey | '' {
   if (!value) return ''
   return observationTypeValueMap.get(value) || ''
 }

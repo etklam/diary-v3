@@ -9,7 +9,7 @@ import type { AppEnv } from './app-context.js'
 type SavedViewRow = typeof diarySavedViews.$inferSelect
 type SavedViewFail = (status: number, code: ErrorCode, message: string) => never
 
-export const diarySavedViewLock = (userId: bigint) => sql`select pg_advisory_xact_lock(hashtextextended(${'diary-saved-views:' + userId.toString()}, 0::bigint))`
+const diarySavedViewLock = (userId: bigint) => sql`select pg_advisory_xact_lock(hashtextextended(${'diary-saved-views:' + userId.toString()}, 0::bigint))`
 
 function uniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false

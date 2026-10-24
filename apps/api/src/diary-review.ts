@@ -6,7 +6,7 @@ import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app-context.js'
 import { projectDiaryReview, readDiaryReview } from './diary-read.js'
-export async function saveDiaryReview(db: Database, id: bigint, userId: bigint, input: StructuredReviewInput, now: Date) {
+async function saveDiaryReview(db: Database, id: bigint, userId: bigint, input: StructuredReviewInput, now: Date) {
   return db.transaction(async tx => {
     const [row] = await tx.update(diaries).set({
       reviewOutcome: input.reviewOutcome,

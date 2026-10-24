@@ -6,7 +6,7 @@
  * decision does not silently disable a permitted analysis workflow.
  */
 
-export const researchSourcePurposes = [
+const researchSourcePurposes = [
   'automated_fetch',
   'evidence_storage',
   'llm_inference',
@@ -43,7 +43,7 @@ export type ResearchSourcePermission = {
   checkedAt: string | null
 }
 
-export class SourcePolicyError extends Error {
+class SourcePolicyError extends Error {
   constructor(
     readonly code: 'SOURCE_POLICY_UNKNOWN' | 'SOURCE_POLICY_RESTRICTED',
     readonly sourceId: string,
@@ -99,7 +99,7 @@ function policyPermission(policy: ResearchSourcePolicy, purpose: ResearchSourceP
   }
 }
 
-export function sourcePermissionHasEvidence(permission: Pick<ResearchSourcePermission, 'basis' | 'checkedAt'>): boolean {
+function sourcePermissionHasEvidence(permission: Pick<ResearchSourcePermission, 'basis' | 'checkedAt'>): boolean {
   return validPolicyBasis(permission.basis) && validCheckedAt(permission.checkedAt)
 }
 
@@ -115,7 +115,7 @@ export function sourceRecordsAreVerifiedAllowed(sources: readonly { use: Researc
   return sources.length > 0 && sources.every(source => sourceOperationsAreVerifiedAllowed(source.use, purposes))
 }
 
-export function assertSourcePermission(sourceId: string, purpose: ResearchSourcePurpose, permission: ResearchSourcePermission): void {
+function assertSourcePermission(sourceId: string, purpose: ResearchSourcePurpose, permission: ResearchSourcePermission): void {
   if (permission.status === 'allowed') {
     if (sourcePermissionHasEvidence(permission)) return
     throw new SourcePolicyError('SOURCE_POLICY_UNKNOWN', sourceId, purpose, `${sourceId} permission for ${purpose} is missing a valid HTTPS policy basis or valid ISO check timestamp.`)

@@ -30,7 +30,7 @@ export const rotationSortFields = [
 export type RotationSortField = typeof rotationSortFields[number]
 export type RotationSortOrder = 'asc' | 'desc'
 
-export function matchesRotationFilter(row: MarketRotationMonitorRow, filter: RotationFilterKey): boolean {
+function matchesRotationFilter(row: MarketRotationMonitorRow, filter: RotationFilterKey): boolean {
   switch (filter) {
     case 'turning_strong': return row.signal === 'turning_strong'
     case 'losing_momentum': return row.signal === 'losing_momentum'
