@@ -175,6 +175,18 @@ Related: job-log id drift can be much larger than the historic +7 — for run
 fetched log by grepping the checkout `head_sha`, and probe adjacent ids
 when it does not match.
 
+## Trap 7 — Deployment SSH uses the fleet port, not port 22
+
+The production runner reached the build and pushed both images, then failed at the
+first cluster inspection with `ssh: connect to host 82.22.63.196 port 22:
+Connection refused`. The managed fleet exposes SSH on port `14500`; port 22 is
+closed. Staging uses the same fleet convention.
+
+**Rule**: keep `DEPLOY_SSH_PORT` and `STAGING_SSH_PORT` explicit in the workflow
+environment. Pass `-p` to `ssh` and `-P` to `scp` for every remote operation.
+A successful image build or registry push does not prove the deployment transport
+is usable; probe the configured port before diagnosing Kubernetes.
+
 ## Verification path (do not trust the Forgejo UI)
 
 1. Confirm the release-authorized push reached the configured `main` remote and

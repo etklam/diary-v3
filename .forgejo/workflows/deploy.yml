@@ -11,6 +11,7 @@ env:
   REGISTRY: git.913555.xyz
   OWNER: etklam
   DEPLOY_HOST: 82.22.63.196
+  DEPLOY_SSH_PORT: 14500
   DEPLOY_USER: root
   DEPLOY_NAMESPACE: diary-v3
 
@@ -187,7 +188,7 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           API_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-api -o jsonpath='{.spec.template.spec.containers[?(@.name==\"api\")].image}'")
           WEB_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get deployment/diary-v3-web -o jsonpath='{.spec.template.spec.containers[?(@.name==\"web\")].image}'")
           CRON_IMAGE_BEFORE=$(ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE get cronjob/diary-v3-market -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[?(@.name==\"market\")].image}'")
@@ -210,10 +211,10 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           ssh $SSH_OPTS "$REMOTE" "mkdir -p /tmp/diary-v3-release"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/00-namespace.yaml" "$RELEASE_MANIFEST_DIR/01-postgres.yaml" "$RELEASE_MANIFEST_DIR/04-ingress.yaml" "$REMOTE:/tmp/diary-v3-release/"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/07-migrate-job.yaml" "$RELEASE_MANIFEST_DIR/06-seed-job.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/00-namespace.yaml" "$RELEASE_MANIFEST_DIR/01-postgres.yaml" "$RELEASE_MANIFEST_DIR/04-ingress.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/07-migrate-job.yaml" "$RELEASE_MANIFEST_DIR/06-seed-job.yaml" "$REMOTE:/tmp/diary-v3-release/"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/00-namespace.yaml && kubectl apply -f /tmp/diary-v3-release/01-postgres.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-postgres --timeout=300s"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-migrate --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/07-migrate-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE delete job diary-v3-system-seed --ignore-not-found && kubectl apply -f /tmp/diary-v3-release/06-seed-job.yaml && kubectl -n $DEPLOY_NAMESPACE wait --for=condition=complete job/diary-v3-system-seed --timeout=300s"
@@ -224,8 +225,8 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/02-api.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/02-api.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'DEPLOYMENT_MUTATED=true' >> "$GITHUB_ENV"; echo 'API_MUTATED=true' >> "$GITHUB_ENV"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/02-api.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-api --timeout=300s"
 
@@ -235,8 +236,8 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/11-mail-worker.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/11-mail-worker.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'DEPLOYMENT_MUTATED=true' >> "$GITHUB_ENV"; echo 'MAIL_WORKER_MUTATED=true' >> "$GITHUB_ENV"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/11-mail-worker.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-mail-worker --timeout=300s"
 
@@ -246,8 +247,8 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/03-web.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/03-web.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'WEB_MUTATED=true' >> "$GITHUB_ENV"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/03-web.yaml && kubectl -n $DEPLOY_NAMESPACE rollout status deployment/diary-v3-web --timeout=300s"
 
@@ -257,8 +258,8 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
-          scp $SSH_OPTS "$RELEASE_MANIFEST_DIR/05-market-cron.yaml" "$REMOTE:/tmp/diary-v3-release/"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          scp $SCP_OPTS "$RELEASE_MANIFEST_DIR/05-market-cron.yaml" "$REMOTE:/tmp/diary-v3-release/"
           echo 'CRON_MUTATED=true' >> "$GITHUB_ENV"
           ssh $SSH_OPTS "$REMOTE" "kubectl apply -f /tmp/diary-v3-release/04-ingress.yaml && kubectl apply -f /tmp/diary-v3-release/05-market-cron.yaml"
 
@@ -268,7 +269,7 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/healthz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE run smoke-\$RANDOM --rm -i --restart=Never --image=curlimages/curl --command -- curl -fsS --max-time 10 http://diary-v3-api:3101/readyz"
           ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE wait --for=condition=Ready certificate/trade-basic-com-tls --timeout=300s"
@@ -286,7 +287,7 @@ jobs:
           set -euo pipefail
           SSH_KEY=$(mktemp); KNOWN_HOSTS=$(mktemp); trap 'rm -f "$SSH_KEY" "$KNOWN_HOSTS"' EXIT
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$SSH_KEY"; printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$KNOWN_HOSTS"; chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
+          SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS -i $SSH_KEY"; REMOTE="$DEPLOY_USER@$DEPLOY_HOST"
           if [ "${CRON_MUTATED:-false}" = true ]; then ssh $SSH_OPTS "$REMOTE" "kubectl -n $DEPLOY_NAMESPACE set image cronjob/diary-v3-market market='$CRON_IMAGE_BEFORE'"; fi
           if [ "${MAIL_WORKER_MUTATED:-false}" = true ]; then
             if [ "$MAIL_WORKER_EXISTS_BEFORE" = true ]; then

@@ -27,6 +27,7 @@ env:
   REGISTRY: git.913555.xyz
   OWNER: etklam
   STAGING_NAMESPACE: diary-v3-staging
+  STAGING_SSH_PORT: 14500
 
 jobs:
   deploy-staging:
@@ -135,7 +136,8 @@ jobs:
           printf '%s\n' "$STAGING_SSH_KEY" > "$SSH_KEY"
           printf '%s\n' "$STAGING_KNOWN_HOSTS" > "$KNOWN_HOSTS"
           chmod 600 "$SSH_KEY" "$KNOWN_HOSTS"
-          SSH_OPTS=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -i "$SSH_KEY")
+          SSH_OPTS=(-p "$STAGING_SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -i "$SSH_KEY")
+          SCP_OPTS=(-P "$STAGING_SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -i "$SSH_KEY")
           REMOTE="$STAGING_USER@$STAGING_HOST"
           REMOTE_RELEASE_DIR=/tmp/diary-v3-staging-release
 
@@ -175,7 +177,7 @@ jobs:
           REMOTE_CHECK
 
           ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p '$REMOTE_RELEASE_DIR'"
-          scp "${SSH_OPTS[@]}" "$RELEASE_MANIFEST_DIR"/*.yaml "$REMOTE:$REMOTE_RELEASE_DIR/"
+          scp "${SCP_OPTS[@]}" "$RELEASE_MANIFEST_DIR"/*.yaml "$REMOTE:$REMOTE_RELEASE_DIR/"
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl apply -f '$REMOTE_RELEASE_DIR/00-namespace.yaml' && kubectl apply -f '$REMOTE_RELEASE_DIR/01-postgres.yaml' && kubectl -n '$STAGING_NAMESPACE' rollout status deployment/diary-v3-postgres --timeout=300s"
 
           ssh "${SSH_OPTS[@]}" "$REMOTE" "kubectl -n '$STAGING_NAMESPACE' delete job diary-v3-migrate --ignore-not-found && kubectl apply -f '$REMOTE_RELEASE_DIR/07-migrate-job.yaml' && kubectl -n '$STAGING_NAMESPACE' wait --for=condition=complete job/diary-v3-migrate --timeout=600s"
