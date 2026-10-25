@@ -6,7 +6,9 @@ const adminEmail = 'etf-admin@example.test'
 const adminPassword = 'synthetic-etf-admin-password'
 
 async function signInAdmin(page: Page) {
-  expect((await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status()).toBe(200)
+  expect(
+    (await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 }
 
@@ -19,7 +21,10 @@ async function gotoWithPreferences(page: Page, path: string) {
   await preferences
 }
 
-test('admin account inventory preserves current-account guard and manages a synthetic account', async ({ page, browser }) => {
+test('admin account inventory preserves current-account guard and manages a synthetic account', async ({
+  page,
+  browser,
+}) => {
   const targetEmail = `admin-users-${randomUUID()}@example.test`
   const targetPassword = 'synthetic-admin-users-password'
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -31,11 +36,24 @@ test('admin account inventory preserves current-account guard and manages a synt
   const targetContext = await browser.newContext()
   try {
     const target = await targetContext.newPage()
-    expect((await target.request.post('/api/auth/register', { data: { email: targetEmail, password: targetPassword, name: 'Synthetic account' } })).status()).toBe(200)
-    expect((await target.request.post('/api/auth/login', { data: { email: targetEmail, password: targetPassword } })).status()).toBe(200)
+    expect(
+      (
+        await target.request.post('/api/auth/register', {
+          data: { email: targetEmail, password: targetPassword, name: 'Synthetic account' },
+        })
+      ).status(),
+    ).toBe(200)
+    expect(
+      (
+        await target.request.post('/api/auth/login', { data: { email: targetEmail, password: targetPassword } })
+      ).status(),
+    ).toBe(200)
     await target.request.get('/api/auth/me')
     const csrfToken = (await targetContext.cookies()).find(cookie => cookie.name === 'csrf-token')?.value
-    const diaryResponse = await target.request.post('/api/diaries', { headers: { 'x-csrf-token': csrfToken ?? '' }, data: { date: '2026-09-05', title: 'Synthetic admin diary', content: 'A reviewable synthetic decision.' } })
+    const diaryResponse = await target.request.post('/api/diaries', {
+      headers: { 'x-csrf-token': csrfToken ?? '' },
+      data: { date: '2026-09-05', title: 'Synthetic admin diary', content: 'A reviewable synthetic decision.' },
+    })
     expect(diaryResponse.status()).toBe(201)
   } finally {
     await targetContext.close()
@@ -84,8 +102,10 @@ test('admin account inventory preserves current-account guard and manages a synt
   // caught it.
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 })
-    expect(await page.evaluate(() => document.documentElement.scrollWidth), `no horizontal overflow at ${width}px`)
-      .toBe(await page.evaluate(() => document.documentElement.clientWidth))
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+      `no horizontal overflow at ${width}px`,
+    ).toBe(await page.evaluate(() => document.documentElement.clientWidth))
   }
 
   await page.setViewportSize({ width: 1440, height: 900 })

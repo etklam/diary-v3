@@ -68,6 +68,12 @@ jobs:
       - name: Contracts check
         run: npm run contracts:check
 
+      # Also in the pre-merge gate (ci.yml). Repeated here so a direct push to
+      # main, which never opens a pull request, cannot ship a contrast,
+      # Figure Rule, native-edge or register regression.
+      - name: Design checks
+        run: npm run design:check
+
       - name: Validate source deployment manifests
         run: npm run manifests:check
 

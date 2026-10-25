@@ -1,5 +1,10 @@
 import { type ErrorCode } from '@diary/contracts'
-import { reviewBucketCountsSchema, reviewGroupsResponseSchema, reviewQueueQuerySchema, type ReviewGroups } from '@diary/contracts/review-queue'
+import {
+  reviewBucketCountsSchema,
+  reviewGroupsResponseSchema,
+  reviewQueueQuerySchema,
+  type ReviewGroups,
+} from '@diary/contracts/review-queue'
 import type { Database } from '@diary/db'
 import { listDiaryStocks } from './diary-stocks.js'
 import { sql } from 'drizzle-orm'
@@ -7,17 +12,25 @@ import type { Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app-context.js'
 
-export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
-  db: Database; now: () => Date
-  fail: (status: number, code: ErrorCode, message: string) => never
-  validationError: (error: z.ZodError) => never
-}) {
+export function registerReviewQueueRoute(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    now: () => Date
+    fail: (status: number, code: ErrorCode, message: string) => never
+    validationError: (error: z.ZodError) => never
+  },
+) {
   const { db, now, fail, validationError } = dependencies
   app.get('/api/reviews', async c => {
     c.header('Cache-Control', 'no-store')
-    const user = c.get('user'); if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const parsed = reviewQueueQuerySchema.safeParse(c.req.query()); if (!parsed.success) return validationError(parsed.error)
-    const { page, limit, target } = parsed.data, userId = BigInt(user.id), timestamp = now().toISOString()
+    const user = c.get('user')
+    if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
+    const parsed = reviewQueueQuerySchema.safeParse(c.req.query())
+    if (!parsed.success) return validationError(parsed.error)
+    const { page, limit, target } = parsed.data,
+      userId = BigInt(user.id),
+      timestamp = now().toISOString()
     const pages = {
       overdue: parsed.data.overduePage ?? page,
       today: parsed.data.todayPage ?? page,
@@ -99,16 +112,25 @@ export function registerReviewQueueRoute(app: Hono<AppEnv>, dependencies: {
     `)
     const counts = { overdue: 0, today: 0, upcoming: 0, unscheduled: 0, completed: 0 }
     for (const row of result.rows) {
-      if (row.counts) for (const [bucket, total] of Object.entries(row.counts as Record<string, unknown>)) {
-        if (!Object.hasOwn(counts, bucket)) throw new Error('Invalid review bucket')
-        counts[bucket as keyof typeof counts] = Number(total)
-      }
+      if (row.counts)
+        for (const [bucket, total] of Object.entries(row.counts as Record<string, unknown>)) {
+          if (!Object.hasOwn(counts, bucket)) throw new Error('Invalid review bucket')
+          counts[bucket as keyof typeof counts] = Number(total)
+        }
     }
-    const groups: ReviewGroups = { counts: reviewBucketCountsSchema.parse(counts), unscheduled: [], overdue: [], today: [], upcoming: [], completed: [] }
+    const groups: ReviewGroups = {
+      counts: reviewBucketCountsSchema.parse(counts),
+      unscheduled: [],
+      overdue: [],
+      today: [],
+      upcoming: [],
+      completed: [],
+    }
     // Stock chips are resolved only for the page slice: one batched query for
     // the visible diary rows, never per candidate row.
     const rows = result.rows.filter(row => row.bucket && row.item)
-    const diaryIds = rows.filter(row => (row.item as { targetType?: string }).targetType === 'diary')
+    const diaryIds = rows
+      .filter(row => (row.item as { targetType?: string }).targetType === 'diary')
       .map(row => BigInt((row.item as { id: string }).id))
     const symbolsByDiary = new Map<bigint, string[]>()
     for (const stock of await listDiaryStocks(db, userId, diaryIds)) {

@@ -1,4 +1,10 @@
-import { deleteGoalResponseSchema, goalListSchema, goalResponseSchema, serializedIdSchema, type ErrorCode } from '@diary/contracts'
+import {
+  deleteGoalResponseSchema,
+  goalListSchema,
+  goalResponseSchema,
+  serializedIdSchema,
+  type ErrorCode,
+} from '@diary/contracts'
 import { writeGoalSchema } from '@diary/contracts/goals'
 import { personalGoals, users, type Database } from '@diary/db'
 import { calendarDateInTimezone } from '@diary/domain'
@@ -7,23 +13,27 @@ import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
 import type { AppEnv } from './app-context.js'
 
-const serialize = (row: typeof personalGoals.$inferSelect) => goalResponseSchema.parse({
-  id: String(row.id),
-  content: row.content,
-  targetDate: row.targetDate,
-  status: row.status,
-  achievedDate: row.achievedDate,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-})
+const serialize = (row: typeof personalGoals.$inferSelect) =>
+  goalResponseSchema.parse({
+    id: String(row.id),
+    content: row.content,
+    targetDate: row.targetDate,
+    status: row.status,
+    achievedDate: row.achievedDate,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  })
 
-export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
-  db: Database
-  now: () => Date
-  fail: (status: number, code: ErrorCode, message: string) => never
-  validationError: (error: z.ZodError) => never
-  parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
-}) {
+export function registerGoalRoutes(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    now: () => Date
+    fail: (status: number, code: ErrorCode, message: string) => never
+    validationError: (error: z.ZodError) => never
+    parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
+  },
+) {
   const { db, now, fail, validationError, parseJson } = dependencies
   const owner = (c: Context<AppEnv>) => {
     c.header('Cache-Control', 'no-store')
@@ -40,13 +50,16 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
     return calendarDateInTimezone(timestamp, account.timezone)
   }
   // Open-ended goals sort after dated ones so the nearest deadline leads the list.
-  const list = (userId: bigint) => db.select().from(personalGoals)
-    .where(eq(personalGoals.userId, userId))
-    .orderBy(
-      sql`case when ${personalGoals.status} = 'active' then 0 else 1 end`,
-      sql`${personalGoals.targetDate} asc nulls last`,
-      desc(personalGoals.id),
-    )
+  const list = (userId: bigint) =>
+    db
+      .select()
+      .from(personalGoals)
+      .where(eq(personalGoals.userId, userId))
+      .orderBy(
+        sql`case when ${personalGoals.status} = 'active' then 0 else 1 end`,
+        sql`${personalGoals.targetDate} asc nulls last`,
+        desc(personalGoals.id),
+      )
 
   app.get('/api/goals', async c => c.json(goalListSchema.parse((await list(owner(c))).map(serialize))))
 
@@ -55,15 +68,18 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
     const input = await parseJson(c, writeGoalSchema)
     const timestamp = now()
     const status = input.status ?? 'active'
-    const [created] = await db.insert(personalGoals).values({
-      userId,
-      content: input.content,
-      targetDate: input.targetDate,
-      status,
-      achievedDate: status === 'achieved' ? await today(userId, timestamp) : null,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }).returning()
+    const [created] = await db
+      .insert(personalGoals)
+      .values({
+        userId,
+        content: input.content,
+        targetDate: input.targetDate,
+        status,
+        achievedDate: status === 'achieved' ? await today(userId, timestamp) : null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .returning()
     return c.json(serialize(created!))
   })
 
@@ -74,13 +90,18 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
     const timestamp = now()
     // `achievedDate` is derived from the status transition so the two can never
     // disagree; re-confirming an achieved goal keeps the original date.
-    const statusChange = input.status === undefined ? {} : {
-      status: input.status,
-      achievedDate: input.status === 'achieved'
-        ? sql`coalesce(${personalGoals.achievedDate}, ${await today(userId, timestamp)}::date)`
-        : null,
-    }
-    const [updated] = await db.update(personalGoals)
+    const statusChange =
+      input.status === undefined
+        ? {}
+        : {
+            status: input.status,
+            achievedDate:
+              input.status === 'achieved'
+                ? sql`coalesce(${personalGoals.achievedDate}, ${await today(userId, timestamp)}::date)`
+                : null,
+          }
+    const [updated] = await db
+      .update(personalGoals)
       .set({ content: input.content, targetDate: input.targetDate, ...statusChange, updatedAt: timestamp })
       .where(and(eq(personalGoals.userId, userId), eq(personalGoals.id, goalId)))
       .returning()
@@ -91,7 +112,8 @@ export function registerGoalRoutes(app: Hono<AppEnv>, dependencies: {
   app.delete('/api/goals/:id', async c => {
     const userId = owner(c)
     const goalId = id(c)
-    const [deleted] = await db.delete(personalGoals)
+    const [deleted] = await db
+      .delete(personalGoals)
       .where(and(eq(personalGoals.userId, userId), eq(personalGoals.id, goalId)))
       .returning({ id: personalGoals.id })
     if (!deleted) fail(404, 'GOAL_NOT_FOUND', 'Goal not found')

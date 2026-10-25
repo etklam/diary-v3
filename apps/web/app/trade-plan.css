@@ -426,7 +426,7 @@
 
 .execution-snapshot dt {
   color: var(--muted);
-  font-size: .875rem;
+  font-size: 0.875rem;
 }
 
 .execution-snapshot dd {
@@ -489,9 +489,13 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.plan-page { overflow-wrap: anywhere; }
+.plan-page {
+  overflow-wrap: anywhere;
+}
 @media (max-height: 500px) and (max-width: 767px) {
-  .plan-actions { position: static; }
+  .plan-actions {
+    position: static;
+  }
 }
 
 /* ---- Discipline page: a reading surface for your own rules ---- */
@@ -702,7 +706,6 @@
   box-sizing: border-box;
 }
 
-
 .discipline-checkbox {
   display: flex;
   align-items: center;
@@ -771,7 +774,7 @@
   display: inline-block;
   margin-inline-start: var(--space-3);
   color: var(--text);
-  font-size: .875rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -794,7 +797,7 @@
 
 .article-editor-teaser-hint {
   font-weight: 400;
-  font-size: .875rem;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 767px) {

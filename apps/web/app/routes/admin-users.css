@@ -84,7 +84,7 @@
   text-align: right;
 }
 
-.admin-users-table th[scope="row"] {
+.admin-users-table th[scope='row'] {
   font-weight: var(--weight-semibold);
 }
 

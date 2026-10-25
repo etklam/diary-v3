@@ -41,7 +41,7 @@
   text-decoration: none;
 }
 
-.guru-research-tabs a[aria-current="page"] {
+.guru-research-tabs a[aria-current='page'] {
   border-color: var(--action);
   background: var(--tint-action);
   color: var(--action);
@@ -277,7 +277,9 @@
 
 .guru-activity-list > article {
   display: grid;
-  grid-template-columns: minmax(180px, 1.1fr) minmax(100px, 0.5fr) minmax(160px, 1fr) auto repeat(2, minmax(100px, 0.6fr)) auto;
+  grid-template-columns:
+    minmax(180px, 1.1fr) minmax(100px, 0.5fr) minmax(160px, 1fr) auto repeat(2, minmax(100px, 0.6fr))
+    auto;
   border-top: 1px solid var(--rule);
 }
 

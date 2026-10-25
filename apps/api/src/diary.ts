@@ -22,12 +22,22 @@ import { persistDiaryAlert } from './alerts.js'
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 export async function listDiaryAlerts(db: Database | Transaction, userId: bigint, diaryIds: bigint[]) {
   if (!diaryIds.length) return []
-  const rows = await db.select({ alert: alerts }).from(alerts).innerJoin(diaries, eq(diaries.id, alerts.diaryId))
+  const rows = await db
+    .select({ alert: alerts })
+    .from(alerts)
+    .innerJoin(diaries, eq(diaries.id, alerts.diaryId))
     .where(and(eq(diaries.userId, userId), inArray(diaries.id, diaryIds)))
     .orderBy(asc(alerts.triggerAt), asc(alerts.id))
   return rows.map(row => row.alert)
 }
-async function writeAlerts(tx: Transaction, userId: bigint, diaryId: bigint, drafts: CreateDiaryRequest['alerts'], timestamp: Date, replace = false) {
+async function writeAlerts(
+  tx: Transaction,
+  userId: bigint,
+  diaryId: bigint,
+  drafts: CreateDiaryRequest['alerts'],
+  timestamp: Date,
+  replace = false,
+) {
   if (drafts === undefined) return
   if (replace) await tx.delete(alerts).where(eq(alerts.diaryId, diaryId))
   if (!drafts.length) return
@@ -75,12 +85,19 @@ export function serializeDiary(
     transactions: transactionRows.map(serializeLedgerTransaction),
     alerts: alertRows.map(toAlertResponse),
     ...(detail ? { tradePlans: linkedPlans } : {}),
-    ...(!detail && linkedPlans.length > 0 ? { tradePlanSummary: {
-      total: linkedPlans.length,
-      statuses: statuses.map(status => ({
-        status, count: linkedPlans.filter(plan => plan.status === status).length,
-      })).filter(item => item.count > 0),
-    } } : {}),
+    ...(!detail && linkedPlans.length > 0
+      ? {
+          tradePlanSummary: {
+            total: linkedPlans.length,
+            statuses: statuses
+              .map(status => ({
+                status,
+                count: linkedPlans.filter(plan => plan.status === status).length,
+              }))
+              .filter(item => item.count > 0),
+          },
+        }
+      : {}),
     thesis: row.thesis,
     risk: row.risk,
     execution: row.execution,
@@ -101,9 +118,12 @@ export async function createDiary(
   input: CreateDiaryRequest,
   date: string,
   now: () => Date,
-  source: { createdVia: 'WEB' | 'API_KEY'; createdByLabel: string | null } = { createdVia: 'WEB', createdByLabel: null },
+  source: { createdVia: 'WEB' | 'API_KEY'; createdByLabel: string | null } = {
+    createdVia: 'WEB',
+    createdByLabel: null,
+  },
 ) {
-  return db.transaction(async (tx) => {
+  return db.transaction(async tx => {
     // A row lock cannot protect an absent diary. Serialize both create and
     // append on the logical owner/date key so an append racing the first
     // create re-reads the committed row instead of losing either body.
@@ -116,9 +136,12 @@ export async function createDiary(
     }
 
     if (input.appendToToday) {
-      const [existing] = await tx.select().from(diaries).where(and(
-        eq(diaries.userId, userId), eq(diaries.date, date),
-      )).limit(1).for('update')
+      const [existing] = await tx
+        .select()
+        .from(diaries)
+        .where(and(eq(diaries.userId, userId), eq(diaries.date, date)))
+        .limit(1)
+        .for('update')
       if (existing) {
         const content = `${existing.content}\n\n---\n\n${input.content}`
         // Validate the persisted and incoming association union before any append mutation.
@@ -126,56 +149,73 @@ export async function createDiary(
           (await listDiaryStocks(tx, userId, [existing.id])).map(row => row.symbol),
           input.stockSymbols ?? [],
         )
-        const tags = input.tags?.length
-          ? [...new Set([...existing.tags, ...input.tags])]
-          : existing.tags
-        const [updated] = await tx.update(diaries).set({
-          content,
-          revision: sql`${diaries.revision} + 1`,
-          ...summaryExcerptValues(content),
-          tags,
-          updatedAt: now(),
-          // These fields were accepted then discarded by the former append
-          // branch. Apply explicit values with ordinary update semantics.
-          ...(input.thesis !== undefined ? { thesis: input.thesis } : {}),
-          ...(input.risk !== undefined ? { risk: input.risk } : {}),
-          ...(input.execution !== undefined ? { execution: input.execution } : {}),
-          ...(input.reviewDueAt !== undefined ? {
-            reviewDueAt: input.reviewDueAt === null ? null : new Date(input.reviewDueAt),
-            reviewStatus: sql`case when ${diaries.reviewStatus} = 'reviewed'
+        const tags = input.tags?.length ? [...new Set([...existing.tags, ...input.tags])] : existing.tags
+        const [updated] = await tx
+          .update(diaries)
+          .set({
+            content,
+            revision: sql`${diaries.revision} + 1`,
+            ...summaryExcerptValues(content),
+            tags,
+            updatedAt: now(),
+            // These fields were accepted then discarded by the former append
+            // branch. Apply explicit values with ordinary update semantics.
+            ...(input.thesis !== undefined ? { thesis: input.thesis } : {}),
+            ...(input.risk !== undefined ? { risk: input.risk } : {}),
+            ...(input.execution !== undefined ? { execution: input.execution } : {}),
+            ...(input.reviewDueAt !== undefined
+              ? {
+                  reviewDueAt: input.reviewDueAt === null ? null : new Date(input.reviewDueAt),
+                  reviewStatus: sql`case when ${diaries.reviewStatus} = 'reviewed'
               then ${diaries.reviewStatus}
               else ${input.reviewDueAt === null ? 'none' : 'pending'}::diary_review_status end`,
-          } : {}),
-        }).where(and(eq(diaries.id, existing.id), eq(diaries.userId, userId))).returning()
+                }
+              : {}),
+          })
+          .where(and(eq(diaries.id, existing.id), eq(diaries.userId, userId)))
+          .returning()
         if (!updated) throw new Error('Diary append returned no row')
         const inserted = await insertLedgerTransactions(tx, updated.id, userId, input.transactions ?? [])
         const persisted = await listDiaryTransactions(tx, updated.id, userId)
         await writeDiaryStocks(tx, updated.id, input.stockSymbols ?? [])
         await writeAlerts(tx, userId, updated.id, input.alerts, now())
-        return { alerts: await listDiaryAlerts(tx, userId, [updated.id]), diary: updated, transactions: persisted.length ? persisted : inserted, stockSymbols: (await listDiaryStocks(tx, userId, [updated.id])).map(row => row.symbol) }
+        return {
+          alerts: await listDiaryAlerts(tx, userId, [updated.id]),
+          diary: updated,
+          transactions: persisted.length ? persisted : inserted,
+          stockSymbols: (await listDiaryStocks(tx, userId, [updated.id])).map(row => row.symbol),
+        }
       }
     }
 
-    const [diary] = await tx.insert(diaries).values({
-      userId,
-      title: input.title,
-      content: input.content,
-      ...summaryExcerptValues(input.content),
-      tags: input.tags ?? [],
-      date,
-      createdVia: source.createdVia,
-      createdByLabel: source.createdByLabel,
-      thesis: input.thesis ?? null,
-      risk: input.risk ?? null,
-      execution: input.execution ?? null,
-      reviewDueAt: input.reviewDueAt === null || input.reviewDueAt === undefined ? null : new Date(input.reviewDueAt),
-      reviewStatus: input.reviewDueAt ? 'pending' : 'none',
-    }).returning()
+    const [diary] = await tx
+      .insert(diaries)
+      .values({
+        userId,
+        title: input.title,
+        content: input.content,
+        ...summaryExcerptValues(input.content),
+        tags: input.tags ?? [],
+        date,
+        createdVia: source.createdVia,
+        createdByLabel: source.createdByLabel,
+        thesis: input.thesis ?? null,
+        risk: input.risk ?? null,
+        execution: input.execution ?? null,
+        reviewDueAt: input.reviewDueAt === null || input.reviewDueAt === undefined ? null : new Date(input.reviewDueAt),
+        reviewStatus: input.reviewDueAt ? 'pending' : 'none',
+      })
+      .returning()
     if (!diary) throw new Error('Diary insert returned no row')
     await insertLedgerTransactions(tx, diary.id, userId, input.transactions ?? [])
     await writeDiaryStocks(tx, diary.id, input.stockSymbols ?? [])
     await writeAlerts(tx, userId, diary.id, input.alerts, now())
-    return { alerts: await listDiaryAlerts(tx, userId, [diary.id]), diary, transactions: await listDiaryTransactions(tx, diary.id, userId), stockSymbols: (await listDiaryStocks(tx, userId, [diary.id])).map(row => row.symbol) }
+    return {
+      alerts: await listDiaryAlerts(tx, userId, [diary.id]),
+      diary,
+      transactions: await listDiaryTransactions(tx, diary.id, userId),
+      stockSymbols: (await listDiaryStocks(tx, userId, [diary.id])).map(row => row.symbol),
+    }
   })
 }
 
@@ -212,42 +252,60 @@ export async function updateDiary(
     // Match create/append/delete lock ordering: ledger lock precedes Diary row
     // access whenever the transaction collection will change.
     if (input.transactions !== undefined) await tx.execute(ledgerUserLock(userId))
-    const [existing] = await tx.select({ id: diaries.id, revision: diaries.revision }).from(diaries).where(and(
-      eq(diaries.id, id), eq(diaries.userId, userId),
-    )).limit(1).for('update')
+    const [existing] = await tx
+      .select({ id: diaries.id, revision: diaries.revision })
+      .from(diaries)
+      .where(and(eq(diaries.id, id), eq(diaries.userId, userId)))
+      .limit(1)
+      .for('update')
     if (!existing) return undefined
     if (input.expectedRevision !== undefined && input.expectedRevision !== existing.revision) {
       return { conflict: true as const, revision: existing.revision }
     }
 
-    const transactionRows = input.transactions === undefined
-      ? await listDiaryTransactions(tx, id, userId)
-      : await replaceDiaryTransactions(tx, id, userId, input.transactions)
-    const updatePredicate = input.expectedRevision === undefined
-      ? and(eq(diaries.id, id), eq(diaries.userId, userId))
-      : and(eq(diaries.id, id), eq(diaries.userId, userId), eq(diaries.revision, input.expectedRevision))
-    const [diary] = await tx.update(diaries).set({
-      ...values,
-      revision: sql`${diaries.revision} + 1`,
-    }).where(updatePredicate).returning()
+    const transactionRows =
+      input.transactions === undefined
+        ? await listDiaryTransactions(tx, id, userId)
+        : await replaceDiaryTransactions(tx, id, userId, input.transactions)
+    const updatePredicate =
+      input.expectedRevision === undefined
+        ? and(eq(diaries.id, id), eq(diaries.userId, userId))
+        : and(eq(diaries.id, id), eq(diaries.userId, userId), eq(diaries.revision, input.expectedRevision))
+    const [diary] = await tx
+      .update(diaries)
+      .set({
+        ...values,
+        revision: sql`${diaries.revision} + 1`,
+      })
+      .where(updatePredicate)
+      .returning()
     if (!diary) throw new Error('Diary update returned no row')
     if (input.stockSymbols !== undefined) await writeDiaryStocks(tx, id, input.stockSymbols, true)
     await writeAlerts(tx, userId, id, input.alerts, updatedAt, true)
-    return { alerts: await listDiaryAlerts(tx, userId, [id]), diary, transactions: transactionRows, stockSymbols: (await listDiaryStocks(tx, userId, [id])).map(row => row.symbol) }
+    return {
+      alerts: await listDiaryAlerts(tx, userId, [id]),
+      diary,
+      transactions: transactionRows,
+      stockSymbols: (await listDiaryStocks(tx, userId, [id])).map(row => row.symbol),
+    }
   })
 }
 
 export async function deleteDiary(db: Database, id: bigint, userId: bigint) {
   return db.transaction(async tx => {
     await tx.execute(ledgerUserLock(userId))
-    const [owned] = await tx.select({ id: diaries.id }).from(diaries).where(and(
-      eq(diaries.id, id), eq(diaries.userId, userId),
-    )).limit(1).for('update')
+    const [owned] = await tx
+      .select({ id: diaries.id })
+      .from(diaries)
+      .where(and(eq(diaries.id, id), eq(diaries.userId, userId)))
+      .limit(1)
+      .for('update')
     if (!owned) return false
     await validateLedgerWithoutDiary(tx, userId, id)
-    const [deleted] = await tx.delete(diaries).where(and(
-      eq(diaries.id, id), eq(diaries.userId, userId),
-    )).returning({ id: diaries.id })
+    const [deleted] = await tx
+      .delete(diaries)
+      .where(and(eq(diaries.id, id), eq(diaries.userId, userId)))
+      .returning({ id: diaries.id })
     return deleted !== undefined
   })
 }

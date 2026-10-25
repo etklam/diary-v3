@@ -476,17 +476,44 @@ already recorded for itself (131, 132).
 
 | Ticket | Type | Recorded state | Issue file |
 |---|---|---|---|
-| 124 — Gate changes before they reach main | Release governance | needs-triage; Execution: todo | [124-gate-changes-before-main.md](issues/124-gate-changes-before-main.md) |
-| 125 — Measure coverage and hold a floor | Quality measurement | needs-triage; Execution: todo | [125-measure-and-floor-coverage.md](issues/125-measure-and-floor-coverage.md) |
-| 126 — Make the e2e suites own their flakiness | Test debt | needs-triage; Execution: todo | [126-own-the-e2e-flakiness.md](issues/126-own-the-e2e-flakiness.md) |
-| 127 — Enforce one code style | Tooling | needs-triage; Execution: todo | [127-enforce-one-formatting-style.md](issues/127-enforce-one-formatting-style.md) |
-| 128 — Decompose the API composition root | Architecture deepening | needs-triage; Execution: todo | [128-decompose-the-api-composition-root.md](issues/128-decompose-the-api-composition-root.md) |
-| 129 — Split the database schema module | Architecture deepening | needs-triage; Execution: todo | [129-split-the-database-schema-module.md](issues/129-split-the-database-schema-module.md) |
-| 130 — Give the locales a parity check | i18n safety | needs-triage; Execution: todo | [130-locale-copy-parity.md](issues/130-locale-copy-parity.md) |
-| 131 — Bound the SEC metadata cache by bytes | Capacity | needs-triage; Execution: todo | [131-bound-the-sec-metadata-cache.md](issues/131-bound-the-sec-metadata-cache.md) |
-| 132 — Rule on the single-replica assumption | Operations | needs-triage; Execution: todo | [132-rule-on-the-single-replica-assumption.md](issues/132-rule-on-the-single-replica-assumption.md) |
+| 124 — Gate changes before they reach main| Release governance| ready-for-agent; Execution: done | [124-gate-changes-before-main.md](issues/124-gate-changes-before-main.md) |
+| 125 — Measure coverage and hold a floor| Quality measurement| ready-for-agent; Execution: done | [125-measure-and-floor-coverage.md](issues/125-measure-and-floor-coverage.md) |
+| 126 — Make the e2e suites own their flakiness| Test debt| ready-for-agent; Execution: done | [126-own-the-e2e-flakiness.md](issues/126-own-the-e2e-flakiness.md) |
+| 127 — Enforce one code style| Tooling| ready-for-agent; Execution: done | [127-enforce-one-formatting-style.md](issues/127-enforce-one-formatting-style.md) |
+| 128 — Decompose the API composition root| Architecture deepening| ready-for-agent; Execution: done | [128-decompose-the-api-composition-root.md](issues/128-decompose-the-api-composition-root.md) |
+| 129 — Split the database schema module| Architecture deepening| ready-for-agent; Execution: done | [129-split-the-database-schema-module.md](issues/129-split-the-database-schema-module.md) |
+| 130 — Give the locales a parity check| i18n safety| ready-for-agent; Execution: done | [130-locale-copy-parity.md](issues/130-locale-copy-parity.md) |
+| 131 — Bound the SEC metadata cache by bytes| Capacity| ready-for-agent; Execution: done | [131-bound-the-sec-metadata-cache.md](issues/131-bound-the-sec-metadata-cache.md) |
+| 132 — Rule on the single-replica assumption| Operations| ready-for-agent; Execution: done | [132-rule-on-the-single-replica-assumption.md](issues/132-rule-on-the-single-replica-assumption.md) |
 
-**Recommended order.** [124](issues/124-gate-changes-before-main.md) first: it is the only one
+### Execution — 2026-10-25
+
+All nine landed in dependency order: 132 (the ruling, so the guard's direction was known)
+→ 124 (the workflow the later gates live in) → 131 → 126 → 125 → 130 → 128 → 129 → 127
+(the tree-wide formatting last, so it could not entangle with the others).
+
+Source gates after the batch: `npm run lint` (now `prettier --check` plus `eslint`)
+clean, `tsc --noEmit` clean, `npm run test:unit` **142 files / 1253 tests pass**,
+`npm run test:coverage` meets every floor, `npm run design:check` passes all five
+scripts, `npm run contracts:check` and `npm run manifests:check` pass, and both
+artifacts build.
+
+**Three things these tickets could not finish, recorded per ticket:**
+
+- **Forgejo branch protection (124).** A server-side repository setting; nothing in this
+  repository can establish it. The required configuration is written in
+  `docs/operations/ci-cd-notes.md`. Until applied, the pre-merge gate reports but does
+  not enforce.
+- **No PostgreSQL and no browser runs.** `test:integration` and the Playwright suites were
+  not run, which blocks: coverage floors on `auth-session.ts` and `ledger.ts` (125),
+  reproducing the two carried flakes (126), the integration proof for the composition-root
+  split (128, replaced by a frozen 279-route order snapshot), and `db:migrate` on a
+  disposable database (129, where `db:generate` reporting no drift is the stronger check).
+- **No cluster or cgroup evidence (131, 132).** The SEC budget is proven by a
+  representative-corpus run, not by an enforced out-of-memory test; the single-replica
+  ruling is a decision, not multi-replica capacity evidence.
+
+**Original recommended order, kept for the record.** [124](issues/124-gate-changes-before-main.md) first: it is the only one
 that changes what every later ticket is verified by, and [125](issues/125-measure-and-floor-coverage.md),
 [126](issues/126-own-the-e2e-flakiness.md) and [127](issues/127-enforce-one-formatting-style.md)
 all land *inside* the pre-merge workflow it creates. [132](issues/132-rule-on-the-single-replica-assumption.md)
@@ -520,3 +547,25 @@ all 166 local Markdown links across this batch and the CI notes resolved. An in-
 TypeScript compiler experiment removed `en.moreRegions` from `diaryCopy` and confirmed
 TS2339 on `diaryCopy[locale].moreRegions`, without editing product source. Docker image
 execution was not verified because the local Docker daemon socket was unavailable.
+
+## Performance review follow-up (133–134)
+
+Filed 2026-10-25 from a performance review of the whole stack. Only the two findings that
+could be **measured without a database** are filed here; both were confirmed by running the
+real code rather than by reading it.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 133 — Compress API responses | Capacity | ready-for-agent; Execution: done | [133-compress-api-responses.md](issues/133-compress-api-responses.md) |
+| 134 — Cache the Intl formatters the figure conventions build | Performance | ready-for-agent; Execution: done | [134-cache-intl-formatters.md](issues/134-cache-intl-formatters.md) |
+
+**Not filed, deliberately.** The review's largest finding is that `/api/timeline`
+(`apps/api/src/activity-timeline.ts:36-104`) and `/api/reviews`
+(`apps/api/src/review-queue.ts:34-95`) build `jsonb` over a user's entire history before
+applying `limit`/`offset`, and that the navigation review badge pays that full cost every
+60 seconds. The local PostgreSQL was unavailable for this review, and
+`docs/audits/project-cleanup-2026-09-27.md` explicitly requires scale-fixture evidence
+before changing pagination or projections. Filing it on a static read alone would violate
+that policy, so it stays unfiled until a 5,000-diary / 20,000-transaction fixture and an
+`explain (analyze)` baseline exist. The same applies to the portfolio snapshot recomputation,
+the connection-pool defaults, the public/private shell split, and the price-alert sweep.

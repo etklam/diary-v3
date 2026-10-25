@@ -12,16 +12,30 @@ import { provisionTestDatabase } from '../support/database'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>, baseUrl: string
-beforeAll(async () => { database = await provisionTestDatabase('diary_recent_tags') })
-beforeEach(async () => {
-  const app = createApp({ db: database.db, config: {
-    jwtSecret: 'synthetic-recent-tags-key-with-32-chars', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
-  } })
-  server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
-  await once(server, 'listening'); baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+beforeAll(async () => {
+  database = await provisionTestDatabase('diary_recent_tags')
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+beforeEach(async () => {
+  const app = createApp({
+    db: database.db,
+    config: {
+      jwtSecret: 'synthetic-recent-tags-key-with-32-chars',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
+  })
+  server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
+  await once(server, 'listening')
+  baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+})
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function login() {
   const browser = new BrowserSession(baseUrl)
@@ -34,7 +48,8 @@ async function login() {
 }
 
 it('suggests the account own tags newest first, bounded, and never another owner tags', async () => {
-  const a = await login(), b = await login()
+  const a = await login(),
+    b = await login()
   await database.db.insert(diaries).values([
     { userId: a.id, title: 'Oldest', content: 'x', date: '2026-01-01', tags: ['oldest', 'shared'] },
     { userId: a.id, title: 'Middle', content: 'x', date: '2026-02-01', tags: ['middle', 'shared'] },
@@ -56,10 +71,18 @@ it('suggests the account own tags newest first, bounded, and never another owner
   expect(other.tags).toEqual(['other-owner'])
 
   // The suggestion list stays bounded however many tags the account has used.
-  await database.db.insert(diaries).values(Array.from({ length: 12 }, (_, index) => ({
-    userId: a.id, title: `Bulk ${index}`, content: 'x', date: `2026-04-${String(index + 1).padStart(2, '0')}`, tags: [`bulk-${index}`],
-  })))
-  const bounded = recentDiaryTagsResponseSchema.parse(await (await a.browser.request('/api/diaries/recent-tags')).json())
+  await database.db.insert(diaries).values(
+    Array.from({ length: 12 }, (_, index) => ({
+      userId: a.id,
+      title: `Bulk ${index}`,
+      content: 'x',
+      date: `2026-04-${String(index + 1).padStart(2, '0')}`,
+      tags: [`bulk-${index}`],
+    })),
+  )
+  const bounded = recentDiaryTagsResponseSchema.parse(
+    await (await a.browser.request('/api/diaries/recent-tags')).json(),
+  )
   expect(bounded.tags).toHaveLength(8)
   expect(bounded.tags[0]).toBe('bulk-11')
 

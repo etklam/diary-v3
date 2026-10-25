@@ -142,7 +142,13 @@ const matchers = Object.entries(ROUTE_REGISTERS)
     pattern,
     register,
     literals: pattern.split('/').filter(segment => segment !== '' && !segment.startsWith(':')).length,
-    test: new RegExp(`^/${pattern.split('/').map(segment => segment.startsWith(':') ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('/')}$`, 'u'),
+    test: new RegExp(
+      `^/${pattern
+        .split('/')
+        .map(segment => (segment.startsWith(':') ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')))
+        .join('/')}$`,
+      'u',
+    ),
   }))
   .sort((a, b) => b.literals - a.literals || b.pattern.length - a.pattern.length)
 

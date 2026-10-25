@@ -1,7 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DECORATIVE_READ_HEADER, clearPrivateSession, isLocallySignedOut, markSignedIn, sessionFetch, webSession } from '../../apps/web/app/session'
+import {
+  DECORATIVE_READ_HEADER,
+  clearPrivateSession,
+  isLocallySignedOut,
+  markSignedIn,
+  sessionFetch,
+  webSession,
+} from '../../apps/web/app/session'
 
-afterEach(() => { vi.restoreAllMocks(); markSignedIn() })
+afterEach(() => {
+  vi.restoreAllMocks()
+  markSignedIn()
+})
 
 /**
  * The merged activity feed serves diary text, trade prices and review outcomes,
@@ -11,7 +21,9 @@ afterEach(() => { vi.restoreAllMocks(); markSignedIn() })
  */
 describe('activity timeline browser session boundary', () => {
   it('blocks a remounted timeline fetch after logout', async () => {
-    const transport = vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ data: [{ title: 'synthetic private diary' }] }))
+    const transport = vi
+      .spyOn(webSession, 'fetch')
+      .mockResolvedValue(Response.json({ data: [{ title: 'synthetic private diary' }] }))
     markSignedIn()
     clearPrivateSession()
     const response = await sessionFetch('http://localhost/api/timeline?page=1&limit=20')
@@ -21,7 +33,12 @@ describe('activity timeline browser session boundary', () => {
 
   it('discards an in-flight timeline response when the owner epoch changes', async () => {
     let resolve!: (response: Response) => void
-    vi.spyOn(webSession, 'fetch').mockImplementation(() => new Promise<Response>(done => { resolve = done }))
+    vi.spyOn(webSession, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>(done => {
+          resolve = done
+        }),
+    )
     markSignedIn()
     const pending = sessionFetch('http://localhost/api/timeline')
     clearPrivateSession()
@@ -40,7 +57,9 @@ describe('activity timeline browser session boundary', () => {
  */
 describe('decorative background reads', () => {
   it('does not sign the reader out when the badge count is unauthorized', async () => {
-    vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }))
+    vi.spyOn(webSession, 'fetch').mockResolvedValue(
+      Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }),
+    )
     markSignedIn()
     const response = await sessionFetch('http://localhost/api/reviews?limit=1', {
       headers: { [DECORATIVE_READ_HEADER]: '1' },
@@ -51,7 +70,9 @@ describe('decorative background reads', () => {
   })
 
   it('still signs the reader out when the review queue itself is unauthorized', async () => {
-    vi.spyOn(webSession, 'fetch').mockResolvedValue(Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }))
+    vi.spyOn(webSession, 'fetch').mockResolvedValue(
+      Response.json({ data: { code: 'AUTH_UNAUTHORIZED' } }, { status: 401 }),
+    )
     markSignedIn()
     const response = await sessionFetch('http://localhost/api/reviews?limit=1')
     expect(response.status).toBe(401)

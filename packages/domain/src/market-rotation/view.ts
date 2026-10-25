@@ -13,7 +13,7 @@ export const rotationFilterKeys = [
   'extended',
 ] as const
 
-export type RotationFilterKey = typeof rotationFilterKeys[number]
+export type RotationFilterKey = (typeof rotationFilterKeys)[number]
 
 export const rotationSortFields = [
   'symbol',
@@ -27,20 +27,29 @@ export const rotationSortFields = [
   'percentFromHigh',
 ] as const
 
-export type RotationSortField = typeof rotationSortFields[number]
+export type RotationSortField = (typeof rotationSortFields)[number]
 export type RotationSortOrder = 'asc' | 'desc'
 
 function matchesRotationFilter(row: MarketRotationMonitorRow, filter: RotationFilterKey): boolean {
   switch (filter) {
-    case 'turning_strong': return row.signal === 'turning_strong'
-    case 'losing_momentum': return row.signal === 'losing_momentum'
-    case 'rank_up': return row.rankDelta2W != null && row.rankDelta2W > 0
-    case 'rank_down': return row.rankDelta2W != null && row.rankDelta2W < 0
-    case 'above_50d': return row.above50d === true
-    case 'below_50d': return row.above50d === false
-    case 'near_high': return isNearHigh(row.percentFromHigh)
-    case 'extended': return row.signal === 'strong_but_extended'
-    case 'all': return true
+    case 'turning_strong':
+      return row.signal === 'turning_strong'
+    case 'losing_momentum':
+      return row.signal === 'losing_momentum'
+    case 'rank_up':
+      return row.rankDelta2W != null && row.rankDelta2W > 0
+    case 'rank_down':
+      return row.rankDelta2W != null && row.rankDelta2W < 0
+    case 'above_50d':
+      return row.above50d === true
+    case 'below_50d':
+      return row.above50d === false
+    case 'near_high':
+      return isNearHigh(row.percentFromHigh)
+    case 'extended':
+      return row.signal === 'strong_but_extended'
+    case 'all':
+      return true
   }
 }
 
@@ -71,5 +80,8 @@ export function filterAndSortRotationRows(
   field: RotationSortField,
   order: RotationSortOrder,
 ): MarketRotationMonitorRow[] {
-  return rows.filter(row => matchesRotationFilter(row, filter)).slice().sort((a, b) => compareRotationRows(a, b, field, order))
+  return rows
+    .filter(row => matchesRotationFilter(row, filter))
+    .slice()
+    .sort((a, b) => compareRotationRows(a, b, field, order))
 }

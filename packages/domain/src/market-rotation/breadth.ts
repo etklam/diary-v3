@@ -1,11 +1,6 @@
 import type { MarketState } from './state.js'
 
-export type BreadthCondition =
-  | 'broad_participation'
-  | 'constructive'
-  | 'narrowing'
-  | 'weak_breadth'
-  | 'unknown'
+export type BreadthCondition = 'broad_participation' | 'constructive' | 'narrowing' | 'weak_breadth' | 'unknown'
 
 export type BreadthConfirmation = 'confirming' | 'mixed' | 'warning' | 'unknown'
 

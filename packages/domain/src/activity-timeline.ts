@@ -29,8 +29,13 @@ function sourceId(id: string): bigint {
  * descending, matching the server's ordering exactly so a page boundary never
  * reshuffles a day the reader has already seen.
  */
-export function groupActivityEvents<T extends Groupable>(events: readonly T[]): Array<{ period: string; entries: T[] }> {
-  return groupBy(sortActivityEvents(events), event => event.date.slice(0, 7)).map(([period, entries]) => ({ period, entries }))
+export function groupActivityEvents<T extends Groupable>(
+  events: readonly T[],
+): Array<{ period: string; entries: T[] }> {
+  return groupBy(sortActivityEvents(events), event => event.date.slice(0, 7)).map(([period, entries]) => ({
+    period,
+    entries,
+  }))
 }
 
 /**
@@ -41,7 +46,9 @@ export function groupActivityEvents<T extends Groupable>(events: readonly T[]): 
  *
  * Input must already be sorted, which is what groupActivityEvents returns.
  */
-export function groupActivityDays<T extends { date: string }>(entries: readonly T[]): Array<{ date: string; entries: T[] }> {
+export function groupActivityDays<T extends { date: string }>(
+  entries: readonly T[],
+): Array<{ date: string; entries: T[] }> {
   return groupBy(entries, entry => entry.date).map(([date, group]) => ({ date, entries: group }))
 }
 
@@ -61,7 +68,8 @@ function sortActivityEvents<T extends Groupable>(events: readonly T[]): T[] {
     if (a.date !== b.date) return b.date.localeCompare(a.date)
     const rank = ACTIVITY_KIND_RANK[a.kind] - ACTIVITY_KIND_RANK[b.kind]
     if (rank !== 0) return rank
-    const left = sourceId(a.id), right = sourceId(b.id)
+    const left = sourceId(a.id),
+      right = sourceId(b.id)
     return left > right ? -1 : left < right ? 1 : 0
   })
 }

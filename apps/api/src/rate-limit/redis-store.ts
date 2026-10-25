@@ -33,9 +33,7 @@ const REMOTE_TIMEOUT_MS = 5000
 function resolveTimeoutMs(redisUrl: string, options: { timeoutMs?: number }): number {
   if (options.timeoutMs !== undefined) return options.timeoutMs
   const host = new URL(redisUrl).hostname
-  return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(host)
-    ? DEFAULT_TIMEOUT_MS
-    : REMOTE_TIMEOUT_MS
+  return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(host) ? DEFAULT_TIMEOUT_MS : REMOTE_TIMEOUT_MS
 }
 
 export function redisRateLimitKey(key: string): string {
@@ -57,7 +55,11 @@ function bounded<T>(operation: Promise<T>, timeoutMs: number, onTimeout: () => v
 
 function destroyClient(client: RedisClientType) {
   if (client.isOpen) {
-    try { client.destroy() } catch { /* A concurrent close already destroyed it. */ }
+    try {
+      client.destroy()
+    } catch {
+      /* A concurrent close already destroyed it. */
+    }
   }
 }
 
@@ -71,7 +73,11 @@ export class RedisRateLimitStore implements RateLimitStore {
 
   static async connect(redisUrl: string, options: { timeoutMs?: number } = {}): Promise<RedisRateLimitStore> {
     let parsed: URL
-    try { parsed = new URL(redisUrl) } catch { throw new RateLimitStoreUnavailableError() }
+    try {
+      parsed = new URL(redisUrl)
+    } catch {
+      throw new RateLimitStoreUnavailableError()
+    }
     if (!['redis:', 'rediss:'].includes(parsed.protocol) || !parsed.hostname) throw new RateLimitStoreUnavailableError()
 
     const timeoutMs = resolveTimeoutMs(redisUrl, options)
@@ -97,24 +103,36 @@ export class RedisRateLimitStore implements RateLimitStore {
     }
   }
 
-  get ready() { return !this.closed && this.client.isReady }
+  get ready() {
+    return !this.closed && this.client.isReady
+  }
 
   async consume(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
     if (!this.ready) throw new RateLimitStoreUnavailableError()
-    if (!Number.isSafeInteger(options.limit) || options.limit < 1 || !Number.isSafeInteger(options.windowMs) || options.windowMs < 1) {
+    if (
+      !Number.isSafeInteger(options.limit) ||
+      options.limit < 1 ||
+      !Number.isSafeInteger(options.windowMs) ||
+      options.windowMs < 1
+    ) {
       throw new TypeError('Rate-limit policy must use a positive limit and window')
     }
     try {
-      const result = await bounded(this.client.eval(consumeScript, {
-        keys: [redisRateLimitKey(key)],
-        arguments: [String(options.limit), String(options.windowMs), randomUUID()],
-      }), this.timeoutMs, () => this.invalidate())
+      const result = await bounded(
+        this.client.eval(consumeScript, {
+          keys: [redisRateLimitKey(key)],
+          arguments: [String(options.limit), String(options.windowMs), randomUUID()],
+        }),
+        this.timeoutMs,
+        () => this.invalidate(),
+      )
       if (!Array.isArray(result) || result.length !== 4) throw new RateLimitStoreUnavailableError()
       const allowedValue = Number(result[0])
       const remainingValue = Number(result[1])
       const retryAfterValue = Number(result[2])
       const resetAtValue = Number(result[3])
-      if (![allowedValue, remainingValue, retryAfterValue, resetAtValue].every(Number.isFinite)) throw new RateLimitStoreUnavailableError()
+      if (![allowedValue, remainingValue, retryAfterValue, resetAtValue].every(Number.isFinite))
+        throw new RateLimitStoreUnavailableError()
       return {
         allowed: allowedValue === 1,
         limit: options.limit,

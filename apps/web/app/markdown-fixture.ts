@@ -87,4 +87,4 @@ console.log(rotationScore)
 
 
 <script>window.__fixtureInjected = true;</script><img src=x onerror="window.__fixtureInjected = true">
-`;
+`

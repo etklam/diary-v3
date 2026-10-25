@@ -69,7 +69,13 @@ function inputFor(bars: ResearchBar[]): ResearchCalculationInput {
     sourceId: 'synthetic-calendar',
   }))
   return {
-    instrument: { symbol: bars[0]?.symbol ?? 'SOXX', name: 'Synthetic ETF', exchange: 'NASDAQ', currency: 'USD', assetType: 'etf' },
+    instrument: {
+      symbol: bars[0]?.symbol ?? 'SOXX',
+      name: 'Synthetic ETF',
+      exchange: 'NASDAQ',
+      currency: 'USD',
+      assetType: 'etf',
+    },
     bars,
     sessions,
     referenceSession: bars.at(-1)?.date ?? '',
@@ -192,8 +198,12 @@ describe('research indicators', () => {
 
 describe('independent indicator golden vectors', () => {
   it('matches RSI for uninterrupted rises, falls, and a flat close series', () => {
-    const rising = calculateResearchMetrics(inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 100 + index))))
-    const falling = calculateResearchMetrics(inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 114 - index))))
+    const rising = calculateResearchMetrics(
+      inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 100 + index))),
+    )
+    const falling = calculateResearchMetrics(
+      inputFor(barsFromCloses(Array.from({ length: 15 }, (_, index) => 114 - index))),
+    )
     const flat = calculateResearchMetrics(inputFor(barsFromCloses(Array(15).fill(100))))
 
     expect(rising.rsi14[13]).toBeNull()
@@ -209,7 +219,9 @@ describe('independent indicator golden vectors', () => {
     expect(gap.tr[2]).toBe(2)
     expect(gap.atr14[14]).toBeCloseTo(31 / 14, 12)
 
-    const missingBars = directionalBars(1, 44).map((bar, index) => index === 15 ? { ...bar, high: null, low: null } : bar)
+    const missingBars = directionalBars(1, 44).map((bar, index) =>
+      index === 15 ? { ...bar, high: null, low: null } : bar,
+    )
     const reseeded = calculateResearchMetrics(inputFor(missingBars))
     expect(reseeded.tr[15]).toBeNull()
     expect(reseeded.atr14.slice(15, 29)).toEqual(Array(14).fill(null))
@@ -313,7 +325,9 @@ describe('normalization and validation', () => {
   })
 
   it('keeps close-only history for close indicators and counts OHLC only in the recent 150 rows', () => {
-    const bars = syntheticBars(260).map((bar, index) => index < 110 ? { ...bar, open: null, high: null, low: null } : bar)
+    const bars = syntheticBars(260).map((bar, index) =>
+      index < 110 ? { ...bar, open: null, high: null, low: null } : bar,
+    )
     const input = inputFor(bars)
     const validation = validateResearchInput({ ...input, observedBars: bars })
     const metrics = calculateResearchMetrics({ ...input, bars })
@@ -349,7 +363,12 @@ describe('normalization and validation', () => {
     expect(duplicateCalendar.issues.some(issue => issue.code === 'DUPLICATE_SESSIONS')).toBe(true)
     expect(duplicateCalendar.gates.find(gate => gate.gateId === 'G03')?.status).toBe('FAIL')
 
-    const invalidSession = validateResearchInput({ ...input, sessions: input.sessions.map((session, index) => index === 0 ? { ...session, closeAt: 'not-an-instant' } : session) })
+    const invalidSession = validateResearchInput({
+      ...input,
+      sessions: input.sessions.map((session, index) =>
+        index === 0 ? { ...session, closeAt: 'not-an-instant' } : session,
+      ),
+    })
     expect(invalidSession.issues.some(issue => issue.code === 'SESSION_TIMESTAMP_INVALID')).toBe(true)
     expect(invalidSession.gates.find(gate => gate.gateId === 'G06')?.status).toBe('FAIL')
   })
@@ -358,7 +377,11 @@ describe('normalization and validation', () => {
     const bars = syntheticBars(260)
     const input = inputFor(bars)
     bars.at(-1)!.volumeSourceId = 'other-volume-source'
-    const validation = validateResearchInput({ ...input, bars, sourceIds: [...input.sourceIds!, 'other-volume-source'] })
+    const validation = validateResearchInput({
+      ...input,
+      bars,
+      sourceIds: [...input.sourceIds!, 'other-volume-source'],
+    })
     expect(validation.counts.recentVolume).toBe(0)
     expect(validation.issues.some(issue => issue.code === 'VOLUME_BASIS_MISMATCH')).toBe(true)
     expect(validation.gates.find(gate => gate.gateId === 'G03')?.status).toBe('FAIL')
@@ -377,21 +400,46 @@ describe('normalization and validation', () => {
     const bars = syntheticBars(12)
     const input = inputFor(bars)
     const lastSession = input.sessions.at(-1)!
-    const futureSessions = input.sessions.map(session => session.date === lastSession.date ? {
-      ...session,
-      closeAt: '2030-01-01T21:00:00Z',
-      isWeekFinal: false,
-    } : session)
-    const futureValidation = validateResearchInput({ ...input, sessions: futureSessions, referenceSession: lastSession.date })
+    const futureSessions = input.sessions.map(session =>
+      session.date === lastSession.date
+        ? {
+            ...session,
+            closeAt: '2030-01-01T21:00:00Z',
+            isWeekFinal: false,
+          }
+        : session,
+    )
+    const futureValidation = validateResearchInput({
+      ...input,
+      sessions: futureSessions,
+      referenceSession: lastSession.date,
+    })
     expect(futureValidation.valid).toBe(false)
     expect(futureValidation.issues.some(issue => issue.code === 'SESSION_AFTER_AS_OF')).toBe(true)
 
-    const futureDate = nextWeekday(new Date(`${lastSession.date}T00:00:00Z`)).toISOString().slice(0, 10)
-    const futureHorizon = validateResearchInput({ ...input, sessions: [...input.sessions, { date: futureDate, closeAt: `${futureDate}T21:00:00Z`, isCompleted: false, isWeekFinal: true, timezone: 'America/New_York', sourceId: 'synthetic-calendar' }] })
+    const futureDate = nextWeekday(new Date(`${lastSession.date}T00:00:00Z`))
+      .toISOString()
+      .slice(0, 10)
+    const futureHorizon = validateResearchInput({
+      ...input,
+      sessions: [
+        ...input.sessions,
+        {
+          date: futureDate,
+          closeAt: `${futureDate}T21:00:00Z`,
+          isCompleted: false,
+          isWeekFinal: true,
+          timezone: 'America/New_York',
+          sourceId: 'synthetic-calendar',
+        },
+      ],
+    })
     expect(futureHorizon.valid).toBe(true)
 
-    const mismatchedBars = bars.map(bar => bar.date === bars.at(-1)!.date ? { ...bar, isWeekFinal: true } : bar)
-    const mismatchedSessions = input.sessions.map(session => session.date === bars.at(-1)!.date ? { ...session, isWeekFinal: false } : session)
+    const mismatchedBars = bars.map(bar => (bar.date === bars.at(-1)!.date ? { ...bar, isWeekFinal: true } : bar))
+    const mismatchedSessions = input.sessions.map(session =>
+      session.date === bars.at(-1)!.date ? { ...session, isWeekFinal: false } : session,
+    )
     const mismatch = validateResearchInput({ ...input, bars: mismatchedBars, sessions: mismatchedSessions })
     expect(mismatch.issues.some(issue => issue.code === 'WEEK_FINAL_MISMATCH')).toBe(true)
 
@@ -413,10 +461,18 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
 
   it('confirms pivots two bars later and tracks gap status', () => {
     const bars = syntheticBars(10)
-    const pivotBars = bars.map((bar, index) => ({ ...bar, high: index === 4 ? 200 : 100 + index, low: index === 4 ? 199 : 90 + index }))
+    const pivotBars = bars.map((bar, index) => ({
+      ...bar,
+      high: index === 4 ? 200 : 100 + index,
+      low: index === 4 ? 199 : 90 + index,
+    }))
     const pivots = findConfirmedPivots(pivotBars)
-    expect(pivots.some(pivot => pivot.type === 'high' && pivot.index === 4 && pivot.confirmedOn === bars[6]!.date)).toBe(true)
-    const gapBars = bars.map((bar, index) => index >= 4 ? { ...bar, low: bars[3]!.high! + 2, high: bars[3]!.high! + 3 } : bar)
+    expect(
+      pivots.some(pivot => pivot.type === 'high' && pivot.index === 4 && pivot.confirmedOn === bars[6]!.date),
+    ).toBe(true)
+    const gapBars = bars.map((bar, index) =>
+      index >= 4 ? { ...bar, low: bars[3]!.high! + 2, high: bars[3]!.high! + 3 } : bar,
+    )
     expect(findGaps(gapBars).some(gap => gap.type === 'up' && gap.status === 'open')).toBe(true)
   })
 
@@ -425,25 +481,52 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
     expect(result.valid).toBe(true)
     expect(result.mid).toBeCloseTo(2.4)
     expect(result.conservative).toBeCloseTo(10 / 7)
-    expect(calculateRewardRisk({ lower: 99, upper: 101 }, { lower: 100, upper: 102 }, { lower: 111, upper: 113 }).valid).toBe(false)
+    expect(
+      calculateRewardRisk({ lower: 99, upper: 101 }, { lower: 100, upper: 102 }, { lower: 111, upper: 113 }).valid,
+    ).toBe(false)
   })
 
   it('derives traceable levels without using an arbitrary target to improve R/R', () => {
     const metrics = calculateResearchMetrics(inputFor(syntheticBars()))
     const levels = deriveStructuralLevels(metrics)
-    expect(levels.every(level => level.anchors.length > 0 && level.confirmedAsOf === metrics.referenceSession)).toBe(true)
+    expect(levels.every(level => level.anchors.length > 0 && level.confirmedAsOf === metrics.referenceSession)).toBe(
+      true,
+    )
     const score = calculateDirectionScore(metrics)
     expect(score.label).toBe('N/A')
     const plans = deriveTradePlanCandidates(levels)
     expect(plans).toHaveLength(2)
-    expect(plans.every(plan => plan.status === 'N_A' && plan.requiresHumanReview && plan.structuralStop === null && plan.target1 === null && plan.target2 === null)).toBe(true)
+    expect(
+      plans.every(
+        plan =>
+          plan.status === 'N_A' &&
+          plan.requiresHumanReview &&
+          plan.structuralStop === null &&
+          plan.target1 === null &&
+          plan.target2 === null,
+      ),
+    ).toBe(true)
   })
 
   it('derives ordered non-SOXX WATCH plans and midpoint/conservative R/R only from actual zones', () => {
     const metrics = calculateResearchMetrics(inputFor(syntheticBars(260, 'NVDA')))
     const close = metrics.latest.close
-    const zone = (zoneId: string, side: StructuralLevel['side'], lower: number, upper: number, anchor: string): StructuralLevel => ({
-      zoneId, side, lower, upper, center: (lower + upper) / 2, anchors: [anchor], basis: 'indicator_ohlc', confirmedAsOf: metrics.referenceSession, impact: 'fixture structural zone',
+    const zone = (
+      zoneId: string,
+      side: StructuralLevel['side'],
+      lower: number,
+      upper: number,
+      anchor: string,
+    ): StructuralLevel => ({
+      zoneId,
+      side,
+      lower,
+      upper,
+      center: (lower + upper) / 2,
+      anchors: [anchor],
+      basis: 'indicator_ohlc',
+      confirmedAsOf: metrics.referenceSession,
+      impact: 'fixture structural zone',
     })
     const levels: StructuralLevel[] = [
       zone('support-1', 'support', close - 11, close - 9, 'gap-up-2026-08-20'),
@@ -459,19 +542,41 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
       validUntilSession: '2026-09-30',
     })
     const [breakout, pullback] = plans
-    expect(breakout).toMatchObject({ planId: 'breakout', setupType: 'breakout', status: 'WATCH', eventStatus: 'UNVERIFIED', selectedZoneIds: ['resistance-1', 'support-1', 'resistance-2', 'resistance-3'], validUntilSession: '2026-09-30', requiresHumanReview: true })
+    expect(breakout).toMatchObject({
+      planId: 'breakout',
+      setupType: 'breakout',
+      status: 'WATCH',
+      eventStatus: 'UNVERIFIED',
+      selectedZoneIds: ['resistance-1', 'support-1', 'resistance-2', 'resistance-3'],
+      validUntilSession: '2026-09-30',
+      requiresHumanReview: true,
+    })
     expect(breakout?.triggerPrice).toBeCloseTo(close + 3 + metrics.latest.atr14! * 0.1)
     expect(breakout?.confirmation).toContain('RVOL20 >= 1.3')
-    expect(breakout?.structuralStop).toMatchObject({ zoneId: 'support-1', rule: 'next_lower_support_zone', stopPrice: null })
+    expect(breakout?.structuralStop).toMatchObject({
+      zoneId: 'support-1',
+      rule: 'next_lower_support_zone',
+      stopPrice: null,
+    })
     expect(breakout?.target1?.zoneId).toBe('resistance-2')
     expect(breakout?.target2?.zoneId).toBe('resistance-3')
     expect(breakout?.midRewardRisk.target1).toBeCloseTo(19 / 12)
     expect(breakout?.conservativeRewardRisk.target1).toBeCloseTo(17 / 14)
     expect(breakout?.conservativeRewardRisk.target2).toBeCloseTo(37 / 14)
 
-    expect(pullback).toMatchObject({ planId: 'pullback', status: 'WATCH', eventStatus: 'UNVERIFIED', selectedZoneIds: ['support-1', 'support-2', 'resistance-1', 'resistance-2'], requiresHumanReview: true })
+    expect(pullback).toMatchObject({
+      planId: 'pullback',
+      status: 'WATCH',
+      eventStatus: 'UNVERIFIED',
+      selectedZoneIds: ['support-1', 'support-2', 'resistance-1', 'resistance-2'],
+      requiresHumanReview: true,
+    })
     expect(pullback?.trigger).toContain('completed regular-session close back above')
-    expect(pullback?.structuralStop).toMatchObject({ zoneId: 'support-2', rule: 'next_lower_support_zone', stopPrice: null })
+    expect(pullback?.structuralStop).toMatchObject({
+      zoneId: 'support-2',
+      rule: 'next_lower_support_zone',
+      stopPrice: null,
+    })
     expect(pullback?.midRewardRisk.target1).toBeCloseTo(1.2)
     expect(pullback?.conservativeRewardRisk.target1).toBeCloseTo(10 / 12)
     expect(pullback?.midRewardRisk.target2).toBeCloseTo(3.1)
@@ -480,23 +585,110 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
 
   it('keeps missing target zones N/A instead of inventing or skipping to another level', () => {
     const levels: StructuralLevel[] = [
-      { zoneId: 'support-1', side: 'support', lower: 90, upper: 92, center: 91, anchors: ['pivot-low-2026-09-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
-      { zoneId: 'resistance-1', side: 'resistance', lower: 102, upper: 104, center: 103, anchors: ['pivot-high-2026-09-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
+      {
+        zoneId: 'support-1',
+        side: 'support',
+        lower: 90,
+        upper: 92,
+        center: 91,
+        anchors: ['pivot-low-2026-09-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
+      {
+        zoneId: 'resistance-1',
+        side: 'resistance',
+        lower: 102,
+        upper: 104,
+        center: 103,
+        anchors: ['pivot-high-2026-09-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
     ]
     const plans = deriveTradePlanCandidates(levels, { referenceSession: '2026-09-01', currentClose: 100, atr14: 2 })
-    expect(plans.every(plan => plan.status === 'N_A' && plan.selectedZoneIds.length === 0 && plan.target1 === null && plan.midRewardRisk.target1 === null)).toBe(true)
+    expect(
+      plans.every(
+        plan =>
+          plan.status === 'N_A' &&
+          plan.selectedZoneIds.length === 0 &&
+          plan.target1 === null &&
+          plan.midRewardRisk.target1 === null,
+      ),
+    ).toBe(true)
   })
 
   it('does not skip an overlapping next resistance to select a farther T2', () => {
     const levels: StructuralLevel[] = [
-      { zoneId: 'support-1', side: 'support', lower: 90, upper: 92, center: 91, anchors: ['pivot-low-2026-09-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
-      { zoneId: 'support-2', side: 'support', lower: 80, upper: 82, center: 81, anchors: ['pivot-low-2026-08-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
-      { zoneId: 'resistance-1', side: 'resistance', lower: 102, upper: 104, center: 103, anchors: ['pivot-high-2026-09-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
-      { zoneId: 'resistance-2-overlap', side: 'resistance', lower: 103, upper: 105, center: 104, anchors: ['pivot-high-2026-08-20'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
-      { zoneId: 'resistance-3-farther', side: 'resistance', lower: 120, upper: 122, center: 121, anchors: ['pivot-high-2026-08-01'], basis: 'indicator_ohlc', confirmedAsOf: '2026-09-01', impact: '' },
+      {
+        zoneId: 'support-1',
+        side: 'support',
+        lower: 90,
+        upper: 92,
+        center: 91,
+        anchors: ['pivot-low-2026-09-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
+      {
+        zoneId: 'support-2',
+        side: 'support',
+        lower: 80,
+        upper: 82,
+        center: 81,
+        anchors: ['pivot-low-2026-08-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
+      {
+        zoneId: 'resistance-1',
+        side: 'resistance',
+        lower: 102,
+        upper: 104,
+        center: 103,
+        anchors: ['pivot-high-2026-09-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
+      {
+        zoneId: 'resistance-2-overlap',
+        side: 'resistance',
+        lower: 103,
+        upper: 105,
+        center: 104,
+        anchors: ['pivot-high-2026-08-20'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
+      {
+        zoneId: 'resistance-3-farther',
+        side: 'resistance',
+        lower: 120,
+        upper: 122,
+        center: 121,
+        anchors: ['pivot-high-2026-08-01'],
+        basis: 'indicator_ohlc',
+        confirmedAsOf: '2026-09-01',
+        impact: '',
+      },
     ]
-    const pullback = deriveTradePlanCandidates(levels, { referenceSession: '2026-09-01', currentClose: 100, atr14: 2 })[1]
-    expect(pullback).toMatchObject({ status: 'WATCH', target1: { zoneId: 'resistance-1' }, target2: null, midRewardRisk: { target1: expect.any(Number), target2: null } })
+    const pullback = deriveTradePlanCandidates(levels, {
+      referenceSession: '2026-09-01',
+      currentClose: 100,
+      atr14: 2,
+    })[1]
+    expect(pullback).toMatchObject({
+      status: 'WATCH',
+      target1: { zoneId: 'resistance-1' },
+      target2: null,
+      midRewardRisk: { target1: expect.any(Number), target2: null },
+    })
     expect(pullback?.selectedZoneIds).not.toContain('resistance-3-farther')
     expect(pullback?.reason).toContain('farther targets are not substituted')
   })
@@ -510,7 +702,18 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
       completedWeeks: [...metrics.completedWeeks.slice(0, -1), { ...metrics.completedWeeks.at(-1)!, close: 101 }],
       latest: { ...metrics.latest, sma30Week: 100, adx14: null },
     }
-    const unavailableThreeMonth = [{ window: '3_calendar_month' as const, benchmark: 'SPY', startDate: '2025-01-01', endDate: metrics.referenceSession, targetReturnPct: 5, benchmarkReturnPct: null, outperformancePp: null, relativeRatioReturnPct: null }]
+    const unavailableThreeMonth = [
+      {
+        window: '3_calendar_month' as const,
+        benchmark: 'SPY',
+        startDate: '2025-01-01',
+        endDate: metrics.referenceSession,
+        targetReturnPct: 5,
+        benchmarkReturnPct: null,
+        outperformancePp: null,
+        relativeRatioReturnPct: null,
+      },
+    ]
     const score = calculateDirectionScore(adjusted, unavailableThreeMonth)
     expect(score.evidence.weekCloseAboveSma30).toBe(true)
     expect(score.evidence.weekSlopePositive).toBe(false)
@@ -531,6 +734,8 @@ describe('relative strength, pivots, gaps, and reward/risk', () => {
     const missingEnd = calculateRelativeStrength(target, benchmark.slice(0, -1), 'SPY', latest)
     expect(missingEnd.every(window => window.endDate === latest && window.outperformancePp === null)).toBe(true)
     const absentReference = calculateRelativeStrength(target, benchmark, 'SPY', '2030-01-01')
-    expect(absentReference.every(window => window.endDate === '2030-01-01' && window.outperformancePp === null)).toBe(true)
+    expect(absentReference.every(window => window.endDate === '2030-01-01' && window.outperformancePp === null)).toBe(
+      true,
+    )
   })
 })

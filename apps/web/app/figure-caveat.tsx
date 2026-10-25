@@ -39,12 +39,33 @@ export function figureCaveat(locale: string): string {
  * attribute and works on touch.
  */
 export function CaveatMark({ mark = '*' }: { mark?: string }) {
-  return <sup className="figure-caveat-mark" aria-hidden="true">{mark}</sup>
+  return (
+    <sup className="figure-caveat-mark" aria-hidden="true">
+      {mark}
+    </sup>
+  )
 }
 
 /** One note at the foot of the region, below the rule that closes it. */
-export function CaveatNote({ id, mark = '*', testId, children }: { id: string; mark?: string; testId?: string; children: ReactNode }) {
-  return <p className="figure-caveat" id={id} data-testid={testId}><span className="figure-caveat-mark" aria-hidden="true">{mark}</span><span>{children}</span></p>
+export function CaveatNote({
+  id,
+  mark = '*',
+  testId,
+  children,
+}: {
+  id: string
+  mark?: string
+  testId?: string
+  children: ReactNode
+}) {
+  return (
+    <p className="figure-caveat" id={id} data-testid={testId}>
+      <span className="figure-caveat-mark" aria-hidden="true">
+        {mark}
+      </span>
+      <span>{children}</span>
+    </p>
+  )
 }
 
 /** The notes block itself: the rule that closes the figures, then the prose. */

@@ -12,13 +12,7 @@ const SCORE_VERSION = 'v1'
 export interface MarketRotationMonitorRow {
   symbol: string
   name: string
-  groupType:
-    | 'sector'
-    | 'index'
-    | 'core'
-    | 'core_etf'
-    | 'mega_cap'
-    | 'single_stock'
+  groupType: 'sector' | 'index' | 'core' | 'core_etf' | 'mega_cap' | 'single_stock'
   sectorName: string | null
   lastPrice: number | null
   rsi14: number | null
@@ -112,7 +106,10 @@ export interface MarketRotationMonitorPayload {
 }
 
 /** Payload produced by the shared builder before the endpoint adds its summary text. */
-export type MarketRotationMonitorBasePayload = Omit<MarketRotationMonitorPayload, 'currentMarketSummary' | 'betaAllocation'>
+export type MarketRotationMonitorBasePayload = Omit<
+  MarketRotationMonitorPayload,
+  'currentMarketSummary' | 'betaAllocation'
+>
 
 export interface MarketRotationContext {
   rows: MarketRotationMonitorRow[]
@@ -148,19 +145,25 @@ function calculateAverageRsi(rows: MarketRotationMonitorRow[]): number | null {
 }
 
 function compareLeadershipChange(a: MarketRotationMonitorRow, b: MarketRotationMonitorRow): number {
-  return (b.rankDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rankDelta2W ?? Number.NEGATIVE_INFINITY)
-    || (b.rotationScoreDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rotationScoreDelta2W ?? Number.NEGATIVE_INFINITY)
-    || (b.twoWeekPerformancePct ?? Number.NEGATIVE_INFINITY) - (a.twoWeekPerformancePct ?? Number.NEGATIVE_INFINITY)
-    || (b.rsiDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rsiDelta2W ?? Number.NEGATIVE_INFINITY)
-    || (a.rotationRank ?? Number.POSITIVE_INFINITY) - (b.rotationRank ?? Number.POSITIVE_INFINITY)
+  return (
+    (b.rankDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rankDelta2W ?? Number.NEGATIVE_INFINITY) ||
+    (b.rotationScoreDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rotationScoreDelta2W ?? Number.NEGATIVE_INFINITY) ||
+    (b.twoWeekPerformancePct ?? Number.NEGATIVE_INFINITY) - (a.twoWeekPerformancePct ?? Number.NEGATIVE_INFINITY) ||
+    (b.rsiDelta2W ?? Number.NEGATIVE_INFINITY) - (a.rsiDelta2W ?? Number.NEGATIVE_INFINITY) ||
+    (a.rotationRank ?? Number.POSITIVE_INFINITY) - (b.rotationRank ?? Number.POSITIVE_INFINITY)
+  )
 }
 
 function compareRowsByRank(a: MarketRotationMonitorRow, b: MarketRotationMonitorRow): number {
-  return (a.rotationRank ?? Number.POSITIVE_INFINITY) - (b.rotationRank ?? Number.POSITIVE_INFINITY)
-    || a.symbol.localeCompare(b.symbol)
+  return (
+    (a.rotationRank ?? Number.POSITIVE_INFINITY) - (b.rotationRank ?? Number.POSITIVE_INFINITY) ||
+    a.symbol.localeCompare(b.symbol)
+  )
 }
 
-export function buildMarketRotationContext(input: Pick<MarketRotationMonitorInput, 'marketState' | 'rows' | 'summaryRows'>): MarketRotationContext {
+export function buildMarketRotationContext(
+  input: Pick<MarketRotationMonitorInput, 'marketState' | 'rows' | 'summaryRows'>,
+): MarketRotationContext {
   const rows = [...input.rows].sort(compareRowsByRank)
   const summaryRows = [...(input.summaryRows ?? input.rows)].sort(compareRowsByRank)
   const above20d = buildRatio(summaryRows, 'above20d')
@@ -177,17 +180,26 @@ export function buildMarketRotationContext(input: Pick<MarketRotationMonitorInpu
     .sort(compareLeadershipChange)
     .slice(-3)
     .reverse()
-  return { rows, summaryRows, above20d, above50d, breadthCondition, breadthConfirmation, averageRsi, topImproving: improvingRows, bottomWeakening: weakeningRows }
+  return {
+    rows,
+    summaryRows,
+    above20d,
+    above50d,
+    breadthCondition,
+    breadthConfirmation,
+    averageRsi,
+    topImproving: improvingRows,
+    bottomWeakening: weakeningRows,
+  }
 }
 
 export function buildMarketRotationMonitorPayload(input: MarketRotationMonitorInput): MarketRotationMonitorBasePayload {
   const context = buildMarketRotationContext(input)
-  const { rows, above20d, above50d, breadthCondition, breadthConfirmation, averageRsi, topImproving, bottomWeakening } = context
+  const { rows, above20d, above50d, breadthCondition, breadthConfirmation, averageRsi, topImproving, bottomWeakening } =
+    context
   const expectedSymbolCount = getUniverseForScope(input.rankScope).length
   const actualSymbolCount = rows.length
-  const coverageRatio = expectedSymbolCount > 0
-    ? roundMetric(actualSymbolCount / expectedSymbolCount)
-    : 0
+  const coverageRatio = expectedSymbolCount > 0 ? roundMetric(actualSymbolCount / expectedSymbolCount) : 0
 
   return {
     asOfDate: input.asOfDate,

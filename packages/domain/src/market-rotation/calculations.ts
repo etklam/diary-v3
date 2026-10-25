@@ -63,9 +63,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function calculateMaScore(input: MaScoreInput): number {
-  return (input.above10d ? 20 : 0)
-    + (input.above20d ? 30 : 0)
-    + (input.above50d ? 50 : 0)
+  return (input.above10d ? 20 : 0) + (input.above20d ? 30 : 0) + (input.above50d ? 50 : 0)
 }
 
 export function calculateDistanceFromHigh(input: DistanceFromHighInput): DistanceFromHighResult {
@@ -86,18 +84,20 @@ export function calculateDistanceFromHigh(input: DistanceFromHighInput): Distanc
 
 export function calculateRotationScore(input: RotationScoreInput): number | null {
   if (
-    input.rsiPercentile == null
-    || input.twoWeekPerformancePercentile == null
-    || input.maScorePercentile == null
-    || input.distanceFromHighScorePercentile == null
+    input.rsiPercentile == null ||
+    input.twoWeekPerformancePercentile == null ||
+    input.maScorePercentile == null ||
+    input.distanceFromHighScorePercentile == null
   ) {
     return null
   }
 
-  return input.rsiPercentile * 0.3
-    + input.twoWeekPerformancePercentile * 0.3
-    + input.maScorePercentile * 0.2
-    + input.distanceFromHighScorePercentile * 0.2
+  return (
+    input.rsiPercentile * 0.3 +
+    input.twoWeekPerformancePercentile * 0.3 +
+    input.maScorePercentile * 0.2 +
+    input.distanceFromHighScorePercentile * 0.2
+  )
 }
 
 export interface RankableRow {

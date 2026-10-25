@@ -2,28 +2,54 @@ export type PolicyLocale = 'en' | 'zh-TW' | 'zh-CN'
 
 const labels: Record<PolicyLocale, { states: Record<string, string>; modes: Record<string, string> }> = {
   en: {
-    states: { risk_on: 'Risk-on', neutral: 'Neutral', defensive: 'Defensive', risk_off: 'Risk-off', unknown: 'Unknown' },
-    modes: { aggressive: 'Aggressive', balanced: 'Balanced', defensive: 'Defensive', capital_preservation: 'Capital preservation', unknown: 'Unknown' },
+    states: {
+      risk_on: 'Risk-on',
+      neutral: 'Neutral',
+      defensive: 'Defensive',
+      risk_off: 'Risk-off',
+      unknown: 'Unknown',
+    },
+    modes: {
+      aggressive: 'Aggressive',
+      balanced: 'Balanced',
+      defensive: 'Defensive',
+      capital_preservation: 'Capital preservation',
+      unknown: 'Unknown',
+    },
   },
   'zh-TW': {
     states: { risk_on: '風險偏好', neutral: '中性', defensive: '防禦', risk_off: '風險規避', unknown: '未知' },
-    modes: { aggressive: '積極', balanced: '平衡', defensive: '防禦', capital_preservation: '資本保全', unknown: '未知' },
+    modes: {
+      aggressive: '積極',
+      balanced: '平衡',
+      defensive: '防禦',
+      capital_preservation: '資本保全',
+      unknown: '未知',
+    },
   },
   'zh-CN': {
     states: { risk_on: '风险偏好', neutral: '中性', defensive: '防御', risk_off: '风险规避', unknown: '未知' },
-    modes: { aggressive: '积极', balanced: '平衡', defensive: '防御', capital_preservation: '资本保全', unknown: '未知' },
+    modes: {
+      aggressive: '积极',
+      balanced: '平衡',
+      defensive: '防御',
+      capital_preservation: '资本保全',
+      unknown: '未知',
+    },
   },
 }
 
 const explanationCopy: Record<string, Record<'zh-TW' | 'zh-CN', string>> = {
-  'Market is risk-on with confirming breadth. Suggested posture is aggressive: maintain high beta exposure, but avoid chasing extended names.': {
-    'zh-TW': '市場處於風險偏好，市場廣度確認。建議採取積極姿態：維持高 beta 曝險，但避免追逐過度延伸的標的。',
-    'zh-CN': '市场处于风险偏好，市场广度确认。建议采取积极姿态：维持高 beta 敞口，但避免追逐过度延伸的标的。',
-  },
-  'Market is risk-on but breadth is mixed. Balanced posture: keep core exposure, trim extended high beta into strength.': {
-    'zh-TW': '市場處於風險偏好，但市場廣度混合。建議採取平衡姿態：維持核心曝險，趁高位減少過度延伸的高 beta 部位。',
-    'zh-CN': '市场处于风险偏好，但市场广度混合。建议采取平衡姿态：维持核心敞口，在走强时减少过度延伸的高 beta 部位。',
-  },
+  'Market is risk-on with confirming breadth. Suggested posture is aggressive: maintain high beta exposure, but avoid chasing extended names.':
+    {
+      'zh-TW': '市場處於風險偏好，市場廣度確認。建議採取積極姿態：維持高 beta 曝險，但避免追逐過度延伸的標的。',
+      'zh-CN': '市场处于风险偏好，市场广度确认。建议采取积极姿态：维持高 beta 敞口，但避免追逐过度延伸的标的。',
+    },
+  'Market is risk-on but breadth is mixed. Balanced posture: keep core exposure, trim extended high beta into strength.':
+    {
+      'zh-TW': '市場處於風險偏好，但市場廣度混合。建議採取平衡姿態：維持核心曝險，趁高位減少過度延伸的高 beta 部位。',
+      'zh-CN': '市场处于风险偏好，但市场广度混合。建议采取平衡姿态：维持核心敞口，在走强时减少过度延伸的高 beta 部位。',
+    },
   'Market is risk-on yet breadth warns of divergence. Drift toward balanced; do not add high beta on weakness.': {
     'zh-TW': '市場處於風險偏好，但市場廣度警示背離。逐步轉向平衡；弱勢時不要增加高 beta。',
     'zh-CN': '市场处于风险偏好，但市场广度警示背离。逐步转向平衡；弱势时不要增加高 beta。',
@@ -111,18 +137,37 @@ export function localizeAllocationMode(value: string, locale: PolicyLocale): str
 }
 
 export function localizePolicyExplanation(value: string, locale: PolicyLocale): string {
-  return locale === 'en' ? value : explanationCopy[value]?.[locale] ?? value
+  return locale === 'en' ? value : (explanationCopy[value]?.[locale] ?? value)
 }
 
 export function localizePolicyWarning(value: string, locale: PolicyLocale): string {
   if (locale === 'en') return value
   const weakBreadth = value.match(/^Weak breadth ratio: (.+)% of names above 50-day SMA despite confirmation\.$/)
-  if (weakBreadth) return locale === 'zh-TW' ? `市場廣度比例偏弱：儘管已有確認，只有 ${weakBreadth[1]}% 的標的高於 50 日均線。` : `市场广度比例偏弱：尽管已有确认，只有 ${weakBreadth[1]}% 的标的高于 50 日均线。`
+  if (weakBreadth)
+    return locale === 'zh-TW'
+      ? `市場廣度比例偏弱：儘管已有確認，只有 ${weakBreadth[1]}% 的標的高於 50 日均線。`
+      : `市场广度比例偏弱：尽管已有确认，只有 ${weakBreadth[1]}% 的标的高于 50 日均线。`
   const rsi = value.match(/^Average RSI at (.+) is overbought \(> 70\); pullback risk elevated\.$/)
-  if (rsi) return locale === 'zh-TW' ? `平均 RSI 為 ${rsi[1]}，處於超買（> 70）；回調風險升高。` : `平均 RSI 为 ${rsi[1]}，处于超买（> 70）；回调风险升高。`
-  if (value === 'Conflicting signals (contradiction): risk-on regime with warning breadth. Size high beta conservatively.') return locale === 'zh-TW' ? '訊號互相矛盾：市場處於風險偏好但市場廣度發出警示。高 beta 部位應保守配置。' : '信号互相矛盾：市场处于风险偏好但市场广度发出警示。高 beta 部位应保守配置。'
-  if (value === 'No leadership confirmed: top improving list is empty; trend lacks a leader.') return locale === 'zh-TW' ? '未確認領導群組：改善幅度最大的清單為空，趨勢缺少領導者。' : '未确认领导群组：改善幅度最大的清单为空，趋势缺少领导者。'
-  const weakLeadership = value.match(/^Leadership ETF under pressure \(weakening\): (.+)\. Broad-market follow-through at risk\.$/)
-  if (weakLeadership) return locale === 'zh-TW' ? `領導 ETF 承受壓力（轉弱）：${weakLeadership[1]}。大市跟進動能有風險。` : `领导 ETF 承受压力（转弱）：${weakLeadership[1]}。大市跟进动能有风险。`
+  if (rsi)
+    return locale === 'zh-TW'
+      ? `平均 RSI 為 ${rsi[1]}，處於超買（> 70）；回調風險升高。`
+      : `平均 RSI 为 ${rsi[1]}，处于超买（> 70）；回调风险升高。`
+  if (
+    value === 'Conflicting signals (contradiction): risk-on regime with warning breadth. Size high beta conservatively.'
+  )
+    return locale === 'zh-TW'
+      ? '訊號互相矛盾：市場處於風險偏好但市場廣度發出警示。高 beta 部位應保守配置。'
+      : '信号互相矛盾：市场处于风险偏好但市场广度发出警示。高 beta 部位应保守配置。'
+  if (value === 'No leadership confirmed: top improving list is empty; trend lacks a leader.')
+    return locale === 'zh-TW'
+      ? '未確認領導群組：改善幅度最大的清單為空，趨勢缺少領導者。'
+      : '未确认领导群组：改善幅度最大的清单为空，趋势缺少领导者。'
+  const weakLeadership = value.match(
+    /^Leadership ETF under pressure \(weakening\): (.+)\. Broad-market follow-through at risk\.$/,
+  )
+  if (weakLeadership)
+    return locale === 'zh-TW'
+      ? `領導 ETF 承受壓力（轉弱）：${weakLeadership[1]}。大市跟進動能有風險。`
+      : `领导 ETF 承受压力（转弱）：${weakLeadership[1]}。大市跟进动能有风险。`
   return value
 }

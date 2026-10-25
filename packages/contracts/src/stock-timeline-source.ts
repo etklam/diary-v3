@@ -13,7 +13,7 @@ export const STOCK_TIMELINE_SOURCE_TYPES = [
   'SEASONALITY',
 ] as const
 
-export type StockTimelineSourceType = typeof STOCK_TIMELINE_SOURCE_TYPES[number]
+export type StockTimelineSourceType = (typeof STOCK_TIMELINE_SOURCE_TYPES)[number]
 
 export const stockTimelineSourceTypeSchema = z.enum(STOCK_TIMELINE_SOURCE_TYPES)
 

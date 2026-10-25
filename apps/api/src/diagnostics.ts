@@ -1,9 +1,15 @@
 const POSTGRES_ERROR_CODE = /^[0-9A-Z]{5}$/
 const SAFE_CONNECTION_ERROR_CODES = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED'])
 const SAFE_PROVIDER_ERROR_CODES = new Set([
-  'TRANSLATION_CONFIGURATION_INVALID', 'TRANSLATION_PROVIDER_DISABLED', 'TRANSLATION_INPUT_TOO_LARGE',
-  'TRANSLATION_PRIVACY_RESTRICTED', 'TRANSLATION_PROVIDER_REJECTED', 'TRANSLATION_PROVIDER_UNAVAILABLE',
-  'TRANSLATION_PROVIDER_TIMEOUT', 'TRANSLATION_RATE_LIMITED', 'TRANSLATION_OUTPUT_INVALID',
+  'TRANSLATION_CONFIGURATION_INVALID',
+  'TRANSLATION_PROVIDER_DISABLED',
+  'TRANSLATION_INPUT_TOO_LARGE',
+  'TRANSLATION_PRIVACY_RESTRICTED',
+  'TRANSLATION_PROVIDER_REJECTED',
+  'TRANSLATION_PROVIDER_UNAVAILABLE',
+  'TRANSLATION_PROVIDER_TIMEOUT',
+  'TRANSLATION_RATE_LIMITED',
+  'TRANSLATION_OUTPUT_INVALID',
 ])
 const SENSITIVE_ERROR_MARKER = /(?:authorization|cookie|password|private|secret|sentinel|token)/i
 
@@ -32,7 +38,8 @@ export function errorCode(error: unknown): string | undefined {
 
 function safeCode(code: string | undefined): string | undefined {
   if (!code) return undefined
-  if (POSTGRES_ERROR_CODE.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code) || SAFE_PROVIDER_ERROR_CODES.has(code)) return code
+  if (POSTGRES_ERROR_CODE.test(code) || SAFE_CONNECTION_ERROR_CODES.has(code) || SAFE_PROVIDER_ERROR_CODES.has(code))
+    return code
   return undefined
 }
 
@@ -45,7 +52,8 @@ function safeErrorName(error: unknown): string {
 
 function safeStackFrames(error: unknown): string[] | undefined {
   if (!(error instanceof Error) || typeof error.stack !== 'string') return undefined
-  const frames = error.stack.split('\n')
+  const frames = error.stack
+    .split('\n')
     .filter(frame => /^\s*at\s/.test(frame))
     .slice(0, 12)
     .map(frame => frame.trim())
@@ -69,7 +77,8 @@ export function safeErrorContext(error: unknown, options: SafeErrorContextOption
   const classifiedCode = safeCode(rawCode) ?? safeCode(options.fallbackCode)
   const context: Record<string, unknown> = { errorName: safeErrorName(error) }
   if (classifiedCode && options.codeField !== 'databaseCode') context.errorCode = classifiedCode
-  if (classifiedCode && options.codeField === 'databaseCode' && POSTGRES_ERROR_CODE.test(classifiedCode)) context.databaseCode = classifiedCode
+  if (classifiedCode && options.codeField === 'databaseCode' && POSTGRES_ERROR_CODE.test(classifiedCode))
+    context.databaseCode = classifiedCode
   if (options.includeStack !== false) {
     const stackFrames = safeStackFrames(error)
     if (stackFrames) context.stackFrames = stackFrames

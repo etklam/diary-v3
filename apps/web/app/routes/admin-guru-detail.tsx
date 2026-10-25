@@ -47,7 +47,8 @@ export default function AdminGuruDetail() {
     const controller = new AbortController()
     setGuru(null)
     setLoadFailure(null)
-    void api.GET('/api/admin/gurus/{id}', { params: { path: { id } }, signal: controller.signal })
+    void api
+      .GET('/api/admin/gurus/{id}', { params: { path: { id } }, signal: controller.signal })
       .then(result => {
         if (controller.signal.aborted) return
         const parsed = adminGuruResponseSchema.safeParse(result.data)
@@ -57,7 +58,9 @@ export default function AdminGuruDetail() {
         }
         setGuru(parsed.data.data)
       })
-      .catch(() => { if (!controller.signal.aborted) setLoadFailure({ message: c.loadFailed, fields: [] }) })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadFailure({ message: c.loadFailed, fields: [] })
+      })
     return () => controller.abort()
   }, [attempt, c.loadFailed, c.notFound, id])
 
@@ -83,28 +86,85 @@ export default function AdminGuruDetail() {
   }
 
   const needsSignIn = loadFailure?.code === 'AUTH_UNAUTHORIZED' || saveFailure?.code === 'AUTH_UNAUTHORIZED'
-  return <section className="admin-gurus-page admin-guru-detail-page" data-testid="admin-guru-detail">
-    <header className="admin-gurus-header admin-guru-detail-header">
-      <div>
-        <h1>{guru?.profile.name ?? c.title}</h1>
-        <p className="lede">{guru ? `${guru.profile.managerName} · ${c.cik} ${guru.manager.cik}` : c.intro}</p>
-      </div>
-      <Link className="secondary" to="/admin/gurus">{c.back}</Link>
-    </header>
-    <FailureNotice failure={loadFailure} id="admin-guru-load-error" messageOverride={failureCopy(loadFailure, c, c.loadFailed)} />
-    {needsSignIn && <Link to={signInPath(`/admin/gurus/${id}`)}>{c.unauthorized}</Link>}
-    {guru === null && !loadFailure && <p role="status" className="admin-gurus-loading">{c.loading}</p>}
-    {loadFailure && <div className="admin-gurus-retry"><button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>{c.retry}</button></div>}
-    {guru && <>
-      <dl className="admin-guru-metadata">
-        <div><dt>{c.profileState}</dt><dd><span className={`admin-guru-status${guru.profile.active ? '' : ' is-inactive'}`}>{guru.profile.active ? c.active : c.inactive}{guru.profile.featured ? ` · ${c.featured}` : ''}</span></dd></div>
-        <div><dt>{c.slug}</dt><dd>/{guru.profile.slug}</dd></div>
-        <div><dt>{c.updatedAt}</dt><dd><time dateTime={guru.updatedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(guru.updatedAt))}</time></dd></div>
-      </dl>
-      {notice && <p className="admin-gurus-notice" role="status">{notice}</p>}
-      <AdminGuruForm initial={guru} saving={pending} failure={saveFailure} failureMessage={failureCopy(saveFailure, c)} submitLabel={c.save} cancelLabel={c.back} onSubmit={saveGuru} onCancel={() => void navigate('/admin/gurus')} onEdit={() => { setSaveFailure(null); setNotice('') }} />
-      <AdminGuruOperations id={id} />
-      <AdminGuruAnalysis id={id} />
-    </>}
-  </section>
+  return (
+    <section className="admin-gurus-page admin-guru-detail-page" data-testid="admin-guru-detail">
+      <header className="admin-gurus-header admin-guru-detail-header">
+        <div>
+          <h1>{guru?.profile.name ?? c.title}</h1>
+          <p className="lede">{guru ? `${guru.profile.managerName} · ${c.cik} ${guru.manager.cik}` : c.intro}</p>
+        </div>
+        <Link className="secondary" to="/admin/gurus">
+          {c.back}
+        </Link>
+      </header>
+      <FailureNotice
+        failure={loadFailure}
+        id="admin-guru-load-error"
+        messageOverride={failureCopy(loadFailure, c, c.loadFailed)}
+      />
+      {needsSignIn && <Link to={signInPath(`/admin/gurus/${id}`)}>{c.unauthorized}</Link>}
+      {guru === null && !loadFailure && (
+        <p role="status" className="admin-gurus-loading">
+          {c.loading}
+        </p>
+      )}
+      {loadFailure && (
+        <div className="admin-gurus-retry">
+          <button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>
+            {c.retry}
+          </button>
+        </div>
+      )}
+      {guru && (
+        <>
+          <dl className="admin-guru-metadata">
+            <div>
+              <dt>{c.profileState}</dt>
+              <dd>
+                <span className={`admin-guru-status${guru.profile.active ? '' : ' is-inactive'}`}>
+                  {guru.profile.active ? c.active : c.inactive}
+                  {guru.profile.featured ? ` · ${c.featured}` : ''}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>{c.slug}</dt>
+              <dd>/{guru.profile.slug}</dd>
+            </div>
+            <div>
+              <dt>{c.updatedAt}</dt>
+              <dd>
+                <time dateTime={guru.updatedAt}>
+                  {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+                    new Date(guru.updatedAt),
+                  )}
+                </time>
+              </dd>
+            </div>
+          </dl>
+          {notice && (
+            <p className="admin-gurus-notice" role="status">
+              {notice}
+            </p>
+          )}
+          <AdminGuruForm
+            initial={guru}
+            saving={pending}
+            failure={saveFailure}
+            failureMessage={failureCopy(saveFailure, c)}
+            submitLabel={c.save}
+            cancelLabel={c.back}
+            onSubmit={saveGuru}
+            onCancel={() => void navigate('/admin/gurus')}
+            onEdit={() => {
+              setSaveFailure(null)
+              setNotice('')
+            }}
+          />
+          <AdminGuruOperations id={id} />
+          <AdminGuruAnalysis id={id} />
+        </>
+      )}
+    </section>
+  )
 }

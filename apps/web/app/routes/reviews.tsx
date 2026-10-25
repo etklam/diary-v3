@@ -1,136 +1,596 @@
-import { createReviewSession, reviewBuckets, reviewItemPath } from '../review-session';
-import { workflowCopy } from '../review-workflow-copy';
-import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams, useNavigate, useLocation } from 'react-router';
-import { reviewGroupsResponseSchema, reviewQueueQuerySchema, type ReviewGroups, type ReviewItem } from '@diary/contracts/review-queue';
-import { api, Disclosure, DisclosureSummary, useUi } from '../ui';
-import { apiFailure, FailureNotice, type Failure } from '../api-error';
-import { thesisCopy } from '../thesis-copy';
-import { signInPath, useSessionState } from '../session';
-import '../trade-plan.css';
-import '../review-queue.css';
-const buckets = ['overdue', 'today', 'upcoming', 'unscheduled', 'completed'] as const;
-type Bucket = (typeof buckets)[number];
-const pageParameters: Record<Bucket, string> = { overdue: 'overduePage', today: 'todayPage', upcoming: 'upcomingPage', unscheduled: 'unscheduledPage', completed: 'completedPage' };
-const priorityBuckets = ['overdue', 'today', 'upcoming'] as const, secondaryBuckets = ['unscheduled', 'completed'] as const;
+import { createReviewSession, reviewBuckets, reviewItemPath } from '../review-session'
+import { workflowCopy } from '../review-workflow-copy'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router'
+import {
+  reviewGroupsResponseSchema,
+  reviewQueueQuerySchema,
+  type ReviewGroups,
+  type ReviewItem,
+} from '@diary/contracts/review-queue'
+import { api, Disclosure, DisclosureSummary, useUi } from '../ui'
+import { apiFailure, FailureNotice, type Failure } from '../api-error'
+import { thesisCopy } from '../thesis-copy'
+import { signInPath, useSessionState } from '../session'
+import '../trade-plan.css'
+import '../review-queue.css'
+const buckets = ['overdue', 'today', 'upcoming', 'unscheduled', 'completed'] as const
+type Bucket = (typeof buckets)[number]
+const pageParameters: Record<Bucket, string> = {
+  overdue: 'overduePage',
+  today: 'todayPage',
+  upcoming: 'upcomingPage',
+  unscheduled: 'unscheduledPage',
+  completed: 'completedPage',
+}
+const priorityBuckets = ['overdue', 'today', 'upcoming'] as const,
+  secondaryBuckets = ['unscheduled', 'completed'] as const
 // Day difference between an instant and now counted in account-local calendar
 // days, so the text matches the bucket classification instead of UTC days.
-const dayKey = (timezone: string) => new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+const dayKey = (timezone: string) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' })
 export function accountDayDiff(instant: string, now: Date, timezone: string): number {
   const day = (date: Date) => {
-    const parts = dayKey(timezone).formatToParts(date);
-    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)!.value);
-    return Date.UTC(value('year'), value('month') - 1, value('day'));
-  };
-  return (day(new Date(instant)) - day(now)) / 86400000;
+    const parts = dayKey(timezone).formatToParts(date)
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)!.value)
+    return Date.UTC(value('year'), value('month') - 1, value('day'))
+  }
+  return (day(new Date(instant)) - day(now)) / 86400000
 }
 export const copy = {
-  en: { title: 'Review queue', hint: 'Return to earlier decisions and compare them with what you know now.', overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', unscheduled: 'Unscheduled', completed: 'Completed', diary: 'Diary', thesis: 'Investment thesis', diaries: 'Diaries', theses: 'Investment theses', all: 'All', filter: 'Filter by type', empty: 'No items on this page.', emptyOverdue: 'Nothing overdue.', emptyToday: 'Nothing due today.', emptyUpcoming: 'Nothing scheduled next.', emptyAll: 'Nothing waiting for review right now.', library: 'Diary library', previous: 'Previous page', next: 'Next page', page: 'Page', pagination: 'Pagination', date: 'Review date', more: 'Other — unscheduled and completed', stateNone: 'No review due', statePending: 'Review pending', stateReviewed: 'Reviewed', dueToday: 'Due today', overdueOne: '1 day overdue', overdueDays: '{n} days overdue', dueInOne: 'Due in 1 day', dueInDays: 'Due in {n} days', overdueSince: 'Overdue since {date}', dueOn: 'Due {date}', reviewDiary: 'Review diary', reviewThesis: 'Review thesis' },
-  'zh-TW': { title: '複盤隊列', hint: '回看過往決策，對照目前掌握的資料。', overdue: '逾期', today: '今天', upcoming: '即將到期', unscheduled: '未排程', completed: '已完成', diary: '日記', thesis: '投資論點', diaries: '日記', theses: '投資論點', all: '全部', filter: '依類型篩選', empty: '這頁沒有項目。', emptyOverdue: '沒有逾期項目。', emptyToday: '今天沒有到期複盤。', emptyUpcoming: '接下來沒有排定複盤。', emptyAll: '目前沒有待複盤的項目。', library: '日記庫', previous: '上一頁', next: '下一頁', page: '頁', pagination: '分頁', date: '複盤日期', more: '其他 — 未排程與已完成', stateNone: '未安排複盤', statePending: '待複盤', stateReviewed: '已複盤', dueToday: '今天到期', overdueOne: '逾期 1 天', overdueDays: '逾期 {n} 天', dueInOne: '1 天後到期', dueInDays: '{n} 天後到期', overdueSince: '自 {date} 起逾期', dueOn: '{date} 到期', reviewDiary: '複盤日記', reviewThesis: '複盤論點' },
-  'zh-CN': { title: '复盘队列', hint: '回看过往决策，对照目前掌握的资料。', overdue: '逾期', today: '今天', upcoming: '即将到期', unscheduled: '未排程', completed: '已完成', diary: '日记', thesis: '投资论点', diaries: '日记', theses: '投资论点', all: '全部', filter: '按类型筛选', empty: '这页没有项目。', emptyOverdue: '没有逾期项目。', emptyToday: '今天没有到期复盘。', emptyUpcoming: '接下来没有排定复盘。', emptyAll: '目前没有待复盘的项目。', library: '日记库', previous: '上一页', next: '下一页', page: '页', pagination: '分页', date: '复盘日期', more: '其他 — 未排程与已完成', stateNone: '未安排复盘', statePending: '待复盘', stateReviewed: '已复盘', dueToday: '今天到期', overdueOne: '逾期 1 天', overdueDays: '逾期 {n} 天', dueInOne: '1 天后到期', dueInDays: '{n} 天后到期', overdueSince: '自 {date} 起逾期', dueOn: '{date} 到期', reviewDiary: '复盘日记', reviewThesis: '复盘论点' },
-};
+  en: {
+    title: 'Review queue',
+    hint: 'Return to earlier decisions and compare them with what you know now.',
+    overdue: 'Overdue',
+    today: 'Today',
+    upcoming: 'Upcoming',
+    unscheduled: 'Unscheduled',
+    completed: 'Completed',
+    diary: 'Diary',
+    thesis: 'Investment thesis',
+    diaries: 'Diaries',
+    theses: 'Investment theses',
+    all: 'All',
+    filter: 'Filter by type',
+    empty: 'No items on this page.',
+    emptyOverdue: 'Nothing overdue.',
+    emptyToday: 'Nothing due today.',
+    emptyUpcoming: 'Nothing scheduled next.',
+    emptyAll: 'Nothing waiting for review right now.',
+    library: 'Diary library',
+    previous: 'Previous page',
+    next: 'Next page',
+    page: 'Page',
+    pagination: 'Pagination',
+    date: 'Review date',
+    more: 'Other — unscheduled and completed',
+    stateNone: 'No review due',
+    statePending: 'Review pending',
+    stateReviewed: 'Reviewed',
+    dueToday: 'Due today',
+    overdueOne: '1 day overdue',
+    overdueDays: '{n} days overdue',
+    dueInOne: 'Due in 1 day',
+    dueInDays: 'Due in {n} days',
+    overdueSince: 'Overdue since {date}',
+    dueOn: 'Due {date}',
+    reviewDiary: 'Review diary',
+    reviewThesis: 'Review thesis',
+  },
+  'zh-TW': {
+    title: '複盤隊列',
+    hint: '回看過往決策，對照目前掌握的資料。',
+    overdue: '逾期',
+    today: '今天',
+    upcoming: '即將到期',
+    unscheduled: '未排程',
+    completed: '已完成',
+    diary: '日記',
+    thesis: '投資論點',
+    diaries: '日記',
+    theses: '投資論點',
+    all: '全部',
+    filter: '依類型篩選',
+    empty: '這頁沒有項目。',
+    emptyOverdue: '沒有逾期項目。',
+    emptyToday: '今天沒有到期複盤。',
+    emptyUpcoming: '接下來沒有排定複盤。',
+    emptyAll: '目前沒有待複盤的項目。',
+    library: '日記庫',
+    previous: '上一頁',
+    next: '下一頁',
+    page: '頁',
+    pagination: '分頁',
+    date: '複盤日期',
+    more: '其他 — 未排程與已完成',
+    stateNone: '未安排複盤',
+    statePending: '待複盤',
+    stateReviewed: '已複盤',
+    dueToday: '今天到期',
+    overdueOne: '逾期 1 天',
+    overdueDays: '逾期 {n} 天',
+    dueInOne: '1 天後到期',
+    dueInDays: '{n} 天後到期',
+    overdueSince: '自 {date} 起逾期',
+    dueOn: '{date} 到期',
+    reviewDiary: '複盤日記',
+    reviewThesis: '複盤論點',
+  },
+  'zh-CN': {
+    title: '复盘队列',
+    hint: '回看过往决策，对照目前掌握的资料。',
+    overdue: '逾期',
+    today: '今天',
+    upcoming: '即将到期',
+    unscheduled: '未排程',
+    completed: '已完成',
+    diary: '日记',
+    thesis: '投资论点',
+    diaries: '日记',
+    theses: '投资论点',
+    all: '全部',
+    filter: '按类型筛选',
+    empty: '这页没有项目。',
+    emptyOverdue: '没有逾期项目。',
+    emptyToday: '今天没有到期复盘。',
+    emptyUpcoming: '接下来没有排定复盘。',
+    emptyAll: '目前没有待复盘的项目。',
+    library: '日记库',
+    previous: '上一页',
+    next: '下一页',
+    page: '页',
+    pagination: '分页',
+    date: '复盘日期',
+    more: '其他 — 未排程与已完成',
+    stateNone: '未安排复盘',
+    statePending: '待复盘',
+    stateReviewed: '已复盘',
+    dueToday: '今天到期',
+    overdueOne: '逾期 1 天',
+    overdueDays: '逾期 {n} 天',
+    dueInOne: '1 天后到期',
+    dueInDays: '{n} 天后到期',
+    overdueSince: '自 {date} 起逾期',
+    dueOn: '{date} 到期',
+    reviewDiary: '复盘日记',
+    reviewThesis: '复盘论点',
+  },
+}
 const bucketCopy = {
-  en: { emptyUnscheduled: 'Nothing waiting to be scheduled.', emptyCompleted: 'No completed reviews yet.', updating: 'Updating review queue…', corrected: 'This bucket changed while you were away. Showing its last available page.' },
-  'zh-TW': { emptyUnscheduled: '目前沒有未排程項目。', emptyCompleted: '尚無已完成的複盤。', updating: '正在更新複盤隊列…', corrected: '這個分桶的內容已變更，已顯示最後一頁。' },
-  'zh-CN': { emptyUnscheduled: '目前没有未排程项目。', emptyCompleted: '尚无已完成的复盘。', updating: '正在更新复盘队列…', corrected: '这个分桶的内容已变更，已显示最后一页。' },
-} as const;
+  en: {
+    emptyUnscheduled: 'Nothing waiting to be scheduled.',
+    emptyCompleted: 'No completed reviews yet.',
+    updating: 'Updating review queue…',
+    corrected: 'This bucket changed while you were away. Showing its last available page.',
+  },
+  'zh-TW': {
+    emptyUnscheduled: '目前沒有未排程項目。',
+    emptyCompleted: '尚無已完成的複盤。',
+    updating: '正在更新複盤隊列…',
+    corrected: '這個分桶的內容已變更，已顯示最後一頁。',
+  },
+  'zh-CN': {
+    emptyUnscheduled: '目前没有未排程项目。',
+    emptyCompleted: '尚无已完成的复盘。',
+    updating: '正在更新复盘队列…',
+    corrected: '这个分桶的内容已变更，已显示最后一页。',
+  },
+} as const
 // Past 60 days a day count is noise; the date itself communicates.
-export const dueLine = (days: number, c: (typeof copy)[keyof typeof copy], date: string) => Math.abs(days) < 60 ? (days === 0 ? c.dueToday : days < 0 ? days === -1 ? c.overdueOne : c.overdueDays.replace('{n}', String(-days)) : days === 1 ? c.dueInOne : c.dueInDays.replace('{n}', String(days))) : (days < 0 ? c.overdueSince : c.dueOn).replace('{date}', date);
+export const dueLine = (days: number, c: (typeof copy)[keyof typeof copy], date: string) =>
+  Math.abs(days) < 60
+    ? days === 0
+      ? c.dueToday
+      : days < 0
+        ? days === -1
+          ? c.overdueOne
+          : c.overdueDays.replace('{n}', String(-days))
+        : days === 1
+          ? c.dueInOne
+          : c.dueInDays.replace('{n}', String(days))
+    : (days < 0 ? c.overdueSince : c.dueOn).replace('{date}', date)
 export default function Reviews() {
-  const { locale, t } = useUi(), c = copy[locale], [params, setParams] = useSearchParams();
-  const [data, setData] = useState<ReviewGroups | null>(null), [error, setError] = useState<Failure | null>(null), [attempt, retry] = useState(0), [timezone, setTimezone] = useState('UTC'), [loading, setLoading] = useState(true), [loadedQuery, setLoadedQuery] = useState(''), [corrected, setCorrected] = useState(false);
-  const labels = thesisCopy[locale], workflow = workflowCopy[locale], navigate = useNavigate(), location = useLocation(), session = useSessionState();
-  const [owner, setOwner] = useState('');
+  const { locale, t } = useUi(),
+    c = copy[locale],
+    [params, setParams] = useSearchParams()
+  const [data, setData] = useState<ReviewGroups | null>(null),
+    [error, setError] = useState<Failure | null>(null),
+    [attempt, retry] = useState(0),
+    [timezone, setTimezone] = useState('UTC'),
+    [loading, setLoading] = useState(true),
+    [loadedQuery, setLoadedQuery] = useState(''),
+    [corrected, setCorrected] = useState(false)
+  const labels = thesisCopy[locale],
+    workflow = workflowCopy[locale],
+    navigate = useNavigate(),
+    location = useLocation(),
+    session = useSessionState()
+  const [owner, setOwner] = useState('')
   function start() {
-    if (!data || loading || loadedQuery !== query || !owner) return;
-    const first = reviewBuckets.flatMap(bucket => data[bucket]).find(item => item.targetType === 'diary' || item.symbol);
-    if (!first) return;
-    try { const id = createReviewSession(owner, query, data); navigate(reviewItemPath(first, id), { state: { queueSearch: query } }); }
-    catch { setError(apiFailure(null, translate.current('failed'))); }
-  }
-  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: timezone });
-  const label = (value: string) => Object.hasOwn(labels, value) ? labels[value as keyof typeof labels] : value;
-  const translate = useRef(t); translate.current = t;
-  const query = params.toString(), parsed = reviewQueueQuerySchema.safeParse({ page: params.get('page') ?? undefined, limit: 20, target: params.get('target') ?? undefined, overduePage: params.get('overduePage') ?? undefined, todayPage: params.get('todayPage') ?? undefined, upcomingPage: params.get('upcomingPage') ?? undefined, unscheduledPage: params.get('unscheduledPage') ?? undefined, completedPage: params.get('completedPage') ?? undefined });
-  const resultsHeading = useRef<HTMLHeadingElement>(null), focusResults = useRef(false), focusBucket = useRef<Bucket | null>(null);
-  const bucketHeadings = useRef<Record<Bucket, HTMLHeadingElement | null>>({ overdue: null, today: null, upcoming: null, unscheduled: null, completed: null });
-  const pages = parsed.success ? { overdue: parsed.data.overduePage ?? parsed.data.page, today: parsed.data.todayPage ?? parsed.data.page, upcoming: parsed.data.upcomingPage ?? parsed.data.page, unscheduled: parsed.data.unscheduledPage ?? parsed.data.page, completed: parsed.data.completedPage ?? parsed.data.page } : { overdue: 1, today: 1, upcoming: 1, unscheduled: 1, completed: 1 };
-  useEffect(() => {
-    const controller = new AbortController(); setError(null); setLoading(true);
-    if (session.authenticated === false) { setData(null); setOwner(''); setLoading(false); return; }
-    const raw = new URLSearchParams(query);
-    const parsed = reviewQueueQuerySchema.safeParse({ page: raw.get('page') ?? undefined, limit: 20, target: raw.get('target') ?? undefined, overduePage: raw.get('overduePage') ?? undefined, todayPage: raw.get('todayPage') ?? undefined, upcomingPage: raw.get('upcomingPage') ?? undefined, unscheduledPage: raw.get('unscheduledPage') ?? undefined, completedPage: raw.get('completedPage') ?? undefined });
-    if (!parsed.success) { setData(null); setError({ message: translate.current('failed'), code: 'SYS_VALIDATION_ERROR', fields: [] }); setLoading(false); return; }
-    Promise.all([api.GET('/api/reviews', { params: { query: parsed.data }, signal: controller.signal }), api.GET('/api/auth/me', { signal: controller.signal })]).then(([result, user]) => {
-      if (controller.signal.aborted) return;
-      const value = reviewGroupsResponseSchema.safeParse(result.data);
-      if (!value.success || !user.response.ok || !user.data) { if ([401, 403].includes(result.response.status) || [401, 403].includes(user.response.status)) { setData(null); setOwner(''); } setError(apiFailure(result.error ?? user.error, translate.current('failed'))); setLoading(false); return; }
-      setOwner(user.data.data.id); setData(value.data); setTimezone(user.data.data.timezone); setLoadedQuery(query); setLoading(false);
-      const rawPages = { overdue: parsed.data.overduePage ?? parsed.data.page, today: parsed.data.todayPage ?? parsed.data.page, upcoming: parsed.data.upcomingPage ?? parsed.data.page, unscheduled: parsed.data.unscheduledPage ?? parsed.data.page, completed: parsed.data.completedPage ?? parsed.data.page };
-      const correctedPages = { ...rawPages };
-      let changed = false;
-      for (const bucket of buckets) {
-        const lastPage = Math.max(1, Math.ceil(value.data.counts[bucket] / 20));
-        if (rawPages[bucket] > lastPage) { correctedPages[bucket] = lastPage; changed = true; }
-      }
-      if (changed) {
-        const next = new URLSearchParams(raw); next.delete('page');
-        for (const bucket of buckets) {
-          const key = pageParameters[bucket];
-          if (correctedPages[bucket] > 1) next.set(key, String(correctedPages[bucket]));
-          else next.delete(key);
-        }
-        setCorrected(true); setParams(next, { replace: true });
-      }
-    }).catch(() => { if (!controller.signal.aborted) { setError(apiFailure(null, translate.current('connection'))); setLoading(false); } });
-    return () => controller.abort();
-  }, [query, attempt, session.revision, session.authenticated]);
-  useEffect(() => {
-    if (!data || loading || loadedQuery !== query) return;
-    if (focusBucket.current) { bucketHeadings.current[focusBucket.current]?.focus(); focusBucket.current = null; }
-    else if (focusResults.current) { resultsHeading.current?.focus(); focusResults.current = false; }
-  }, [data, loading, loadedQuery, query]);
-  const turn = (bucket: Bucket, nextPage: number) => {
-    const updated = new URLSearchParams(params); updated.delete('page');
-    for (const currentBucket of buckets) {
-      const key = pageParameters[currentBucket];
-      const currentPage = updated.has(key) ? Number(updated.get(key)) : parsed.success ? pages[currentBucket] : 1;
-      if (currentPage > 1) updated.set(key, String(currentPage)); else updated.delete(key);
+    if (!data || loading || loadedQuery !== query || !owner) return
+    const first = reviewBuckets.flatMap(bucket => data[bucket]).find(item => item.targetType === 'diary' || item.symbol)
+    if (!first) return
+    try {
+      const id = createReviewSession(owner, query, data)
+      navigate(reviewItemPath(first, id), { state: { queueSearch: query } })
+    } catch {
+      setError(apiFailure(null, translate.current('failed')))
     }
-    const key = pageParameters[bucket]; if (nextPage > 1) updated.set(key, String(nextPage)); else updated.delete(key);
-    focusBucket.current = bucket; focusResults.current = false; setCorrected(false); setParams(updated);
-  };
-  const filterTo = (target: string) => { const updated = new URLSearchParams(params); if (target) updated.set('target', target); else updated.delete('target'); updated.delete('page'); for (const key of Object.values(pageParameters)) updated.delete(key); return `/reviews${updated.toString() ? `?${updated}` : ''}`; };
-  const stateLabel = (status: ReviewItem['reviewStatus']) => status === 'reviewed' ? c.stateReviewed : status === 'pending' ? c.statePending : c.stateNone;
-  const dueClass = (days: number) => days < 0 ? 'queue-due-overdue' : days === 0 ? 'queue-due-today' : 'queue-due-upcoming';
+  }
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: timezone })
+  const label = (value: string) => (Object.hasOwn(labels, value) ? labels[value as keyof typeof labels] : value)
+  const translate = useRef(t)
+  translate.current = t
+  const query = params.toString(),
+    parsed = reviewQueueQuerySchema.safeParse({
+      page: params.get('page') ?? undefined,
+      limit: 20,
+      target: params.get('target') ?? undefined,
+      overduePage: params.get('overduePage') ?? undefined,
+      todayPage: params.get('todayPage') ?? undefined,
+      upcomingPage: params.get('upcomingPage') ?? undefined,
+      unscheduledPage: params.get('unscheduledPage') ?? undefined,
+      completedPage: params.get('completedPage') ?? undefined,
+    })
+  const resultsHeading = useRef<HTMLHeadingElement>(null),
+    focusResults = useRef(false),
+    focusBucket = useRef<Bucket | null>(null)
+  const bucketHeadings = useRef<Record<Bucket, HTMLHeadingElement | null>>({
+    overdue: null,
+    today: null,
+    upcoming: null,
+    unscheduled: null,
+    completed: null,
+  })
+  const pages = parsed.success
+    ? {
+        overdue: parsed.data.overduePage ?? parsed.data.page,
+        today: parsed.data.todayPage ?? parsed.data.page,
+        upcoming: parsed.data.upcomingPage ?? parsed.data.page,
+        unscheduled: parsed.data.unscheduledPage ?? parsed.data.page,
+        completed: parsed.data.completedPage ?? parsed.data.page,
+      }
+    : { overdue: 1, today: 1, upcoming: 1, unscheduled: 1, completed: 1 }
+  useEffect(() => {
+    const controller = new AbortController()
+    setError(null)
+    setLoading(true)
+    if (session.authenticated === false) {
+      setData(null)
+      setOwner('')
+      setLoading(false)
+      return
+    }
+    const raw = new URLSearchParams(query)
+    const parsed = reviewQueueQuerySchema.safeParse({
+      page: raw.get('page') ?? undefined,
+      limit: 20,
+      target: raw.get('target') ?? undefined,
+      overduePage: raw.get('overduePage') ?? undefined,
+      todayPage: raw.get('todayPage') ?? undefined,
+      upcomingPage: raw.get('upcomingPage') ?? undefined,
+      unscheduledPage: raw.get('unscheduledPage') ?? undefined,
+      completedPage: raw.get('completedPage') ?? undefined,
+    })
+    if (!parsed.success) {
+      setData(null)
+      setError({ message: translate.current('failed'), code: 'SYS_VALIDATION_ERROR', fields: [] })
+      setLoading(false)
+      return
+    }
+    Promise.all([
+      api.GET('/api/reviews', { params: { query: parsed.data }, signal: controller.signal }),
+      api.GET('/api/auth/me', { signal: controller.signal }),
+    ])
+      .then(([result, user]) => {
+        if (controller.signal.aborted) return
+        const value = reviewGroupsResponseSchema.safeParse(result.data)
+        if (!value.success || !user.response.ok || !user.data) {
+          if ([401, 403].includes(result.response.status) || [401, 403].includes(user.response.status)) {
+            setData(null)
+            setOwner('')
+          }
+          setError(apiFailure(result.error ?? user.error, translate.current('failed')))
+          setLoading(false)
+          return
+        }
+        setOwner(user.data.data.id)
+        setData(value.data)
+        setTimezone(user.data.data.timezone)
+        setLoadedQuery(query)
+        setLoading(false)
+        const rawPages = {
+          overdue: parsed.data.overduePage ?? parsed.data.page,
+          today: parsed.data.todayPage ?? parsed.data.page,
+          upcoming: parsed.data.upcomingPage ?? parsed.data.page,
+          unscheduled: parsed.data.unscheduledPage ?? parsed.data.page,
+          completed: parsed.data.completedPage ?? parsed.data.page,
+        }
+        const correctedPages = { ...rawPages }
+        let changed = false
+        for (const bucket of buckets) {
+          const lastPage = Math.max(1, Math.ceil(value.data.counts[bucket] / 20))
+          if (rawPages[bucket] > lastPage) {
+            correctedPages[bucket] = lastPage
+            changed = true
+          }
+        }
+        if (changed) {
+          const next = new URLSearchParams(raw)
+          next.delete('page')
+          for (const bucket of buckets) {
+            const key = pageParameters[bucket]
+            if (correctedPages[bucket] > 1) next.set(key, String(correctedPages[bucket]))
+            else next.delete(key)
+          }
+          setCorrected(true)
+          setParams(next, { replace: true })
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setError(apiFailure(null, translate.current('connection')))
+          setLoading(false)
+        }
+      })
+    return () => controller.abort()
+  }, [query, attempt, session.revision, session.authenticated])
+  useEffect(() => {
+    if (!data || loading || loadedQuery !== query) return
+    if (focusBucket.current) {
+      bucketHeadings.current[focusBucket.current]?.focus()
+      focusBucket.current = null
+    } else if (focusResults.current) {
+      resultsHeading.current?.focus()
+      focusResults.current = false
+    }
+  }, [data, loading, loadedQuery, query])
+  const turn = (bucket: Bucket, nextPage: number) => {
+    const updated = new URLSearchParams(params)
+    updated.delete('page')
+    for (const currentBucket of buckets) {
+      const key = pageParameters[currentBucket]
+      const currentPage = updated.has(key) ? Number(updated.get(key)) : parsed.success ? pages[currentBucket] : 1
+      if (currentPage > 1) updated.set(key, String(currentPage))
+      else updated.delete(key)
+    }
+    const key = pageParameters[bucket]
+    if (nextPage > 1) updated.set(key, String(nextPage))
+    else updated.delete(key)
+    focusBucket.current = bucket
+    focusResults.current = false
+    setCorrected(false)
+    setParams(updated)
+  }
+  const filterTo = (target: string) => {
+    const updated = new URLSearchParams(params)
+    if (target) updated.set('target', target)
+    else updated.delete('target')
+    updated.delete('page')
+    for (const key of Object.values(pageParameters)) updated.delete(key)
+    return `/reviews${updated.toString() ? `?${updated}` : ''}`
+  }
+  const stateLabel = (status: ReviewItem['reviewStatus']) =>
+    status === 'reviewed' ? c.stateReviewed : status === 'pending' ? c.statePending : c.stateNone
+  const dueClass = (days: number) =>
+    days < 0 ? 'queue-due-overdue' : days === 0 ? 'queue-due-today' : 'queue-due-upcoming'
   const renderItem = (item: ReviewItem) => {
-    const due = item.reviewDueAt && item.reviewStatus !== 'reviewed' ? accountDayDiff(item.reviewDueAt, new Date(), timezone) : null;
-    const href = item.targetType === 'diary' ? `/diaries/${item.id}/review` : item.symbol && `/stocks/${encodeURIComponent(item.symbol)}/thesis`;
-    const title = <><span className="queue-sr">{item.targetType === 'diary' ? `${c.reviewDiary}: ` : `${c.reviewThesis}: `}</span>{item.targetType === 'thesis' ? item.symbol ? `${item.symbol} · ${c.thesis}` : c.thesis : item.title}</>;
-    return <li key={item.id} data-testid="review-queue-item" className="queue-item">
-      <header className="plan-header"><h3>{href ? <Link to={href} state={{ queueSearch: query }}>{title}</Link> : title}</h3><span className="queue-badge">{c[item.targetType]}</span></header>
-      <p className="queue-meta">
-        {item.targetType === 'diary' && <time dateTime={item.date}>{item.date}</time>}
-        {item.reviewDueAt && item.reviewStatus !== 'reviewed' && <span>{c.date}: <time dateTime={item.reviewDueAt}>{dateFmt.format(new Date(item.reviewDueAt))}</time></span>}
-        {item.reviewDueAt && due !== null && <span className={`queue-due ${dueClass(due)}`}>{dueLine(due, c, dateFmt.format(new Date(item.reviewDueAt)))}</span>}
-        <span>{item.reviewOutcome ? `${labels.outcome}: ${label(item.reviewOutcome)}` : stateLabel(item.reviewStatus)}</span>
-        {item.targetType === 'thesis' && item.portfolioDecision && <span>{labels.portfolioDecision}: {label(item.portfolioDecision)}</span>}
-      </p>
-      {item.targetType === 'diary' && item.stockSymbols.length > 0 && <ul className="queue-symbols">{item.stockSymbols.map(symbol => <li key={symbol}>{symbol}</li>)}</ul>}
-      {item.thesis && <p className="queue-summary queue-clamp">{item.thesis}</p>}
-    </li>;
-  };
-  const emptyLine = { overdue: c.emptyOverdue, today: c.emptyToday, upcoming: c.emptyUpcoming, unscheduled: bucketCopy[locale].emptyUnscheduled, completed: bucketCopy[locale].emptyCompleted } as const;
+    const due =
+      item.reviewDueAt && item.reviewStatus !== 'reviewed'
+        ? accountDayDiff(item.reviewDueAt, new Date(), timezone)
+        : null
+    const href =
+      item.targetType === 'diary'
+        ? `/diaries/${item.id}/review`
+        : item.symbol && `/stocks/${encodeURIComponent(item.symbol)}/thesis`
+    const title = (
+      <>
+        <span className="queue-sr">{item.targetType === 'diary' ? `${c.reviewDiary}: ` : `${c.reviewThesis}: `}</span>
+        {item.targetType === 'thesis' ? (item.symbol ? `${item.symbol} · ${c.thesis}` : c.thesis) : item.title}
+      </>
+    )
+    return (
+      <li key={item.id} data-testid="review-queue-item" className="queue-item">
+        <header className="plan-header">
+          <h3>
+            {href ? (
+              <Link to={href} state={{ queueSearch: query }}>
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h3>
+          <span className="queue-badge">{c[item.targetType]}</span>
+        </header>
+        <p className="queue-meta">
+          {item.targetType === 'diary' && <time dateTime={item.date}>{item.date}</time>}
+          {item.reviewDueAt && item.reviewStatus !== 'reviewed' && (
+            <span>
+              {c.date}: <time dateTime={item.reviewDueAt}>{dateFmt.format(new Date(item.reviewDueAt))}</time>
+            </span>
+          )}
+          {item.reviewDueAt && due !== null && (
+            <span className={`queue-due ${dueClass(due)}`}>
+              {dueLine(due, c, dateFmt.format(new Date(item.reviewDueAt)))}
+            </span>
+          )}
+          <span>
+            {item.reviewOutcome ? `${labels.outcome}: ${label(item.reviewOutcome)}` : stateLabel(item.reviewStatus)}
+          </span>
+          {item.targetType === 'thesis' && item.portfolioDecision && (
+            <span>
+              {labels.portfolioDecision}: {label(item.portfolioDecision)}
+            </span>
+          )}
+        </p>
+        {item.targetType === 'diary' && item.stockSymbols.length > 0 && (
+          <ul className="queue-symbols">
+            {item.stockSymbols.map(symbol => (
+              <li key={symbol}>{symbol}</li>
+            ))}
+          </ul>
+        )}
+        {item.thesis && <p className="queue-summary queue-clamp">{item.thesis}</p>}
+      </li>
+    )
+  }
+  const emptyLine = {
+    overdue: c.emptyOverdue,
+    today: c.emptyToday,
+    upcoming: c.emptyUpcoming,
+    unscheduled: bucketCopy[locale].emptyUnscheduled,
+    completed: bucketCopy[locale].emptyCompleted,
+  } as const
   const group = (bucket: Bucket, level: 'h2' | 'h3') => {
-    if (data === null) return null;
-    const Heading = level;
-    const totalPages = Math.ceil(data.counts[bucket] / 20);
-    return <section className="queue-group" id={`queue-${bucket}`} key={bucket} aria-label={c[bucket]}><Heading tabIndex={-1} ref={node => { bucketHeadings.current[bucket] = node; }}>{c[bucket]}</Heading>{data[bucket].length ? <ul className="plan-list">{data[bucket].map(renderItem)}</ul> : <p className="queue-empty-line">{emptyLine[bucket]}</p>}{totalPages > 1 && <nav className="queue-pagination" aria-label={`${c[bucket]} ${c.pagination}`}><span>{c.page} {pages[bucket]} / {totalPages}</span><div><button className="secondary" disabled={pages[bucket] <= 1} onClick={() => turn(bucket, pages[bucket] - 1)}>{c.previous}</button><button className="secondary" disabled={pages[bucket] >= totalPages} onClick={() => turn(bucket, pages[bucket] + 1)}>{c.next}</button></div></nav>}</section>;
-  };
+    if (data === null) return null
+    const Heading = level
+    const totalPages = Math.ceil(data.counts[bucket] / 20)
+    return (
+      <section className="queue-group" id={`queue-${bucket}`} key={bucket} aria-label={c[bucket]}>
+        <Heading
+          tabIndex={-1}
+          ref={node => {
+            bucketHeadings.current[bucket] = node
+          }}
+        >
+          {c[bucket]}
+        </Heading>
+        {data[bucket].length ? (
+          <ul className="plan-list">{data[bucket].map(renderItem)}</ul>
+        ) : (
+          <p className="queue-empty-line">{emptyLine[bucket]}</p>
+        )}
+        {totalPages > 1 && (
+          <nav className="queue-pagination" aria-label={`${c[bucket]} ${c.pagination}`}>
+            <span>
+              {c.page} {pages[bucket]} / {totalPages}
+            </span>
+            <div>
+              <button
+                className="secondary"
+                disabled={pages[bucket] <= 1}
+                onClick={() => turn(bucket, pages[bucket] - 1)}
+              >
+                {c.previous}
+              </button>
+              <button
+                className="secondary"
+                disabled={pages[bucket] >= totalPages}
+                onClick={() => turn(bucket, pages[bucket] + 1)}
+              >
+                {c.next}
+              </button>
+            </div>
+          </nav>
+        )}
+      </section>
+    )
+  }
   // Secondary buckets stay collapsed unless there is nothing urgent to review.
-  const showSecondary = data !== null && priorityBuckets.every(bucket => data.counts[bucket] === 0) && data.unscheduled.length > 0;
+  const showSecondary =
+    data !== null && priorityBuckets.every(bucket => data.counts[bucket] === 0) && data.unscheduled.length > 0
   // An empty queue gets the welcome block alone; buckets, counts and paging are all noise there.
-  const emptyQueue = data !== null && buckets.every(bucket => data.counts[bucket] === 0);
-  if(session.authenticated===false)return <Link to={signInPath('/reviews')}>{t('login')}</Link>;
-  return <section className="plan-page"><h1>{c.title}</h1><p className="lede">{c.hint}</p>{location.state?.reviewSessionFinished && <p role="status">{workflow.finish}</p>}{data && reviewBuckets.some(bucket => data.counts[bucket] > 0) && <button disabled={loading || loadedQuery !== query} onClick={start}>{workflow.start}</button>}{loading && data !== null && <p role="status" aria-live="polite">{bucketCopy[locale].updating}</p>}{corrected && <p role="status" aria-live="polite">{bucketCopy[locale].corrected}</p>}{error && <><FailureNotice failure={error}/>{error.code?.startsWith('AUTH_') && <Link to={signInPath('/reviews')}>{t('login')}</Link>}<button onClick={() => retry(value => value + 1)}>{t('retry')}</button></>}{!data ? error ? null : <p role="status">{t('loading')}</p> : <><nav className="queue-filter" aria-label={c.filter}>{([['', c.all], ['diary', c.diaries], ['thesis', c.theses]] as const).map(([value, name]) => <Link key={value} to={filterTo(value)} aria-current={(params.get('target') ?? '') === value ? 'true' : undefined} onClick={() => { if ((params.get('target') ?? '') !== value) { focusResults.current = true; setCorrected(false); } }}>{name}</Link>)}</nav>{emptyQueue ? <div className="queue-empty" data-testid="queue-empty"><p>{c.emptyAll}</p><div className="actions"><Link className="button" to="/diaries/quick">{t('quick')}</Link><Link className="button secondary" to="/diaries">{c.library}</Link></div></div> : <><div className="queue-priorities">{priorityBuckets.map(bucket => <a key={bucket} className={`queue-priority${data.counts[bucket] > 0 ? ` queue-priority-${bucket}` : ''}`} href={`#queue-${bucket}`} data-testid={`queue-count-${bucket}`}><strong>{data.counts[bucket]}</strong> {c[bucket]}</a>)}</div><section className="queue-attention"><h2 ref={resultsHeading} tabIndex={-1}>{t('attention')}</h2>{group('overdue', 'h3')}{group('today', 'h3')}</section>{group('upcoming', 'h2')}<Disclosure className="queue-secondary" data-testid="queue-secondary" open={showSecondary || undefined}><DisclosureSummary>{c.more}</DisclosureSummary>{secondaryBuckets.map(bucket => group(bucket, 'h2'))}</Disclosure></>}</>}</section>;
+  const emptyQueue = data !== null && buckets.every(bucket => data.counts[bucket] === 0)
+  if (session.authenticated === false) return <Link to={signInPath('/reviews')}>{t('login')}</Link>
+  return (
+    <section className="plan-page">
+      <h1>{c.title}</h1>
+      <p className="lede">{c.hint}</p>
+      {location.state?.reviewSessionFinished && <p role="status">{workflow.finish}</p>}
+      {data && reviewBuckets.some(bucket => data.counts[bucket] > 0) && (
+        <button disabled={loading || loadedQuery !== query} onClick={start}>
+          {workflow.start}
+        </button>
+      )}
+      {loading && data !== null && (
+        <p role="status" aria-live="polite">
+          {bucketCopy[locale].updating}
+        </p>
+      )}
+      {corrected && (
+        <p role="status" aria-live="polite">
+          {bucketCopy[locale].corrected}
+        </p>
+      )}
+      {error && (
+        <>
+          <FailureNotice failure={error} />
+          {error.code?.startsWith('AUTH_') && <Link to={signInPath('/reviews')}>{t('login')}</Link>}
+          <button onClick={() => retry(value => value + 1)}>{t('retry')}</button>
+        </>
+      )}
+      {!data ? (
+        error ? null : (
+          <p role="status">{t('loading')}</p>
+        )
+      ) : (
+        <>
+          <nav className="queue-filter" aria-label={c.filter}>
+            {(
+              [
+                ['', c.all],
+                ['diary', c.diaries],
+                ['thesis', c.theses],
+              ] as const
+            ).map(([value, name]) => (
+              <Link
+                key={value}
+                to={filterTo(value)}
+                aria-current={(params.get('target') ?? '') === value ? 'true' : undefined}
+                onClick={() => {
+                  if ((params.get('target') ?? '') !== value) {
+                    focusResults.current = true
+                    setCorrected(false)
+                  }
+                }}
+              >
+                {name}
+              </Link>
+            ))}
+          </nav>
+          {emptyQueue ? (
+            <div className="queue-empty" data-testid="queue-empty">
+              <p>{c.emptyAll}</p>
+              <div className="actions">
+                <Link className="button" to="/diaries/quick">
+                  {t('quick')}
+                </Link>
+                <Link className="button secondary" to="/diaries">
+                  {c.library}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="queue-priorities">
+                {priorityBuckets.map(bucket => (
+                  <a
+                    key={bucket}
+                    className={`queue-priority${data.counts[bucket] > 0 ? ` queue-priority-${bucket}` : ''}`}
+                    href={`#queue-${bucket}`}
+                    data-testid={`queue-count-${bucket}`}
+                  >
+                    <strong>{data.counts[bucket]}</strong> {c[bucket]}
+                  </a>
+                ))}
+              </div>
+              <section className="queue-attention">
+                <h2 ref={resultsHeading} tabIndex={-1}>
+                  {t('attention')}
+                </h2>
+                {group('overdue', 'h3')}
+                {group('today', 'h3')}
+              </section>
+              {group('upcoming', 'h2')}
+              <Disclosure className="queue-secondary" data-testid="queue-secondary" open={showSecondary || undefined}>
+                <DisclosureSummary>{c.more}</DisclosureSummary>
+                {secondaryBuckets.map(bucket => group(bucket, 'h2'))}
+              </Disclosure>
+            </>
+          )}
+        </>
+      )}
+    </section>
+  )
 }

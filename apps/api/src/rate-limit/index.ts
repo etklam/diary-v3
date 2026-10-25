@@ -39,8 +39,12 @@ export function parseRateLimitConfig(env: Record<string, string | undefined>): R
 export function createMemoryRateLimitRuntime(): RateLimitRuntime {
   const store = new MemoryRateLimitStore()
   return {
-    mode: 'memory', backend: 'memory', degraded: false,
-    get ready() { return true },
+    mode: 'memory',
+    backend: 'memory',
+    degraded: false,
+    get ready() {
+      return true
+    },
     consume: (key, options) => store.consume(key, options),
     close: () => store.close(),
   }
@@ -76,7 +80,9 @@ export async function createRateLimitRuntime(
   }
 
   let initial: RateLimitStore | null = null
-  try { initial = await redisFactory(config.redisUrl) } catch {
+  try {
+    initial = await redisFactory(config.redisUrl)
+  } catch {
     if (config.backend === 'redis') throw new Error('Redis rate-limit backend unavailable')
   }
   if (config.backend === 'redis') {
@@ -99,11 +105,18 @@ export async function createRateLimitRuntime(
   function runtime(mode: ActiveRateLimitBackend, store: RateLimitStore): RateLimitRuntime {
     let failureLogged = false
     return {
-      mode, backend: mode,
-      get degraded() { return mode === 'redis' && !store.ready },
-      get ready() { return store.ready },
+      mode,
+      backend: mode,
+      get degraded() {
+        return mode === 'redis' && !store.ready
+      },
+      get ready() {
+        return store.ready
+      },
       async consume(key, limitOptions) {
-        try { return await store.consume(key, limitOptions) } catch (error) {
+        try {
+          return await store.consume(key, limitOptions)
+        } catch (error) {
           if (mode === 'redis' && !failureLogged) {
             failureLogged = true
             log('redis_rate_limit_degraded', { mode: 'redis', reason: 'command_failed' })
@@ -125,22 +138,36 @@ export async function createRateLimitRuntime(
     const probe = () => {
       if (closed || redisStore || !config.redisUrl || probing || now() < nextProbeAt) return
       nextProbeAt = now() + cooldown
-      probing = Promise.resolve().then(() => redisFactory(config.redisUrl!)).then(async recovered => {
-        if (closed || redisStore) return recovered.close()
-        redisStore = recovered
-        log('redis_rate_limit_recovered', { backend: 'redis' })
-      }).catch(() => {}).finally(() => { probing = null })
+      probing = Promise.resolve()
+        .then(() => redisFactory(config.redisUrl!))
+        .then(async recovered => {
+          if (closed || redisStore) return recovered.close()
+          redisStore = recovered
+          log('redis_rate_limit_recovered', { backend: 'redis' })
+        })
+        .catch(() => {})
+        .finally(() => {
+          probing = null
+        })
     }
 
     return {
       mode: 'auto',
-      get backend(): ActiveRateLimitBackend { return redisStore ? 'redis' : 'memory' },
-      get degraded() { return !redisStore },
-      get ready() { return true },
+      get backend(): ActiveRateLimitBackend {
+        return redisStore ? 'redis' : 'memory'
+      },
+      get degraded() {
+        return !redisStore
+      },
+      get ready() {
+        return true
+      },
       async consume(key: string, limitOptions: RateLimitOptions): Promise<RateLimitResult> {
         const current = redisStore
         if (current) {
-          try { return await current.consume(key, limitOptions) } catch {
+          try {
+            return await current.consume(key, limitOptions)
+          } catch {
             if (redisStore === current) {
               redisStore = null
               nextProbeAt = now() + cooldown

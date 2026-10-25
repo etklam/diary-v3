@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { decryptSmtpSecret, encryptSmtpSecret, environmentSmtpKeyring, SmtpSecretError } from '../../apps/api/src/account-email/secrets.js'
+import {
+  decryptSmtpSecret,
+  encryptSmtpSecret,
+  environmentSmtpKeyring,
+  SmtpSecretError,
+} from '../../apps/api/src/account-email/secrets.js'
 
 const keyring = {
   activeVersion: 'smtp-k1',
@@ -20,20 +25,33 @@ describe('SMTP authenticated encryption', () => {
     const second = encryptSmtpSecret('synthetic smtp password', 'smtp-password', keyring)
     expect(first).not.toBe(second)
     expect(first).toMatch(/^v1\.smtp-k1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u)
-    expect(decryptSmtpSecret(first, 'smtp-password', { ...keyring, activeVersion: 'smtp-k2' })).toBe('synthetic smtp password')
+    expect(decryptSmtpSecret(first, 'smtp-password', { ...keyring, activeVersion: 'smtp-k2' })).toBe(
+      'synthetic smtp password',
+    )
     expect(() => decryptSmtpSecret(first, 'other-purpose', keyring)).toThrowError('Encrypted SMTP data is unavailable.')
-    expect(() => decryptSmtpSecret(first.replace('.smtp-k1.', '.smtp-k2.'), 'smtp-password', keyring)).toThrowError(SmtpSecretError)
+    expect(() => decryptSmtpSecret(first.replace('.smtp-k1.', '.smtp-k2.'), 'smtp-password', keyring)).toThrowError(
+      SmtpSecretError,
+    )
   })
 
   it('classifies missing decryption keys separately from damaged ciphertext', () => {
     const envelope = encryptSmtpSecret('secret', 'smtp-password', keyring)
-    expect(() => decryptSmtpSecret(envelope, 'smtp-password', { activeVersion: 'smtp-k1', keys: {} })).toThrowError('SMTP encryption is unavailable.')
-    expect(() => decryptSmtpSecret(`${envelope}x`, 'smtp-password', keyring)).toThrowError('Encrypted SMTP data is unavailable.')
+    expect(() => decryptSmtpSecret(envelope, 'smtp-password', { activeVersion: 'smtp-k1', keys: {} })).toThrowError(
+      'SMTP encryption is unavailable.',
+    )
+    expect(() => decryptSmtpSecret(`${envelope}x`, 'smtp-password', keyring)).toThrowError(
+      'Encrypted SMTP data is unavailable.',
+    )
   })
 
   it('keeps malformed environment values lazy and operation-scoped', () => {
-    const keyringFromEnvironment = environmentSmtpKeyring({ SMTP_ENCRYPTION_ACTIVE_KEY: 'smtp-k1', SMTP_ENCRYPTION_KEYS: '{not-json' })
+    const keyringFromEnvironment = environmentSmtpKeyring({
+      SMTP_ENCRYPTION_ACTIVE_KEY: 'smtp-k1',
+      SMTP_ENCRYPTION_KEYS: '{not-json',
+    })
     expect(keyringFromEnvironment).toEqual({ activeVersion: 'smtp-k1', keys: {} })
-    expect(() => encryptSmtpSecret('secret', 'smtp-password', keyringFromEnvironment)).toThrowError('SMTP encryption is unavailable.')
+    expect(() => encryptSmtpSecret('secret', 'smtp-password', keyringFromEnvironment)).toThrowError(
+      'SMTP encryption is unavailable.',
+    )
   })
 })

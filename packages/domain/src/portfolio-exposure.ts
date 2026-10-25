@@ -64,9 +64,7 @@ const EMPTY_EXPOSURE: PortfolioExposure = {
  * Invalid cost values are skipped and counted so percentages stay finite.
  */
 function resolveMarketValue(h: Holding): number | null {
-  return typeof h.totalCost === 'number' && Number.isFinite(h.totalCost) && h.totalCost >= 0
-    ? h.totalCost
-    : null
+  return typeof h.totalCost === 'number' && Number.isFinite(h.totalCost) && h.totalCost >= 0 ? h.totalCost : null
 }
 
 /**
@@ -112,14 +110,7 @@ export function computePortfolioExposure(holdings: Holding[]): PortfolioExposure
   const unknownPct = pct('unknown')
 
   // largestTheme: largest non-unknown bucket, by value.
-  const knownBuckets: BetaBucket[] = [
-    'high_beta',
-    'core_index',
-    'mega_cap',
-    'single_stock',
-    'defensive',
-    'cash_proxy',
-  ]
+  const knownBuckets: BetaBucket[] = ['high_beta', 'core_index', 'mega_cap', 'single_stock', 'defensive', 'cash_proxy']
   let largestTheme: string | null = null
   let largestValue = -1
   for (const b of knownBuckets) {
@@ -134,8 +125,8 @@ export function computePortfolioExposure(holdings: Holding[]): PortfolioExposure
 
   // concentrationWarning: any non-cash_proxy known bucket strictly > 50%.
   const concentrationWarning = knownBuckets
-    .filter((b) => b !== 'cash_proxy')
-    .some((b) => (bucketTotals.get(b) ?? 0) / totalValue * 100 > 50)
+    .filter(b => b !== 'cash_proxy')
+    .some(b => ((bucketTotals.get(b) ?? 0) / totalValue) * 100 > 50)
 
   return {
     highBetaPct,
@@ -181,10 +172,7 @@ function combineBetaBuckets(exposure: PortfolioExposure): CombinedBuckets {
  * Status: |gap| <= 5 → balanced; gap > 5 → overweight; gap < -5 → underweight.
  * Unknown exposure is intentionally not compared.
  */
-export function compareExposureToTarget(
-  exposure: PortfolioExposure,
-  target: SuggestedAllocation
-): ExposureGap[] {
+export function compareExposureToTarget(exposure: PortfolioExposure, target: SuggestedAllocation): ExposureGap[] {
   const combined = combineBetaBuckets(exposure)
   const highBetaCurrent = combined.highBeta
   const coreIndexCurrent = combined.coreIndex
@@ -196,11 +184,7 @@ export function compareExposureToTarget(
     return 'balanced'
   }
 
-  const build = (
-    bucket: string,
-    currentPct: number,
-    targetPct: number
-  ): ExposureGap => {
+  const build = (bucket: string, currentPct: number, targetPct: number): ExposureGap => {
     const gapPct = currentPct - targetPct
     return { bucket, currentPct, targetPct, gapPct, status: computeStatus(gapPct) }
   }

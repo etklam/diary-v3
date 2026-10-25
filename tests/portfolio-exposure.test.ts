@@ -8,11 +8,7 @@ import {
 import type { PortfolioHolding as Holding } from '@diary/contracts/portfolio'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-function makeHolding(
-  symbol: string,
-  totalCost: number,
-  overrides: Partial<Holding> = {}
-): Holding {
+function makeHolding(symbol: string, totalCost: number, overrides: Partial<Holding> = {}): Holding {
   return {
     symbol,
     quantity: 10,
@@ -24,13 +20,7 @@ function makeHolding(
 
 function sumPct(e: PortfolioExposure): number {
   return (
-    e.highBetaPct +
-    e.coreIndexPct +
-    e.megaCapPct +
-    e.singleStockPct +
-    e.defensivePct +
-    e.cashProxyPct +
-    e.unknownPct
+    e.highBetaPct + e.coreIndexPct + e.megaCapPct + e.singleStockPct + e.defensivePct + e.cashProxyPct + e.unknownPct
   )
 }
 
@@ -64,20 +54,13 @@ describe('computePortfolioExposure', () => {
 
   describe('all known tickers', () => {
     it('AC2: sum of all buckets = 100', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 1000),
-        makeHolding('SOXX', 1000),
-        makeHolding('NVDA', 1000),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 1000), makeHolding('SOXX', 1000), makeHolding('NVDA', 1000)]
       const result = computePortfolioExposure(holdings)
       expect(Math.round(sumPct(result) * 100) / 100).toBe(100)
     })
 
     it('uses the raw holding cost basis as the exposure proxy', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 1000),
-        makeHolding('SOXX', 3000),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 1000), makeHolding('SOXX', 3000)]
       const result = computePortfolioExposure(holdings)
       expect(result.totalValue).toBe(4000)
       expect(result.coreIndexPct).toBeCloseTo(25, 2)
@@ -87,10 +70,7 @@ describe('computePortfolioExposure', () => {
 
   describe('all unknown tickers', () => {
     it('AC3: unknownPct = 100', () => {
-      const holdings: Holding[] = [
-        makeHolding('FOO', 500),
-        makeHolding('BAR', 500),
-      ]
+      const holdings: Holding[] = [makeHolding('FOO', 500), makeHolding('BAR', 500)]
       const result = computePortfolioExposure(holdings)
       expect(result.unknownPct).toBeCloseTo(100, 2)
       expect(result.largestTheme).toBeNull()
@@ -99,10 +79,7 @@ describe('computePortfolioExposure', () => {
 
   describe('mixed known/unknown', () => {
     it('AC4: distributes by market value proportion', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 1000),
-        makeHolding('UNKNOWN_TICKER', 1000),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 1000), makeHolding('UNKNOWN_TICKER', 1000)]
       const result = computePortfolioExposure(holdings)
       expect(result.coreIndexPct).toBeCloseTo(50, 2)
       expect(result.unknownPct).toBeCloseTo(50, 2)
@@ -111,10 +88,7 @@ describe('computePortfolioExposure', () => {
 
   describe('case insensitivity', () => {
     it('AC5: nVdA and NVDA map to same bucket', () => {
-      const holdings: Holding[] = [
-        makeHolding('nVdA', 500),
-        makeHolding('NVDA', 500),
-      ]
+      const holdings: Holding[] = [makeHolding('nVdA', 500), makeHolding('NVDA', 500)]
       const result = computePortfolioExposure(holdings)
       expect(result.megaCapPct).toBeCloseTo(100, 2)
       expect(result.unknownPct).toBe(0)
@@ -123,10 +97,7 @@ describe('computePortfolioExposure', () => {
 
   describe('concentrationWarning boundary', () => {
     it('AC6: exactly 50% → false', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 500),
-        makeHolding('SOXX', 500),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 500), makeHolding('SOXX', 500)]
       const result = computePortfolioExposure(holdings)
       expect(result.coreIndexPct).toBeCloseTo(50, 2)
       expect(result.highBetaPct).toBeCloseTo(50, 2)
@@ -135,20 +106,14 @@ describe('computePortfolioExposure', () => {
 
     it('AC6: 50.01% → true', () => {
       // QQQ 5000.01 / SOXX 4999.99 → QQQ ratio slightly over 50
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 5000.01),
-        makeHolding('SOXX', 4999.99),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 5000.01), makeHolding('SOXX', 4999.99)]
       const result = computePortfolioExposure(holdings)
       expect(result.coreIndexPct).toBeGreaterThan(50)
       expect(result.concentrationWarning).toBe(true)
     })
 
     it('cash_proxy > 50% does NOT trigger warning', () => {
-      const holdings: Holding[] = [
-        makeHolding('BIL', 9000),
-        makeHolding('QQQ', 1000),
-      ]
+      const holdings: Holding[] = [makeHolding('BIL', 9000), makeHolding('QQQ', 1000)]
       const result = computePortfolioExposure(holdings)
       expect(result.cashProxyPct).toBeCloseTo(90, 2)
       expect(result.concentrationWarning).toBe(false)
@@ -157,11 +122,7 @@ describe('computePortfolioExposure', () => {
 
   describe('largestTheme', () => {
     it('returns largest non-unknown bucket name', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 600),
-        makeHolding('SOXX', 300),
-        makeHolding('BIL', 100),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 600), makeHolding('SOXX', 300), makeHolding('BIL', 100)]
       const result = computePortfolioExposure(holdings)
       expect(result.largestTheme).toBe('core_index')
     })
@@ -180,10 +141,7 @@ describe('computePortfolioExposure', () => {
 
   describe('totalValue', () => {
     it('sums all holdings market value', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', 1000),
-        makeHolding('SOXX', 1000),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', 1000), makeHolding('SOXX', 1000)]
       const result = computePortfolioExposure(holdings)
       expect(result.totalValue).toBeCloseTo(2000, 2)
     })
@@ -196,10 +154,7 @@ describe('computePortfolioExposure', () => {
   // produce Infinity in the resulting percentages.
   describe('invalid holdings (NaN / Infinity guard)', () => {
     it('all-invalid holdings → ALL_ZERO with skippedCount = N', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', NaN),
-        makeHolding('SOXX', Infinity),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', NaN), makeHolding('SOXX', Infinity)]
       const result = computePortfolioExposure(holdings)
       expect(result.totalValue).toBe(0)
       expect(result.highBetaPct).toBe(0)
@@ -225,13 +180,15 @@ describe('computePortfolioExposure', () => {
     })
 
     it('result is always finite even when every numeric source is NaN', () => {
-      const holdings: Holding[] = [
-        makeHolding('QQQ', NaN, { avgCost: NaN }),
-      ]
+      const holdings: Holding[] = [makeHolding('QQQ', NaN, { avgCost: NaN })]
       const result = computePortfolioExposure(holdings)
       const allPcts = [
-        result.highBetaPct, result.coreIndexPct, result.megaCapPct,
-        result.singleStockPct, result.defensivePct, result.cashProxyPct,
+        result.highBetaPct,
+        result.coreIndexPct,
+        result.megaCapPct,
+        result.singleStockPct,
+        result.defensivePct,
+        result.cashProxyPct,
         result.unknownPct,
       ]
       expect(allPcts.every(Number.isFinite)).toBe(true)
@@ -274,7 +231,7 @@ describe('compareExposureToTarget', () => {
         singleStockPct: 5,
       })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.currentPct).toBeCloseTo(35, 2)
     })
 
@@ -284,21 +241,21 @@ describe('compareExposureToTarget', () => {
         cashProxyPct: 5,
       })
       const gaps = compareExposureToTarget(exposure, target)
-      const cash = gaps.find((g) => g.bucket === 'cash')!
+      const cash = gaps.find(g => g.bucket === 'cash')!
       expect(cash.currentPct).toBeCloseTo(15, 2)
     })
 
     it('maps core_index → coreIndex', () => {
       const exposure = makeExposure({ coreIndexPct: 50 })
       const gaps = compareExposureToTarget(exposure, target)
-      const coreIndex = gaps.find((g) => g.bucket === 'coreIndex')!
+      const coreIndex = gaps.find(g => g.bucket === 'coreIndex')!
       expect(coreIndex.currentPct).toBeCloseTo(50, 2)
     })
 
     it('does not include unknown bucket', () => {
       const exposure = makeExposure({ unknownPct: 100 })
       const gaps = compareExposureToTarget(exposure, target)
-      expect(gaps.find((g) => g.bucket === 'unknown')).toBeUndefined()
+      expect(gaps.find(g => g.bucket === 'unknown')).toBeUndefined()
     })
   })
 
@@ -306,7 +263,7 @@ describe('compareExposureToTarget', () => {
     it('gapPct = currentPct - targetPct', () => {
       const exposure = makeExposure({ highBetaPct: 50 })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.gapPct).toBeCloseTo(10, 2)
     })
   })
@@ -315,7 +272,7 @@ describe('compareExposureToTarget', () => {
     it('AC7: gap = +5 → balanced', () => {
       const exposure = makeExposure({ highBetaPct: 45 })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.gapPct).toBeCloseTo(5, 2)
       expect(highBeta.status).toBe('balanced')
     })
@@ -323,7 +280,7 @@ describe('compareExposureToTarget', () => {
     it('AC7: gap = -5 → balanced', () => {
       const exposure = makeExposure({ highBetaPct: 35 })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.gapPct).toBeCloseTo(-5, 2)
       expect(highBeta.status).toBe('balanced')
     })
@@ -331,14 +288,14 @@ describe('compareExposureToTarget', () => {
     it('gap > +5 → overweight', () => {
       const exposure = makeExposure({ highBetaPct: 50 })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.status).toBe('overweight')
     })
 
     it('gap < -5 → underweight', () => {
       const exposure = makeExposure({ highBetaPct: 20 })
       const gaps = compareExposureToTarget(exposure, target)
-      const highBeta = gaps.find((g) => g.bucket === 'highBeta')!
+      const highBeta = gaps.find(g => g.bucket === 'highBeta')!
       expect(highBeta.status).toBe('underweight')
     })
   })
@@ -346,7 +303,7 @@ describe('compareExposureToTarget', () => {
   describe('returns all 3 buckets', () => {
     it('has highBeta, coreIndex, cash', () => {
       const gaps = compareExposureToTarget(makeExposure({}), target)
-      const buckets = gaps.map((g) => g.bucket).sort()
+      const buckets = gaps.map(g => g.bucket).sort()
       expect(buckets).toEqual(['cash', 'coreIndex', 'highBeta'])
     })
   })
@@ -359,7 +316,9 @@ it('skips corrupt negative cost instead of creating negative or inflated bucket 
 
 it('keeps the full cost denominator regardless of missing, zero or different quotes', () => {
   const result = computePortfolioExposure([
-    makeHolding('QQQ', 100, { price: 0 }), makeHolding('SOXX', 100, { price: 1000 }), makeHolding('UNMAPPED', 200),
+    makeHolding('QQQ', 100, { price: 0 }),
+    makeHolding('SOXX', 100, { price: 1000 }),
+    makeHolding('UNMAPPED', 200),
   ])
   expect(result).toMatchObject({ totalValue: 400, coreIndexPct: 25, highBetaPct: 25, unknownPct: 50 })
 })

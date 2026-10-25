@@ -43,13 +43,26 @@ type Dependencies = {
 type NotificationRow = typeof guruNotifications.$inferSelect
 
 const defaults = {
-  newFiling: true, newPosition: true, exitedPosition: true, strongAdd: true, strongReduce: true,
-  newStockHolder: true, consensusChange: false, minWeightPercent: null, minQuantityChangePercent: null,
+  newFiling: true,
+  newPosition: true,
+  exitedPosition: true,
+  strongAdd: true,
+  strongReduce: true,
+  newStockHolder: true,
+  consensusChange: false,
+  minWeightPercent: null,
+  minQuantityChangePercent: null,
 }
 
-function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
-function decimal(value: unknown): string | null { return typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value) ? value : null }
-function counted(value: unknown): number | null { return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null }
+function text(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+function decimal(value: unknown): string | null {
+  return typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value) ? value : null
+}
+function counted(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
+}
 function classification(value: unknown) {
   return value === 'ACCUMULATION' || value === 'NEUTRAL' || value === 'DISTRIBUTION' ? value : null
 }
@@ -61,7 +74,11 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     context.header('Cache-Control', 'no-store')
     const session = context.get('user')
     if (!session) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, BigInt(session.id))).limit(1)
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, BigInt(session.id)))
+      .limit(1)
     if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     return user.id
   }
@@ -75,36 +92,53 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
   async function securityFor(symbol: string) {
     const resolved = await resolveGuruSymbol(db, symbol, now().toISOString().slice(0, 10))
     if (resolved.securityId === null) {
-      return fail(404, 'GURU_ANALYSIS_UNAVAILABLE', resolved.status === 'AMBIGUOUS'
-        ? 'This ticker maps to more than one tracked security'
-        : 'This ticker is not mapped to a tracked security')
+      return fail(
+        404,
+        'GURU_ANALYSIS_UNAVAILABLE',
+        resolved.status === 'AMBIGUOUS'
+          ? 'This ticker maps to more than one tracked security'
+          : 'This ticker is not mapped to a tracked security',
+      )
     }
     return resolved.securityId
   }
 
   async function unreadCount(userId: bigint) {
-    const [row] = await db.select({ count: count() }).from(guruNotifications)
+    const [row] = await db
+      .select({ count: count() })
+      .from(guruNotifications)
       .where(and(eq(guruNotifications.userId, userId), isNull(guruNotifications.readAt)))
     return Number(row?.count ?? 0)
   }
 
   async function readPreferences(userId: bigint) {
-    const [preference] = await db.select().from(guruNotificationPreferences).where(eq(guruNotificationPreferences.userId, userId)).limit(1)
-    const followed = await db.select({ slug: gurus.slug, name: gurus.name }).from(guruFollowers)
+    const [preference] = await db
+      .select()
+      .from(guruNotificationPreferences)
+      .where(eq(guruNotificationPreferences.userId, userId))
+      .limit(1)
+    const followed = await db
+      .select({ slug: gurus.slug, name: gurus.name })
+      .from(guruFollowers)
       .innerJoin(gurus, eq(gurus.id, guruFollowers.guruId))
       .where(and(eq(guruFollowers.userId, userId), eq(gurus.active, true)))
       .orderBy(asc(gurus.name))
-    const watched = await db.select({
-      securityId: guruStockWatches.securityId,
-      company: institutionalSecurities.issuer,
-      symbol: institutionalSecurityIdentifiers.value,
-    }).from(guruStockWatches)
+    const watched = await db
+      .select({
+        securityId: guruStockWatches.securityId,
+        company: institutionalSecurities.issuer,
+        symbol: institutionalSecurityIdentifiers.value,
+      })
+      .from(guruStockWatches)
       .innerJoin(institutionalSecurities, eq(institutionalSecurities.id, guruStockWatches.securityId))
-      .leftJoin(institutionalSecurityIdentifiers, and(
-        eq(institutionalSecurityIdentifiers.securityId, guruStockWatches.securityId),
-        eq(institutionalSecurityIdentifiers.type, 'TICKER'),
-        isNull(institutionalSecurityIdentifiers.validTo),
-      ))
+      .leftJoin(
+        institutionalSecurityIdentifiers,
+        and(
+          eq(institutionalSecurityIdentifiers.securityId, guruStockWatches.securityId),
+          eq(institutionalSecurityIdentifiers.type, 'TICKER'),
+          isNull(institutionalSecurityIdentifiers.validTo),
+        ),
+      )
       .where(eq(guruStockWatches.userId, userId))
       .orderBy(asc(institutionalSecurities.issuer))
     const seen = new Set<string>()
@@ -140,7 +174,9 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     const userId = await requireMember(context)
     const input = await parseJson(context, guruNotificationPreferencesUpdateSchema)
     const timestamp = now()
-    await db.insert(guruNotificationPreferences).values({ userId, ...input, updatedAt: timestamp })
+    await db
+      .insert(guruNotificationPreferences)
+      .values({ userId, ...input, updatedAt: timestamp })
       .onConflictDoUpdate({ target: guruNotificationPreferences.userId, set: { ...input, updatedAt: timestamp } })
     return context.json(await readPreferences(userId))
   })
@@ -149,17 +185,24 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     const userId = await requireMember(context)
     const parsed = guruNotificationListQuerySchema.safeParse(context.req.query())
     if (!parsed.success) return validationError(parsed.error)
-    const rows = await db.select({ notification: guruNotifications, guru: gurus }).from(guruNotifications)
+    const rows = await db
+      .select({ notification: guruNotifications, guru: gurus })
+      .from(guruNotifications)
       .leftJoin(gurus, eq(gurus.id, guruNotifications.guruId))
-      .where(and(
-        eq(guruNotifications.userId, userId),
-        parsed.data.unreadOnly === 'true' ? isNull(guruNotifications.readAt) : undefined,
-      ))
-      .orderBy(desc(guruNotifications.createdAt), desc(guruNotifications.id)).limit(parsed.data.limit)
-    return context.json(guruNotificationListResponseSchema.parse({
-      data: rows.map(({ notification, guru }) => serialize(notification, guru)),
-      unreadCount: await unreadCount(userId),
-    }))
+      .where(
+        and(
+          eq(guruNotifications.userId, userId),
+          parsed.data.unreadOnly === 'true' ? isNull(guruNotifications.readAt) : undefined,
+        ),
+      )
+      .orderBy(desc(guruNotifications.createdAt), desc(guruNotifications.id))
+      .limit(parsed.data.limit)
+    return context.json(
+      guruNotificationListResponseSchema.parse({
+        data: rows.map(({ notification, guru }) => serialize(notification, guru)),
+        unreadCount: await unreadCount(userId),
+      }),
+    )
   })
 
   function serialize(row: NotificationRow, guru: typeof gurus.$inferSelect | null) {
@@ -191,22 +234,42 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     const userId = await requireMember(context)
     const input = await parseJson(context, guruNotificationReadRequestSchema)
     const timestamp = now()
-    const updated = await db.update(guruNotifications).set({ readAt: timestamp }).where(and(
-      eq(guruNotifications.userId, userId), isNull(guruNotifications.readAt),
-      input.ids?.length ? inArray(guruNotifications.id, input.ids.map(value => BigInt(value))) : undefined,
-    )).returning({ id: guruNotifications.id })
-    return context.json(guruNotificationReadResponseSchema.parse({
-      data: { updated: updated.length, unreadCount: await unreadCount(userId) },
-    }))
+    const updated = await db
+      .update(guruNotifications)
+      .set({ readAt: timestamp })
+      .where(
+        and(
+          eq(guruNotifications.userId, userId),
+          isNull(guruNotifications.readAt),
+          input.ids?.length
+            ? inArray(
+                guruNotifications.id,
+                input.ids.map(value => BigInt(value)),
+              )
+            : undefined,
+        ),
+      )
+      .returning({ id: guruNotifications.id })
+    return context.json(
+      guruNotificationReadResponseSchema.parse({
+        data: { updated: updated.length, unreadCount: await unreadCount(userId) },
+      }),
+    )
   })
 
   async function mutateWatch(context: Context<AppEnv>, watching: boolean) {
     const userId = await requireMember(context)
     const symbol = requireSymbol(context)
     const securityId = await securityFor(symbol)
-    if (watching) await db.insert(guruStockWatches).values({ userId, securityId, createdAt: now() }).onConflictDoNothing()
-    else await db.delete(guruStockWatches).where(and(eq(guruStockWatches.userId, userId), eq(guruStockWatches.securityId, securityId)))
-    return context.json(guruStockWatchResponseSchema.parse({ data: { watching, symbol, securityId: securityId.toString() } }))
+    if (watching)
+      await db.insert(guruStockWatches).values({ userId, securityId, createdAt: now() }).onConflictDoNothing()
+    else
+      await db
+        .delete(guruStockWatches)
+        .where(and(eq(guruStockWatches.userId, userId), eq(guruStockWatches.securityId, securityId)))
+    return context.json(
+      guruStockWatchResponseSchema.parse({ data: { watching, symbol, securityId: securityId.toString() } }),
+    )
   }
 
   app.put('/api/stocks/:symbol/guru-watch', context => mutateWatch(context, true))
@@ -216,9 +279,16 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     const userId = await requireMember(context)
     const symbol = requireSymbol(context)
     const securityId = await securityFor(symbol)
-    const [row] = await db.select({ securityId: guruStockWatches.securityId }).from(guruStockWatches)
-      .where(and(eq(guruStockWatches.userId, userId), eq(guruStockWatches.securityId, securityId))).limit(1)
-    return context.json(guruStockWatchResponseSchema.parse({ data: { watching: Boolean(row), symbol, securityId: securityId.toString() } }))
+    const [row] = await db
+      .select({ securityId: guruStockWatches.securityId })
+      .from(guruStockWatches)
+      .where(and(eq(guruStockWatches.userId, userId), eq(guruStockWatches.securityId, securityId)))
+      .limit(1)
+    return context.json(
+      guruStockWatchResponseSchema.parse({
+        data: { watching: Boolean(row), symbol, securityId: securityId.toString() },
+      }),
+    )
   })
 
   const parseDiaryId = (context: Context<AppEnv>) => {
@@ -228,27 +298,37 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
   }
 
   async function ownedDiary(context: Context<AppEnv>, userId: bigint) {
-    const [diary] = await db.select({ id: diaries.id }).from(diaries).where(and(
-      eq(diaries.id, parseDiaryId(context)), eq(diaries.userId, userId),
-    )).limit(1)
+    const [diary] = await db
+      .select({ id: diaries.id })
+      .from(diaries)
+      .where(and(eq(diaries.id, parseDiaryId(context)), eq(diaries.userId, userId)))
+      .limit(1)
     if (!diary) return fail(404, 'DIARY_NOT_FOUND', 'Diary not found')
     return diary.id
   }
 
   function serializeSnapshot(row: typeof diaryGuruSnapshots.$inferSelect) {
     return {
-      id: row.id.toString(), diaryId: row.diaryId.toString(), symbol: row.symbol, periodEnd: row.periodEnd,
-      holderCount: row.holderCount, contextVersion: row.contextVersion, consensusVersion: row.consensusVersion,
-      capturedAt: row.capturedAt.toISOString(), context: row.snapshot as unknown as GuruDecisionContext,
+      id: row.id.toString(),
+      diaryId: row.diaryId.toString(),
+      symbol: row.symbol,
+      periodEnd: row.periodEnd,
+      holderCount: row.holderCount,
+      contextVersion: row.contextVersion,
+      consensusVersion: row.consensusVersion,
+      capturedAt: row.capturedAt.toISOString(),
+      context: row.snapshot as unknown as GuruDecisionContext,
     }
   }
 
   app.get('/api/diaries/:id/guru-snapshots', async context => {
     const userId = await requireMember(context)
     const diaryId = await ownedDiary(context, userId)
-    const rows = await db.select().from(diaryGuruSnapshots).where(and(
-      eq(diaryGuruSnapshots.diaryId, diaryId), eq(diaryGuruSnapshots.userId, userId),
-    )).orderBy(desc(diaryGuruSnapshots.id))
+    const rows = await db
+      .select()
+      .from(diaryGuruSnapshots)
+      .where(and(eq(diaryGuruSnapshots.diaryId, diaryId), eq(diaryGuruSnapshots.userId, userId)))
+      .orderBy(desc(diaryGuruSnapshots.id))
     return context.json(diaryGuruSnapshotListResponseSchema.parse({ data: rows.map(serializeSnapshot) }))
   })
 
@@ -259,20 +339,44 @@ export function registerGuruNotificationRoutes(app: Hono<AppEnv>, dependencies: 
     const input = await parseJson(context, diaryGuruSnapshotCreateRequestSchema)
     const symbol = input.symbol.toUpperCase()
     const resolved = await resolveGuruSymbol(db, symbol, now().toISOString().slice(0, 10))
-    if (resolved.securityId === null) return fail(404, 'GURU_ANALYSIS_UNAVAILABLE', 'This ticker is not mapped to one tracked security')
-    const built = await buildGuruDecisionContext(db, { securityId: resolved.securityId, symbol, ...(input.periodEnd ? { periodEnd: input.periodEnd } : {}) })
-    if (!built) return fail(409, 'GURU_ANALYSIS_UNAVAILABLE', 'No prepared Guru quarter is available for this stock yet')
-    const [existing] = await db.select().from(diaryGuruSnapshots).where(and(
-      eq(diaryGuruSnapshots.diaryId, diaryId), eq(diaryGuruSnapshots.securityId, resolved.securityId),
-      eq(diaryGuruSnapshots.periodEnd, built.context.periodEnd),
-    )).limit(1)
-    if (existing) return context.json(diaryGuruSnapshotResponseSchema.parse({ data: serializeSnapshot(existing), reused: true }))
-    const [row] = await db.insert(diaryGuruSnapshots).values({
-      diaryId, userId, securityId: resolved.securityId, symbol, periodEnd: built.context.periodEnd,
-      contextVersion: built.context.contextVersion, consensusVersion: built.consensusVersion,
-      consensusSnapshotId: built.consensusSnapshotId, holderCount: built.context.consensus?.holderCount ?? built.context.holders.length,
-      snapshot: built.context as unknown as Record<string, unknown>, capturedAt: now(),
-    }).returning()
+    if (resolved.securityId === null)
+      return fail(404, 'GURU_ANALYSIS_UNAVAILABLE', 'This ticker is not mapped to one tracked security')
+    const built = await buildGuruDecisionContext(db, {
+      securityId: resolved.securityId,
+      symbol,
+      ...(input.periodEnd ? { periodEnd: input.periodEnd } : {}),
+    })
+    if (!built)
+      return fail(409, 'GURU_ANALYSIS_UNAVAILABLE', 'No prepared Guru quarter is available for this stock yet')
+    const [existing] = await db
+      .select()
+      .from(diaryGuruSnapshots)
+      .where(
+        and(
+          eq(diaryGuruSnapshots.diaryId, diaryId),
+          eq(diaryGuruSnapshots.securityId, resolved.securityId),
+          eq(diaryGuruSnapshots.periodEnd, built.context.periodEnd),
+        ),
+      )
+      .limit(1)
+    if (existing)
+      return context.json(diaryGuruSnapshotResponseSchema.parse({ data: serializeSnapshot(existing), reused: true }))
+    const [row] = await db
+      .insert(diaryGuruSnapshots)
+      .values({
+        diaryId,
+        userId,
+        securityId: resolved.securityId,
+        symbol,
+        periodEnd: built.context.periodEnd,
+        contextVersion: built.context.contextVersion,
+        consensusVersion: built.consensusVersion,
+        consensusSnapshotId: built.consensusSnapshotId,
+        holderCount: built.context.consensus?.holderCount ?? built.context.holders.length,
+        snapshot: built.context as unknown as Record<string, unknown>,
+        capturedAt: now(),
+      })
+      .returning()
     return context.json(diaryGuruSnapshotResponseSchema.parse({ data: serializeSnapshot(row!), reused: false }), 201)
   })
 }

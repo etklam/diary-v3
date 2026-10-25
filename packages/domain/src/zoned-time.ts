@@ -10,7 +10,7 @@ function getZonedParts(date: Date, timeZone: string) {
     hour12: false,
   }).formatToParts(date)
 
-  const part = (type: string) => Number(values.find((item) => item.type === type)?.value)
+  const part = (type: string) => Number(values.find(item => item.type === type)?.value)
 
   const hour = part('hour')
   return {
@@ -31,10 +31,7 @@ function getZonedParts(date: Date, timeZone: string) {
 function getZonedOffsetMs(date: Date, timeZone: string): number {
   const parts = getZonedParts(date, timeZone)
   const utcAtSecond = date.getTime() - date.getUTCMilliseconds()
-  return (
-    Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) -
-    utcAtSecond
-  )
+  return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - utcAtSecond
 }
 
 /**
@@ -54,19 +51,10 @@ export function zonedPartsToUtc(
   timeZone: string,
 ): Date {
   const utcGuess = new Date(
-    Date.UTC(
-      parts.year,
-      parts.month - 1,
-      parts.day,
-      parts.hour,
-      parts.minute,
-      parts.second,
-      parts.millisecond,
-    ),
+    Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond),
   )
   const offset = getZonedOffsetMs(utcGuess, timeZone)
   const resolved = new Date(utcGuess.getTime() - offset)
   const resolvedOffset = getZonedOffsetMs(resolved, timeZone)
   return new Date(utcGuess.getTime() - resolvedOffset)
 }
-

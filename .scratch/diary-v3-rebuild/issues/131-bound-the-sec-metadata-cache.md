@@ -2,9 +2,10 @@
 
 # [131] Bound the SEC metadata cache by bytes, not entries
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: bug
 Type: Capacity
@@ -59,10 +60,10 @@ resource JSON.
 
 ## Provisional acceptance criteria
 
-- [ ] The cache evicts by retained bytes under a configurable ceiling; the entry-count caps remain as secondary ceilings.
-- [ ] An evicted entry is re-fetched, not served stale, and the read path is unchanged for a cache hit.
-- [ ] A representative-corpus run reports cache bytes and peak RSS with the budget enforced, and is recorded as dated evidence.
-- [ ] The finding in the audit is updated to reference this evidence rather than remaining open.
+- [x] The cache evicts by retained bytes under a configurable ceiling; the entry-count caps remain as secondary ceilings.
+- [x] An evicted entry is re-fetched, not served stale, and the read path is unchanged for a cache hit.
+- [x] A representative-corpus run reports cache bytes and peak RSS with the budget enforced, and is recorded as dated evidence.
+- [x] The finding in the audit is updated to reference this evidence rather than remaining open.
 
 ## Related work
 
@@ -80,3 +81,39 @@ None.
 Filed 2026-10-16 from a repository quality audit, re-surfacing a finding the team already
 documented for itself. Nothing here is a live incident; it is a bounded-memory guarantee
 the process cannot currently make.
+
+### Acceptance — 2026-10-25
+
+`SecCacheBudget` in `apps/api/src/sec-edgar/cache.ts` bounds all four metadata caches
+**together** — the audit's concern was the sum, and four caches each under a generous ceiling
+can still exceed the pod. Default 64 MiB, configurable through `SEC_CACHE_MAX_BYTES` and
+documented in the environment contract. Entry-count caps remain as secondary ceilings.
+Retained size is charged per entry as its serialized wire bytes, which is directly comparable
+to the client's 5 MiB response ceiling. Eviction walks the inserting cache's LRU end and
+stops at one entry rather than emptying itself, so the total is bounded by the ceiling plus
+one entry per cache.
+
+**The audit's theoretical concern turned out to be measurable.**
+`scripts/parity/performance-sec-metadata-cache.mjs` drives 120 companies × 4 filings — 600
+metadata reads, each filing index retaining 4 MiB — through the real service, recorded in
+[`docs/audits/sec-metadata-cache-2026-10-25.json`](../../../docs/audits/sec-metadata-cache-2026-10-25.json):
+
+| Configuration | Peak retained | Peak process RSS |
+| --- | --- | --- |
+| Entry caps only (pre-change) | **2,041 MiB** | 1,111 MiB |
+| Shared 64 MiB budget | 63 MiB | 557 MiB |
+
+The pre-change run exceeds the 768 MiB pod limit in RSS alone, so this was a reachable
+failure and not only an arithmetic one. The audit paragraph now points at this evidence.
+
+`tests/unit/sec-cache-budget.test.ts` (8 tests) proves retained bytes stay bounded while
+the entry cap is nowhere near reached, that an evicted entry is **re-fetched rather than
+served stale**, that a fresh hit still serves from memory, that the count cap still applies,
+that one budget accounts across caches, and that replacing an entry releases its bytes.
+
+Gates: lint, `tsc --noEmit`, `npm run test:unit` **142 files / 1253 tests**, and both
+artifact builds pass.
+
+**Not done.** No cgroup-enforced out-of-memory test was run, and peak RSS in both runs
+includes the fixture's own transient 4 MiB payloads, so it is an upper bound on the cache's
+contribution rather than a measurement of it.

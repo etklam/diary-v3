@@ -137,25 +137,47 @@
   }
 }
 
-.holdings-workspace .holdings-table { max-width: 100%; }
-.holdings-workspace .holdings-table table { min-width: 900px; }
+.holdings-workspace .holdings-table {
+  max-width: 100%;
+}
+.holdings-workspace .holdings-table table {
+  min-width: 900px;
+}
 
 /* Quote state is one short word and a footnote mark, so the column sizes to its
    content instead of holding the table's widest cell for its least decisive
    fact. It used to carry "Stale quote · Sep 4, 2026, 3:00 PM UTC" on two lines
    in every priced row; the exact instant now rides the cell's own `time`
    element and its accessible name (ticket 123). */
-.holdings-workspace .holdings-table .holdings-quote { white-space: nowrap; }
+.holdings-workspace .holdings-table .holdings-quote {
+  white-space: nowrap;
+}
 
 /* The width that frees goes to the money columns, whose headers were breaking
    mid-phrase — "Average / cost", "Current / price", "Market / value". The
    region already scrolls; a header splitting a two-word label does not. */
-.holdings-workspace .holdings-table th { white-space: nowrap; }
-.holdings-details { margin-top: var(--space-6); border-top: 1px solid var(--border); }
-.holdings-details > summary { min-height: 44px; padding: var(--space-3) 0; cursor: pointer; font-weight: 600; }
+.holdings-workspace .holdings-table th {
+  white-space: nowrap;
+}
+.holdings-details {
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+.holdings-details > summary {
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  cursor: pointer;
+  font-weight: 600;
+}
 
-.holdings-scroll-hint { display: none; }
-@media (max-width: 1023px) { .holdings-scroll-hint { display: block; } }
+.holdings-scroll-hint {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .holdings-scroll-hint {
+    display: block;
+  }
+}
 
 /* The per-row capture entry rides with the symbol, which is the one cell this
    horizontally scrolling table always shows first. Keeping it inside the cell

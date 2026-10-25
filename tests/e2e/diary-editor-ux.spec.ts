@@ -1,616 +1,734 @@
-import { randomUUID } from 'node:crypto';
-import type { Page } from '@playwright/test';
-import { expect, test, selectLocale, openEditorSection } from '../support/e2e';
+import { randomUUID } from 'node:crypto'
+import type { Page } from '@playwright/test'
+import { expect, test, selectLocale, openEditorSection } from '../support/e2e'
 
-const password = 'synthetic-editor-ux-password';
+const password = 'synthetic-editor-ux-password'
 
 async function signInAndOpen(page: Page, email: string) {
-  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200);
-  await page.goto('/login?returnTo=%2Fdiaries%2Fnew');
-  await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectLocale(page, 'en');
+  expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectLocale(page, 'en')
 }
 
 test('save status reflects clean, dirty, saving and failed states without fake feedback', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAndOpen(page, `ux-status-${randomUUID()}@example.test`);
-  await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Status machine diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('First version of the reasoning.');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signInAndOpen(page, `ux-status-${randomUUID()}@example.test`)
+  await expect(page.getByTestId('save-status')).toHaveText('')
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Status machine diary')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('First version of the reasoning.')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
 
   // Double submit must not create two diaries: both clicks land before the
   // disabled re-render, the in-flight guard absorbs the second one.
-  let creates = 0;
+  let creates = 0
   await page.route('**/api/diaries', async route => {
-    if (route.request().method() === 'POST') creates += 1;
-    await route.continue();
-  });
-  await page.getByRole('button', { name: 'Save diary', exact: true }).dblclick();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const diaryId = page.url().split('/').at(-1);
-  expect(creates).toBe(1);
-  await expect(page.getByRole('heading', { name: 'Status machine diary', exact: true })).toBeVisible();
+    if (route.request().method() === 'POST') creates += 1
+    await route.continue()
+  })
+  await page.getByRole('button', { name: 'Save diary', exact: true }).dblclick()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const diaryId = page.url().split('/').at(-1)
+  expect(creates).toBe(1)
+  await expect(page.getByRole('heading', { name: 'Status machine diary', exact: true })).toBeVisible()
 
   // Failed save keeps every entry, marks the status, and retry succeeds.
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Status machine diary, revised');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  let releaseFailure!: () => void;
-  let requestStarted!: () => void;
-  const heldFailure = new Promise<void>(resolve => { releaseFailure = resolve; });
-  const started = new Promise<void>(resolve => { requestStarted = resolve; });
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await expect(page.getByTestId('save-status')).toHaveText('')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Status machine diary, revised')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  let releaseFailure!: () => void
+  let requestStarted!: () => void
+  const heldFailure = new Promise<void>(resolve => {
+    releaseFailure = resolve
+  })
+  const started = new Promise<void>(resolve => {
+    requestStarted = resolve
+  })
   await page.route('**/api/v2/diaries/*', async route => {
     if (route.request().method() === 'PUT') {
-      requestStarted();
-      await heldFailure;
-      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'ux-status-failure' } }) });
-    }
-    else await route.continue();
-  });
-  const failedSave = page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await started;
-  await expect(page.getByTestId('save-status')).toHaveText('Saving…');
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeDisabled();
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeDisabled();
-  await expect(page.getByLabel('Review due at', { exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Preview Markdown', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeDisabled();
-  releaseFailure();
-  await failedSave;
-  await expect(page.getByTestId('save-status')).toHaveText('Save failed');
-  await expect(page.getByTestId('request-id')).toHaveText('ux-status-failure');
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Status machine diary, revised');
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeEnabled();
-  await expect(page.getByLabel('Review due at', { exact: true })).toBeEnabled();
-  await page.unroute('**/api/v2/diaries/*');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${diaryId}$`));
-});
+      requestStarted()
+      await heldFailure
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'ux-status-failure' } }),
+      })
+    } else await route.continue()
+  })
+  const failedSave = page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await started
+  await expect(page.getByTestId('save-status')).toHaveText('Saving…')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeDisabled()
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toBeDisabled()
+  await expect(page.getByLabel('Review due at', { exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Preview Markdown', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeDisabled()
+  releaseFailure()
+  await failedSave
+  await expect(page.getByTestId('save-status')).toHaveText('Save failed')
+  await expect(page.getByTestId('request-id')).toHaveText('ux-status-failure')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Status machine diary, revised')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeEnabled()
+  await expect(page.getByLabel('Review due at', { exact: true })).toBeEnabled()
+  await page.unroute('**/api/v2/diaries/*')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`${diaryId}$`))
+})
 
-test('a stale editor keeps its writing, stops resubmitting and can explicitly load the server version', async ({ page }) => {
-  const email = `ux-revision-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Revision conflict diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const diaryId = page.url().split('/').at(-1)!;
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  const content = page.getByRole('textbox', { name: 'Content', exact: true });
-  await expect(content).toHaveValue('Initial server body.');
-  await content.fill('Local changes that must remain visible.');
+test('a stale editor keeps its writing, stops resubmitting and can explicitly load the server version', async ({
+  page,
+}) => {
+  const email = `ux-revision-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Revision conflict diary')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const diaryId = page.url().split('/').at(-1)!
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  await expect(content).toHaveValue('Initial server body.')
+  await content.fill('Local changes that must remain visible.')
 
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number; title: string; content: string };
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+  const loaded = (await (await page.request.get(`/api/diaries/${diaryId}`)).json()) as {
+    revision: number
+    title: string
+    content: string
+  }
   const concurrent = await page.request.put(`/api/v2/diaries/${diaryId}`, {
     headers: { 'x-csrf-token': csrf },
-    data: { expectedRevision: loaded.revision, title: 'Updated on another device', content: 'Server changes to preserve.' },
-  });
-  expect(concurrent.status()).toBe(200);
+    data: {
+      expectedRevision: loaded.revision,
+      title: 'Updated on another device',
+      content: 'Server changes to preserve.',
+    },
+  })
+  expect(concurrent.status()).toBe(200)
 
-  let fullEditorPuts = 0;
+  let fullEditorPuts = 0
   await page.route(`**/api/v2/diaries/${diaryId}`, async route => {
-    if (route.request().method() === 'PUT') fullEditorPuts += 1;
-    await route.continue();
-  });
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
-  await expect(content).toHaveValue('Local changes that must remain visible.');
-  await expect(page.getByText('The server version has changed.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled();
-  expect(fullEditorPuts).toBe(1);
+    if (route.request().method() === 'PUT') fullEditorPuts += 1
+    await route.continue()
+  })
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT')
+  await expect(content).toHaveValue('Local changes that must remain visible.')
+  await expect(page.getByText('The server version has changed.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled()
+  expect(fullEditorPuts).toBe(1)
 
-  await page.getByRole('button', { name: 'Reload server version', exact: true }).click();
-  await expect(content).toHaveValue('Server changes to preserve.');
-  await expect(page.getByTestId('error-code')).toHaveCount(0);
-  await page.unroute(`**/api/v2/diaries/${diaryId}`);
-  await content.fill('Reloaded, then edited safely.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/diaries/${diaryId}$`));
-  expect(await page.request.get(`/api/diaries/${diaryId}`).then(response => response.json()).then((row: { content: string }) => row.content)).toBe('Reloaded, then edited safely.');
-});
+  await page.getByRole('button', { name: 'Reload server version', exact: true }).click()
+  await expect(content).toHaveValue('Server changes to preserve.')
+  await expect(page.getByTestId('error-code')).toHaveCount(0)
+  await page.unroute(`**/api/v2/diaries/${diaryId}`)
+  await content.fill('Reloaded, then edited safely.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${diaryId}$`))
+  expect(
+    await page.request
+      .get(`/api/diaries/${diaryId}`)
+      .then(response => response.json())
+      .then((row: { content: string }) => row.content),
+  ).toBe('Reloaded, then edited safely.')
+})
 
 test('a restored local draft keeps its original revision after another device saves', async ({ page }) => {
-  const email = `ux-restored-revision-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered revision diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const diaryId = page.url().split('/').at(-1)!;
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  const content = page.getByRole('textbox', { name: 'Content', exact: true });
-  await content.fill('Recovered local writing from the older revision.');
-  const storedDraft = () => page.evaluate(() => {
-    const key = Object.keys(localStorage).find(item => item.startsWith('diary-editor-draft:') && item.endsWith(`:${location.pathname.split('/')[2]}`));
-    return key ? JSON.parse(localStorage.getItem(key) ?? 'null')?.value?.baseRevision ?? null : null;
-  });
-  await expect.poll(storedDraft, { timeout: 5_000 }).toBe(1);
+  const email = `ux-restored-revision-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-25')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered revision diary')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Initial server body.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const diaryId = page.url().split('/').at(-1)!
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  const content = page.getByRole('textbox', { name: 'Content', exact: true })
+  await content.fill('Recovered local writing from the older revision.')
+  const storedDraft = () =>
+    page.evaluate(() => {
+      const key = Object.keys(localStorage).find(
+        item => item.startsWith('diary-editor-draft:') && item.endsWith(`:${location.pathname.split('/')[2]}`),
+      )
+      return key ? (JSON.parse(localStorage.getItem(key) ?? 'null')?.value?.baseRevision ?? null) : null
+    })
+  await expect.poll(storedDraft, { timeout: 5_000 }).toBe(1)
 
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  const loaded = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as { revision: number };
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+  const loaded = (await (await page.request.get(`/api/diaries/${diaryId}`)).json()) as { revision: number }
   const concurrent = await page.request.put(`/api/v2/diaries/${diaryId}`, {
     headers: { 'x-csrf-token': csrf },
     data: { expectedRevision: loaded.revision, title: 'Newer server version', content: 'Server body to preserve.' },
-  });
-  expect(concurrent.status()).toBe(200);
+  })
+  expect(concurrent.status()).toBe(200)
 
-  await page.reload();
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(content).toHaveValue('Recovered local writing from the older revision.');
-  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
-  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled();
-  expect(await storedDraft()).toBe(1);
+  await page.reload()
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(content).toHaveValue('Recovered local writing from the older revision.')
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT')
+  await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled()
+  expect(await storedDraft()).toBe(1)
 
-  await page.reload();
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(content).toHaveValue('Recovered local writing from the older revision.');
-  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT');
-  expect(await storedDraft()).toBe(1);
+  await page.reload()
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(content).toHaveValue('Recovered local writing from the older revision.')
+  await expect(page.getByTestId('error-code')).toHaveText('DIARY_REVISION_CONFLICT')
+  expect(await storedDraft()).toBe(1)
 
-  let fullEditorPuts = 0;
+  let fullEditorPuts = 0
   await page.route(`**/api/v2/diaries/${diaryId}`, async route => {
-    if (route.request().method() === 'PUT') fullEditorPuts += 1;
-    await route.continue();
-  });
-  await page.locator('#main form').evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-  expect(fullEditorPuts).toBe(0);
+    if (route.request().method() === 'PUT') fullEditorPuts += 1
+    await route.continue()
+  })
+  await page
+    .locator('#main form')
+    .evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+  expect(fullEditorPuts).toBe(0)
 
-  await page.getByRole('button', { name: 'Reload server version', exact: true }).click();
-  await expect(content).toHaveValue('Server body to preserve.');
-  await expect(page.getByTestId('error-code')).toHaveCount(0);
-});
+  await page.getByRole('button', { name: 'Reload server version', exact: true }).click()
+  await expect(content).toHaveValue('Server body to preserve.')
+  await expect(page.getByTestId('error-code')).toHaveCount(0)
+})
 
 test('dirty editors warn before internal navigation; clean editors do not', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAndOpen(page, `ux-guard-${randomUUID()}@example.test`);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Guarded content.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const editPath = `${page.url()}/edit`;
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signInAndOpen(page, `ux-guard-${randomUUID()}@example.test`)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Guarded content.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const editPath = `${page.url()}/edit`
 
   // The guard is the project dialog, not a native confirm.
-  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true });
+  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true })
 
   // Clean editor navigates without any dialog.
-  await page.goto(editPath);
-  await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries$/);
-  await expect(guard).toHaveCount(0);
+  await page.goto(editPath)
+  await expect(page.getByTestId('save-status')).toHaveText('')
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries$/)
+  await expect(guard).toHaveCount(0)
 
   // Dirty editor: staying keeps the entries, leaving discards them.
-  await page.goto(editPath);
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, changed');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
-  await expect(guard).toBeVisible();
-  await guard.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Navigation guard diary, changed');
-  await page.getByRole('link', { name: 'Diary library', exact: true }).click();
-  await expect(guard).toBeVisible();
-  await guard.getByRole('button', { name: 'Discard and leave', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries$/);
+  await page.goto(editPath)
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, changed')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click()
+  await expect(guard).toBeVisible()
+  await guard.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`))
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Navigation guard diary, changed')
+  await page.getByRole('link', { name: 'Diary library', exact: true }).click()
+  await expect(guard).toBeVisible()
+  await guard.getByRole('button', { name: 'Discard and leave', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries$/)
 
   // A saved editor stops warning on future navigation.
-  await page.goto(editPath);
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, saved');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  await expect(guard).toHaveCount(0);
-});
+  await page.goto(editPath)
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Navigation guard diary, saved')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  await expect(guard).toHaveCount(0)
+})
 
 test('preview round trip preserves content, dirty state, caret and scroll', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAndOpen(page, `ux-preview-${randomUUID()}@example.test`);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Preview round trip');
-  const content = Array.from({ length: 40 }, (_, index) => `Paragraph line ${index + 1}.`).join('\n\n');
-  const editor = page.getByRole('textbox', { name: 'Content', exact: true });
-  await editor.fill(content);
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await editor.evaluate((element: HTMLTextAreaElement) => { element.selectionStart = 5; element.selectionEnd = 9; element.scrollTop = 120; });
-  await page.getByRole('button', { name: 'Preview Markdown', exact: true }).click();
-  const previewSection = page.locator('section[aria-label="Markdown preview"]');
-  await expect(previewSection).toBeVisible();
-  await expect(previewSection.locator('p').first()).toContainText('Paragraph line 1');
-  await page.getByRole('button', { name: 'Back to writing', exact: true }).click();
-  await expect(editor).toHaveValue(content);
-  expect(await editor.evaluate((element: HTMLTextAreaElement) => ({ start: element.selectionStart, top: element.scrollTop }))).toEqual({ start: 5, top: 120 });
-  await expect(editor).toBeFocused();
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-});
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signInAndOpen(page, `ux-preview-${randomUUID()}@example.test`)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Preview round trip')
+  const content = Array.from({ length: 40 }, (_, index) => `Paragraph line ${index + 1}.`).join('\n\n')
+  const editor = page.getByRole('textbox', { name: 'Content', exact: true })
+  await editor.fill(content)
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await editor.evaluate((element: HTMLTextAreaElement) => {
+    element.selectionStart = 5
+    element.selectionEnd = 9
+    element.scrollTop = 120
+  })
+  await page.getByRole('button', { name: 'Preview Markdown', exact: true }).click()
+  const previewSection = page.locator('section[aria-label="Markdown preview"]')
+  await expect(previewSection).toBeVisible()
+  await expect(previewSection.locator('p').first()).toContainText('Paragraph line 1')
+  await page.getByRole('button', { name: 'Back to writing', exact: true }).click()
+  await expect(editor).toHaveValue(content)
+  expect(
+    await editor.evaluate((element: HTMLTextAreaElement) => ({
+      start: element.selectionStart,
+      top: element.scrollTop,
+    })),
+  ).toEqual({ start: 5, top: 120 })
+  await expect(editor).toBeFocused()
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+})
 
-test('device-local recovery restores unsaved writing after a reload and clears after a save @webkit-critical', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAndOpen(page, `ux-recovery-${randomUUID()}@example.test`);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered title');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Recovered reasoning that never reached the server.');
-  const draftKey = () => page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null);
-  await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
+test('device-local recovery restores unsaved writing after a reload and clears after a save @webkit-critical', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signInAndOpen(page, `ux-recovery-${randomUUID()}@example.test`)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered title')
+  await page
+    .getByRole('textbox', { name: 'Content', exact: true })
+    .fill('Recovered reasoning that never reached the server.')
+  const draftKey = () =>
+    page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null)
+  await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull()
 
   // An interrupted in-app navigation keeps the editor and its recovery copy.
-  await page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true }).click();
-  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true });
-  await expect(guard).toBeVisible();
-  await guard.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/new$/);
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Recovered reasoning that never reached the server.');
+  await page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true }).click()
+  const guard = page.getByRole('dialog', { name: 'Discard unsaved changes?', exact: true })
+  await expect(guard).toBeVisible()
+  await guard.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+    'Recovered reasoning that never reached the server.',
+  )
 
   // Reload: the editor offers the device draft, restoring keeps it dirty.
-  await page.reload();
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title');
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Recovered reasoning that never reached the server.');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+  await page.reload()
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+    'Recovered reasoning that never reached the server.',
+  )
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
 
   // Discard removes the draft for good: reload shows the banner again because
   // the restored writing was re-backed-up while it was dirty.
-  await page.reload();
-  await page.getByRole('button', { name: 'Discard draft', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('');
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('');
-  await expect.poll(draftKey).toBeNull();
+  await page.reload()
+  await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('')
+  await expect.poll(draftKey).toBeNull()
 
   // A confirmed save clears the recovery copy.
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered title, saved');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Now durable.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  await expect.poll(draftKey).toBeNull();
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recovered title, saved')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Now durable.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  await expect.poll(draftKey).toBeNull()
 
   // The saved server state remains canonical and clean after a reload.
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved');
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.');
-  await expect(page.getByTestId('save-status')).toHaveText('');
-  await page.reload();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved');
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.');
-  await expect(page.getByTestId('save-status')).toHaveText('');
-  await expect(page.getByRole('button', { name: 'Restore unsaved draft', exact: true })).toHaveCount(0);
-  await expect.poll(draftKey).toBeNull();
-});
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.')
+  await expect(page.getByTestId('save-status')).toHaveText('')
+  await page.reload()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Recovered title, saved')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Now durable.')
+  await expect(page.getByTestId('save-status')).toHaveText('')
+  await expect(page.getByRole('button', { name: 'Restore unsaved draft', exact: true })).toHaveCount(0)
+  await expect.poll(draftKey).toBeNull()
+})
 
 test('discarding a recovery re-arms backup for new content', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `ux-discard-rearm-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  expect((await page.request.post('/api/diaries', {
-    headers: { 'x-csrf-token': csrf },
-    data: { date: '2026-09-06', title: 'Discard re-arm diary', content: 'Saved baseline reasoning.' },
-  })).status()).toBe(201);
-  const draftContent = () => page.evaluate(() => {
-    const raw = localStorage.getItem(Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? '');
-    const saved = raw ? JSON.parse(raw) as { value?: { form?: { content?: string } } } : null;
-    return saved?.value?.form?.content ?? null;
-  });
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `ux-discard-rearm-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+  expect(
+    (
+      await page.request.post('/api/diaries', {
+        headers: { 'x-csrf-token': csrf },
+        data: { date: '2026-09-06', title: 'Discard re-arm diary', content: 'Saved baseline reasoning.' },
+      })
+    ).status(),
+  ).toBe(201)
+  const draftContent = () =>
+    page.evaluate(() => {
+      const raw = localStorage.getItem(
+        Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? '',
+      )
+      const saved = raw ? (JSON.parse(raw) as { value?: { form?: { content?: string } } }) : null
+      return saved?.value?.form?.content ?? null
+    })
 
   // Draft A is written debounced while dirty.
-  await page.goto('/diaries');
-  await page.getByRole('link', { name: 'Discard re-arm diary', exact: true }).click();
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Unsaved draft reasoning A.');
-  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Unsaved draft reasoning A.');
+  await page.goto('/diaries')
+  await page.getByRole('link', { name: 'Discard re-arm diary', exact: true }).click()
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Unsaved draft reasoning A.')
+  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Unsaved draft reasoning A.')
 
   // Discard only drops snapshot A: the form is back on the confirmed baseline,
   // so nothing is rewritten, and typing B re-arms the debounced backup with B.
-  await page.reload();
-  await page.getByRole('button', { name: 'Discard draft', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.');
-  await expect.poll(draftContent).toBeNull();
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Brand new reasoning B.');
-  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Brand new reasoning B.');
+  await page.reload()
+  await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Saved baseline reasoning.')
+  await expect.poll(draftContent).toBeNull()
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Brand new reasoning B.')
+  await expect.poll(draftContent, { timeout: 5_000 }).toBe('Brand new reasoning B.')
 
   // The re-armed draft survives a reload and restores B.
-  await page.reload();
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Brand new reasoning B.');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-});
+  await page.reload()
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Brand new reasoning B.')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+})
 
 test('an expired session keeps local writing through re-login and returns to the editor', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `ux-expiry-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Session expiry diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Long reasoning that must survive an expired session.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const editPath = `${new URL(page.url()).pathname}/edit`;
-  await page.goto(editPath);
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Session expiry diary, edited after expiry');
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `ux-expiry-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Session expiry diary')
+  await page
+    .getByRole('textbox', { name: 'Content', exact: true })
+    .fill('Long reasoning that must survive an expired session.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const editPath = `${new URL(page.url()).pathname}/edit`
+  await page.goto(editPath)
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Session expiry diary, edited after expiry')
   await page.route('**/api/v2/diaries/*', async route => {
-    if (route.request().method() === 'PUT') await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }) });
-    else await route.continue();
-  });
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
+    if (route.request().method() === 'PUT')
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }),
+      })
+    else await route.continue()
+  })
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   // The shell signs the session out and lands on the login form, keeping the
   // editor path as the return destination; the device draft survives the 401.
-  await expect(page).toHaveURL(new RegExp(`/login\\?returnTo=${encodeURIComponent(editPath)}$`));
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:')))).toBe(true);
-  await page.getByLabel('Email', { exact: true }).fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Session expiry diary, edited after expiry');
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('Long reasoning that must survive an expired session.');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await page.unroute('**/api/v2/diaries/*');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  await expect(page.getByRole('heading', { name: 'Session expiry diary, edited after expiry', exact: true })).toBeVisible();
-});
+  await expect(page).toHaveURL(new RegExp(`/login\\?returnTo=${encodeURIComponent(editPath)}$`))
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:'))))
+    .toBe(true)
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`${editPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`))
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+    'Session expiry diary, edited after expiry',
+  )
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+    'Long reasoning that must survive an expired session.',
+  )
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await page.unroute('**/api/v2/diaries/*')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  await expect(
+    page.getByRole('heading', { name: 'Session expiry diary, edited after expiry', exact: true }),
+  ).toBeVisible()
+})
 
 for (const width of [360, 390]) {
   test(`editor stays usable at ${width}px with the full writing surface`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 844 });
-    await signInAndOpen(page, `ux-mobile-${width}-${randomUUID()}@example.test`);
-    await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-    await page.getByRole('textbox', { name: 'Title', exact: true }).fill(`Mobile ${width} diary`);
-    await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Mobile writing surface.');
-    await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const box = await page.locator('.editor-content').boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThan(200);
+    await page.setViewportSize({ width, height: 844 })
+    await signInAndOpen(page, `ux-mobile-${width}-${randomUUID()}@example.test`)
+    await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+    await page.getByRole('textbox', { name: 'Title', exact: true }).fill(`Mobile ${width} diary`)
+    await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Mobile writing surface.')
+    await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    const box = await page.locator('.editor-content').boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThan(200)
     // The save action remains reachable by normal scrolling, no fixed overlay.
-    const save = page.getByRole('button', { name: 'Save diary', exact: true });
-    await save.scrollIntoViewIfNeeded();
-    await expect(save).toBeVisible();
-    await save.click();
-    await expect(page).toHaveURL(/\/diaries\/\d+$/);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  });
+    const save = page.getByRole('button', { name: 'Save diary', exact: true })
+    await save.scrollIntoViewIfNeeded()
+    await expect(save).toBeVisible()
+    await save.click()
+    await expect(page).toHaveURL(/\/diaries\/\d+$/)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  })
 }
 
 test('dirty clears when edits return to the confirmed server baseline', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `ux-baseline-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Baseline diary');
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Original reasoning.');
-  await openEditorSection(page, 'transactions');
-  await page.getByRole('button', { name: 'Add purchase', exact: true }).click();
-  const row = page.locator('.buy-row').first();
-  await row.getByRole('textbox', { name: 'Symbol', exact: true }).fill('AAPL');
-  await row.getByRole('textbox', { name: 'Quantity', exact: true }).fill('2.5');
-  await row.getByRole('textbox', { name: 'Price per share', exact: true }).fill('180.25');
-  await row.getByLabel('Trade date and time (device time)', { exact: true }).fill('2026-09-06T10:30');
-  await openEditorSection(page, 'reminders');
-  await page.getByRole('button', { name: 'Add reminder', exact: true }).click();
-  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price');
-  await page.getByLabel('Reminder time', { exact: true }).fill('2026-09-08T09:00');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `ux-baseline-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  await page.getByLabel('Diary date', { exact: true }).fill('2026-09-06')
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Baseline diary')
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Original reasoning.')
+  await openEditorSection(page, 'transactions')
+  await page.getByRole('button', { name: 'Add purchase', exact: true }).click()
+  const row = page.locator('.buy-row').first()
+  await row.getByRole('textbox', { name: 'Symbol', exact: true }).fill('AAPL')
+  await row.getByRole('textbox', { name: 'Quantity', exact: true }).fill('2.5')
+  await row.getByRole('textbox', { name: 'Price per share', exact: true }).fill('180.25')
+  await row.getByLabel('Trade date and time (device time)', { exact: true }).fill('2026-09-06T10:30')
+  await openEditorSection(page, 'reminders')
+  await page.getByRole('button', { name: 'Add reminder', exact: true }).click()
+  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price')
+  await page.getByLabel('Reminder time', { exact: true }).fill('2026-09-08T09:00')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
   // Title: change then revert to the server value.
-  const title = page.getByRole('textbox', { name: 'Title', exact: true });
-  await title.fill('Baseline diary, edited');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await title.fill('Baseline diary');
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true })
+  await title.fill('Baseline diary, edited')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await title.fill('Baseline diary')
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
   // Transaction: change then revert.
-  const quantity = page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true });
-  const serverQuantity = await quantity.inputValue();
-  await quantity.fill('9.5');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await quantity.fill(serverQuantity);
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  const quantity = page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })
+  const serverQuantity = await quantity.inputValue()
+  await quantity.fill('9.5')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await quantity.fill(serverQuantity)
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
   // Review schedule: change then revert.
-  await openEditorSection(page, 'review');
-  const review = page.getByLabel('Review due at', { exact: true });
-  const serverReview = await review.inputValue();
-  await review.fill('2026-09-15T10:30');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await review.fill(serverReview);
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  await openEditorSection(page, 'review')
+  const review = page.getByLabel('Review due at', { exact: true })
+  const serverReview = await review.inputValue()
+  await review.fill('2026-09-15T10:30')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await review.fill(serverReview)
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
   // Reminder: change then revert.
-  const reminder = page.getByLabel('Reminder message', { exact: true });
-  await reminder.fill('Check the fill price again');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await reminder.fill('Check the fill price');
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  const reminder = page.getByLabel('Reminder message', { exact: true })
+  await reminder.fill('Check the fill price again')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await reminder.fill('Check the fill price')
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
   // Whitespace-only differences read as clean because the server trims them.
-  await title.fill('  Baseline diary  ');
-  await expect(page.getByTestId('save-status')).toHaveText('');
-});
+  await title.fill('  Baseline diary  ')
+  await expect(page.getByTestId('save-status')).toHaveText('')
+})
 
 test('text-only diary saves omit transactions while an explicit empty list clears them', async ({ page }) => {
-  const email = `ux-ledger-scope-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const email = `ux-ledger-scope-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
   const createdResponse = await page.request.post('/api/diaries', {
     headers: { 'x-csrf-token': csrf },
     data: {
-      date: '2026-09-16', title: 'Ledger scope baseline', content: 'Original text.',
-      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-16T10:00:00.000Z' }],
+      date: '2026-09-16',
+      title: 'Ledger scope baseline',
+      content: 'Original text.',
+      transactions: [
+        { symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-16T10:00:00.000Z' },
+      ],
     },
-  });
-  expect(createdResponse.status()).toBe(201);
-  const created = await createdResponse.json() as { id: string; transactions: unknown[] };
-  const payloads: Array<Record<string, unknown>> = [];
+  })
+  expect(createdResponse.status()).toBe(201)
+  const created = (await createdResponse.json()) as { id: string; transactions: unknown[] }
+  const payloads: Array<Record<string, unknown>> = []
   await page.route(`**/api/v2/diaries/${created.id}`, async route => {
-    if (route.request().method() === 'PUT') payloads.push(route.request().postDataJSON() as Record<string, unknown>);
-    await route.continue();
-  });
+    if (route.request().method() === 'PUT') payloads.push(route.request().postDataJSON() as Record<string, unknown>)
+    await route.continue()
+  })
 
-  await page.goto(`/diaries/${created.id}/edit`);
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Text changed without changing trades.');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
-  expect(payloads).toHaveLength(1);
-  expect(payloads[0]).not.toHaveProperty('transactions');
-  expect((await (await page.request.get(`/api/diaries/${created.id}`)).json() as { transactions: unknown[] }).transactions).toEqual(created.transactions);
+  await page.goto(`/diaries/${created.id}/edit`)
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Text changed without changing trades.')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`))
+  expect(payloads).toHaveLength(1)
+  expect(payloads[0]).not.toHaveProperty('transactions')
+  expect(
+    ((await (await page.request.get(`/api/diaries/${created.id}`)).json()) as { transactions: unknown[] }).transactions,
+  ).toEqual(created.transactions)
 
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await page.getByRole('button', { name: 'Remove transaction 1', exact: true }).click();
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
-  expect(payloads).toHaveLength(2);
-  expect(payloads[1]).toHaveProperty('transactions', []);
-  expect((await (await page.request.get(`/api/diaries/${created.id}`)).json() as { transactions: unknown[] }).transactions).toEqual([]);
-});
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await page.getByRole('button', { name: 'Remove transaction 1', exact: true }).click()
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`))
+  expect(payloads).toHaveLength(2)
+  expect(payloads[1]).toHaveProperty('transactions', [])
+  expect(
+    ((await (await page.request.get(`/api/diaries/${created.id}`)).json()) as { transactions: unknown[] }).transactions,
+  ).toEqual([])
+})
 
 test('uncertain text save confirms without overwriting a concurrent transaction edit', async ({ page }) => {
-  const email = `ux-ledger-uncertain-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  const email = `ux-ledger-uncertain-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
   const createdResponse = await page.request.post('/api/diaries', {
     headers: { 'x-csrf-token': csrf },
     data: {
-      date: '2026-09-17', title: 'Uncertain ledger baseline', content: 'Original text.',
-      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-17T10:00:00.000Z' }],
+      date: '2026-09-17',
+      title: 'Uncertain ledger baseline',
+      content: 'Original text.',
+      transactions: [
+        { symbol: 'AAPL', type: 'BUY', quantity: '2', price: '10', tradeDate: '2026-09-17T10:00:00.000Z' },
+      ],
     },
-  });
-  expect(createdResponse.status()).toBe(201);
-  const created = await createdResponse.json() as { id: string; transactions: Array<Record<string, unknown>> };
-  await page.goto(`/diaries/${created.id}/edit`);
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Committed text with an ambiguous response.');
-  let sentBody: Record<string, unknown> | undefined;
+  })
+  expect(createdResponse.status()).toBe(201)
+  const created = (await createdResponse.json()) as { id: string; transactions: Array<Record<string, unknown>> }
+  await page.goto(`/diaries/${created.id}/edit`)
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Committed text with an ambiguous response.')
+  let sentBody: Record<string, unknown> | undefined
   await page.route(`**/api/v2/diaries/${created.id}`, async route => {
-    if (route.request().method() !== 'PUT') { await route.continue(); return; }
-    sentBody = route.request().postDataJSON() as Record<string, unknown>;
-    const response = await route.fetch();
-    expect(response.status()).toBe(200);
-    const row = created.transactions[0]!;
+    if (route.request().method() !== 'PUT') {
+      await route.continue()
+      return
+    }
+    sentBody = route.request().postDataJSON() as Record<string, unknown>
+    const response = await route.fetch()
+    expect(response.status()).toBe(200)
+    const row = created.transactions[0]!
     const concurrent = await page.request.put(`/api/v2/diaries/${created.id}`, {
       headers: { 'x-csrf-token': csrf },
       data: {
         expectedRevision: Number(sentBody.expectedRevision) + 1,
-        title: String(sentBody.title), content: String(sentBody.content),
-        transactions: [{
-          id: String(row.id), symbol: String(row.symbol), type: String(row.type), quantity: '3',
-          price: String(row.price), tradeDate: String(row.tradeDate), notes: row.notes ?? null,
-          strategy: row.strategy ?? null, emotion: row.emotion ?? null,
-        }],
+        title: String(sentBody.title),
+        content: String(sentBody.content),
+        transactions: [
+          {
+            id: String(row.id),
+            symbol: String(row.symbol),
+            type: String(row.type),
+            quantity: '3',
+            price: String(row.price),
+            tradeDate: String(row.tradeDate),
+            notes: row.notes ?? null,
+            strategy: row.strategy ?? null,
+            emotion: row.emotion ?? null,
+          },
+        ],
       },
-    });
-    expect(concurrent.status()).toBe(200);
-    await route.abort('failed');
-  });
+    })
+    expect(concurrent.status()).toBe(200)
+    await route.abort('failed')
+  })
 
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`));
-  expect(sentBody).not.toHaveProperty('transactions');
-  const latest = await (await page.request.get(`/api/diaries/${created.id}`)).json() as { content: string; transactions: Array<{ quantity: string }> };
-  expect(latest.content).toBe('Committed text with an ambiguous response.');
-  expect(latest.transactions[0]?.quantity).toBe('3');
-});
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${created.id}$`))
+  expect(sentBody).not.toHaveProperty('transactions')
+  const latest = (await (await page.request.get(`/api/diaries/${created.id}`)).json()) as {
+    content: string
+    transactions: Array<{ quantity: string }>
+  }
+  expect(latest.content).toBe('Committed text with an ambiguous response.')
+  expect(latest.transactions[0]?.quantity).toBe('3')
+})
 
 test('recovery restores transaction, review and reminder modifications after re-login', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `ux-full-recovery-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
-  expect((await page.request.post('/api/diaries', {
-    headers: { 'x-csrf-token': csrf },
-    data: {
-      date: '2026-09-06', title: 'Full state recovery diary', content: 'Every editable part must survive.',
-      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1.25', price: '180.25', tradeDate: '2026-09-06T02:30:00.000Z' }],
-      reviewDueAt: '2026-09-10T01:30:00.000Z',
-      alerts: [{ message: 'Check the fill price', triggerAt: '2026-09-08T01:00:00.000Z' }],
-    },
-  })).status()).toBe(201);
-  await page.goto('/diaries');
-  await page.getByRole('link', { name: 'Full state recovery diary', exact: true }).click();
-  await page.getByRole('link', { name: 'Edit diary', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
-  await expect(page.getByTestId('save-status')).toHaveText('');
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `ux-full-recovery-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+  expect(
+    (
+      await page.request.post('/api/diaries', {
+        headers: { 'x-csrf-token': csrf },
+        data: {
+          date: '2026-09-06',
+          title: 'Full state recovery diary',
+          content: 'Every editable part must survive.',
+          transactions: [
+            { symbol: 'AAPL', type: 'BUY', quantity: '1.25', price: '180.25', tradeDate: '2026-09-06T02:30:00.000Z' },
+          ],
+          reviewDueAt: '2026-09-10T01:30:00.000Z',
+          alerts: [{ message: 'Check the fill price', triggerAt: '2026-09-08T01:00:00.000Z' }],
+        },
+      })
+    ).status(),
+  ).toBe(201)
+  await page.goto('/diaries')
+  await page.getByRole('link', { name: 'Full state recovery diary', exact: true }).click()
+  await page.getByRole('link', { name: 'Edit diary', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary')
+  await expect(page.getByTestId('save-status')).toHaveText('')
 
-  await page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true }).fill('7.75');
-  const review = page.getByLabel('Review due at', { exact: true });
-  await review.fill('2026-09-18T11:45');
-  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price after the split');
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  const draftKey = () => page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null);
-  await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull();
+  await page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true }).fill('7.75')
+  const review = page.getByLabel('Review due at', { exact: true })
+  await review.fill('2026-09-18T11:45')
+  await page.getByLabel('Reminder message', { exact: true }).fill('Check the fill price after the split')
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  const draftKey = () =>
+    page.evaluate(() => Object.keys(localStorage).find(key => key.startsWith('diary-editor-draft:')) ?? null)
+  await expect.poll(draftKey, { timeout: 5_000 }).not.toBeNull()
 
   await page.route('**/api/v2/diaries/*', async route => {
-    if (route.request().method() === 'PUT') await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }) });
-    else await route.continue();
-  });
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
-  await expect.poll(draftKey).not.toBeNull();
-  await page.getByLabel('Email', { exact: true }).fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+\/edit$/);
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue('7.75');
-  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
-  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary');
-  await page.unroute('**/api/v2/diaries/*');
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(/\/diaries\/\d+$/);
-  const diaryId = page.url().split('/').at(-1)!;
-  const persisted = await (await page.request.get(`/api/diaries/${diaryId}`)).json() as {
-    alerts: Array<{ message: string }>;
-    reviewDueAt: string | null;
-    transactions: Array<{ quantity: string }>;
-  };
-  expect(persisted.transactions[0]?.quantity).toBe('7.75');
-  expect(persisted.reviewDueAt).not.toBe('2026-09-10T01:30:00.000Z');
-  expect(persisted.alerts[0]?.message).toBe('Check the fill price after the split');
-  await page.goto(`/diaries/${diaryId}/edit`);
-  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue('7.75');
-  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45');
-  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split');
-});
+    if (route.request().method() === 'PUT')
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'AUTH_TOKEN_INVALID' } }),
+      })
+    else await route.continue()
+  })
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/login\?returnTo=/)
+  await expect.poll(draftKey).not.toBeNull()
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+\/edit$/)
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue(
+    '7.75',
+  )
+  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45')
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Full state recovery diary')
+  await page.unroute('**/api/v2/diaries/*')
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/\d+$/)
+  const diaryId = page.url().split('/').at(-1)!
+  const persisted = (await (await page.request.get(`/api/diaries/${diaryId}`)).json()) as {
+    alerts: Array<{ message: string }>
+    reviewDueAt: string | null
+    transactions: Array<{ quantity: string }>
+  }
+  expect(persisted.transactions[0]?.quantity).toBe('7.75')
+  expect(persisted.reviewDueAt).not.toBe('2026-09-10T01:30:00.000Z')
+  expect(persisted.alerts[0]?.message).toBe('Check the fill price after the split')
+  await page.goto(`/diaries/${diaryId}/edit`)
+  await expect(page.locator('.buy-row').first().getByRole('textbox', { name: 'Quantity', exact: true })).toHaveValue(
+    '7.75',
+  )
+  await expect(page.getByLabel('Review due at', { exact: true })).toHaveValue('2026-09-18T11:45')
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Check the fill price after the split')
+})
 
 test('recovery persists deleting every reminder as an explicit empty replacement', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `ux-empty-reminder-recovery-${randomUUID()}@example.test`;
-  await signInAndOpen(page, email);
-  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value;
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `ux-empty-reminder-recovery-${randomUUID()}@example.test`
+  await signInAndOpen(page, email)
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
   const created = await page.request.post('/api/diaries', {
     headers: { 'x-csrf-token': csrf },
     data: {
-      date: '2026-09-07', title: 'Reminder deletion recovery', content: 'The empty reminder list must persist.',
+      date: '2026-09-07',
+      title: 'Reminder deletion recovery',
+      content: 'The empty reminder list must persist.',
       alerts: [{ message: 'Remove after recovery', triggerAt: '2026-09-09T01:00:00.000Z' }],
     },
-  });
-  expect(created.status()).toBe(201);
-  const diary = await created.json() as { id: string };
-  await page.goto(`/diaries/${diary.id}/edit`);
-  await page.getByRole('button', { name: 'Remove reminder 1', exact: true }).click();
-  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:'))), { timeout: 5_000 }).toBe(true);
+  })
+  expect(created.status()).toBe(201)
+  const diary = (await created.json()) as { id: string }
+  await page.goto(`/diaries/${diary.id}/edit`)
+  await page.getByRole('button', { name: 'Remove reminder 1', exact: true }).click()
+  await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes')
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:'))), {
+      timeout: 5_000,
+    })
+    .toBe(true)
 
-  await page.reload();
-  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click();
-  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Save diary', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
-  const persisted = await (await page.request.get(`/api/diaries/${diary.id}`)).json() as { alerts: unknown[] };
-  expect(persisted.alerts).toEqual([]);
-  await page.goto(`/diaries/${diary.id}/edit`);
-  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0);
-});
+  await page.reload()
+  await page.getByRole('button', { name: 'Restore unsaved draft', exact: true }).click()
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Save diary', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`))
+  const persisted = (await (await page.request.get(`/api/diaries/${diary.id}`)).json()) as { alerts: unknown[] }
+  expect(persisted.alerts).toEqual([])
+  await page.goto(`/diaries/${diary.id}/edit`)
+  await expect(page.getByLabel('Reminder message', { exact: true })).toHaveCount(0)
+})

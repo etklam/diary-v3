@@ -65,10 +65,7 @@ describe('lib/market-rotation/qualified-date', () => {
 
       const result = filterQualifiedDates(groups, 10)
 
-      expect(result).toEqual([
-        new Date('2026-06-10'),
-        new Date('2026-06-09'),
-      ])
+      expect(result).toEqual([new Date('2026-06-10'), new Date('2026-06-09')])
     })
 
     it('90% boundary: exactly ceil(N*0.9) qualifies (10 → 9 ok)', () => {
@@ -92,11 +89,7 @@ describe('lib/market-rotation/qualified-date', () => {
 
       const result = filterQualifiedDates(groups, 10)
 
-      expect(result).toEqual([
-        new Date('2026-06-08'),
-        new Date('2026-06-09'),
-        new Date('2026-06-10'),
-      ])
+      expect(result).toEqual([new Date('2026-06-08'), new Date('2026-06-09'), new Date('2026-06-10')])
     })
 
     it('returns empty array when no group meets the threshold', () => {
@@ -115,13 +108,10 @@ describe('lib/market-rotation/qualified-date', () => {
   // ─── pickComparisonDate ─────────────────────────────────────────────────
 
   describe('pickComparisonDate', () => {
-    const fifteenDates = Array.from(
-      { length: 15 },
-      (_, i) => new Date(`2026-06-${String(15 - i).padStart(2, '0')}`),
-    )
-      // input is DESC (most recent first), matching Prisma groupBy orderBy
-      // fifteenDates[0]  = 2026-06-15 (most recent)
-      // fifteenDates[14] = 2026-06-01 (oldest)
+    const fifteenDates = Array.from({ length: 15 }, (_, i) => new Date(`2026-06-${String(15 - i).padStart(2, '0')}`))
+    // input is DESC (most recent first), matching Prisma groupBy orderBy
+    // fifteenDates[0]  = 2026-06-15 (most recent)
+    // fifteenDates[14] = 2026-06-01 (oldest)
 
     it('returns the date at offset=10 (the 11th most recent qualified date)', () => {
       // ADR-0004: 2W comparison = latest qualified − 10 positions back

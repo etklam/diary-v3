@@ -55,9 +55,7 @@ describe('buildSnapshot', () => {
   // ── 2. single day of data ───────────────────────────────────
 
   it('returns snapshot with lastPrice but all indicators null for single day', () => {
-    const prices: DailyPrice[] = [
-      { date: '2025-06-01', close: 100, adjustedClose: 100.5 },
-    ]
+    const prices: DailyPrice[] = [{ date: '2025-06-01', close: 100, adjustedClose: 100.5 }]
     const result = buildSnapshot(defaultMeta, prices)
 
     expect(result).not.toBeNull()
@@ -266,7 +264,7 @@ describe('buildSnapshot', () => {
 
   it('uses adjustedClose for lastPrice with fallback to close', () => {
     const prices: DailyPrice[] = [
-      { date: '2025-06-01', close: 100, adjustedClose: 0 },  // adjustedClose = 0, treat as falsy
+      { date: '2025-06-01', close: 100, adjustedClose: 0 }, // adjustedClose = 0, treat as falsy
       { date: '2025-06-02', close: 105, adjustedClose: 103 },
     ]
     const result = buildSnapshot(defaultMeta, prices)
@@ -276,9 +274,7 @@ describe('buildSnapshot', () => {
   // ── dailyChangePct null when only one day ────────────────────
 
   it('returns null dailyChangePct with only one price point', () => {
-    const prices: DailyPrice[] = [
-      { date: '2025-06-01', close: 100, adjustedClose: 100 },
-    ]
+    const prices: DailyPrice[] = [{ date: '2025-06-01', close: 100, adjustedClose: 100 }]
     const result = buildSnapshot(defaultMeta, prices)
     expect(result!.dailyChangePct).toBeNull()
   })

@@ -14,7 +14,7 @@ import {
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
 function makeTx(
-  overrides: Partial<RawTransaction> & Pick<RawTransaction, 'type' | 'quantity' | 'price'>
+  overrides: Partial<RawTransaction> & Pick<RawTransaction, 'type' | 'quantity' | 'price'>,
 ): RawTransaction {
   return {
     id: overrides.id ?? '1',
@@ -43,8 +43,8 @@ describe('matchTrades', () => {
     ]
     const result = matchTrades(txs)
     expect(result).toHaveLength(1)
-    expect(result[0]!.realizedPnL).toBeCloseTo(200)        // (120-100)*10
-    expect(result[0]!.realizedPnLPct).toBeCloseTo(20)      // 20%
+    expect(result[0]!.realizedPnL).toBeCloseTo(200) // (120-100)*10
+    expect(result[0]!.realizedPnLPct).toBeCloseTo(20) // 20%
     expect(result[0]!.avgCostBasis).toBeCloseTo(100)
     expect(result[0]!.symbol).toBe('AAPL')
   })
@@ -69,7 +69,7 @@ describe('matchTrades', () => {
       makeTx({ id: '2', type: 'SELL', quantity: 10, price: 100, tradeDate: new Date('2024-02-01') }),
     ]
     const result = matchTrades(txs)
-    expect(result[0]!.realizedPnL).toBeCloseTo(-500)       // (100-150)*10
+    expect(result[0]!.realizedPnL).toBeCloseTo(-500) // (100-150)*10
     expect(result[0]!.realizedPnLPct).toBeCloseTo(-33.333)
   })
 
@@ -82,16 +82,14 @@ describe('matchTrades', () => {
     ]
     const result = matchTrades(txs)
     expect(result).toHaveLength(2)
-    const aapl = result.find((r) => r.symbol === 'AAPL')!
-    const tsla = result.find((r) => r.symbol === 'TSLA')!
-    expect(aapl.realizedPnL).toBeCloseTo(100)             // (120-100)*5
-    expect(tsla.realizedPnL).toBeCloseTo(-60)             // (180-200)*3
+    const aapl = result.find(r => r.symbol === 'AAPL')!
+    const tsla = result.find(r => r.symbol === 'TSLA')!
+    expect(aapl.realizedPnL).toBeCloseTo(100) // (120-100)*5
+    expect(tsla.realizedPnL).toBeCloseTo(-60) // (180-200)*3
   })
 
   it('SELL without BUY → rejected, consistent with exact ledger', () => {
-    const txs = [
-      makeTx({ id: '1', type: 'SELL', quantity: 10, price: 100 }),
-    ]
+    const txs = [makeTx({ id: '1', type: 'SELL', quantity: 10, price: 100 })]
     expect(() => matchTrades(txs)).toThrow()
   })
 
@@ -99,12 +97,12 @@ describe('matchTrades', () => {
     const txs = [
       makeTx({ id: '1', type: 'BUY', quantity: 20, price: 100, tradeDate: new Date('2024-01-01') }),
       makeTx({ id: '2', type: 'SELL', quantity: 10, price: 120, tradeDate: new Date('2024-02-01') }),
-      makeTx({ id: '3', type: 'SELL', quantity: 10, price: 90,  tradeDate: new Date('2024-03-01') }),
+      makeTx({ id: '3', type: 'SELL', quantity: 10, price: 90, tradeDate: new Date('2024-03-01') }),
     ]
     const result = matchTrades(txs)
     expect(result).toHaveLength(2)
-    expect(result[0]!.realizedPnL).toBeCloseTo(200)   // (120-100)*10
-    expect(result[1]!.realizedPnL).toBeCloseTo(-100)  // (90-100)*10
+    expect(result[0]!.realizedPnL).toBeCloseTo(200) // (120-100)*10
+    expect(result[1]!.realizedPnL).toBeCloseTo(-100) // (90-100)*10
   })
 
   it('Decimal-like objects (Prisma Decimal) convert correctly', () => {
@@ -112,13 +110,19 @@ describe('matchTrades', () => {
     const decimalLike = (v: number) => ({ valueOf: () => v, toString: () => String(v) })
     const txs: RawTransaction[] = [
       {
-        id: '1', symbol: 'AAPL', type: 'BUY',
-        quantity: decimalLike(10), price: decimalLike(100),
+        id: '1',
+        symbol: 'AAPL',
+        type: 'BUY',
+        quantity: decimalLike(10),
+        price: decimalLike(100),
         tradeDate: new Date('2024-01-01'),
       },
       {
-        id: '2', symbol: 'AAPL', type: 'SELL',
-        quantity: decimalLike(10), price: decimalLike(110),
+        id: '2',
+        symbol: 'AAPL',
+        type: 'SELL',
+        quantity: decimalLike(10),
+        price: decimalLike(110),
         tradeDate: new Date('2024-02-01'),
       },
     ]
@@ -134,7 +138,7 @@ describe('matchTrades', () => {
     ]
     const result = matchTrades(txs)
     expect(result).toHaveLength(1)
-    expect(result[0]!.realizedPnL).toBeCloseTo(300)   // (130-100)*10
+    expect(result[0]!.realizedPnL).toBeCloseTo(300) // (130-100)*10
   })
 })
 
@@ -150,8 +154,30 @@ describe('calcWinRate', () => {
 
   it('all wins → winRate = 100', () => {
     const trades: ClosedTrade[] = [
-      { id: '1', symbol: 'A', strategy: null, emotion: null, sellDate: new Date(), sellQuantity: 1, sellPrice: 110, avgCostBasis: 100, realizedPnL: 10, realizedPnLPct: 10 },
-      { id: '2', symbol: 'B', strategy: null, emotion: null, sellDate: new Date(), sellQuantity: 1, sellPrice: 220, avgCostBasis: 200, realizedPnL: 20, realizedPnLPct: 10 },
+      {
+        id: '1',
+        symbol: 'A',
+        strategy: null,
+        emotion: null,
+        sellDate: new Date(),
+        sellQuantity: 1,
+        sellPrice: 110,
+        avgCostBasis: 100,
+        realizedPnL: 10,
+        realizedPnLPct: 10,
+      },
+      {
+        id: '2',
+        symbol: 'B',
+        strategy: null,
+        emotion: null,
+        sellDate: new Date(),
+        sellQuantity: 1,
+        sellPrice: 220,
+        avgCostBasis: 200,
+        realizedPnL: 20,
+        realizedPnLPct: 10,
+      },
     ]
     const r = calcWinRate(trades)
     expect(r.wins).toBe(2)
@@ -161,7 +187,18 @@ describe('calcWinRate', () => {
 
   it('all losses → winRate = 0', () => {
     const trades: ClosedTrade[] = [
-      { id: '1', symbol: 'A', strategy: null, emotion: null, sellDate: new Date(), sellQuantity: 1, sellPrice: 90, avgCostBasis: 100, realizedPnL: -10, realizedPnLPct: -10 },
+      {
+        id: '1',
+        symbol: 'A',
+        strategy: null,
+        emotion: null,
+        sellDate: new Date(),
+        sellQuantity: 1,
+        sellPrice: 90,
+        avgCostBasis: 100,
+        realizedPnL: -10,
+        realizedPnLPct: -10,
+      },
     ]
     const r = calcWinRate(trades)
     expect(r.wins).toBe(0)
@@ -171,8 +208,16 @@ describe('calcWinRate', () => {
 
   it('mixed 2 wins 1 loss → winRate = 66.67', () => {
     const make = (pnl: number) => ({
-      id: String(pnl), symbol: 'X', strategy: null, emotion: null, sellDate: new Date(), sellQuantity: 1, sellPrice: 0,
-      avgCostBasis: 0, realizedPnL: pnl, realizedPnLPct: 0,
+      id: String(pnl),
+      symbol: 'X',
+      strategy: null,
+      emotion: null,
+      sellDate: new Date(),
+      sellQuantity: 1,
+      sellPrice: 0,
+      avgCostBasis: 0,
+      realizedPnL: pnl,
+      realizedPnLPct: 0,
     })
     const r = calcWinRate([make(10), make(20), make(-5)])
     expect(r.wins).toBe(2)
@@ -182,8 +227,16 @@ describe('calcWinRate', () => {
 
   it('break-even trades (pnl=0) count as breakEven', () => {
     const make = (pnl: number) => ({
-      id: String(pnl), symbol: 'X', strategy: null, emotion: null, sellDate: new Date(), sellQuantity: 1, sellPrice: 0,
-      avgCostBasis: 0, realizedPnL: pnl, realizedPnLPct: 0,
+      id: String(pnl),
+      symbol: 'X',
+      strategy: null,
+      emotion: null,
+      sellDate: new Date(),
+      sellQuantity: 1,
+      sellPrice: 0,
+      avgCostBasis: 0,
+      realizedPnL: pnl,
+      realizedPnLPct: 0,
     })
     const r = calcWinRate([make(10), make(0), make(-5)])
     expect(r.breakEven).toBe(1)
@@ -198,7 +251,9 @@ describe('calcRealizedDrawdown', () => {
   const makeTrade = (id: string, date: string, qty: number, basis: number, pnl: number): ClosedTrade => ({
     id,
     symbol: 'X',
-    strategy: null, emotion: null, sellDate: new Date(date),
+    strategy: null,
+    emotion: null,
+    sellDate: new Date(date),
     sellQuantity: qty,
     sellPrice: basis / qty + pnl / qty,
     avgCostBasis: basis / qty,
@@ -236,9 +291,7 @@ describe('calcRealizedDrawdown', () => {
   })
 
   it('first trade is a loss → drawdown measured from 0', () => {
-    const r = calcRealizedDrawdown([
-      makeTrade('1', '2024-01-01', 10, 1000, -500),
-    ])
+    const r = calcRealizedDrawdown([makeTrade('1', '2024-01-01', 10, 1000, -500)])
     expect(r.maxDrawdownDollars).toBeCloseTo(500)
     expect(r.maxDrawdownPct).toBeCloseTo(50)
     expect(r.peakPnL).toBe(0)
@@ -296,7 +349,9 @@ describe('groupByPeriod', () => {
   const makeTrade = (id: string, date: string, pnl: number): ClosedTrade => ({
     id,
     symbol: 'X',
-    strategy: null, emotion: null, sellDate: new Date(date),
+    strategy: null,
+    emotion: null,
+    sellDate: new Date(date),
     sellQuantity: 1,
     sellPrice: 0,
     avgCostBasis: 0,
@@ -317,9 +372,9 @@ describe('groupByPeriod', () => {
 
   it('groups by quarter', () => {
     const trades = [
-      makeTrade('1', '2024-01-15', 100),  // Q1
-      makeTrade('2', '2024-04-10', 50),   // Q2
-      makeTrade('3', '2024-03-25', -30),  // Q1
+      makeTrade('1', '2024-01-15', 100), // Q1
+      makeTrade('2', '2024-04-10', 50), // Q2
+      makeTrade('3', '2024-03-25', -30), // Q1
     ]
     const grouped = groupByPeriod(trades, 'quarter')
     expect(grouped.get('2024-Q1')).toHaveLength(2)
@@ -338,10 +393,7 @@ describe('groupByPeriod', () => {
   })
 
   it('year boundary (Dec/Jan)', () => {
-    const trades = [
-      makeTrade('1', '2023-12-31', 100),
-      makeTrade('2', '2024-01-01', 50),
-    ]
+    const trades = [makeTrade('1', '2023-12-31', 100), makeTrade('2', '2024-01-01', 50)]
     const grouped = groupByPeriod(trades, 'month')
     expect(grouped.get('2023-12')).toHaveLength(1)
     expect(grouped.get('2024-01')).toHaveLength(1)
@@ -354,7 +406,9 @@ describe('calcPeriodStats', () => {
   const makeTrade = (id: string, pnl: number): ClosedTrade => ({
     id,
     symbol: 'X',
-    strategy: null, emotion: null, sellDate: new Date(),
+    strategy: null,
+    emotion: null,
+    sellDate: new Date(),
     sellQuantity: 1,
     sellPrice: 0,
     avgCostBasis: 0,
@@ -370,12 +424,12 @@ describe('calcPeriodStats', () => {
     const stats = calcPeriodStats(grouped)
     expect(stats).toHaveLength(2)
 
-    const jan = stats.find((s) => s.period === '2024-01')!
+    const jan = stats.find(s => s.period === '2024-01')!
     expect(jan.realizedPnL).toBe(50)
     expect(jan.tradeCount).toBe(2)
     expect(jan.winRate).toBeCloseTo(50)
 
-    const feb = stats.find((s) => s.period === '2024-02')!
+    const feb = stats.find(s => s.period === '2024-02')!
     expect(feb.realizedPnL).toBe(200)
     expect(feb.winRate).toBe(100)
   })
@@ -387,7 +441,7 @@ describe('calcPeriodStats', () => {
       ['2024-02', [makeTrade('2', 10)]],
     ])
     const stats = calcPeriodStats(grouped)
-    expect(stats.map((s) => s.period)).toEqual(['2024-01', '2024-02', '2024-03'])
+    expect(stats.map(s => s.period)).toEqual(['2024-01', '2024-02', '2024-03'])
   })
 })
 
@@ -397,7 +451,9 @@ describe('buildMonthlyReturnPcts', () => {
   const makeTrade = (id: string, date: string, qty: number, basis: number, pnl: number): ClosedTrade => ({
     id,
     symbol: 'X',
-    strategy: null, emotion: null, sellDate: new Date(date),
+    strategy: null,
+    emotion: null,
+    sellDate: new Date(date),
     sellQuantity: qty,
     sellPrice: 0,
     avgCostBasis: basis / qty,
@@ -411,16 +467,16 @@ describe('buildMonthlyReturnPcts', () => {
 
   it('monthly return = Σpnl / Σbasis (percentage, not dollars)', () => {
     const trades = [
-      makeTrade('1', '2024-01-10', 10, 1000, 200),   // +20%
-      makeTrade('2', '2024-02-10', 10, 1500, -150),  // -10%
+      makeTrade('1', '2024-01-10', 10, 1000, 200), // +20%
+      makeTrade('2', '2024-02-10', 10, 1500, -150), // -10%
     ]
     expect(buildMonthlyReturnPcts(trades)).toEqual([20, -10])
   })
 
   it('multiple trades in a month → sums pnl and basis separately, then divides', () => {
     const trades = [
-      makeTrade('1', '2024-01-10', 10, 1000, 100),  // +10%
-      makeTrade('2', '2024-01-20', 10, 1000, -50),  // -5%
+      makeTrade('1', '2024-01-10', 10, 1000, 100), // +10%
+      makeTrade('2', '2024-01-20', 10, 1000, -50), // -5%
     ]
     // (100-50) / 2000 = +2.5%
     expect(buildMonthlyReturnPcts(trades)).toEqual([2.5])
@@ -428,17 +484,14 @@ describe('buildMonthlyReturnPcts', () => {
 
   it('months with no closings in between are filled with 0', () => {
     const trades = [
-      makeTrade('1', '2024-01-10', 10, 1000, 200),  // +20%
+      makeTrade('1', '2024-01-10', 10, 1000, 200), // +20%
       makeTrade('2', '2024-03-10', 10, 1000, -100), // -10%
     ]
     expect(buildMonthlyReturnPcts(trades)).toEqual([20, 0, -10])
   })
 
   it('year boundary (Dec→Feb) → January filled with 0', () => {
-    const trades = [
-      makeTrade('1', '2024-12-15', 10, 1000, 100),
-      makeTrade('2', '2025-02-15', 10, 1000, -100),
-    ]
+    const trades = [makeTrade('1', '2024-12-15', 10, 1000, 100), makeTrade('2', '2025-02-15', 10, 1000, -100)]
     expect(buildMonthlyReturnPcts(trades)).toEqual([10, 0, -10])
   })
 })
@@ -449,14 +502,14 @@ describe('integration: matchTrades → calcWinRate → calcRealizedDrawdown → 
   it('full trade lifecycle computed end to end', () => {
     const txs: RawTransaction[] = [
       // AAPL: buy 10 @ 100, sell 10 @ 120 → +200 (basis 1000)
-      { id: '1', symbol: 'AAPL', type: 'BUY',  quantity: 10, price: 100, tradeDate: new Date('2024-01-01') },
+      { id: '1', symbol: 'AAPL', type: 'BUY', quantity: 10, price: 100, tradeDate: new Date('2024-01-01') },
       { id: '2', symbol: 'AAPL', type: 'SELL', quantity: 10, price: 120, tradeDate: new Date('2024-02-01') },
       // TSLA: buy 5 @ 200, sell 5 @ 160 → -200 (basis 1000)
-      { id: '3', symbol: 'TSLA', type: 'BUY',  quantity: 5,  price: 200, tradeDate: new Date('2024-01-15') },
-      { id: '4', symbol: 'TSLA', type: 'SELL', quantity: 5,  price: 160, tradeDate: new Date('2024-03-01') },
+      { id: '3', symbol: 'TSLA', type: 'BUY', quantity: 5, price: 200, tradeDate: new Date('2024-01-15') },
+      { id: '4', symbol: 'TSLA', type: 'SELL', quantity: 5, price: 160, tradeDate: new Date('2024-03-01') },
       // NVDA: buy 2 @ 500, sell 2 @ 600 → +200 (basis 1000)
-      { id: '5', symbol: 'NVDA', type: 'BUY',  quantity: 2,  price: 500, tradeDate: new Date('2024-02-15') },
-      { id: '6', symbol: 'NVDA', type: 'SELL', quantity: 2,  price: 600, tradeDate: new Date('2024-04-01') },
+      { id: '5', symbol: 'NVDA', type: 'BUY', quantity: 2, price: 500, tradeDate: new Date('2024-02-15') },
+      { id: '6', symbol: 'NVDA', type: 'SELL', quantity: 2, price: 600, tradeDate: new Date('2024-04-01') },
     ]
 
     const closed = matchTrades(txs)

@@ -8,7 +8,7 @@ import type {
   SecFilingPage,
   SecFilingSummary,
 } from '@diary/contracts/sec-filings'
-import { SecMemoryCache, type SecCacheResult } from './cache.js'
+import { SecCacheBudget, SecMemoryCache, type SecCacheResult } from './cache.js'
 import { buildSecUrls, SecEdgarClient } from './client.js'
 import { SecProviderError } from './errors.js'
 import { throwIfAborted, withAbort } from './abort.js'
@@ -21,8 +21,15 @@ export interface SecClientLike {
   getStream?(url: string, signal?: AbortSignal): Promise<Response>
 }
 
-interface DirectoryPayload { fields?: unknown; data?: unknown }
-interface SubmissionFile { name?: unknown; filingFrom?: unknown; filingTo?: unknown }
+interface DirectoryPayload {
+  fields?: unknown
+  data?: unknown
+}
+interface SubmissionFile {
+  name?: unknown
+  filingFrom?: unknown
+  filingTo?: unknown
+}
 interface SubmissionsPayload {
   cik?: unknown
   name?: unknown
@@ -34,35 +41,76 @@ interface SubmissionsPayload {
 type FilingColumns = Record<string, unknown>
 
 export class SecEdgarService {
-  private readonly directoryCache = new SecMemoryCache<string, SecCompany[]>({ freshMs: 86_400_000, staleMs: 7 * 86_400_000, maxEntries: 1 })
-  private readonly submissionsCache = new SecMemoryCache<string, SubmissionsPayload>({ freshMs: 300_000, staleMs: 86_400_000, maxEntries: 250 })
-  private readonly segmentCache = new SecMemoryCache<string, FilingColumns>({ freshMs: 86_400_000, staleMs: 30 * 86_400_000, maxEntries: 500 })
-  private readonly filingIndexCache = new SecMemoryCache<string, { json: unknown; html: string }>({ freshMs: 3_600_000, staleMs: 7 * 86_400_000, maxEntries: 500 })
+  // One budget across all four caches: the entry-count caps bound how many
+  // things are kept, this bounds how much. See cache.ts for the ruling.
+  private readonly cacheBudget: SecCacheBudget
+  private readonly directoryCache: SecMemoryCache<string, SecCompany[]>
+  private readonly submissionsCache: SecMemoryCache<string, SubmissionsPayload>
+  private readonly segmentCache: SecMemoryCache<string, FilingColumns>
+  private readonly filingIndexCache: SecMemoryCache<string, { json: unknown; html: string }>
 
-  constructor(private readonly client: SecClientLike) {}
+  constructor(
+    private readonly client: SecClientLike,
+    cacheMaxBytes?: number,
+  ) {
+    this.cacheBudget = new SecCacheBudget(cacheMaxBytes)
+    const budget = this.cacheBudget
+    this.directoryCache = new SecMemoryCache({ freshMs: 86_400_000, staleMs: 7 * 86_400_000, maxEntries: 1, budget })
+    this.submissionsCache = new SecMemoryCache({ freshMs: 300_000, staleMs: 86_400_000, maxEntries: 250, budget })
+    this.segmentCache = new SecMemoryCache({ freshMs: 86_400_000, staleMs: 30 * 86_400_000, maxEntries: 500, budget })
+    this.filingIndexCache = new SecMemoryCache({ freshMs: 3_600_000, staleMs: 7 * 86_400_000, maxEntries: 500, budget })
+  }
 
-  async searchCompanies(query: string, limit: number, signal?: AbortSignal): Promise<SecCacheResult<SecCompanySearchResult[]>> {
+  /** Retained metadata bytes and the ceiling, for capacity evidence and diagnostics. */
+  cacheUsage() {
+    return {
+      maxBytes: this.cacheBudget.maxBytes,
+      retainedBytes: this.cacheBudget.retainedBytes,
+      caches: {
+        directory: { entries: this.directoryCache.size, bytes: this.directoryCache.retainedBytes },
+        submissions: { entries: this.submissionsCache.size, bytes: this.submissionsCache.retainedBytes },
+        segments: { entries: this.segmentCache.size, bytes: this.segmentCache.retainedBytes },
+        filingIndexes: { entries: this.filingIndexCache.size, bytes: this.filingIndexCache.retainedBytes },
+      },
+    }
+  }
+
+  async searchCompanies(
+    query: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<SecCacheResult<SecCompanySearchResult[]>> {
     const normalized = normalizeTickerQuery(query)
-    const cached = await this.awaitCache(this.directoryCache.getOrLoad('directory', async () => this.loadDirectory()), signal)
+    const cached = await this.awaitCache(
+      this.directoryCache.getOrLoad('directory', async () => this.loadDirectory()),
+      signal,
+    )
     const numeric = /^\d+$/.test(normalized) ? canonicalizeCik(normalized) : null
     const tokens = normalized.split(/\s+/).filter(Boolean)
-    const ranked = cached.value.flatMap(company => {
-      const exactCik = numeric === company.cik
-      const cikPrefix = numeric ? company.cik.replace(/^0+/, '').startsWith(normalized.replace(/^0+/, '')) : false
-      const exactTicker = company.tickers.includes(normalized)
-      const tickerPrefix = company.tickers.some(ticker => ticker.startsWith(normalized))
-      const upperName = company.name.toUpperCase()
-      const nameMatch = tokens.every(token => upperName.includes(token))
-      if (!exactCik && !cikPrefix && !exactTicker && !tickerPrefix && !nameMatch) return []
-      const matchedBy = exactCik || cikPrefix ? 'cik' : exactTicker || tickerPrefix ? 'ticker' : 'name'
-      const score = exactCik ? 0 : exactTicker ? 1 : cikPrefix ? 2 : tickerPrefix ? 3 : 4
-      return [{ ...company, matchedBy, score }]
-    }).sort((a, b) => a.score - b.score || a.name.localeCompare(b.name)).slice(0, limit)
+    const ranked = cached.value
+      .flatMap(company => {
+        const exactCik = numeric === company.cik
+        const cikPrefix = numeric ? company.cik.replace(/^0+/, '').startsWith(normalized.replace(/^0+/, '')) : false
+        const exactTicker = company.tickers.includes(normalized)
+        const tickerPrefix = company.tickers.some(ticker => ticker.startsWith(normalized))
+        const upperName = company.name.toUpperCase()
+        const nameMatch = tokens.every(token => upperName.includes(token))
+        if (!exactCik && !cikPrefix && !exactTicker && !tickerPrefix && !nameMatch) return []
+        const matchedBy = exactCik || cikPrefix ? 'cik' : exactTicker || tickerPrefix ? 'ticker' : 'name'
+        const score = exactCik ? 0 : exactTicker ? 1 : cikPrefix ? 2 : tickerPrefix ? 3 : 4
+        return [{ ...company, matchedBy, score }]
+      })
+      .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))
+      .slice(0, limit)
       .map(({ score: _score, ...company }) => company as SecCompanySearchResult)
     return { ...cached, value: ranked }
   }
 
-  async listFilings(cikInput: string, input: Partial<SecFilingFilters>, signal?: AbortSignal): Promise<SecCacheResult<SecFilingPage>> {
+  async listFilings(
+    cikInput: string,
+    input: Partial<SecFilingFilters>,
+    signal?: AbortSignal,
+  ): Promise<SecCacheResult<SecFilingPage>> {
     throwIfAborted(signal)
     const cik = canonicalizeCik(cikInput)
     const filters: SecFilingFilters = {
@@ -85,7 +133,12 @@ export class SecEdgarService {
     for (const file of submissions.value.filings?.files ?? []) {
       throwIfAborted(signal)
       if (typeof file.name !== 'string') continue
-      const segment = await this.awaitCache(this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string))), signal)
+      const segment = await this.awaitCache(
+        this.segmentCache.getOrLoad(file.name, () =>
+          this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string)),
+        ),
+        signal,
+      )
       rows.push(...this.normalizeColumns(cik, segment.value))
       if (segment.stale) stale = true
       if (segment.cacheStatus === 'miss') cacheStatus = 'miss'
@@ -101,7 +154,11 @@ export class SecEdgarService {
     return { value: { company, filings, nextCursor }, stale, cacheStatus, fetchedAt }
   }
 
-  async getFilingDetail(cikInput: string, accessionInput: string, signal?: AbortSignal): Promise<SecCacheResult<SecFilingDetail>> {
+  async getFilingDetail(
+    cikInput: string,
+    accessionInput: string,
+    signal?: AbortSignal,
+  ): Promise<SecCacheResult<SecFilingDetail>> {
     throwIfAborted(signal)
     const cik = canonicalizeCik(cikInput)
     const accession = parseAccession(accessionInput).accession
@@ -115,17 +172,24 @@ export class SecEdgarService {
 
     const key = `${cik}:${accession}`
     throwIfAborted(signal)
-    const index = await this.awaitCache(this.filingIndexCache.getOrLoad(key, async () => {
-      const [json, html] = await Promise.all([
-        this.client.getJson<unknown>(buildSecUrls.filingIndexJson(cik, accession)),
-        this.client.getText(buildSecUrls.filingIndexHtml(cik, accession)),
-      ])
-      return { json, html }
-    }), signal)
+    const index = await this.awaitCache(
+      this.filingIndexCache.getOrLoad(key, async () => {
+        const [json, html] = await Promise.all([
+          this.client.getJson<unknown>(buildSecUrls.filingIndexJson(cik, accession)),
+          this.client.getText(buildSecUrls.filingIndexHtml(cik, accession)),
+        ])
+        return { json, html }
+      }),
+      signal,
+    )
     throwIfAborted(signal)
     const documents = this.buildDocuments(index.value.json, index.value.html, filing)
     if (!documents.some(document => document.isPrimary)) {
-      throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Primary filing document is absent from SEC directory', 502)
+      throw new SecProviderError(
+        'SEC_UPSTREAM_INVALID_RESPONSE',
+        'Primary filing document is absent from SEC directory',
+        502,
+      )
     }
     return {
       value: { company: listing.value.company, filing, documents, hasPdf: documents.some(document => document.isPdf) },
@@ -135,7 +199,12 @@ export class SecEdgarService {
     }
   }
 
-  async getDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string }> {
+  async getDocument(
+    cik: string,
+    accession: string,
+    basename: string,
+    signal?: AbortSignal,
+  ): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string }> {
     const safeBasename = parseDocumentBasename(basename)
     const detail = await this.getFilingDetail(cik, accession, signal)
     throwIfAborted(signal)
@@ -144,9 +213,15 @@ export class SecEdgarService {
     return { detail: detail.value, document, url: buildSecUrls.document(cik, accession, safeBasename) }
   }
 
-  async openDocument(cik: string, accession: string, basename: string, signal?: AbortSignal): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string; response: Response }> {
+  async openDocument(
+    cik: string,
+    accession: string,
+    basename: string,
+    signal?: AbortSignal,
+  ): Promise<{ detail: SecFilingDetail; document: SecFilingDocument; url: string; response: Response }> {
     throwIfAborted(signal)
-    if (!this.client.getStream) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC streaming client unavailable', 503, true)
+    if (!this.client.getStream)
+      throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC streaming client unavailable', 503, true)
     const resolved = await this.getDocument(cik, accession, basename, signal)
     throwIfAborted(signal)
     const response = await this.client.getStream(resolved.url, signal)
@@ -161,34 +236,45 @@ export class SecEdgarService {
 
   private async loadDirectory(): Promise<SecCompany[]> {
     const raw = await this.client.getJson<DirectoryPayload>(buildSecUrls.directory())
-    if (!Array.isArray(raw.fields) || !Array.isArray(raw.data)) throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Invalid SEC company directory', 502)
+    if (!Array.isArray(raw.fields) || !Array.isArray(raw.data))
+      throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Invalid SEC company directory', 502)
     const fields = raw.fields.map(String)
     const positions = Object.fromEntries(fields.map((field, index) => [field.toLowerCase(), index]))
     const cikIndex = positions.cik
     const nameIndex = positions.name
     const tickerIndex = positions.ticker
     const exchangeIndex = positions.exchange
-    if ([cikIndex, nameIndex, tickerIndex, exchangeIndex].some(value => typeof value !== 'number')) throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Invalid SEC company directory fields', 502)
+    if ([cikIndex, nameIndex, tickerIndex, exchangeIndex].some(value => typeof value !== 'number'))
+      throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'Invalid SEC company directory fields', 502)
     const companies = new Map<string, SecCompany>()
     for (const row of raw.data) {
       if (!Array.isArray(row)) continue
       try {
         const cik = canonicalizeCik(String(row[cikIndex as number] ?? ''))
         const name = String(row[nameIndex as number] ?? '').trim()
-        const ticker = String(row[tickerIndex as number] ?? '').trim().toUpperCase()
+        const ticker = String(row[tickerIndex as number] ?? '')
+          .trim()
+          .toUpperCase()
         const exchange = String(row[exchangeIndex as number] ?? '').trim()
         if (!name || !ticker) continue
         const company = companies.get(cik) ?? { cik, name, tickers: [], exchanges: [] }
         if (!company.tickers.includes(ticker)) company.tickers.push(ticker)
         if (exchange && !company.exchanges.includes(exchange)) company.exchanges.push(exchange)
         companies.set(cik, company)
-      } catch { /* skip malformed provider row */ }
+      } catch {
+        /* skip malformed provider row */
+      }
     }
     return [...companies.values()]
   }
 
   private loadSubmissions(cik: string, signal?: AbortSignal) {
-    return this.awaitCache(this.submissionsCache.getOrLoad(cik, () => this.client.getJson<SubmissionsPayload>(buildSecUrls.submissions(cik))), signal)
+    return this.awaitCache(
+      this.submissionsCache.getOrLoad(cik, () =>
+        this.client.getJson<SubmissionsPayload>(buildSecUrls.submissions(cik)),
+      ),
+      signal,
+    )
   }
 
   private companyFromSubmissions(cik: string, raw: SubmissionsPayload): SecCompany {
@@ -208,28 +294,38 @@ export class SecEdgarService {
     const accessions = Array.isArray(columns.accessionNumber) ? columns.accessionNumber : []
     const required = ['filingDate', 'form', 'primaryDocument']
     return accessions.flatMap((accessionValue, index) => {
-      if (typeof accessionValue !== 'string' || required.some(key => !Array.isArray(columns[key]) || typeof (columns[key] as unknown[])[index] !== 'string')) return []
+      if (
+        typeof accessionValue !== 'string' ||
+        required.some(key => !Array.isArray(columns[key]) || typeof (columns[key] as unknown[])[index] !== 'string')
+      )
+        return []
       try {
         const accession = parseAccession(accessionValue).accession
-        const value = (key: string): unknown => Array.isArray(columns[key]) ? (columns[key] as unknown[])[index] : undefined
-        const text = (key: string): string | null => typeof value(key) === 'string' && value(key) !== '' ? value(key) as string : null
+        const value = (key: string): unknown =>
+          Array.isArray(columns[key]) ? (columns[key] as unknown[])[index] : undefined
+        const text = (key: string): string | null =>
+          typeof value(key) === 'string' && value(key) !== '' ? (value(key) as string) : null
         const form = String(value('form')).toUpperCase()
-        return [{
-          cik,
-          accession,
-          filingDate: String(value('filingDate')),
-          reportDate: text('reportDate'),
-          acceptanceDateTime: text('acceptanceDateTime'),
-          form,
-          isAmendment: form.endsWith('/A'),
-          primaryDocument: parseDocumentBasename(String(value('primaryDocument'))),
-          primaryDocumentDescription: text('primaryDocDescription'),
-          fileNumber: text('fileNumber'),
-          filmNumber: text('filmNumber'),
-          items: text('items'),
-          size: typeof value('size') === 'number' ? value('size') as number : null,
-        } satisfies SecFilingSummary]
-      } catch { return [] }
+        return [
+          {
+            cik,
+            accession,
+            filingDate: String(value('filingDate')),
+            reportDate: text('reportDate'),
+            acceptanceDateTime: text('acceptanceDateTime'),
+            form,
+            isAmendment: form.endsWith('/A'),
+            primaryDocument: parseDocumentBasename(String(value('primaryDocument'))),
+            primaryDocumentDescription: text('primaryDocDescription'),
+            fileNumber: text('fileNumber'),
+            filmNumber: text('filmNumber'),
+            items: text('items'),
+            size: typeof value('size') === 'number' ? (value('size') as number) : null,
+          } satisfies SecFilingSummary,
+        ]
+      } catch {
+        return []
+      }
     })
   }
 
@@ -239,14 +335,25 @@ export class SecEdgarService {
     for (const file of submissions.value.filings?.files ?? []) {
       throwIfAborted(signal)
       if (typeof file.name !== 'string') continue
-      const segment = await this.awaitCache(this.segmentCache.getOrLoad(file.name, () => this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string))), signal)
+      const segment = await this.awaitCache(
+        this.segmentCache.getOrLoad(file.name, () =>
+          this.client.getJson<FilingColumns>(buildSecUrls.historicalSegment(file.name as string)),
+        ),
+        signal,
+      )
       rows.push(...this.normalizeColumns(cik, segment.value))
     }
     return rows
   }
 
   private matchesFilters(row: SecFilingSummary, filters: SecFilingFilters): boolean {
-    if (filters.forms.length && !filters.forms.some(form => form.endsWith('/A') ? row.form === form : row.form === form || row.form === `${form}/A`)) return false
+    if (
+      filters.forms.length &&
+      !filters.forms.some(form =>
+        form.endsWith('/A') ? row.form === form : row.form === form || row.form === `${form}/A`,
+      )
+    )
+      return false
     if (filters.amendments === 'exclude' && row.isAmendment) return false
     if (filters.amendments === 'only' && !row.isAmendment) return false
     if (filters.filedFrom && row.filingDate < filters.filedFrom) return false
@@ -257,11 +364,28 @@ export class SecEdgarService {
   }
 
   private compareFilings(a: SecFilingSummary, b: SecFilingSummary): number {
-    return b.filingDate.localeCompare(a.filingDate) || (b.acceptanceDateTime ?? '').localeCompare(a.acceptanceDateTime ?? '') || b.accession.localeCompare(a.accession)
+    return (
+      b.filingDate.localeCompare(a.filingDate) ||
+      (b.acceptanceDateTime ?? '').localeCompare(a.acceptanceDateTime ?? '') ||
+      b.accession.localeCompare(a.accession)
+    )
   }
 
   private filterFingerprint(cik: string, filters: SecFilingFilters): string {
-    return createHash('sha256').update(JSON.stringify({ cik, forms: filters.forms, amendments: filters.amendments, filedFrom: filters.filedFrom, filedTo: filters.filedTo, periodFrom: filters.periodFrom, periodTo: filters.periodTo })).digest('base64url').slice(0, 16)
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          cik,
+          forms: filters.forms,
+          amendments: filters.amendments,
+          filedFrom: filters.filedFrom,
+          filedTo: filters.filedTo,
+          periodFrom: filters.periodFrom,
+          periodTo: filters.periodTo,
+        }),
+      )
+      .digest('base64url')
+      .slice(0, 16)
   }
 
   private encodeCursor(offset: number, fingerprint: string): string {
@@ -270,14 +394,27 @@ export class SecEdgarService {
 
   private decodeCursor(cursor: string, fingerprint: string): number {
     try {
-      const value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as { v?: unknown; offset?: unknown; fingerprint?: unknown }
-      if (value.v !== 1 || value.fingerprint !== fingerprint || !Number.isInteger(value.offset) || Number(value.offset) < 0) throw new Error('bad cursor')
+      const value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
+        v?: unknown
+        offset?: unknown
+        fingerprint?: unknown
+      }
+      if (
+        value.v !== 1 ||
+        value.fingerprint !== fingerprint ||
+        !Number.isInteger(value.offset) ||
+        Number(value.offset) < 0
+      )
+        throw new Error('bad cursor')
       return Number(value.offset)
-    } catch { throw new SecProviderError('SEC_VALIDATION_ERROR', 'Invalid filing cursor', 400) }
+    } catch {
+      throw new SecProviderError('SEC_VALIDATION_ERROR', 'Invalid filing cursor', 400)
+    }
   }
 
   private buildDocuments(rawJson: unknown, html: string, filing: SecFilingSummary): SecFilingDocument[] {
-    const directory = rawJson && typeof rawJson === 'object' ? (rawJson as { directory?: { item?: unknown } }).directory : undefined
+    const directory =
+      rawJson && typeof rawJson === 'object' ? (rawJson as { directory?: { item?: unknown } }).directory : undefined
     const items = Array.isArray(directory?.item) ? directory.item : []
     const htmlMetadata = this.parseIndexHtml(html)
     return items.flatMap(item => {
@@ -295,47 +432,101 @@ export class SecEdgarService {
         const isXbrl = this.isXbrl(basename, type, metadata?.description ?? null)
         const isExhibit = Boolean(type?.toUpperCase().startsWith('EX-'))
         const complete = basename === `${filing.accession}.txt`
-        const classification = isPrimary ? 'primary' : complete ? 'complete-submission' : isXbrl ? 'xbrl' : isPdf ? 'pdf' : isExhibit ? 'exhibit' : 'other'
-        return [{ basename, description: metadata?.description ?? null, type, sequence: metadata?.sequence ?? null, size, classification, isPrimary, isPdf, isXbrl, isExhibit } satisfies SecFilingDocument]
-      } catch { return [] }
+        const classification = isPrimary
+          ? 'primary'
+          : complete
+            ? 'complete-submission'
+            : isXbrl
+              ? 'xbrl'
+              : isPdf
+                ? 'pdf'
+                : isExhibit
+                  ? 'exhibit'
+                  : 'other'
+        return [
+          {
+            basename,
+            description: metadata?.description ?? null,
+            type,
+            sequence: metadata?.sequence ?? null,
+            size,
+            classification,
+            isPrimary,
+            isPdf,
+            isXbrl,
+            isExhibit,
+          } satisfies SecFilingDocument,
+        ]
+      } catch {
+        return []
+      }
     })
   }
 
-  private parseIndexHtml(html: string): Map<string, { sequence: number | null; description: string | null; type: string | null }> {
+  private parseIndexHtml(
+    html: string,
+  ): Map<string, { sequence: number | null; description: string | null; type: string | null }> {
     const result = new Map<string, { sequence: number | null; description: string | null; type: string | null }>()
     for (const row of html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? []) {
       const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(match => this.stripHtml(match[1] ?? ''))
       if (cells.length < 4) continue
       try {
         const basename = parseDocumentBasename(cells[2] ?? '')
-        result.set(basename, { sequence: /^\d+$/.test(cells[0] ?? '') ? Number(cells[0]) : null, description: cells[1] || null, type: cells[3] || null })
-      } catch { /* skip unsafe provider row */ }
+        result.set(basename, {
+          sequence: /^\d+$/.test(cells[0] ?? '') ? Number(cells[0]) : null,
+          description: cells[1] || null,
+          type: cells[3] || null,
+        })
+      } catch {
+        /* skip unsafe provider row */
+      }
     }
     return result
   }
 
   private stripHtml(value: string): string {
-    return value.replace(/<[^>]+>/g, '').replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>').trim()
+    return value
+      .replace(/<[^>]+>/g, '')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .trim()
   }
 
   private isXbrl(name: string, type: string | null, description: string | null): boolean {
     const lower = name.toLowerCase()
-    return /\.(xsd|xml)$/.test(lower) || /_(cal|def|lab|pre)\.xml$/.test(lower) || Boolean(type?.toUpperCase().startsWith('EX-101')) || Boolean(description?.toUpperCase().includes('XBRL'))
+    return (
+      /\.(xsd|xml)$/.test(lower) ||
+      /_(cal|def|lab|pre)\.xml$/.test(lower) ||
+      Boolean(type?.toUpperCase().startsWith('EX-101')) ||
+      Boolean(description?.toUpperCase().includes('XBRL'))
+    )
   }
 }
 
-export function createSecEdgarService(userAgent: string, fetchFn?: typeof fetch, sharedScheduler?: SecSharedScheduler): SecEdgarService {
+export function createSecEdgarService(
+  userAgent: string,
+  fetchFn?: typeof fetch,
+  sharedScheduler?: SecSharedScheduler,
+  cacheMaxBytes?: number,
+): SecEdgarService {
   if (!userAgent.trim() || !userAgent.includes('@')) return createUnavailableSecEdgarService()
-  return new SecEdgarService(new SecEdgarClient({ userAgent, fetchFn, sharedScheduler }))
+  return new SecEdgarService(new SecEdgarClient({ userAgent, fetchFn, sharedScheduler }), cacheMaxBytes)
 }
 
-export function createSecFixtureService(client: SecClientLike): SecEdgarService {
-  return new SecEdgarService(client)
+export function createSecFixtureService(client: SecClientLike, cacheMaxBytes?: number): SecEdgarService {
+  return new SecEdgarService(client, cacheMaxBytes)
 }
 
 export function createUnavailableSecEdgarService(): SecEdgarService {
   const unavailable = async () => {
-    throw new SecProviderError('SEC_CONFIG_MISSING', 'SEC_USER_AGENT must contain application name and contact email', 503)
+    throw new SecProviderError(
+      'SEC_CONFIG_MISSING',
+      'SEC_USER_AGENT must contain application name and contact email',
+      503,
+    )
   }
   return new SecEdgarService({ getJson: unavailable, getText: unavailable, getStream: unavailable })
 }

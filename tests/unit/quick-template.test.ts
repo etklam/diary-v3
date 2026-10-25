@@ -30,7 +30,7 @@ describe('generateTemplateDraft', () => {
     })
 
     expect(result.title).toBe('2026/03/22 Buy Diary - TSLA, NVDA')
-    expect(result.content).toContain('## Today\'s Operation')
+    expect(result.content).toContain("## Today's Operation")
     expect(result.content).toContain('TSLA, NVDA')
     expect(result.content).toContain('Waited for confirmation before entry.')
   })
@@ -48,7 +48,7 @@ describe('generateTemplateDraft', () => {
     })
 
     expect(result.title).toBe('2026/03/22 No Trades Diary')
-    expect(result.content).toContain('## Today\'s Operation')
+    expect(result.content).toContain("## Today's Operation")
     expect(result.content).toContain('- Operation: No Trades')
     expect(result.content).toContain('Market watching day, no entry signals.')
   })
@@ -218,7 +218,24 @@ describe('generateTemplateDraft', () => {
   })
 })
 
-it('keeps decimal-string trade quantities and rounds large signed results without Number conversion',()=>{
- const result=generateTemplateDraft({templateKind:'reflection',date:'2026-09-05',locale:'en',templateData:{relatedTrades:[{id:'99',symbol:'AAPL',sellDate:'2026-09-04T15:00:00.000Z',sellQuantity:'0.0001',realizedPnL:'9007199254740993.5',realizedPnLPct:'-2.35'}]}});
- expect(result.content).toContain('× 0.0001');expect(result.content).toContain('+9007199254740994 (-2.4%)');
-});
+it('keeps decimal-string trade quantities and rounds large signed results without Number conversion', () => {
+  const result = generateTemplateDraft({
+    templateKind: 'reflection',
+    date: '2026-09-05',
+    locale: 'en',
+    templateData: {
+      relatedTrades: [
+        {
+          id: '99',
+          symbol: 'AAPL',
+          sellDate: '2026-09-04T15:00:00.000Z',
+          sellQuantity: '0.0001',
+          realizedPnL: '9007199254740993.5',
+          realizedPnLPct: '-2.35',
+        },
+      ],
+    },
+  })
+  expect(result.content).toContain('× 0.0001')
+  expect(result.content).toContain('+9007199254740994 (-2.4%)')
+})

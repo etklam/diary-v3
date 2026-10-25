@@ -42,20 +42,37 @@ async function backfillDiarySummaryExcerpts(
 
   for (;;) {
     const updated = await db.transaction(async tx => {
-      const rows = await tx.select({ id: diaries.id, content: diaries.content }).from(diaries)
-        .where(or(
-          isNull(diaries.summaryExcerpt),
-          isNull(diaries.summaryExcerptContentHash),
-          sql`${diaries.summaryExcerptContentHash} is distinct from md5(${diaries.content})`,
-        ))
-        .orderBy(asc(diaries.id)).limit(DIARY_SUMMARY_BACKFILL_BATCH_SIZE).for('update')
+      const rows = await tx
+        .select({ id: diaries.id, content: diaries.content })
+        .from(diaries)
+        .where(
+          or(
+            isNull(diaries.summaryExcerpt),
+            isNull(diaries.summaryExcerptContentHash),
+            sql`${diaries.summaryExcerptContentHash} is distinct from md5(${diaries.content})`,
+          ),
+        )
+        .orderBy(asc(diaries.id))
+        .limit(DIARY_SUMMARY_BACKFILL_BATCH_SIZE)
+        .for('update')
       if (rows.length === 0) return 0
 
-      const excerptCases = sql.join(rows.map(row => sql`when ${row.id} then ${diaryExcerpt(row.content, 240)}`), sql` `)
-      await tx.update(diaries).set({
-        summaryExcerpt: sql`case ${diaries.id} ${excerptCases} else ${diaries.summaryExcerpt} end`,
-        summaryExcerptContentHash: sql`md5(${diaries.content})`,
-      }).where(inArray(diaries.id, rows.map(row => row.id)))
+      const excerptCases = sql.join(
+        rows.map(row => sql`when ${row.id} then ${diaryExcerpt(row.content, 240)}`),
+        sql` `,
+      )
+      await tx
+        .update(diaries)
+        .set({
+          summaryExcerpt: sql`case ${diaries.id} ${excerptCases} else ${diaries.summaryExcerpt} end`,
+          summaryExcerptContentHash: sql`md5(${diaries.content})`,
+        })
+        .where(
+          inArray(
+            diaries.id,
+            rows.map(row => row.id),
+          ),
+        )
       return rows.length
     })
     if (updated === 0) return

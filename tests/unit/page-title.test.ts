@@ -7,13 +7,17 @@ describe('browser page titles', () => {
     expect(pageTitle('/tools', 'zh-TW', '工具')).toBe('工具 — Trade basic')
     expect(pageTitle('/tools', 'zh-CN', '工具')).toBe('工具 — Trade basic')
     expect(pageTitle('/tools', 'en', 'Tools')).toBe('Tools — Trade basic')
-    expect(pageTitle('/articles/trade-basic-story', 'en', 'Trade basic changed my process')).toBe('Trade basic changed my process — Trade basic')
+    expect(pageTitle('/articles/trade-basic-story', 'en', 'Trade basic changed my process')).toBe(
+      'Trade basic changed my process — Trade basic',
+    )
   })
 
   it('uses generic titles for private dynamic content while preserving public content titles', () => {
     expect(pageTitle('/diaries/123', 'en', 'Private investment thesis')).toBe('Diary — Trade basic')
     expect(pageTitle('/diaries/123/edit', 'zh-TW', 'Private investment thesis')).toBe('編輯日記 — Trade basic')
-    expect(pageTitle('/articles/member-article', 'en', 'Public member-article teaser')).toBe('Public member-article teaser — Trade basic')
+    expect(pageTitle('/articles/member-article', 'en', 'Public member-article teaser')).toBe(
+      'Public member-article teaser — Trade basic',
+    )
     expect(pageTitle('/discipline/share', 'zh-TW', '公開分享標題')).toBe('公開分享標題 — Trade basic')
     expect(pageTitle('/admin/research/run-123', 'zh-CN', 'Private research title')).toBe('研究执行 — Trade basic')
   })
@@ -31,7 +35,9 @@ describe('browser page titles', () => {
 
 describe('password recovery support URL', () => {
   it('accepts HTTPS pages and plain mailto contacts', () => {
-    expect(resolveAccountRecoverySupportUrl(' https://help.example.test/account ')).toBe('https://help.example.test/account')
+    expect(resolveAccountRecoverySupportUrl(' https://help.example.test/account ')).toBe(
+      'https://help.example.test/account',
+    )
     expect(resolveAccountRecoverySupportUrl('mailto:support@example.test')).toBe('mailto:support@example.test')
   })
 

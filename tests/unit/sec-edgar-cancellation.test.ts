@@ -12,12 +12,23 @@ function wait(milliseconds: number): Promise<void> {
 
 function submissions(files: string[] = []) {
   return {
-    cik: '0000000001', name: 'Synthetic Holdings', tickers: ['SYN'], exchanges: ['NYSE'],
+    cik: '0000000001',
+    name: 'Synthetic Holdings',
+    tickers: ['SYN'],
+    exchanges: ['NYSE'],
     filings: {
       recent: {
-        accessionNumber: [accession], filingDate: ['2024-04-01'], reportDate: ['2023-12-31'],
-        acceptanceDateTime: ['2024-04-01 12:00:00'], form: ['10-K'], primaryDocument: ['synthetic.htm'],
-        primaryDocDescription: ['Annual report'], fileNumber: ['1'], filmNumber: [null], items: [null], size: [12],
+        accessionNumber: [accession],
+        filingDate: ['2024-04-01'],
+        reportDate: ['2023-12-31'],
+        acceptanceDateTime: ['2024-04-01 12:00:00'],
+        form: ['10-K'],
+        primaryDocument: ['synthetic.htm'],
+        primaryDocDescription: ['Annual report'],
+        fileNumber: ['1'],
+        filmNumber: [null],
+        items: [null],
+        size: [12],
       },
       files: files.map(name => ({ name })),
     },
@@ -36,12 +47,19 @@ describe('SEC EDGAR cancellation boundaries', () => {
   it('removes an aborted queue waiter before its operation starts', async () => {
     const queue = new SecRequestQueue({ concurrency: 1, minIntervalMs: 0 })
     let release!: () => void
-    const first = queue.run(() => new Promise<void>(resolve => { release = resolve }))
+    const first = queue.run(
+      () =>
+        new Promise<void>(resolve => {
+          release = resolve
+        }),
+    )
     await expect.poll(() => typeof release).toBe('function')
 
     const controller = new AbortController()
     let started = 0
-    const queued = queue.run(async () => { started += 1 }, controller.signal)
+    const queued = queue.run(async () => {
+      started += 1
+    }, controller.signal)
     await wait(0)
     controller.abort()
     await expect(queued).rejects.toMatchObject({ code: 'SEC_UPSTREAM_UNAVAILABLE' })
@@ -58,17 +76,24 @@ describe('SEC EDGAR cancellation boundaries', () => {
       concurrency: 2,
       minIntervalMs: 10,
       now: () => now,
-      sleep: () => new Promise<void>(resolve => { sleeps.push(resolve) }),
+      sleep: () =>
+        new Promise<void>(resolve => {
+          sleeps.push(resolve)
+        }),
     })
     await queue.run(async () => {})
-    const first = queue.run(async () => { now += 1 })
+    const first = queue.run(async () => {
+      now += 1
+    })
     await expect.poll(() => sleeps).toHaveLength(1)
 
     const controller = new AbortController()
     const second = queue.run(async () => {}, controller.signal)
     await wait(0)
     controller.abort()
-    const third = queue.run(async () => { now += 1 })
+    const third = queue.run(async () => {
+      now += 1
+    })
     await expect(second).rejects.toMatchObject({ code: 'SEC_UPSTREAM_UNAVAILABLE' })
     expect(sleeps).toHaveLength(1)
 
@@ -76,7 +101,9 @@ describe('SEC EDGAR cancellation boundaries', () => {
     await first
     await expect.poll(() => sleeps).toHaveLength(2)
     let thirdDone = false
-    void third.then(() => { thirdDone = true })
+    void third.then(() => {
+      thirdDone = true
+    })
     await wait(0)
     expect(thirdDone).toBe(false)
     sleeps[1]!()
@@ -88,20 +115,34 @@ describe('SEC EDGAR cancellation boundaries', () => {
     let cancelledBodies = 0
     let calls = 0
     const client = new SecEdgarClient({
-      userAgent: 'Diary synthetic sec@example.test', minIntervalMs: 0, timeoutMs: 25, streamTimeoutMs: 25,
-      fetchFn: async () => new Promise<Response>(resolve => {
-        calls += 1
-        blockers.push(() => resolve(new Response(new ReadableStream<Uint8Array>({
-          pull: () => new Promise<void>(() => {}),
-          cancel() { cancelledBodies += 1 },
-        }))))
-      }),
+      userAgent: 'Diary synthetic sec@example.test',
+      minIntervalMs: 0,
+      timeoutMs: 25,
+      streamTimeoutMs: 25,
+      fetchFn: async () =>
+        new Promise<Response>(resolve => {
+          calls += 1
+          blockers.push(() =>
+            resolve(
+              new Response(
+                new ReadableStream<Uint8Array>({
+                  pull: () => new Promise<void>(() => {}),
+                  cancel() {
+                    cancelledBodies += 1
+                  },
+                }),
+              ),
+            ),
+          )
+        }),
     })
     const first = client.getStream(buildSecUrls.directory())
     const second = client.getStream(buildSecUrls.submissions('1'))
     await expect.poll(() => calls).toBe(2)
 
-    await expect(client.getStream(buildSecUrls.historicalSegment('CIK0000000001-submissions-001.json'))).rejects.toMatchObject({
+    await expect(
+      client.getStream(buildSecUrls.historicalSegment('CIK0000000001-submissions-001.json')),
+    ).rejects.toMatchObject({
       code: 'SEC_UPSTREAM_UNAVAILABLE',
     })
     expect(calls).toBe(2)
@@ -115,12 +156,21 @@ describe('SEC EDGAR cancellation boundaries', () => {
   it('applies the client deadline to a returned document body', async () => {
     let cancelled = false
     const client = new SecEdgarClient({
-      userAgent: 'Diary synthetic sec@example.test', minIntervalMs: 0, streamTimeoutMs: 20,
-      fetchFn: async () => new Response(new ReadableStream<Uint8Array>({
-        start(controller) { controller.enqueue(new Uint8Array([1])) },
-        pull: () => new Promise<void>(() => {}),
-        cancel() { cancelled = true },
-      })),
+      userAgent: 'Diary synthetic sec@example.test',
+      minIntervalMs: 0,
+      streamTimeoutMs: 20,
+      fetchFn: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(new Uint8Array([1]))
+            },
+            pull: () => new Promise<void>(() => {}),
+            cancel() {
+              cancelled = true
+            },
+          }),
+        ),
     })
     const response = await client.getStream(buildSecUrls.directory())
     const reader = response.body!.getReader()
@@ -133,8 +183,12 @@ describe('SEC EDGAR cancellation boundaries', () => {
   it('lets an aborted service caller leave a shared metadata fill for another caller', async () => {
     let release!: () => void
     let started!: () => void
-    const start = new Promise<void>(resolve => { started = resolve })
-    const gate = new Promise<void>(resolve => { release = resolve })
+    const start = new Promise<void>(resolve => {
+      started = resolve
+    })
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
     let submissionsCalls = 0
     const service = createSecFixtureService({
       async getJson<T>(url: string): Promise<T> {
@@ -147,7 +201,9 @@ describe('SEC EDGAR cancellation boundaries', () => {
         if (url.endsWith('/index.json')) return indexJson() as T
         throw new Error(`unexpected fixture URL: ${url}`)
       },
-      async getText(): Promise<string> { return indexHtml() },
+      async getText(): Promise<string> {
+        return indexHtml()
+      },
     })
     const controller = new AbortController()
     const first = service.getFilingDetail('1', accession, controller.signal)
@@ -166,8 +222,12 @@ describe('SEC EDGAR cancellation boundaries', () => {
     const secondSegment = 'CIK0000000001-submissions-002.json'
     let release!: () => void
     let started!: () => void
-    const start = new Promise<void>(resolve => { started = resolve })
-    const gate = new Promise<void>(resolve => { release = resolve })
+    const start = new Promise<void>(resolve => {
+      started = resolve
+    })
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
     let secondCalls = 0
     const service = createSecFixtureService({
       async getJson<T>(url: string): Promise<T> {
@@ -183,7 +243,9 @@ describe('SEC EDGAR cancellation boundaries', () => {
         }
         throw new Error(`unexpected fixture URL: ${url}`)
       },
-      async getText(): Promise<string> { return indexHtml() },
+      async getText(): Promise<string> {
+        return indexHtml()
+      },
     })
     const controller = new AbortController()
     const listing = service.listFilings('1', { limit: 100 }, controller.signal)

@@ -86,11 +86,24 @@ jobs:
       - name: Full Chromium regression
         env:
           CI: "true"
-        run: npm run test:e2e
+          FLAKE_REPORT_SUITE: chromium
+        run: npm run test:e2e:blocking
+
+      # Non-blocking by the quarantine rule in docs/operations/e2e-flakiness.md:
+      # a quarantined case stops gating but keeps running, because unblocking is
+      # not the same as not looking. Nothing is tagged `@flaky` today, so this
+      # step is the mechanism standing ready rather than an excused failure.
+      - name: Quarantined Chromium cases
+        continue-on-error: true
+        env:
+          CI: "true"
+          FLAKE_REPORT_SUITE: chromium-quarantine
+        run: npm run test:e2e:quarantine
 
       - name: WebKit critical path
         env:
           CI: "true"
+          FLAKE_REPORT_SUITE: webkit-critical
         run: npm run test:e2e:webkit:critical
 
       - name: Build Docker images for extended artifact regression

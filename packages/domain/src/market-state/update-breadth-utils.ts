@@ -1,9 +1,4 @@
-import {
-  calcAboveMaPct,
-  calcRatioNDaily,
-  countMove4Pct,
-  MARKET_BREADTH_MIN_COVERAGE_PCT,
-} from './breadth.js'
+import { calcAboveMaPct, calcRatioNDaily, countMove4Pct, MARKET_BREADTH_MIN_COVERAGE_PCT } from './breadth.js'
 import { determineRegime } from './regime.js'
 
 export interface YahooChartQuote {
@@ -70,18 +65,23 @@ function isFinitePrice(value: unknown): value is number {
 
 export function parseDailyPrices(symbol: string, quotes: YahooChartQuote[]): DailyPriceInput[] {
   return quotes
-    .filter((quote): quote is YahooChartQuote & {
-      date: Date
-      open: number
-      high: number
-      low: number
-      close: number
-    } => quote.date instanceof Date
-      && Number.isFinite(quote.date.getTime())
-      && isFinitePrice(quote.open)
-      && isFinitePrice(quote.high)
-      && isFinitePrice(quote.low)
-      && isFinitePrice(quote.close))
+    .filter(
+      (
+        quote,
+      ): quote is YahooChartQuote & {
+        date: Date
+        open: number
+        high: number
+        low: number
+        close: number
+      } =>
+        quote.date instanceof Date &&
+        Number.isFinite(quote.date.getTime()) &&
+        isFinitePrice(quote.open) &&
+        isFinitePrice(quote.high) &&
+        isFinitePrice(quote.low) &&
+        isFinitePrice(quote.close),
+    )
     .map(quote => ({
       symbol,
       date: toDateOnly(quote.date),
@@ -90,9 +90,10 @@ export function parseDailyPrices(symbol: string, quotes: YahooChartQuote[]): Dai
       low: quote.low,
       close: quote.close,
       adjustedClose: isFinitePrice(quote.adjclose) ? quote.adjclose : quote.close,
-      volume: typeof quote.volume === 'number' && Number.isFinite(quote.volume) && quote.volume > 0
-        ? BigInt(Math.trunc(quote.volume))
-        : 0n,
+      volume:
+        typeof quote.volume === 'number' && Number.isFinite(quote.volume) && quote.volume > 0
+          ? BigInt(Math.trunc(quote.volume))
+          : 0n,
     }))
 }
 
@@ -150,30 +151,49 @@ export function calculateBreadthRows(
     const up4Pct = moves && universeCount > 0 ? (moves.up4Count / universeCount) * 100 : null
     const down4Pct = moves && universeCount > 0 ? (moves.down4Count / universeCount) * 100 : null
     const currentHistoryItem = moves ? { dateKey, up4Count: moves.up4Count, down4Count: moves.down4Count } : null
-    const currentRatioHistory = [...historyForRatio.filter(item => item.dateKey < dateKey), currentHistoryItem]
-      .filter((item): item is { dateKey: string; up4Count: number; down4Count: number } => item !== null)
+    const currentRatioHistory = [...historyForRatio.filter(item => item.dateKey < dateKey), currentHistoryItem].filter(
+      (item): item is { dateKey: string; up4Count: number; down4Count: number } => item !== null,
+    )
     const ratio5d = currentRatioHistory.length >= 5 ? calcRatioNDaily(currentRatioHistory, 5) : null
     const ratio10d = currentRatioHistory.length >= 10 ? calcRatioNDaily(currentRatioHistory, 10) : null
     // A market state is only meaningful when the 40-day series covers the
     // configured universe. Keep the partial percentage visible, but avoid
     // treating a one-symbol warmup as a risk-off market.
-    const hasSufficientMaHistory = universeCount > 0 && maInputs.length / universeCount >= MARKET_BREADTH_MIN_COVERAGE_PCT / 100
-    const regime = moves && above40dPct !== null && ratio10d !== null && hasSufficientMaHistory
-      ? determineRegime({ up4Count: moves.up4Count, down4Count: moves.down4Count, universeCount, above40dPct, ratio10d })
-      : null
+    const hasSufficientMaHistory =
+      universeCount > 0 && maInputs.length / universeCount >= MARKET_BREADTH_MIN_COVERAGE_PCT / 100
+    const regime =
+      moves && above40dPct !== null && ratio10d !== null && hasSufficientMaHistory
+        ? determineRegime({
+            up4Count: moves.up4Count,
+            down4Count: moves.down4Count,
+            universeCount,
+            above40dPct,
+            ratio10d,
+          })
+        : null
     if (!targetDateKeys.has(dateKey)) continue
 
     if (currentHistoryItem) {
-      historyForRatio = [...historyForRatio.filter(item => item.dateKey !== dateKey), currentHistoryItem]
-        .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+      historyForRatio = [...historyForRatio.filter(item => item.dateKey !== dateKey), currentHistoryItem].sort((a, b) =>
+        a.dateKey.localeCompare(b.dateKey),
+      )
     }
     const coveragePct = universeCount > 0 ? (coveredCount / universeCount) * 100 : 0
     rows.push({
-      date: new Date(`${dateKey}T00:00:00.000Z`), universeCount,
-      up4Count: moves?.up4Count ?? null, down4Count: moves?.down4Count ?? null,
-      up4Pct: regime?.up4Pct ?? up4Pct, down4Pct: regime?.down4Pct ?? down4Pct,
-      above40dCount, above40dPct, ratio5d, ratio10d, regime: regime?.regime ?? null, score: regime?.score ?? null,
-      coveragePct, isStale: coveragePct < MARKET_BREADTH_MIN_COVERAGE_PCT,
+      date: new Date(`${dateKey}T00:00:00.000Z`),
+      universeCount,
+      up4Count: moves?.up4Count ?? null,
+      down4Count: moves?.down4Count ?? null,
+      up4Pct: regime?.up4Pct ?? up4Pct,
+      down4Pct: regime?.down4Pct ?? down4Pct,
+      above40dCount,
+      above40dPct,
+      ratio5d,
+      ratio10d,
+      regime: regime?.regime ?? null,
+      score: regime?.score ?? null,
+      coveragePct,
+      isStale: coveragePct < MARKET_BREADTH_MIN_COVERAGE_PCT,
     })
   }
   return rows

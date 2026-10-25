@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { diarySavedViewCreateRequestSchema, diarySavedViewQuerySchema, diarySavedViewUpdateRequestSchema } from '@diary/contracts/diary-saved-view'
+import {
+  diarySavedViewCreateRequestSchema,
+  diarySavedViewQuerySchema,
+  diarySavedViewUpdateRequestSchema,
+} from '@diary/contracts/diary-saved-view'
 
 describe('diary saved view contracts', () => {
   it('keeps pagination and unknown fields out of persisted query state', () => {
     expect(diarySavedViewQuerySchema.safeParse({ page: 2 }).success).toBe(false)
-    expect(diarySavedViewCreateRequestSchema.safeParse({ name: 'Research', query: { sortBy: 'date-desc' } }).success).toBe(true)
+    expect(
+      diarySavedViewCreateRequestSchema.safeParse({ name: 'Research', query: { sortBy: 'date-desc' } }).success,
+    ).toBe(true)
   })
 
   it('enforces supported date ranges and non-empty update patches', () => {

@@ -11,25 +11,44 @@ const jobId = randomUUID()
 try {
   const now = new Date()
   const result = await database.db.transaction(async tx => {
-    const addedEtfs = await tx.insert(etfs).values(COMMON_ETFS.map(row => ({
-      ...row,
-      createdAt: now,
-      updatedAt: now,
-    }))).onConflictDoNothing({ target: etfs.symbol }).returning({ id: etfs.id })
-    const seededUniverse = await tx.insert(marketUniverse).values(MARKET_STATE_SYMBOLS.map(symbol => ({
-      symbol,
-      name: symbol,
-      exchange: 'CONFIGURED',
-      assetType: 'stock',
-      isActive: true,
-      sector: null,
-      updatedAt: now,
-    }))).onConflictDoNothing({ target: marketUniverse.symbol }).returning({ id: marketUniverse.id })
+    const addedEtfs = await tx
+      .insert(etfs)
+      .values(
+        COMMON_ETFS.map(row => ({
+          ...row,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .onConflictDoNothing({ target: etfs.symbol })
+      .returning({ id: etfs.id })
+    const seededUniverse = await tx
+      .insert(marketUniverse)
+      .values(
+        MARKET_STATE_SYMBOLS.map(symbol => ({
+          symbol,
+          name: symbol,
+          exchange: 'CONFIGURED',
+          assetType: 'stock',
+          isActive: true,
+          sector: null,
+          updatedAt: now,
+        })),
+      )
+      .onConflictDoNothing({ target: marketUniverse.symbol })
+      .returning({ id: marketUniverse.id })
     return { addedEtfs: addedEtfs.length, addedUniverse: seededUniverse.length }
   })
   console.log(JSON.stringify({ operation: 'seed_system', jobId, ...result }))
 } catch (error) {
-  console.error(JSON.stringify({ operation: 'seed_system', jobId, status: 'failed', error: error instanceof Error ? error.message : 'Seed failed' }))
+  console.error(
+    JSON.stringify({
+      operation: 'seed_system',
+      jobId,
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Seed failed',
+    }),
+  )
   process.exitCode = 1
 } finally {
   await database.pool.end()

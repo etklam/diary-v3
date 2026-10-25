@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { achievementListSchema, writeAchievementSchema, type AchievementResponse } from '@diary/contracts/achievements'
-import { goalListSchema, goalResponseSchema, writeGoalSchema, type GoalResponse, type GoalStatus } from '@diary/contracts/goals'
+import {
+  goalListSchema,
+  goalResponseSchema,
+  writeGoalSchema,
+  type GoalResponse,
+  type GoalStatus,
+} from '@diary/contracts/goals'
 import { calendarDateInTimezone } from '@diary/domain'
 import { ActionButton, api, LoadingBlock, useConfirm, useUi } from '../ui'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
@@ -168,7 +174,8 @@ function deadline(c: Copy, formatDate: (date: string) => string, targetDate: str
 const isOverdue = (goal: GoalResponse, today: string) =>
   goal.status === 'active' && goal.targetDate !== null && civilDays(today, goal.targetDate) < 0
 
-const goalStatusTone = (goal: GoalResponse, today: string) => goal.status === 'achieved' ? 'achieved' : isOverdue(goal, today) ? 'overdue' : 'active'
+const goalStatusTone = (goal: GoalResponse, today: string) =>
+  goal.status === 'achieved' ? 'achieved' : isOverdue(goal, today) ? 'overdue' : 'active'
 
 function goalStatusLabel(c: Copy, goal: GoalResponse, today: string) {
   if (goal.status === 'achieved') return c.statusAchieved
@@ -183,7 +190,9 @@ function goalStatusLabel(c: Copy, goal: GoalResponse, today: string) {
 function useDeferredFocus<T extends HTMLElement>() {
   const target = useRef<T>(null)
   const [armed, setArmed] = useState(0)
-  useEffect(() => { if (armed > 0) target.current?.focus() }, [armed])
+  useEffect(() => {
+    if (armed > 0) target.current?.focus()
+  }, [armed])
   return [target, () => setArmed(value => value + 1)] as const
 }
 
@@ -206,7 +215,10 @@ export default function Achievements() {
     const refreshClock = () => setClock(new Date())
     const timer = setInterval(refreshClock, 60_000)
     document.addEventListener('visibilitychange', refreshClock)
-    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refreshClock) }
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refreshClock)
+    }
   }, [])
 
   useEffect(() => {
@@ -218,52 +230,90 @@ export default function Achievements() {
       api.GET('/api/goals', { signal: controller.signal }),
       api.GET('/api/achievements', { signal: controller.signal }),
       api.GET('/api/auth/me', { signal: controller.signal }),
-    ]).then(([goalResult, achievementResult, accountResult]) => {
-      if (controller.signal.aborted) return
-      const parsedGoals = goalListSchema.safeParse(goalResult.data)
-      const parsedRows = achievementListSchema.safeParse(achievementResult.data)
-      if (!goalResult.response.ok || !parsedGoals.success) setError(apiFailure(goalResult.error, translate.current('failed')))
-      else if (!achievementResult.response.ok || !parsedRows.success) setError(apiFailure(achievementResult.error, translate.current('failed')))
-      else if (!accountResult.response.ok || !accountResult.data) setError(apiFailure(accountResult.error, translate.current('failed')))
-      else {
-        setTimezone(accountResult.data.data.timezone)
-        setClock(new Date())
-        setGoals(parsedGoals.data)
-        setRows(parsedRows.data)
-      }
-    }).catch(() => { if (!controller.signal.aborted) setError(apiFailure(null, translate.current('connection'))) })
+    ])
+      .then(([goalResult, achievementResult, accountResult]) => {
+        if (controller.signal.aborted) return
+        const parsedGoals = goalListSchema.safeParse(goalResult.data)
+        const parsedRows = achievementListSchema.safeParse(achievementResult.data)
+        if (!goalResult.response.ok || !parsedGoals.success)
+          setError(apiFailure(goalResult.error, translate.current('failed')))
+        else if (!achievementResult.response.ok || !parsedRows.success)
+          setError(apiFailure(achievementResult.error, translate.current('failed')))
+        else if (!accountResult.response.ok || !accountResult.data)
+          setError(apiFailure(accountResult.error, translate.current('failed')))
+        else {
+          setTimezone(accountResult.data.data.timezone)
+          setClock(new Date())
+          setGoals(parsedGoals.data)
+          setRows(parsedRows.data)
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError(apiFailure(null, translate.current('connection')))
+      })
     return () => controller.abort()
   }, [attempt])
 
   const reload = () => retry(value => value + 1)
 
-  return <section className="plan-page achievements-page">
-    <header className="plan-header">
-      <div><h1>{c.title}</h1><p className="lede">{c.intro}</p></div>
-    </header>
-    {error ? <><FailureNotice failure={error} /><div className="actions"><button type="button" onClick={reload}>{t('retry')}</button>{error.code?.startsWith('AUTH_') && <Link className="button secondary" to={signInPath('/achievements')}>{t('login')}</Link>}</div></> : <>
-      <GoalsSection
-        c={c}
-        formatDate={formatDate}
-        goals={goals}
-        today={today}
-        onChanged={reload}
-        onRemoved={id => setGoals(previous => previous?.filter(goal => goal.id !== id) ?? null)}
-        onAchieved={goal => setPrefill({ date: goal.achievedDate ?? today, content: goal.content, token: Date.now() })}
-      />
-      <AchievementsSection
-        c={c}
-        formatDate={formatDate}
-        rows={rows}
-        prefill={prefill}
-        onChanged={reload}
-        onRemoved={id => setRows(previous => previous?.filter(row => row.id !== id) ?? null)}
-      />
-    </>}
-  </section>
+  return (
+    <section className="plan-page achievements-page">
+      <header className="plan-header">
+        <div>
+          <h1>{c.title}</h1>
+          <p className="lede">{c.intro}</p>
+        </div>
+      </header>
+      {error ? (
+        <>
+          <FailureNotice failure={error} />
+          <div className="actions">
+            <button type="button" onClick={reload}>
+              {t('retry')}
+            </button>
+            {error.code?.startsWith('AUTH_') && (
+              <Link className="button secondary" to={signInPath('/achievements')}>
+                {t('login')}
+              </Link>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <GoalsSection
+            c={c}
+            formatDate={formatDate}
+            goals={goals}
+            today={today}
+            onChanged={reload}
+            onRemoved={id => setGoals(previous => previous?.filter(goal => goal.id !== id) ?? null)}
+            onAchieved={goal =>
+              setPrefill({ date: goal.achievedDate ?? today, content: goal.content, token: Date.now() })
+            }
+          />
+          <AchievementsSection
+            c={c}
+            formatDate={formatDate}
+            rows={rows}
+            prefill={prefill}
+            onChanged={reload}
+            onRemoved={id => setRows(previous => previous?.filter(row => row.id !== id) ?? null)}
+          />
+        </>
+      )}
+    </section>
+  )
 }
 
-function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAchieved }: {
+function GoalsSection({
+  c,
+  formatDate,
+  goals,
+  today,
+  onChanged,
+  onRemoved,
+  onAchieved,
+}: {
   c: Copy
   formatDate: (date: string) => string
   goals: GoalResponse[] | null
@@ -321,7 +371,10 @@ function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAch
   }
 
   /** Every goal write funnels through here so the abort and failure handling stays in one place. */
-  async function write(action: (signal: AbortSignal) => Promise<{ response: Response; error?: unknown; data?: unknown }>, done: (data: unknown) => void) {
+  async function write(
+    action: (signal: AbortSignal) => Promise<{ response: Response; error?: unknown; data?: unknown }>,
+    done: (data: unknown) => void,
+  ) {
     if (pending) return
     const controller = new AbortController()
     mutation.current = controller
@@ -350,14 +403,19 @@ function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAch
     event.preventDefault()
     const parsed = writeGoalSchema.safeParse({ content, targetDate: openEnded ? null : targetDate })
     if (!parsed.success) {
-      setWriteError({ message: c.goalInvalid, code: 'SYS_VALIDATION_ERROR', fields: parsed.error.issues.map(issue => issue.path.join('.')) })
+      setWriteError({
+        message: c.goalInvalid,
+        code: 'SYS_VALIDATION_ERROR',
+        fields: parsed.error.issues.map(issue => issue.path.join('.')),
+      })
       return
     }
     const id = editing
     await write(
-      signal => id
-        ? api.PUT('/api/goals/{id}', { params: { path: { id } }, body: parsed.data, signal })
-        : api.POST('/api/goals', { body: parsed.data, signal }),
+      signal =>
+        id
+          ? api.PUT('/api/goals/{id}', { params: { path: { id } }, body: parsed.data, signal })
+          : api.POST('/api/goals', { body: parsed.data, signal }),
       () => {
         cancel()
         setStatus('saved')
@@ -368,14 +426,18 @@ function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAch
 
   async function changeStatus(goal: GoalResponse, next: GoalStatus) {
     await write(
-      signal => api.PUT('/api/goals/{id}', {
-        params: { path: { id: goal.id } },
-        body: { content: goal.content, targetDate: goal.targetDate, status: next },
-        signal,
-      }),
+      signal =>
+        api.PUT('/api/goals/{id}', {
+          params: { path: { id: goal.id } },
+          body: { content: goal.content, targetDate: goal.targetDate, status: next },
+          signal,
+        }),
       data => {
         const updated = goalResponseSchema.safeParse(data)
-        if (!updated.success) { setWriteError(apiFailure(null, t('failed'))); return }
+        if (!updated.success) {
+          setWriteError(apiFailure(null, t('failed')))
+          return
+        }
         onChanged()
         if (next === 'achieved') onAchieved(updated.data)
       },
@@ -383,7 +445,8 @@ function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAch
   }
 
   async function remove(goal: GoalResponse) {
-    if (pending || !await confirm({ title: c.confirmGoal, body: goal.content, confirm: c.remove, tone: 'danger' })) return
+    if (pending || !(await confirm({ title: c.confirmGoal, body: goal.content, confirm: c.remove, tone: 'danger' })))
+      return
     await write(
       signal => api.DELETE('/api/goals/{id}', { params: { path: { id: goal.id } }, signal }),
       () => {
@@ -393,42 +456,135 @@ function GoalsSection({ c, formatDate, goals, today, onChanged, onRemoved, onAch
     )
   }
 
-  return <section className="achievements-section" aria-labelledby="goals-heading">
-    <div className="achievements-section-header">
-      <h2 id="goals-heading">{c.goals}</h2>
-      {!formOpen && <button ref={addButton} type="button" onClick={openCreate}>{c.addGoal}</button>}
-    </div>
-    {formOpen && <form className="card achievement-form" onSubmit={save}>
-      <fieldset disabled={pending}>
-        <legend>{editing ? c.editGoal : c.addGoal}</legend>
-        <div className="plan-grid">
-          <label className="plan-wide">{c.goalContent}<textarea ref={contentInput} data-testid="goal-input" value={content} onChange={event => setContent(event.target.value)} maxLength={1000} rows={3} placeholder={c.goalPlaceholder} required aria-invalid={writeError?.fields.includes('content') || undefined} aria-describedby={writeError ? 'goal-form-error' : undefined} /></label>
-          <label>{c.targetDate}<input data-testid="goal-date" type="date" value={targetDate} onChange={event => setTargetDate(event.target.value)} disabled={openEnded} required={!openEnded} aria-invalid={writeError?.fields.includes('targetDate') || undefined} aria-describedby={writeError ? 'goal-form-error' : undefined} /></label>
-          <label className="goal-open-ended"><input data-testid="goal-open-ended" type="checkbox" checked={openEnded} onChange={event => setOpenEnded(event.target.checked)} />{c.openEnded}</label>
+  return (
+    <section className="achievements-section" aria-labelledby="goals-heading">
+      <div className="achievements-section-header">
+        <h2 id="goals-heading">{c.goals}</h2>
+        {!formOpen && (
+          <button ref={addButton} type="button" onClick={openCreate}>
+            {c.addGoal}
+          </button>
+        )}
+      </div>
+      {formOpen && (
+        <form className="card achievement-form" onSubmit={save}>
+          <fieldset disabled={pending}>
+            <legend>{editing ? c.editGoal : c.addGoal}</legend>
+            <div className="plan-grid">
+              <label className="plan-wide">
+                {c.goalContent}
+                <textarea
+                  ref={contentInput}
+                  data-testid="goal-input"
+                  value={content}
+                  onChange={event => setContent(event.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder={c.goalPlaceholder}
+                  required
+                  aria-invalid={writeError?.fields.includes('content') || undefined}
+                  aria-describedby={writeError ? 'goal-form-error' : undefined}
+                />
+              </label>
+              <label>
+                {c.targetDate}
+                <input
+                  data-testid="goal-date"
+                  type="date"
+                  value={targetDate}
+                  onChange={event => setTargetDate(event.target.value)}
+                  disabled={openEnded}
+                  required={!openEnded}
+                  aria-invalid={writeError?.fields.includes('targetDate') || undefined}
+                  aria-describedby={writeError ? 'goal-form-error' : undefined}
+                />
+              </label>
+              <label className="goal-open-ended">
+                <input
+                  data-testid="goal-open-ended"
+                  type="checkbox"
+                  checked={openEnded}
+                  onChange={event => setOpenEnded(event.target.checked)}
+                />
+                {c.openEnded}
+              </label>
+            </div>
+            <div className="actions">
+              <ActionButton type="submit" pending={pending}>
+                {c.saveGoal}
+              </ActionButton>
+              <button type="button" className="secondary" onClick={cancel}>
+                {c.cancel}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      )}
+      <FailureNotice failure={writeError} id="goal-form-error" />
+      {status && <p role="status">{status === 'saved' ? c.goalSaved : c.goalDeleted}</p>}
+      {goals === null ? (
+        <LoadingBlock label={t('loading')} />
+      ) : goals.length === 0 ? (
+        <div className="empty-state">
+          <p>{c.goalEmpty}</p>
         </div>
-        <div className="actions"><ActionButton type="submit" pending={pending}>{c.saveGoal}</ActionButton><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
-      </fieldset>
-    </form>}
-    <FailureNotice failure={writeError} id="goal-form-error" />
-    {status && <p role="status">{status === 'saved' ? c.goalSaved : c.goalDeleted}</p>}
-    {goals === null ? <LoadingBlock label={t('loading')} /> : goals.length === 0 ? <div className="empty-state"><p>{c.goalEmpty}</p></div> : <ul className="goal-list card">
-      {goals.map(goal => <li key={goal.id} data-testid="goal" data-status={goal.status}>
-        <p className="achievement-content">{goal.content}</p>
-        <p className="goal-meta">
-          <span className={`goal-status goal-status-${goalStatusTone(goal, today)}`}>{goalStatusLabel(c, goal, today)}</span>
-          <span>{goal.status === 'achieved' && goal.achievedDate !== null ? c.achievedOn(formatDate(goal.achievedDate)) : deadline(c, formatDate, goal.targetDate, today)}</span>
-        </p>
-        <div className="actions">
-          <button type="button" className="secondary" disabled={pending || formOpen} onClick={() => void changeStatus(goal, goal.status === 'active' ? 'achieved' : 'active')}>{goal.status === 'active' ? c.markAchieved : c.reactivate}</button>
-          <button type="button" className="secondary" disabled={pending || formOpen} onClick={() => openEdit(goal)}>{c.editAction}</button>
-          <button type="button" className="secondary danger-button" disabled={pending || formOpen} onClick={() => void remove(goal)}>{c.remove}</button>
-        </div>
-      </li>)}
-    </ul>}
-  </section>
+      ) : (
+        <ul className="goal-list card">
+          {goals.map(goal => (
+            <li key={goal.id} data-testid="goal" data-status={goal.status}>
+              <p className="achievement-content">{goal.content}</p>
+              <p className="goal-meta">
+                <span className={`goal-status goal-status-${goalStatusTone(goal, today)}`}>
+                  {goalStatusLabel(c, goal, today)}
+                </span>
+                <span>
+                  {goal.status === 'achieved' && goal.achievedDate !== null
+                    ? c.achievedOn(formatDate(goal.achievedDate))
+                    : deadline(c, formatDate, goal.targetDate, today)}
+                </span>
+              </p>
+              <div className="actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={pending || formOpen}
+                  onClick={() => void changeStatus(goal, goal.status === 'active' ? 'achieved' : 'active')}
+                >
+                  {goal.status === 'active' ? c.markAchieved : c.reactivate}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={pending || formOpen}
+                  onClick={() => openEdit(goal)}
+                >
+                  {c.editAction}
+                </button>
+                <button
+                  type="button"
+                  className="secondary danger-button"
+                  disabled={pending || formOpen}
+                  onClick={() => void remove(goal)}
+                >
+                  {c.remove}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
 }
 
-function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemoved }: {
+function AchievementsSection({
+  c,
+  formatDate,
+  rows,
+  prefill,
+  onChanged,
+  onRemoved,
+}: {
   c: Copy
   formatDate: (date: string) => string
   rows: AchievementResponse[] | null
@@ -494,7 +650,11 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
     event.preventDefault()
     const parsed = writeAchievementSchema.safeParse({ date, content })
     if (!parsed.success) {
-      setWriteError({ message: c.invalid, code: 'SYS_VALIDATION_ERROR', fields: parsed.error.issues.map(issue => issue.path.join('.')) })
+      setWriteError({
+        message: c.invalid,
+        code: 'SYS_VALIDATION_ERROR',
+        fields: parsed.error.issues.map(issue => issue.path.join('.')),
+      })
       return
     }
     if (pending) return
@@ -505,7 +665,11 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
     setStatus(null)
     try {
       const result = editing
-        ? await api.PUT('/api/achievements/{id}', { params: { path: { id: editing } }, body: parsed.data, signal: controller.signal })
+        ? await api.PUT('/api/achievements/{id}', {
+            params: { path: { id: editing } },
+            body: parsed.data,
+            signal: controller.signal,
+          })
         : await api.POST('/api/achievements', { body: parsed.data, signal: controller.signal })
       if (controller.signal.aborted) return
       if (!result.response.ok) {
@@ -526,14 +690,17 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
   }
 
   async function remove(row: AchievementResponse) {
-    if (pending || !await confirm({ title: c.confirm, body: row.content, confirm: c.remove, tone: 'danger' })) return
+    if (pending || !(await confirm({ title: c.confirm, body: row.content, confirm: c.remove, tone: 'danger' }))) return
     const controller = new AbortController()
     mutation.current = controller
     setPending(true)
     setWriteError(null)
     setStatus(null)
     try {
-      const result = await api.DELETE('/api/achievements/{id}', { params: { path: { id: row.id } }, signal: controller.signal })
+      const result = await api.DELETE('/api/achievements/{id}', {
+        params: { path: { id: row.id } },
+        signal: controller.signal,
+      })
       if (controller.signal.aborted) return
       if (!result.response.ok) {
         setWriteError(apiFailure(result.error, t('failed')))
@@ -551,29 +718,96 @@ function AchievementsSection({ c, formatDate, rows, prefill, onChanged, onRemove
     }
   }
 
-  return <section className="achievements-section" aria-labelledby="achievements-heading">
-    <div className="achievements-section-header">
-      <h2 id="achievements-heading">{c.achievements}</h2>
-      {!formOpen && <button ref={addButton} type="button" onClick={openCreate}>{c.add}</button>}
-    </div>
-    {formOpen && <form className="card achievement-form" onSubmit={save}>
-      <fieldset disabled={pending}>
-        <legend>{editing ? c.edit : c.add}</legend>
-        <div className="plan-grid">
-          <label>{c.date}<input ref={dateInput} data-testid="achievement-date" type="date" value={date} onChange={event => setDate(event.target.value)} required aria-invalid={writeError?.fields.includes('date') || undefined} aria-describedby={writeError ? 'achievement-form-error' : undefined} /></label>
-          <label className="plan-wide">{c.content}<textarea data-testid="achievement-input" value={content} onChange={event => setContent(event.target.value)} maxLength={1000} rows={3} placeholder={c.placeholder} required aria-invalid={writeError?.fields.includes('content') || undefined} aria-describedby={writeError ? 'achievement-form-error' : undefined} /></label>
+  return (
+    <section className="achievements-section" aria-labelledby="achievements-heading">
+      <div className="achievements-section-header">
+        <h2 id="achievements-heading">{c.achievements}</h2>
+        {!formOpen && (
+          <button ref={addButton} type="button" onClick={openCreate}>
+            {c.add}
+          </button>
+        )}
+      </div>
+      {formOpen && (
+        <form className="card achievement-form" onSubmit={save}>
+          <fieldset disabled={pending}>
+            <legend>{editing ? c.edit : c.add}</legend>
+            <div className="plan-grid">
+              <label>
+                {c.date}
+                <input
+                  ref={dateInput}
+                  data-testid="achievement-date"
+                  type="date"
+                  value={date}
+                  onChange={event => setDate(event.target.value)}
+                  required
+                  aria-invalid={writeError?.fields.includes('date') || undefined}
+                  aria-describedby={writeError ? 'achievement-form-error' : undefined}
+                />
+              </label>
+              <label className="plan-wide">
+                {c.content}
+                <textarea
+                  data-testid="achievement-input"
+                  value={content}
+                  onChange={event => setContent(event.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder={c.placeholder}
+                  required
+                  aria-invalid={writeError?.fields.includes('content') || undefined}
+                  aria-describedby={writeError ? 'achievement-form-error' : undefined}
+                />
+              </label>
+            </div>
+            <div className="actions">
+              <ActionButton type="submit" pending={pending}>
+                {c.save}
+              </ActionButton>
+              <button type="button" className="secondary" onClick={cancel}>
+                {c.cancel}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      )}
+      <FailureNotice failure={writeError} id="achievement-form-error" />
+      {status && <p role="status">{status === 'saved' ? c.saved : status === 'deleted' ? c.deleted : c.prefilled}</p>}
+      {rows === null ? (
+        <LoadingBlock label={t('loading')} />
+      ) : rows.length === 0 ? (
+        <div className="empty-state">
+          <p>{c.empty}</p>
         </div>
-        <div className="actions"><ActionButton type="submit" pending={pending}>{c.save}</ActionButton><button type="button" className="secondary" onClick={cancel}>{c.cancel}</button></div>
-      </fieldset>
-    </form>}
-    <FailureNotice failure={writeError} id="achievement-form-error" />
-    {status && <p role="status">{status === 'saved' ? c.saved : status === 'deleted' ? c.deleted : c.prefilled}</p>}
-    {rows === null ? <LoadingBlock label={t('loading')} /> : rows.length === 0 ? <div className="empty-state"><p>{c.empty}</p></div> : <ol className="achievement-list card">
-      {rows.map(row => <li key={row.id} data-testid="achievement">
-        <time dateTime={row.date}>{formatDate(row.date)}</time>
-        <p className="achievement-content">{row.content}</p>
-        <div className="actions"><button type="button" className="secondary" disabled={pending || formOpen} onClick={() => openEdit(row)}>{c.editAction}</button><button type="button" className="secondary danger-button" disabled={pending || formOpen} onClick={() => void remove(row)}>{c.remove}</button></div>
-      </li>)}
-    </ol>}
-  </section>
+      ) : (
+        <ol className="achievement-list card">
+          {rows.map(row => (
+            <li key={row.id} data-testid="achievement">
+              <time dateTime={row.date}>{formatDate(row.date)}</time>
+              <p className="achievement-content">{row.content}</p>
+              <div className="actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={pending || formOpen}
+                  onClick={() => openEdit(row)}
+                >
+                  {c.editAction}
+                </button>
+                <button
+                  type="button"
+                  className="secondary danger-button"
+                  disabled={pending || formOpen}
+                  onClick={() => void remove(row)}
+                >
+                  {c.remove}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
 }

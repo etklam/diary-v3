@@ -23,7 +23,8 @@ describe('article read policy', () => {
   })
 
   it('fails closed for unknown access values', () => {
-    expect(resolveArticleReadAccess(published('PREMIUM'), { role: 'ADMIN' }, { allowAdminPreview: true })).toBe('NOT_FOUND')
+    expect(resolveArticleReadAccess(published('PREMIUM'), { role: 'ADMIN' }, { allowAdminPreview: true })).toBe(
+      'NOT_FOUND',
+    )
   })
 })
-

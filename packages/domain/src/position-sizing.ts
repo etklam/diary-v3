@@ -57,9 +57,12 @@ export function validatePositionSizingRatios(ratios: readonly number[]): { sum: 
 function validateInput(input: PositionSizingInput) {
   const finite = [input.capital, input.stockPrice, input.reserveCashPercent, ...input.ratios]
   if (finite.some(value => !Number.isFinite(value))) throw new RangeError('Position sizing values must be finite')
-  if (input.ratios.length === 0 || input.ratios.some(ratio => ratio < 0)) throw new RangeError('Position sizing ratios must be non-negative')
-  if (input.reserveCashPercent < 0 || input.reserveCashPercent > 100) throw new RangeError('Reserve cash must be between 0 and 100 percent')
-  if (!['down', 'nearest', 'up'].includes(input.roundingMode)) throw new RangeError('Unknown position sizing rounding mode')
+  if (input.ratios.length === 0 || input.ratios.some(ratio => ratio < 0))
+    throw new RangeError('Position sizing ratios must be non-negative')
+  if (input.reserveCashPercent < 0 || input.reserveCashPercent > 100)
+    throw new RangeError('Reserve cash must be between 0 and 100 percent')
+  if (!['down', 'nearest', 'up'].includes(input.roundingMode))
+    throw new RangeError('Unknown position sizing rounding mode')
 }
 
 function calculateShares(amount: number, price: number, mode: PositionSizingRounding): number {
@@ -75,7 +78,8 @@ export function calculatePositionSizing(input: PositionSizingInput): PositionSiz
   const { capital, stockPrice, ratios, reserveCashPercent, roundingMode } = input
   const warnings: string[] = []
 
-  if (capital <= 0 || stockPrice <= 0) return { results: [], summary: null, warnings: ['Invalid capital or stock price'] }
+  if (capital <= 0 || stockPrice <= 0)
+    return { results: [], summary: null, warnings: ['Invalid capital or stock price'] }
 
   const ratioValidation = validatePositionSizingRatios(ratios)
   if (!ratioValidation.isValid) warnings.push(`Strategy ratios total ${ratioValidation.sum.toFixed(1)}%, not 100%`)
@@ -110,7 +114,8 @@ export function calculatePositionSizing(input: PositionSizingInput): PositionSiz
   const unallocatedCash = Math.max(0, availableCapital - totalInvested)
   const totalRemainingCash = reservedCash + unallocatedCash
 
-  if (stockPrice > availableCapital) warnings.push('Stock price is too high to buy one whole share with available capital')
+  if (stockPrice > availableCapital)
+    warnings.push('Stock price is too high to buy one whole share with available capital')
   else if (totalShares === 0) warnings.push('Available capital cannot buy one whole share in any batch')
 
   return {

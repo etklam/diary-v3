@@ -26,8 +26,10 @@ export const calendarCopy = {
     heatmap: 'Year at a glance',
     allDays: 'All calendar days included',
     excluded: 'US market weekends and full closures excluded; early-close half-days remain eligible',
-    monthUnavailable: 'US market closure data is available for 2025–2028 only. Coverage is unavailable for this month; diary dates remain accessible.',
-    heatmapUnavailable: 'This 371-day range includes an unsupported year. No partial US market closure exclusions are applied.',
+    monthUnavailable:
+      'US market closure data is available for 2025–2028 only. Coverage is unavailable for this month; diary dates remain accessible.',
+    heatmapUnavailable:
+      'This 371-day range includes an unsupported year. No partial US market closure exclusions are applied.',
     unavailable: 'US market closure data is unavailable. Coverage is not calculated.',
     settings: 'Review preferences',
     transactions: 'transactions',
@@ -113,4 +115,4 @@ export const calendarCopy = {
     select: '选择日期',
     heatmapHint: '选择日期以打开日记，或开始快速记录。',
   },
-};
+}

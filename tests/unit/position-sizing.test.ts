@@ -25,7 +25,9 @@ describe('position sizing frozen formula', () => {
       reserveCashPercent: 10,
       roundingMode: 'down',
     })
-    expect(output.results.map(row => ({ ratio: row.ratio, shares: row.shares, actualAmount: row.actualAmount }))).toEqual([
+    expect(
+      output.results.map(row => ({ ratio: row.ratio, shares: row.shares, actualAmount: row.actualAmount })),
+    ).toEqual([
       { ratio: 40, shares: 109, actualAmount: 3_597 },
       { ratio: 30, shares: 81, actualAmount: 2_673 },
       { ratio: 20, shares: 54, actualAmount: 1_782 },
@@ -54,19 +56,35 @@ describe('position sizing frozen formula', () => {
     expect(output.results.map(row => row.shares)).toEqual([7, 5, 4, 0])
     expect(output.summary?.totalInvested).toBe(960)
     expect(output.warnings).toContain('Final batch shares were adjusted to avoid exceeding the budget')
-    const overBudget = calculatePositionSizing({ capital: 1_000, stockPrice: 99, ratios: [40, 30, 20, 10], reserveCashPercent: 0, roundingMode: 'up' })
+    const overBudget = calculatePositionSizing({
+      capital: 1_000,
+      stockPrice: 99,
+      ratios: [40, 30, 20, 10],
+      reserveCashPercent: 0,
+      roundingMode: 'up',
+    })
     expect(overBudget.summary?.isOverBudget).toBe(true)
     expect(overBudget.summary?.overBudgetAmount).toBe(386)
   })
 
   it('returns an explicit empty result for zero inputs and rejects unsafe values', () => {
-    expect(calculatePositionSizing({ capital: 0, stockPrice: 10, ratios: [100], reserveCashPercent: 0, roundingMode: 'down' })).toMatchObject({
-      results: [], summary: null,
+    expect(
+      calculatePositionSizing({
+        capital: 0,
+        stockPrice: 10,
+        ratios: [100],
+        reserveCashPercent: 0,
+        roundingMode: 'down',
+      }),
+    ).toMatchObject({
+      results: [],
+      summary: null,
     })
     for (const input of [
       { capital: Number.NaN, stockPrice: 10, ratios: [100], reserveCashPercent: 0, roundingMode: 'down' as const },
       { capital: 100, stockPrice: 10, ratios: [-1, 101], reserveCashPercent: 0, roundingMode: 'down' as const },
       { capital: 100, stockPrice: 10, ratios: [100], reserveCashPercent: 101, roundingMode: 'down' as const },
-    ]) expect(() => calculatePositionSizing(input)).toThrow(RangeError)
+    ])
+      expect(() => calculatePositionSizing(input)).toThrow(RangeError)
   })
 })

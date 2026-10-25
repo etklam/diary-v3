@@ -166,7 +166,9 @@ a {
   color: var(--action);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
-  transition: color var(--dur-1) var(--ease-out), text-decoration-color var(--dur-1) var(--ease-out);
+  transition:
+    color var(--dur-1) var(--ease-out),
+    text-decoration-color var(--dur-1) var(--ease-out);
 }
 
 a:hover {
@@ -239,7 +241,10 @@ a.secondary {
   line-height: 1.4;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 button:hover,
@@ -346,7 +351,9 @@ textarea {
   background: var(--surface);
   color: var(--text);
   caret-color: var(--action);
-  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  transition:
+    border-color var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-1) var(--ease-out);
 }
 
 input:hover,
@@ -696,8 +703,12 @@ kbd {
    --------------------------------------------------------------------------- */
 
 @keyframes skeleton-pulse {
-  from { opacity: 1; }
-  to { opacity: 0.45; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
 }
 
 .skeleton {
@@ -724,8 +735,12 @@ kbd {
    --------------------------------------------------------------------------- */
 
 @keyframes pending-sweep {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(286%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(286%);
+  }
 }
 
 /* Route change. Fixed and painted over the chrome rather than inserted into
@@ -1228,7 +1243,10 @@ button.is-pending::after,
   color: var(--muted);
   cursor: pointer;
   list-style: none;
-  transition: border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
+  transition:
+    border-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out);
 }
 
 .quick-capture-disclosure > summary::-webkit-details-marker {
@@ -1336,7 +1354,9 @@ button.is-pending::after,
   line-height: 1.4;
   cursor: pointer;
   list-style: none;
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .nav-more .nav-group-links {
@@ -1375,7 +1395,9 @@ button.is-pending::after,
   color: var(--text);
   font-size: var(--text-sm);
   text-decoration: none;
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .desktop-nav a.nav-diary-view {
@@ -1454,7 +1476,9 @@ button.is-pending::after,
   color: var(--text);
   font-size: var(--text-sm);
   text-decoration: none;
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .desktop-preferences > a:hover {
@@ -1479,7 +1503,9 @@ button.is-pending::after,
   font-size: var(--text-sm);
   cursor: pointer;
   list-style: none;
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .desktop-preferences-disclosure > summary::-webkit-details-marker {
@@ -1881,7 +1907,9 @@ dialog {
 dialog[open] {
   opacity: 1;
   translate: 0 0;
-  transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out);
+  transition:
+    opacity var(--dur-2) var(--ease-out),
+    translate var(--dur-2) var(--ease-out);
 }
 
 @starting-style {
@@ -2069,7 +2097,9 @@ dialog::backdrop {
   text-align: center;
   text-decoration: none;
   overflow-wrap: anywhere;
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .mobile-diary-navigation a svg {
@@ -2239,7 +2269,8 @@ dialog::backdrop {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 2px;
     height: var(--mobile-diary-navigation-space);
-    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-right)) max(var(--space-1), env(safe-area-inset-bottom)) max(var(--space-1), env(safe-area-inset-left));
+    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-right))
+      max(var(--space-1), env(safe-area-inset-bottom)) max(var(--space-1), env(safe-area-inset-left));
     border-top: 1px solid var(--rule);
     background: var(--surface);
   }

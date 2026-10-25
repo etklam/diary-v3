@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { createAiTranslationProvider } from '../../apps/api/src/article-translations/ai-provider.js'
 import { createEdgeTranslationProvider } from '../../apps/api/src/article-translations/edge-provider.js'
 import { markdownTranslationUnitCount, translateMarkdown } from '../../apps/api/src/article-translations/markdown.js'
-import { TranslationProviderError, type TranslationProviderRequest } from '../../apps/api/src/article-translations/types.js'
+import {
+  TranslationProviderError,
+  type TranslationProviderRequest,
+} from '../../apps/api/src/article-translations/types.js'
 import type { AiTransport } from '../../apps/api/src/ai-reports/outbound-policy.js'
 
 function mockTranslate(transform: (value: string) => string = value => value) {
@@ -19,7 +22,10 @@ function edgeResponse(texts: readonly string[], status = 200, headers?: HeadersI
   return new Response(JSON.stringify(texts.map(text => ({ translations: [{ text }] }))), { status, headers })
 }
 
-function aiProvider(overrides: Partial<Parameters<typeof createAiTranslationProvider>[0]> = {}, transport?: AiTransport) {
+function aiProvider(
+  overrides: Partial<Parameters<typeof createAiTranslationProvider>[0]> = {},
+  transport?: AiTransport,
+) {
   const config: Parameters<typeof createAiTranslationProvider>[0] = {
     enabled: true,
     baseUrl: 'https://translate.example.test/v1',
@@ -34,15 +40,19 @@ function aiProvider(overrides: Partial<Parameters<typeof createAiTranslationProv
     allowMemberArticles: false,
     ...overrides,
   }
-  const fakeTransport: AiTransport = transport ?? (async input => {
-    const body = input.body as { messages: Array<{ role: string; content: string }> }
-    const user = JSON.parse(body.messages[1]!.content) as { blocks: string[] }
-    return {
-      status: 200,
-      retryAfter: null,
-      body: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ translations: user.blocks }) } }] }),
-    }
-  })
+  const fakeTransport: AiTransport =
+    transport ??
+    (async input => {
+      const body = input.body as { messages: Array<{ role: string; content: string }> }
+      const user = JSON.parse(body.messages[1]!.content) as { blocks: string[] }
+      return {
+        status: 200,
+        retryAfter: null,
+        body: JSON.stringify({
+          choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ translations: user.blocks }) } }],
+        }),
+      }
+    })
   return { provider: createAiTranslationProvider(config, { transport: fakeTransport }), fakeTransport }
 }
 
@@ -67,18 +77,24 @@ describe('article translation Markdown pipeline', () => {
       '',
       '來源 [CITATION-17]。',
     ].join('\n')
-    const provider = mockTranslate(value => value
-      .replace('半導體觀察', 'Semiconductor review')
-      .replace('市場升溫', 'The market is heating up')
-      .replace('財報', 'earnings report')
-      .replace('圖表', 'chart')
-      .replace('風險仍然存在', 'Risk remains')
-      .replace('觀察成交量', 'Watch volume')
-      .replace('指標', 'Metric')
-      .replace('數值', 'Value')
-      .replace('來源', 'Source'))
+    const provider = mockTranslate(value =>
+      value
+        .replace('半導體觀察', 'Semiconductor review')
+        .replace('市場升溫', 'The market is heating up')
+        .replace('財報', 'earnings report')
+        .replace('圖表', 'chart')
+        .replace('風險仍然存在', 'Risk remains')
+        .replace('觀察成交量', 'Watch volume')
+        .replace('指標', 'Metric')
+        .replace('數值', 'Value')
+        .replace('來源', 'Source'),
+    )
 
-    const result = await translateMarkdown(source, { markdown: source, sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC' }, provider)
+    const result = await translateMarkdown(
+      source,
+      { markdown: source, sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC' },
+      provider,
+    )
 
     expect(result.markdown).toContain('## Semiconductor review')
     expect(result.markdown).toContain('**AMD +15.4%**')
@@ -105,10 +121,21 @@ describe('article translation Markdown pipeline', () => {
       name: 'mock',
       async translate(request: TranslationProviderRequest) {
         blocks = request.blocks
-        return { provider: 'edge' as const, model: null, usage: null, translations: request.blocks.map(value => value.replace('先觀察市場', 'Observe first').replace('再等待確認', 'wait for confirmation')) }
+        return {
+          provider: 'edge' as const,
+          model: null,
+          usage: null,
+          translations: request.blocks.map(value =>
+            value.replace('先觀察市場', 'Observe first').replace('再等待確認', 'wait for confirmation'),
+          ),
+        }
       },
     }
-    const result = await translateMarkdown(markdown, { markdown, sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC' }, provider)
+    const result = await translateMarkdown(
+      markdown,
+      { markdown, sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC' },
+      provider,
+    )
     expect(blocks).toHaveLength(1)
     expect(result.markdown).toBe('> Observe first，\n> wait for confirmation。\n')
   })
@@ -116,14 +143,23 @@ describe('article translation Markdown pipeline', () => {
   it('rejects a provider response that removes or duplicates preservation markers', async () => {
     const markdown = 'NVDA +15.4% stays fixed.'
     const provider = mockTranslate(value => value.replace(/ZXQ[A-F0-9]+P\d{4}QXZ/g, ''))
-    await expect(translateMarkdown(markdown, { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' }, provider))
-      .rejects.toMatchObject({ code: 'TRANSLATION_OUTPUT_INVALID' })
+    await expect(
+      translateMarkdown(
+        markdown,
+        { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' },
+        provider,
+      ),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_OUTPUT_INVALID' })
   })
 
   it('protects standalone tickers and inline LaTeX formulas', async () => {
     const markdown = 'SOXX outperformed by 2.1%. Keep $r = p - e$ and \\(x + y = 2\\).'
     const provider = mockTranslate(value => value.replace('outperformed by', 'performed better than'))
-    const result = await translateMarkdown(markdown, { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' }, provider)
+    const result = await translateMarkdown(
+      markdown,
+      { markdown, sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC' },
+      provider,
+    )
     expect(result.markdown).toContain('SOXX performed better than 2.1%.')
     expect(result.markdown).toContain('$r = p - e$')
     expect(result.markdown).toContain('\\(x + y = 2\\)')
@@ -132,9 +168,16 @@ describe('article translation Markdown pipeline', () => {
 
 describe('Microsoft Edge Translate adapter', () => {
   it('sends the experimental Edge request shape with locale mapping and a JSON string array', async () => {
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => edgeResponse(['translated one', 'translated two']))
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+      edgeResponse(['translated one', 'translated two']),
+    )
     const provider = createEdgeTranslationProvider({ fetchImpl: fetchMock, sleep: async () => undefined })
-    const result = await provider.translate({ sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC', blocks: ['第一段', '第二段'] })
+    const result = await provider.translate({
+      sourceLocale: 'zh-TW',
+      targetLocale: 'en',
+      articleAccess: 'PUBLIC',
+      blocks: ['第一段', '第二段'],
+    })
     const [input, init] = fetchMock.mock.calls[0]!
     const url = new URL(String(input))
     expect(url.origin + url.pathname).toBe('https://edge.microsoft.com/translate/translatetext')
@@ -151,22 +194,27 @@ describe('Microsoft Edge Translate adapter', () => {
     const provider = createEdgeTranslationProvider({ fetchImpl: fetchMock })
     await provider.translate({ sourceLocale: 'zh-CN', targetLocale: 'en', articleAccess: 'PUBLIC', blocks: ['文本'] })
     expect(new URL(String(fetchMock.mock.calls[0]![0])).searchParams.get('from')).toBe('zh-Hans')
-    await expect(provider.translate({ sourceLocale: 'zh-CN', targetLocale: 'en', articleAccess: 'MEMBER', blocks: ['private'] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_PRIVACY_RESTRICTED' })
+    await expect(
+      provider.translate({ sourceLocale: 'zh-CN', targetLocale: 'en', articleAccess: 'MEMBER', blocks: ['private'] }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_PRIVACY_RESTRICTED' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not retry terminal authentication or not-found failures', async () => {
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => new Response('', { status: 403 }))
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) => new Response('', { status: 403 }),
+    )
     const provider = createEdgeTranslationProvider({ fetchImpl: fetchMock, sleep: async () => undefined })
-    await expect(provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC', blocks: ['text'] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_PROVIDER_REJECTED' })
+    await expect(
+      provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC', blocks: ['text'] }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_PROVIDER_REJECTED' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('honors a bounded Retry-After and makes at most the configured finite attempts', async () => {
     const sleepMock = vi.fn(async () => undefined)
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => edgeResponse(['ok']))
+    const fetchMock = vi
+      .fn(async (_input: string | URL | Request, _init?: RequestInit) => edgeResponse(['ok']))
       .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'retry-after': '2' } }))
       .mockResolvedValueOnce(edgeResponse(['ok']))
     const provider = createEdgeTranslationProvider({ fetchImpl: fetchMock, sleep: sleepMock })
@@ -176,11 +224,15 @@ describe('Microsoft Edge Translate adapter', () => {
   })
 
   it('returns 429 retry metadata without waiting past the bounded automatic delay', async () => {
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => new Response('', { status: 429, headers: { 'retry-after': '60' } }))
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response('', { status: 429, headers: { 'retry-after': '60' } }),
+    )
     const sleepMock = vi.fn(async () => undefined)
     const provider = createEdgeTranslationProvider({ fetchImpl: fetchMock, sleep: sleepMock })
-    await expect(provider.translate({ sourceLocale: 'en', targetLocale: 'zh-CN', articleAccess: 'PUBLIC', blocks: ['text'] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_RATE_LIMITED', retryAfterMs: 60_000 })
+    await expect(
+      provider.translate({ sourceLocale: 'en', targetLocale: 'zh-CN', articleAccess: 'PUBLIC', blocks: ['text'] }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_RATE_LIMITED', retryAfterMs: 60_000 })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(sleepMock).not.toHaveBeenCalled()
   })
@@ -189,7 +241,11 @@ describe('Microsoft Edge Translate adapter', () => {
 describe('AI translation adapter', () => {
   it('uses injected transport, strict structured output, and isolated translation guidance', async () => {
     const transport = vi.fn(async input => {
-      const body = input.body as { messages: Array<{ role: string; content: string }>; max_completion_tokens: number; response_format: { type: string } }
+      const body = input.body as {
+        messages: Array<{ role: string; content: string }>
+        max_completion_tokens: number
+        response_format: { type: string }
+      }
       expect(body.max_completion_tokens).toBe(1_000)
       expect(body.response_format).toEqual({ type: 'json_object' })
       const user = JSON.parse(body.messages[1]!.content) as { blocks: string[]; administratorGuidance: string }
@@ -198,11 +254,18 @@ describe('AI translation adapter', () => {
       return {
         status: 200,
         retryAfter: null,
-        body: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ translations: user.blocks }) } }] }),
+        body: JSON.stringify({
+          choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ translations: user.blocks }) } }],
+        }),
       }
     })
     const { provider } = aiProvider({}, transport as unknown as AiTransport)
-    const result = await provider.translate({ sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC', blocks: ['安全內容'] })
+    const result = await provider.translate({
+      sourceLocale: 'zh-TW',
+      targetLocale: 'en',
+      articleAccess: 'PUBLIC',
+      blocks: ['安全內容'],
+    })
     expect(result.translations).toEqual(['安全內容'])
     expect(result.usage?.calls).toBe(1)
     expect(transport).toHaveBeenCalledTimes(1)
@@ -214,13 +277,18 @@ describe('AI translation adapter', () => {
       retryAfter: null,
       body: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"translations":["ok"]}' } }] }),
     }))
-    const { provider } = aiProvider({ baseUrl: 'https://compatible.example.test/v1', model: 'custom-model' }, transport as unknown as AiTransport)
+    const { provider } = aiProvider(
+      { baseUrl: 'https://compatible.example.test/v1', model: 'custom-model' },
+      transport as unknown as AiTransport,
+    )
     await provider.translate({ sourceLocale: 'zh-TW', targetLocale: 'en', articleAccess: 'PUBLIC', blocks: ['source'] })
-    expect(transport).toHaveBeenCalledWith(expect.objectContaining({
-      baseUrl: 'https://compatible.example.test/v1',
-      path: 'chat/completions',
-      allowedBaseUrls: ['https://compatible.example.test/v1'],
-    }))
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'https://compatible.example.test/v1',
+        path: 'chat/completions',
+        allowedBaseUrls: ['https://compatible.example.test/v1'],
+      }),
+    )
   })
 
   it('rejects malformed structured output despite HTTP 200', async () => {
@@ -230,33 +298,46 @@ describe('AI translation adapter', () => {
       body: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '{"translations":[1]}' } }] }),
     })
     const { provider } = aiProvider({}, transport)
-    await expect(provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC', blocks: ['source'] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_OUTPUT_INVALID' })
+    await expect(
+      provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC', blocks: ['source'] }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_OUTPUT_INVALID' })
   })
 
   it('honors member-only policy and call/token limits before sending content', async () => {
     const transport = vi.fn(async () => ({ status: 200, retryAfter: null, body: '{}' })) as unknown as AiTransport
     const { provider } = aiProvider({ allowMemberArticles: false, maxCallsPerJob: 1 }, transport)
-    await expect(provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'MEMBER', blocks: ['sensitive'] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_PRIVACY_RESTRICTED' })
-    await expect(provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'PUBLIC', blocks: ['a'.repeat(15_000)] }))
-      .rejects.toMatchObject({ code: 'TRANSLATION_INPUT_TOO_LARGE' })
+    await expect(
+      provider.translate({ sourceLocale: 'en', targetLocale: 'zh-TW', articleAccess: 'MEMBER', blocks: ['sensitive'] }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_PRIVACY_RESTRICTED' })
+    await expect(
+      provider.translate({
+        sourceLocale: 'en',
+        targetLocale: 'zh-TW',
+        articleAccess: 'PUBLIC',
+        blocks: ['a'.repeat(15_000)],
+      }),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_INPUT_TOO_LARGE' })
     expect(transport).not.toHaveBeenCalled()
   })
 
   it('rejects non-HTTPS endpoints while allowing Admin-selected public hosts', () => {
-    expect(() => createAiTranslationProvider({
-      enabled: true,
-      baseUrl: 'http://translate.example.test',
-      model: 'test',
-      apiKey: 'secret',
-      timeoutMs: 1_000,
-      maxTokens: 512,
-      maxCallsPerJob: 2,
-      tokenBudget: 4_000,
-      prompt: '',
-      promptVersion: 'v1',
-      allowMemberArticles: false,
-    }, { transport: async () => ({ status: 200, body: '{}', retryAfter: null }) })).toThrow(TranslationProviderError)
+    expect(() =>
+      createAiTranslationProvider(
+        {
+          enabled: true,
+          baseUrl: 'http://translate.example.test',
+          model: 'test',
+          apiKey: 'secret',
+          timeoutMs: 1_000,
+          maxTokens: 512,
+          maxCallsPerJob: 2,
+          tokenBudget: 4_000,
+          prompt: '',
+          promptVersion: 'v1',
+          allowMemberArticles: false,
+        },
+        { transport: async () => ({ status: 200, body: '{}', retryAfter: null }) },
+      ),
+    ).toThrow(TranslationProviderError)
   })
 })

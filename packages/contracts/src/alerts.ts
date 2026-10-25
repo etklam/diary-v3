@@ -4,24 +4,27 @@ import { serializedIdSchema, utcInstantSchema } from './common.js'
 export const ALERT_RECURRING_MODES = ['WEEK', 'MONTH'] as const
 export const alertRecurringModeSchema = z.enum(ALERT_RECURRING_MODES)
 
-export const alertDraftSchema = z.object({
-  message: z.string().trim().min(1).max(500),
-  triggerAt: utcInstantSchema,
-  recurringMode: alertRecurringModeSchema.optional(),
-}).strict()
+export const alertDraftSchema = z
+  .object({
+    message: z.string().trim().min(1).max(500),
+    triggerAt: utcInstantSchema,
+    recurringMode: alertRecurringModeSchema.optional(),
+  })
+  .strict()
 
-export const alertCreateRequestSchema = z.object({
-  diaryId: serializedIdSchema,
-  ...alertDraftSchema.shape,
-}).strict()
+export const alertCreateRequestSchema = z
+  .object({
+    diaryId: serializedIdSchema,
+    ...alertDraftSchema.shape,
+  })
+  .strict()
 
 // The frozen standalone handler accepted any JSON string/number here and let
 // the ownership query decide whether the referenced Diary exists.
 const legacyAlertIdSchema = z.union([z.string(), z.number()])
-const legacyTriggerAtSchema = z.union([z.string(), z.date()]).refine(
-  value => !Number.isNaN(new Date(value).getTime()),
-  'trigger_at must be a valid date',
-)
+const legacyTriggerAtSchema = z
+  .union([z.string(), z.date()])
+  .refine(value => !Number.isNaN(new Date(value).getTime()), 'trigger_at must be a valid date')
 
 /**
  * Standalone Alert input retained from the frozen handler. The source accepts
@@ -29,26 +32,31 @@ const legacyTriggerAtSchema = z.union([z.string(), z.date()]).refine(
  * it is non-nullish. Missing triggerAt defaults to the request timestamp in
  * the API route; this schema keeps it optional so that behavior is preserved.
  */
-export const alertCreateRequestWireSchema = z.preprocess(value => {
-  if (!value || typeof value !== 'object') return value
-  const body = value as Record<string, unknown>
-  return {
-    diaryId: body.diary_id ?? body.diaryId,
-    message: body.message,
-    triggerAt: body.trigger_at ?? body.triggerAt,
-    recurringMode: body.recurring_mode ?? body.recurringMode,
-  }
-}, z.object({
-  diaryId: legacyAlertIdSchema,
-  message: z.string().trim().min(1).max(500),
-  triggerAt: legacyTriggerAtSchema.optional(),
-  recurringMode: alertRecurringModeSchema.optional(),
-})).transform(value => ({
-  diaryId: typeof value.diaryId === 'number' ? String(value.diaryId) : value.diaryId,
-  message: value.message,
-  triggerAt: value.triggerAt instanceof Date ? value.triggerAt.toISOString() : value.triggerAt,
-  recurringMode: value.recurringMode,
-}))
+export const alertCreateRequestWireSchema = z
+  .preprocess(
+    value => {
+      if (!value || typeof value !== 'object') return value
+      const body = value as Record<string, unknown>
+      return {
+        diaryId: body.diary_id ?? body.diaryId,
+        message: body.message,
+        triggerAt: body.trigger_at ?? body.triggerAt,
+        recurringMode: body.recurring_mode ?? body.recurringMode,
+      }
+    },
+    z.object({
+      diaryId: legacyAlertIdSchema,
+      message: z.string().trim().min(1).max(500),
+      triggerAt: legacyTriggerAtSchema.optional(),
+      recurringMode: alertRecurringModeSchema.optional(),
+    }),
+  )
+  .transform(value => ({
+    diaryId: typeof value.diaryId === 'number' ? String(value.diaryId) : value.diaryId,
+    message: value.message,
+    triggerAt: value.triggerAt instanceof Date ? value.triggerAt.toISOString() : value.triggerAt,
+    recurringMode: value.recurringMode,
+  }))
 
 /**
  * JSON documentation for the actual standalone wire body. Both spellings may
@@ -69,9 +77,15 @@ const alertCreateRequestWireTriggerOpenApiSchema = z.union([
 ])
 
 const alertCreateRequestWireRecurringOpenApiSchema = z.union([
-  z.object({ recurringMode: alertRecurringModeSchema.optional(), recurring_mode: alertRecurringModeSchema.optional() }).passthrough(),
-  z.object({ recurringMode: alertRecurringModeSchema, recurring_mode: alertRecurringModeSchema.nullable().optional() }).passthrough(),
-  z.object({ recurringMode: alertRecurringModeSchema.nullable().optional(), recurring_mode: alertRecurringModeSchema }).passthrough(),
+  z
+    .object({ recurringMode: alertRecurringModeSchema.optional(), recurring_mode: alertRecurringModeSchema.optional() })
+    .passthrough(),
+  z
+    .object({ recurringMode: alertRecurringModeSchema, recurring_mode: alertRecurringModeSchema.nullable().optional() })
+    .passthrough(),
+  z
+    .object({ recurringMode: alertRecurringModeSchema.nullable().optional(), recurring_mode: alertRecurringModeSchema })
+    .passthrough(),
 ])
 
 export const alertCreateRequestWireOpenApiSchema = z.intersection(
@@ -82,24 +96,28 @@ export const alertCreateRequestWireOpenApiSchema = z.intersection(
   z.intersection(alertCreateRequestWireTriggerOpenApiSchema, alertCreateRequestWireRecurringOpenApiSchema),
 )
 
-export const alertDiaryReferenceSchema = z.object({
-  id: serializedIdSchema,
-  title: z.string(),
-}).strict()
+export const alertDiaryReferenceSchema = z
+  .object({
+    id: serializedIdSchema,
+    title: z.string(),
+  })
+  .strict()
 
-export const alertResponseSchema = z.object({
-  id: serializedIdSchema,
-  diaryId: serializedIdSchema,
-  message: z.string(),
-  triggerAt: utcInstantSchema,
-  isDismissed: z.boolean(),
-  recurringMode: alertRecurringModeSchema.nullable(),
-  parentId: serializedIdSchema.nullable(),
-  instanceNumber: z.number().int().positive(),
-  isPaused: z.boolean(),
-  createdAt: utcInstantSchema,
-  diary: alertDiaryReferenceSchema.nullable(),
-}).strict()
+export const alertResponseSchema = z
+  .object({
+    id: serializedIdSchema,
+    diaryId: serializedIdSchema,
+    message: z.string(),
+    triggerAt: utcInstantSchema,
+    isDismissed: z.boolean(),
+    recurringMode: alertRecurringModeSchema.nullable(),
+    parentId: serializedIdSchema.nullable(),
+    instanceNumber: z.number().int().positive(),
+    isPaused: z.boolean(),
+    createdAt: utcInstantSchema,
+    diary: alertDiaryReferenceSchema.nullable(),
+  })
+  .strict()
 
 export const ALERT_MAX_ITEMS = 100
 export const alertListResponseSchema = z.array(alertResponseSchema).max(ALERT_MAX_ITEMS)

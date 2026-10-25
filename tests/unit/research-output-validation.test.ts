@@ -4,21 +4,69 @@ import { researchOutputEvidenceIssue } from '../../apps/api/src/research-studio/
 import { createSourcePolicy, sourcePolicyToRecord } from '../../apps/api/src/research-studio/source-policy'
 
 const synthetic = true
-const source: ResearchSourceRecord = sourcePolicyToRecord(createSourcePolicy({ sourceId: 'SYNTHETIC_SOURCE', provider: 'Synthetic fixture', scope: 'Offline validation fixture only.', basisUrl: 'https://fixture.example.invalid/terms', checkedAt: '2026-09-25T00:00:00.000Z', conditions: ['Synthetic; never publish.'] }), { requestedUrl: 'https://fixture.example.invalid/evidence', resolvedUrl: 'https://fixture.example.invalid/evidence' })
-function fixture(text = 'EMA20 is 123.46 and RSI14 is 58.2.'): { draft: ResearchDraft; evidence: { sources: ResearchSourceRecord[]; metrics: Record<string, unknown>; candidates: Record<string, unknown> } } {
-  const draft: ResearchDraft = { schemaVersion: 'research-draft-v1', title: 'Synthetic validation', sections: [{ section: 1, title: 'Evidence', content: '[Evidence](https://fixture.example.invalid/evidence)', claimIds: ['VALUE_1'] }], claims: [{ claimId: 'VALUE_1', section: 1, type: 'computed', text, sourceIds: [source.sourceId], metricPaths: ['latest.ema20', 'latest.rsi14'], zoneIds: [], planIds: [], status: 'SUPPORTED' }], finalAnswers: [], limitations: ['Synthetic fixture only.'] }
-  return { draft, evidence: { sources: [source], metrics: { synthetic, latest: { close: 123.456, ema20: 123.456, rsi14: 58.2 } }, candidates: {} } }
+const source: ResearchSourceRecord = sourcePolicyToRecord(
+  createSourcePolicy({
+    sourceId: 'SYNTHETIC_SOURCE',
+    provider: 'Synthetic fixture',
+    scope: 'Offline validation fixture only.',
+    basisUrl: 'https://fixture.example.invalid/terms',
+    checkedAt: '2026-09-25T00:00:00.000Z',
+    conditions: ['Synthetic; never publish.'],
+  }),
+  { requestedUrl: 'https://fixture.example.invalid/evidence', resolvedUrl: 'https://fixture.example.invalid/evidence' },
+)
+function fixture(text = 'EMA20 is 123.46 and RSI14 is 58.2.'): {
+  draft: ResearchDraft
+  evidence: { sources: ResearchSourceRecord[]; metrics: Record<string, unknown>; candidates: Record<string, unknown> }
+} {
+  const draft: ResearchDraft = {
+    schemaVersion: 'research-draft-v1',
+    title: 'Synthetic validation',
+    sections: [
+      {
+        section: 1,
+        title: 'Evidence',
+        content: '[Evidence](https://fixture.example.invalid/evidence)',
+        claimIds: ['VALUE_1'],
+      },
+    ],
+    claims: [
+      {
+        claimId: 'VALUE_1',
+        section: 1,
+        type: 'computed',
+        text,
+        sourceIds: [source.sourceId],
+        metricPaths: ['latest.ema20', 'latest.rsi14'],
+        zoneIds: [],
+        planIds: [],
+        status: 'SUPPORTED',
+      },
+    ],
+    finalAnswers: [],
+    limitations: ['Synthetic fixture only.'],
+  }
+  return {
+    draft,
+    evidence: {
+      sources: [source],
+      metrics: { synthetic, latest: { close: 123.456, ema20: 123.456, rsi14: 58.2 } },
+      candidates: {},
+    },
+  }
 }
 
 describe('mechanical generated-output evidence checks', () => {
   it('accepts known source URLs and normal display rounding without treating it as factual QA', () => {
     const data = fixture()
-    data.draft.claims[0]!.text = 'EMA20 is 123.46 and RSI14 is 58.2; 5/20-session windows and a 1–20 trading-day outlook.'
+    data.draft.claims[0]!.text =
+      'EMA20 is 123.46 and RSI14 is 58.2; 5/20-session windows and a 1–20 trading-day outlook.'
     data.draft.sections[0]!.content = '1. Section 1 reports EMA20 at 123.46.'
     expect(researchOutputEvidenceIssue(data.draft, data.evidence)).toBeNull()
   })
   it('rejects invented URLs in any authored section, including query changes', () => {
-    const data = fixture(); data.draft.sections[0]!.content = '[Invented source](https://fixture.example.invalid/evidence?invented=true)'
+    const data = fixture()
+    data.draft.sections[0]!.content = '[Invented source](https://fixture.example.invalid/evidence?invented=true)'
     expect(researchOutputEvidenceIssue(data.draft, data.evidence)).toContain('URL')
   })
   it('rejects invented computed numbers even when the metric path exists', () => {
@@ -32,7 +80,9 @@ describe('mechanical generated-output evidence checks', () => {
     expect(researchOutputEvidenceIssue(data.draft, data.evidence)).toContain('Section 1')
 
     data.draft.sections[0]!.content = 'The latest close is 123.46.'
-    data.draft.finalAnswers = [{ question: 'What is the latest close?', answer: 'It is 999.99.', claimIds: ['VALUE_1'] }]
+    data.draft.finalAnswers = [
+      { question: 'What is the latest close?', answer: 'It is 999.99.', claimIds: ['VALUE_1'] },
+    ]
     expect(researchOutputEvidenceIssue(data.draft, data.evidence)).toContain('final answer')
   })
   it('allows omission in narrative while retaining supported backend values elsewhere', () => {

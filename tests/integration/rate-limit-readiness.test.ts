@@ -5,14 +5,23 @@ import { provisionTestDatabase } from '../support/database'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 
-beforeAll(async () => { database = await provisionTestDatabase('rate_limit_readiness') })
-afterAll(async () => { await database?.dispose() })
+beforeAll(async () => {
+  database = await provisionTestDatabase('rate_limit_readiness')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 function runtime(mode: 'memory' | 'redis' | 'auto', ready: boolean, degraded: boolean): RateLimitRuntime {
   const backend = mode === 'auto' ? 'memory' : mode
   return {
-    mode, backend, degraded, ready,
-    async consume() { return { allowed: true, limit: 1, remaining: 0, resetAt: Date.now(), retryAfterMs: 0 } },
+    mode,
+    backend,
+    degraded,
+    ready,
+    async consume() {
+      return { allowed: true, limit: 1, remaining: 0, resetAt: Date.now(), retryAfterMs: 0 }
+    },
     async close() {},
   }
 }
@@ -21,7 +30,12 @@ function app(rateLimiter: RateLimitRuntime) {
   return createApp({
     db: database.db,
     rateLimiter,
-    config: { jwtSecret: 'synthetic-rate-limit-readiness-secret-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    config: {
+      jwtSecret: 'synthetic-rate-limit-readiness-secret-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
   })
 }
 
@@ -43,7 +57,12 @@ describe('rate-limit readiness semantics', () => {
 
   it('returns a backend-neutral service error when mandatory Redis fails during a request', async () => {
     const required = runtime('redis', false, true)
-    const server = app({ ...required, async consume() { throw new RateLimitStoreUnavailableError() } })
+    const server = app({
+      ...required,
+      async consume() {
+        throw new RateLimitStoreUnavailableError()
+      },
+    })
     const response = await server.request('/api/auth/login', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

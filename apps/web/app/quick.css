@@ -71,14 +71,10 @@
   border-top: 1px solid var(--border);
 }
 
-
-
 .authoring-aside > .quick-existing {
   margin: 0 0 var(--space-4);
   font-size: var(--text-sm);
 }
-
-
 
 .quick-destination-value {
   color: var(--muted);
@@ -344,7 +340,7 @@
     background: var(--canvas);
   }
 
-  .editor .quick-composer .quick-submit button[type="submit"] {
+  .editor .quick-composer .quick-submit button[type='submit'] {
     width: 100%;
     margin-bottom: 0;
     padding-block: 12px;

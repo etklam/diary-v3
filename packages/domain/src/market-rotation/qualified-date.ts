@@ -82,14 +82,9 @@ export function isQualifiedSnapshotCount(snapshotCount: number, universeSize: nu
  * @param universeSize - Canonical universe size for the rank scope.
  * @returns Qualified dates in the SAME order as the input.
  */
-export function filterQualifiedDates(
-  groups: readonly DateCountGroup[],
-  universeSize: number,
-): Date[] {
+export function filterQualifiedDates(groups: readonly DateCountGroup[], universeSize: number): Date[] {
   const threshold = computeThreshold(universeSize)
-  return groups
-    .filter(group => group.count >= threshold)
-    .map(group => group.date)
+  return groups.filter(group => group.count >= threshold).map(group => group.date)
 }
 
 /**
@@ -127,10 +122,12 @@ export function pickLatestQualifiedCandidate(
   candidates: readonly SnapshotDateCoverage[],
   universeSize: number,
 ): SnapshotDateCoverage | null {
-  return candidates
-    .filter(candidate => isQualifiedSnapshotCount(candidate.snapshotCount, universeSize))
-    .slice()
-    .sort((a, b) => b.date.getTime() - a.date.getTime())[0] ?? null
+  return (
+    candidates
+      .filter(candidate => isQualifiedSnapshotCount(candidate.snapshotCount, universeSize))
+      .slice()
+      .sort((a, b) => b.date.getTime() - a.date.getTime())[0] ?? null
+  )
 }
 
 /**
@@ -170,4 +167,3 @@ export function resolveQualifiedDateWindow(
     comparisonDate: pickComparisonDate(dates, options.offset),
   }
 }
-

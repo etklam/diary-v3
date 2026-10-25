@@ -36,28 +36,46 @@ for (const width of [1440, 390]) {
     await page.getByTestId('position-sizing-strategy').selectOption('pyramid')
     await page.getByTestId('position-sizing-rounding').selectOption('nearest')
     await expect(page.locator('.position-sizing-table-wrap')).toHaveAttribute('tabindex', '0')
-    for (const [locale, heading] of [['zh-TW', '部位計算'], ['zh-CN', '仓位计算'], ['en', 'Position sizing']] as const) {
+    for (const [locale, heading] of [
+      ['zh-TW', '部位計算'],
+      ['zh-CN', '仓位计算'],
+      ['en', 'Position sizing'],
+    ] as const) {
       await selectLocale(page, locale)
       await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     }
     if (width === 390) await selectTheme(page, 'dark')
-    await page.evaluate(() => { window.scrollTo({ top: 0, behavior: 'instant' }); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() })
+    await page.evaluate(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    })
     await page.screenshot({ path: `docs/design/evidence/position-sizing/${width}.png`, fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 
     await page.getByTestId('position-sizing-copy').click()
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('| Ratio | Planned amount | Whole shares | Actual amount |')
-    await page.evaluate(() => { Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: () => Promise.reject(new Error('Synthetic clipboard denial')) }) })
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      '| Ratio | Planned amount | Whole shares | Actual amount |',
+    )
+    await page.evaluate(() => {
+      Object.defineProperty(navigator.clipboard, 'writeText', {
+        configurable: true,
+        value: () => Promise.reject(new Error('Synthetic clipboard denial')),
+      })
+    })
     await page.getByTestId('position-sizing-copy').click()
     await expect(page.getByLabel('Position sizing Markdown', { exact: true })).toBeVisible()
 
-    const createResponse = page.waitForResponse(response => response.url().endsWith('/api/diaries') && response.request().method() === 'POST')
+    const createResponse = page.waitForResponse(
+      response => response.url().endsWith('/api/diaries') && response.request().method() === 'POST',
+    )
     await page.getByTestId('position-sizing-save-new').click()
     const created = await createResponse
     expect(created.status()).toBe(201)
-    const diary = await created.json() as { id: string }
+    const diary = (await created.json()) as { id: string }
     await expect(page.getByRole('status')).toHaveText('Diary saved.')
-    const appendResponse = page.waitForResponse(response => response.url().endsWith('/api/diaries') && response.request().method() === 'POST')
+    const appendResponse = page.waitForResponse(
+      response => response.url().endsWith('/api/diaries') && response.request().method() === 'POST',
+    )
     await page.getByTestId('position-sizing-append').click()
     const appended = await appendResponse
     expect(appended.status()).toBe(201)
@@ -75,6 +93,8 @@ for (const width of [1440, 390]) {
     await page.goto('/tools/position-sizing')
     await page.getByTestId('position-sizing-capital').fill('0')
     await page.getByTestId('position-sizing-price').fill('33')
-    await expect(page.getByTestId('position-sizing-invalid')).toHaveText('Enter a positive capital amount and stock price to calculate.')
+    await expect(page.getByTestId('position-sizing-invalid')).toHaveText(
+      'Enter a positive capital amount and stock price to calculate.',
+    )
   })
 }

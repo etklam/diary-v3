@@ -1,165 +1,297 @@
-import { randomUUID } from 'node:crypto';
-import { test,expect, selectLocale, selectTheme } from '../support/e2e';
+import { randomUUID } from 'node:crypto'
+import { test, expect, selectLocale, selectTheme } from '../support/e2e'
 
 const focusedPortfolioFixture = {
- holdings: [
-  { symbol: 'LONGSYMBOL1234567890', quantity: 1.25, avgCost: 12.34, totalCost: 15.425, price: 12.3456, quoteAsOf: '2026-08-01T10:00:00.000Z' },
-  { symbol: 'MEGA_VALUE', quantity: 1000000.5, avgCost: 98765.4321, totalCost: 987654321, price: 123456.789, quoteAsOf: '2026-09-05T10:00:00.000Z' },
- ],
- valuation: {
-  totalHoldings: 2, totalCost: 987654336.425, currentMarketValue: 123456850743.8265,
-  unrealizedAmount: 122469196407.4015, unrealizedPct: 12400.005942433436,
-  totalDayChange: null, totalDayChangePercent: null, largestPositionPct: 99.99999998750008,
-  top3ConcentrationPct: 100, activePositionCount: 2, concentrationWarning: true,
-  largestPositionSymbol: 'MEGA_VALUE', pricedPositionCount: 2, unpricedPositionCount: 0,
-  pricedCostBasis: 987654336.425, unpricedCostBasis: 0, quoteCoveragePct: 100,
-  valuationAsOf: '2026-08-01T10:00:00.000Z', staleQuoteCount: 1, valuationStatus: 'complete',
-  unsupportedMetrics: ['ytdReturn', 'realCashPercentage', 'sectorConcentration'],
- },
- quoteErrors: [], marketState: 'REGULAR',
-};
+  holdings: [
+    {
+      symbol: 'LONGSYMBOL1234567890',
+      quantity: 1.25,
+      avgCost: 12.34,
+      totalCost: 15.425,
+      price: 12.3456,
+      quoteAsOf: '2026-08-01T10:00:00.000Z',
+    },
+    {
+      symbol: 'MEGA_VALUE',
+      quantity: 1000000.5,
+      avgCost: 98765.4321,
+      totalCost: 987654321,
+      price: 123456.789,
+      quoteAsOf: '2026-09-05T10:00:00.000Z',
+    },
+  ],
+  valuation: {
+    totalHoldings: 2,
+    totalCost: 987654336.425,
+    currentMarketValue: 123456850743.8265,
+    unrealizedAmount: 122469196407.4015,
+    unrealizedPct: 12400.005942433436,
+    totalDayChange: null,
+    totalDayChangePercent: null,
+    largestPositionPct: 99.99999998750008,
+    top3ConcentrationPct: 100,
+    activePositionCount: 2,
+    concentrationWarning: true,
+    largestPositionSymbol: 'MEGA_VALUE',
+    pricedPositionCount: 2,
+    unpricedPositionCount: 0,
+    pricedCostBasis: 987654336.425,
+    unpricedCostBasis: 0,
+    quoteCoveragePct: 100,
+    valuationAsOf: '2026-08-01T10:00:00.000Z',
+    staleQuoteCount: 1,
+    valuationStatus: 'complete',
+    unsupportedMetrics: ['ytdReturn', 'realCashPercentage', 'sectorConcentration'],
+  },
+  quoteErrors: [],
+  marketState: 'REGULAR',
+}
 const focusedLedgerFixture = {
- holdings: focusedPortfolioFixture.holdings.map(({ symbol, quantity, avgCost, totalCost }) => ({
-  symbol, quantity: String(quantity), avgCost: String(avgCost), totalCost: String(totalCost),
- })),
- exposure: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-exposure' } },
- recent: { trades: [] },
- asOf: '2026-09-05T12:00:00.000Z',
-};
+  holdings: focusedPortfolioFixture.holdings.map(({ symbol, quantity, avgCost, totalCost }) => ({
+    symbol,
+    quantity: String(quantity),
+    avgCost: String(avgCost),
+    totalCost: String(totalCost),
+  })),
+  exposure: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-exposure' } },
+  recent: { trades: [] },
+  asOf: '2026-09-05T12:00:00.000Z',
+}
 const focusedOverviewFixture = {
- valuation: { status: 'ready', data: focusedPortfolioFixture },
- attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-attention' } },
-};
+  valuation: { status: 'ready', data: focusedPortfolioFixture },
+  attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'synthetic-attention' } },
+}
 
-for(const width of [1440,390])test(`Portfolio complete and incomplete valuation at ${width}px`,async({page,context})=>{
- await page.setViewportSize({width,height:900});const email=`portfolio-${randomUUID()}@example.test`,password='synthetic-portfolio-password';
- await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
- const headers={'x-csrf-token':(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value};
- const buy=async(symbol:string,date:string)=>{const response=await page.request.post('/api/diaries',{headers,data:{title:symbol,content:'Synthetic valuation',date,transactions:[{symbol,type:'BUY',quantity:'2',price:'100',tradeDate:date+'T10:00:00Z'}]}});expect(response.status()).toBe(201);return response.json();};
- await page.goto('/stocks');await expect(page.getByText('No open holdings. Record a purchase in a diary to begin.',{exact:true})).toBeVisible();
- const missing=await buy('UNKNOWN','2026-09-01');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Quotes unavailable');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('—');await expect(page.getByTestId('valuation-unpricedCostBasis')).toHaveText('200.00');
- const priced=await buy('AAPL','2026-09-02');await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('220.00');await expect(page.getByTestId('valuation-unrealizedAmount')).toHaveText('+20.00');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('50.00%');
- await expect(page.getByRole('table',{name:'Holdings',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'})).toContainText('—');
- // Absent and stale are different facts and the table keeps them apart (ticket 123).
- await expect(page.getByRole('table',{name:'Holdings',exact:true}).getByRole('row').filter({hasText:'UNKNOWN'}).locator('.holdings-quote')).toHaveText('No quote');
- if(width===390)await selectTheme(page, 'dark');await page.screenshot({path:`.impeccable/review/portfolio-${width}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.route('**/api/portfolio/overview',route=>route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'portfolio-retry'}})}));await page.reload();await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-retry');await page.unroute('**/api/portfolio/overview');await page.locator('.portfolio-valuation').getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote');
- await page.request.delete(`/api/diaries/${missing.id}`,{headers});await page.reload();await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('100.00%');
- for(const [locale,title]of [['zh-TW','持倉估值'],['zh-CN','持仓估值'],['en','Portfolio valuation']]as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();}
- await page.request.delete(`/api/diaries/${priced.id}`,{headers});await page.reload();await expect(page.getByText('No open holdings. Record a purchase in a diary to begin.',{exact:true})).toBeVisible();
-});
+for (const width of [1440, 390])
+  test(`Portfolio complete and incomplete valuation at ${width}px`, async ({ page, context }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const email = `portfolio-${randomUUID()}@example.test`,
+      password = 'synthetic-portfolio-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
+    const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+    const buy = async (symbol: string, date: string) => {
+      const response = await page.request.post('/api/diaries', {
+        headers,
+        data: {
+          title: symbol,
+          content: 'Synthetic valuation',
+          date,
+          transactions: [{ symbol, type: 'BUY', quantity: '2', price: '100', tradeDate: date + 'T10:00:00Z' }],
+        },
+      })
+      expect(response.status()).toBe(201)
+      return response.json()
+    }
+    await page.goto('/stocks')
+    await expect(
+      page.getByText('No open holdings. Record a purchase in a diary to begin.', { exact: true }),
+    ).toBeVisible()
+    const missing = await buy('UNKNOWN', '2026-09-01')
+    await page.reload()
+    await expect(page.getByTestId('valuation-status')).toHaveText('Quotes unavailable')
+    await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('—')
+    await expect(page.getByTestId('valuation-unpricedCostBasis')).toHaveText('200.00')
+    const priced = await buy('AAPL', '2026-09-02')
+    await page.reload()
+    await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote')
+    await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('220.00')
+    await expect(page.getByTestId('valuation-unrealizedAmount')).toHaveText('+20.00')
+    await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('50.00%')
+    await expect(
+      page.getByRole('table', { name: 'Holdings', exact: true }).getByRole('row').filter({ hasText: 'UNKNOWN' }),
+    ).toContainText('—')
+    // Absent and stale are different facts and the table keeps them apart (ticket 123).
+    await expect(
+      page
+        .getByRole('table', { name: 'Holdings', exact: true })
+        .getByRole('row')
+        .filter({ hasText: 'UNKNOWN' })
+        .locator('.holdings-quote'),
+    ).toHaveText('No quote')
+    if (width === 390) await selectTheme(page, 'dark')
+    await page.screenshot({ path: `.impeccable/review/portfolio-${width}.png`, fullPage: true })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.route('**/api/portfolio/overview', route =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-retry' } }),
+      }),
+    )
+    await page.reload()
+    await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-retry')
+    await page.unroute('**/api/portfolio/overview')
+    await page.locator('.portfolio-valuation').getByRole('button', { name: 'Try again', exact: true }).click()
+    await expect(page.getByTestId('valuation-status')).toHaveText('Some positions have no quote')
+    await page.request.delete(`/api/diaries/${missing.id}`, { headers })
+    await page.reload()
+    await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced')
+    await expect(page.getByTestId('valuation-quoteCoveragePct')).toHaveText('100.00%')
+    for (const [locale, title] of [
+      ['zh-TW', '持倉估值'],
+      ['zh-CN', '持仓估值'],
+      ['en', 'Portfolio valuation'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
+    }
+    await page.request.delete(`/api/diaries/${priced.id}`, { headers })
+    await page.reload()
+    await expect(
+      page.getByText('No open holdings. Record a purchase in a diary to begin.', { exact: true }),
+    ).toBeVisible()
+  })
 
-for (const width of [1440, 390]) test(`Portfolio stale decimal fixture and keyboard retry at ${width}px`, async ({ page }) => {
- await page.setViewportSize({ width, height: 900 });
- const email = `portfolio-finish-${randomUUID()}@example.test`, password = 'synthetic-portfolio-finish-password';
- await page.request.post('/api/auth/register', { data: { email, password } });
- await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
- await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
- await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
- await selectLocale(page, 'en');
+for (const width of [1440, 390])
+  test(`Portfolio stale decimal fixture and keyboard retry at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const email = `portfolio-finish-${randomUUID()}@example.test`,
+      password = 'synthetic-portfolio-finish-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
 
- await page.route('**/api/portfolio/ledger', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedLedgerFixture) }));
- await page.route('**/api/portfolio/overview', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedOverviewFixture) }));
- await page.goto('/stocks');
- await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
- await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('123,456,850,743.83');
- await expect(page.getByTestId('valuation-unrealizedPct')).toHaveText('+12,400.01%');
- await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1');
+    await page.route('**/api/portfolio/ledger', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedLedgerFixture) }),
+    )
+    await page.route('**/api/portfolio/overview', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedOverviewFixture) }),
+    )
+    await page.goto('/stocks')
+    await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced')
+    await expect(page.getByTestId('valuation-currentMarketValue')).toHaveText('123,456,850,743.83')
+    await expect(page.getByTestId('valuation-unrealizedPct')).toHaveText('+12,400.01%')
+    await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1')
 
- // One caveat, stated once per region and attached to the figures it limits
- // rather than repeated in prose between them (ticket 121).
- const caveat = 'Values cover priced positions only. Unpriced cost remains separate.';
- await expect(page.getByTestId('coverage-note')).toHaveCount(1);
- await expect(page.getByTestId('coverage-note')).toContainText(caveat);
- await expect(page.getByText(caveat)).toHaveCount(1);
- // The valuation region is figures and labels; its prose sits below the rule
- // that closes it, so nothing interleaves the label/value pairs.
- expect(await page.locator('.portfolio-valuation > dl p').count()).toBe(0);
- const coverageId = await page.getByTestId('coverage-note').getAttribute('id');
- expect(coverageId).toBeTruthy();
- for (const figure of ['valuation-currentMarketValue', 'valuation-quoteCoveragePct', 'risk-largest', 'risk-top3']) {
-  expect((await page.getByTestId(figure).getAttribute('aria-describedby'))?.split(' ')).toContain(coverageId);
- }
- // The complement of the caveat is not limited by it and carries no mark.
- expect(await page.getByTestId('valuation-unpricedCostBasis').getAttribute('aria-describedby')).toBeNull();
- // The affordance is real text that is always on screen: no hover, no title.
- expect(await page.getByTestId('coverage-note').getAttribute('title')).toBeNull();
- const table = page.getByRole('table', { name: 'Holdings', exact: true });
- await expect(table).toBeVisible();
+    // One caveat, stated once per region and attached to the figures it limits
+    // rather than repeated in prose between them (ticket 121).
+    const caveat = 'Values cover priced positions only. Unpriced cost remains separate.'
+    await expect(page.getByTestId('coverage-note')).toHaveCount(1)
+    await expect(page.getByTestId('coverage-note')).toContainText(caveat)
+    await expect(page.getByText(caveat)).toHaveCount(1)
+    // The valuation region is figures and labels; its prose sits below the rule
+    // that closes it, so nothing interleaves the label/value pairs.
+    expect(await page.locator('.portfolio-valuation > dl p').count()).toBe(0)
+    const coverageId = await page.getByTestId('coverage-note').getAttribute('id')
+    expect(coverageId).toBeTruthy()
+    for (const figure of ['valuation-currentMarketValue', 'valuation-quoteCoveragePct', 'risk-largest', 'risk-top3']) {
+      expect((await page.getByTestId(figure).getAttribute('aria-describedby'))?.split(' ')).toContain(coverageId)
+    }
+    // The complement of the caveat is not limited by it and carries no mark.
+    expect(await page.getByTestId('valuation-unpricedCostBasis').getAttribute('aria-describedby')).toBeNull()
+    // The affordance is real text that is always on screen: no hover, no title.
+    expect(await page.getByTestId('coverage-note').getAttribute('title')).toBeNull()
+    const table = page.getByRole('table', { name: 'Holdings', exact: true })
+    await expect(table).toBeVisible()
 
- // Quote state is a word and a mark, not the table's widest cell (ticket 123).
- const staleRow = table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' });
- const freshRow = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' });
- // Both fixture quotes predate the staleness window, so both rows carry the
- // same short state; what matters is that it is one word and a mark rather than
- // a wrapped timestamp repeated per row.
- for (const row of [staleRow, freshRow]) await expect(row.locator('.holdings-quote')).toContainText('Stale');
- // The exact instant is still reachable for the row — machine-readable on the
- // element and announced to assistive technology — without being printed in
- // every row, which is what made this the table's widest column.
- await expect(staleRow.locator('.holdings-quote time')).toHaveAttribute('datetime', '2026-08-01T10:00:00.000Z');
- await expect(staleRow.locator('.holdings-quote')).toContainText('Aug 1, 2026');
- await expect(staleRow.locator('.holdings-quote')).toHaveCSS('white-space', 'nowrap');
- // The headline finding: quote state no longer holds the table's widest column.
- const rowWidths = await staleRow.locator('th, td').evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
- const quoteWidth = await staleRow.locator('.holdings-quote').evaluate(cell => cell.getBoundingClientRect().width);
- expect(quoteWidth).toBeLessThan(Math.max(...rowWidths));
- // The reclaimed width goes to the money columns, which can no longer break
- // mid-phrase — "Average / cost", "Current / price", "Market / value".
- for (const header of ['Average cost', 'Current price', 'Market value', 'Gain / loss']) {
-  await expect(table.getByRole('columnheader', { name: header, exact: true })).toHaveCSS('white-space', 'nowrap');
- }
- expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
- await expect(table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' })).toContainText('12.35');
- await expect(table.getByRole('row')).toHaveCount(3);
- if (width === 390) {
-  await selectTheme(page, 'dark');
-  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
- }
- await page.screenshot({ path: `docs/design/evidence/portfolio/${width}.png`, fullPage: true });
- expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
- if (width === 390) {
-  const tableScroller = table.locator('xpath=..');
-  const scrollMetrics = await tableScroller.evaluate(element => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
-  expect(scrollMetrics.scrollWidth).toBeGreaterThanOrEqual(scrollMetrics.clientWidth);
-  const largeValue = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' }).getByRole('cell').nth(4);
-  await largeValue.scrollIntoViewIfNeeded();
-  expect(await largeValue.evaluate(element => {
-   const scroller = element.closest('.holdings-table')!.getBoundingClientRect();
-   const cell = element.getBoundingClientRect();
-   return cell.left >= scroller.left - 1 && cell.right <= scroller.right + 1;
-  })).toBe(true);
-  await expect(largeValue).toHaveText('123,456,850,728.39');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
- }
+    // Quote state is a word and a mark, not the table's widest cell (ticket 123).
+    const staleRow = table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' })
+    const freshRow = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' })
+    // Both fixture quotes predate the staleness window, so both rows carry the
+    // same short state; what matters is that it is one word and a mark rather than
+    // a wrapped timestamp repeated per row.
+    for (const row of [staleRow, freshRow]) await expect(row.locator('.holdings-quote')).toContainText('Stale')
+    // The exact instant is still reachable for the row — machine-readable on the
+    // element and announced to assistive technology — without being printed in
+    // every row, which is what made this the table's widest column.
+    await expect(staleRow.locator('.holdings-quote time')).toHaveAttribute('datetime', '2026-08-01T10:00:00.000Z')
+    await expect(staleRow.locator('.holdings-quote')).toContainText('Aug 1, 2026')
+    await expect(staleRow.locator('.holdings-quote')).toHaveCSS('white-space', 'nowrap')
+    // The headline finding: quote state no longer holds the table's widest column.
+    const rowWidths = await staleRow
+      .locator('th, td')
+      .evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width))
+    const quoteWidth = await staleRow.locator('.holdings-quote').evaluate(cell => cell.getBoundingClientRect().width)
+    expect(quoteWidth).toBeLessThan(Math.max(...rowWidths))
+    // The reclaimed width goes to the money columns, which can no longer break
+    // mid-phrase — "Average / cost", "Current / price", "Market / value".
+    for (const header of ['Average cost', 'Current price', 'Market value', 'Gain / loss']) {
+      await expect(table.getByRole('columnheader', { name: header, exact: true })).toHaveCSS('white-space', 'nowrap')
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await expect(table.getByRole('row').filter({ hasText: 'LONGSYMBOL1234567890' })).toContainText('12.35')
+    await expect(table.getByRole('row')).toHaveCount(3)
+    if (width === 390) {
+      await selectTheme(page, 'dark')
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      })
+    }
+    await page.screenshot({ path: `docs/design/evidence/portfolio/${width}.png`, fullPage: true })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    if (width === 390) {
+      const tableScroller = table.locator('xpath=..')
+      const scrollMetrics = await tableScroller.evaluate(element => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      }))
+      expect(scrollMetrics.scrollWidth).toBeGreaterThanOrEqual(scrollMetrics.clientWidth)
+      const largeValue = table.getByRole('row').filter({ hasText: 'MEGA_VALUE' }).getByRole('cell').nth(4)
+      await largeValue.scrollIntoViewIfNeeded()
+      expect(
+        await largeValue.evaluate(element => {
+          const scroller = element.closest('.holdings-table')!.getBoundingClientRect()
+          const cell = element.getBoundingClientRect()
+          return cell.left >= scroller.left - 1 && cell.right <= scroller.right + 1
+        }),
+      ).toBe(true)
+      await expect(largeValue).toHaveText('123,456,850,728.39')
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    }
 
- for (const [locale, stale] of [['zh-TW', '超過 72 小時的報價: 1'], ['zh-CN', '超过 72 小时的报价: 1'], ['en', 'Quotes older than 72 hours: 1']] as const) {
-  await selectLocale(page, locale);
-  await expect(page.getByTestId('quote-age-note')).toContainText(stale);
- }
+    for (const [locale, stale] of [
+      ['zh-TW', '超過 72 小時的報價: 1'],
+      ['zh-CN', '超过 72 小时的报价: 1'],
+      ['en', 'Quotes older than 72 hours: 1'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByTestId('quote-age-note')).toContainText(stale)
+    }
 
- await selectLocale(page, 'en');
- let retryEnabled = false;
- let retryFailures = 0;
- let retrySuccesses = 0;
- await page.unroute('**/api/portfolio/overview');
- await page.route('**/api/portfolio/overview', route => {
-  if (!retryEnabled) {
-   retryFailures += 1;
-   return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-keyboard-retry' } }) });
-  }
-  retrySuccesses += 1;
-  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(focusedOverviewFixture) });
- });
- await page.reload(); await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-keyboard-retry');
- const retry = page.locator('.portfolio-valuation').getByRole('button', { name: 'Try again', exact: true });
- await retry.focus(); await expect(retry).toBeFocused();
- expect(retryFailures).toBeGreaterThan(0);
- retryEnabled = true;
- await page.keyboard.press('Enter');
- await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced');
- await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1');
- expect(retrySuccesses).toBeGreaterThan(0);
- await page.unroute('**/api/portfolio/overview');
- await page.unroute('**/api/portfolio/ledger');
-});
+    await selectLocale(page, 'en')
+    let retryEnabled = false
+    let retryFailures = 0
+    let retrySuccesses = 0
+    await page.unroute('**/api/portfolio/overview')
+    await page.route('**/api/portfolio/overview', route => {
+      if (!retryEnabled) {
+        retryFailures += 1
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'portfolio-keyboard-retry' } }),
+        })
+      }
+      retrySuccesses += 1
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(focusedOverviewFixture),
+      })
+    })
+    await page.reload()
+    await expect(page.locator('.portfolio-valuation').getByTestId('request-id')).toHaveText('portfolio-keyboard-retry')
+    const retry = page.locator('.portfolio-valuation').getByRole('button', { name: 'Try again', exact: true })
+    await retry.focus()
+    await expect(retry).toBeFocused()
+    expect(retryFailures).toBeGreaterThan(0)
+    retryEnabled = true
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('valuation-status')).toHaveText('All positions priced')
+    await expect(page.getByTestId('quote-age-note')).toContainText('Quotes older than 72 hours: 1')
+    expect(retrySuccesses).toBeGreaterThan(0)
+    await page.unroute('**/api/portfolio/overview')
+    await page.unroute('**/api/portfolio/ledger')
+  })

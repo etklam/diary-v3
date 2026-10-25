@@ -93,7 +93,11 @@ export interface GuruAnalysisContextInput {
   consensus: GuruAnalysisConsensusInput | null
 }
 
-export interface GuruAnalysisFact { id: string; label: string; value: string }
+export interface GuruAnalysisFact {
+  id: string
+  label: string
+  value: string
+}
 
 const SECTION_LIMIT = 10
 const HISTORY_LIMIT = 8
@@ -104,13 +108,21 @@ function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>
-    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stable(record[key])}`).join(',')}}`
+    return `{${Object.keys(record)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${stable(record[key])}`)
+      .join(',')}}`
   }
   return JSON.stringify(value) ?? 'null'
 }
 
 function keyFor(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unclassified'
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'unclassified'
+  )
 }
 
 function positionLine(change: GuruPortfolioAnalytics['changes'][number]) {
@@ -132,14 +144,23 @@ function positionLine(change: GuruPortfolioAnalytics['changes'][number]) {
   }
 }
 
-function byAbsoluteWeight(left: GuruPortfolioAnalytics['changes'][number], right: GuruPortfolioAnalytics['changes'][number]) {
+function byAbsoluteWeight(
+  left: GuruPortfolioAnalytics['changes'][number],
+  right: GuruPortfolioAnalytics['changes'][number],
+) {
   const magnitude = (value: string | null) => Math.abs(Number(value ?? '0'))
-  const difference = magnitude(right.currentWeightPercent ?? right.previousWeightPercent) - magnitude(left.currentWeightPercent ?? left.previousWeightPercent)
+  const difference =
+    magnitude(right.currentWeightPercent ?? right.previousWeightPercent) -
+    magnitude(left.currentWeightPercent ?? left.previousWeightPercent)
   return difference !== 0 ? difference : left.positionKey.localeCompare(right.positionKey)
 }
 
 function group(changes: GuruPortfolioAnalytics['changes'], actions: readonly GuruAction[]) {
-  return changes.filter(change => actions.includes(change.action)).sort(byAbsoluteWeight).slice(0, SECTION_LIMIT).map(positionLine)
+  return changes
+    .filter(change => actions.includes(change.action))
+    .sort(byAbsoluteWeight)
+    .slice(0, SECTION_LIMIT)
+    .map(positionLine)
 }
 
 /**
@@ -167,31 +188,53 @@ export function buildGuruAnalysisContext(input: GuruAnalysisContextInput) {
   fact('turnover.band', 'Turnover band', analytics.turnoverBand)
   fact('turnover.unavailableReason', 'Turnover unavailable because', analytics.turnoverUnavailableReason)
   fact('comparison.status', 'Quarter comparison status', analytics.comparisonStatus)
-  for (const [action, count] of Object.entries(analytics.actionCounts)) fact(`actions.${action}`, `${action} positions`, count)
+  for (const [action, count] of Object.entries(analytics.actionCounts))
+    fact(`actions.${action}`, `${action} positions`, count)
 
   const topHoldings = portfolio.topHoldings.slice(0, SECTION_LIMIT)
-  for (const holding of topHoldings) fact(`holding.rank-${holding.rank}`, `Rank ${holding.rank}: ${holding.ticker ?? holding.company}`, `${holding.weightPercent}% of reported value`)
+  for (const holding of topHoldings)
+    fact(
+      `holding.rank-${holding.rank}`,
+      `Rank ${holding.rank}: ${holding.ticker ?? holding.company}`,
+      `${holding.weightPercent}% of reported value`,
+    )
   const sectorAllocation = portfolio.sectorAllocation.slice(0, SECTOR_LIMIT)
-  for (const bucket of sectorAllocation) fact(`sector.${keyFor(bucket.name)}`, `Sector weight: ${bucket.name}`, `${bucket.weightPercent}%`)
+  for (const bucket of sectorAllocation)
+    fact(`sector.${keyFor(bucket.name)}`, `Sector weight: ${bucket.name}`, `${bucket.weightPercent}%`)
 
   const newPositions = group(analytics.changes, ['NEW'])
   const increased = group(analytics.changes, ['ADD', 'STRONG_ADD'])
   const reduced = group(analytics.changes, ['REDUCE', 'STRONG_REDUCE'])
   const exited = group(analytics.changes, ['EXIT'])
   for (const move of [...newPositions, ...increased, ...reduced, ...exited]) {
-    fact(`change.${move.positionKey}`, `${move.action}: ${move.ticker ?? move.company}`, `${move.quantityChangePercent ?? 'n/a'}% reported quantity change`)
+    fact(
+      `change.${move.positionKey}`,
+      `${move.action}: ${move.ticker ?? move.company}`,
+      `${move.quantityChangePercent ?? 'n/a'}% reported quantity change`,
+    )
   }
 
-  const history = [...input.history].sort((left, right) => right.periodEnd.localeCompare(left.periodEnd)).slice(0, HISTORY_LIMIT)
-  for (const point of history) fact(`history.${point.periodEnd}.reportedValueUsd`, `Reported value at ${point.periodEnd}`, point.reportedValueUsd)
+  const history = [...input.history]
+    .sort((left, right) => right.periodEnd.localeCompare(left.periodEnd))
+    .slice(0, HISTORY_LIMIT)
+  for (const point of history)
+    fact(`history.${point.periodEnd}.reportedValueUsd`, `Reported value at ${point.periodEnd}`, point.reportedValueUsd)
 
   const consensus = input.consensus
   if (consensus) {
     for (const position of consensus.positions.slice(0, SECTION_LIMIT)) {
-      fact(`consensus.${keyFor(position.ticker ?? position.company)}.holders`, `Tracked holders of ${position.ticker ?? position.company}`, `${position.currentHolderCount} of ${consensus.eligibleManagerCount} eligible`)
+      fact(
+        `consensus.${keyFor(position.ticker ?? position.company)}.holders`,
+        `Tracked holders of ${position.ticker ?? position.company}`,
+        `${position.currentHolderCount} of ${consensus.eligibleManagerCount} eligible`,
+      )
     }
     for (const sector of consensus.sectors.slice(0, SECTOR_LIMIT)) {
-      fact(`consensusSector.${sector.dimension.toLowerCase()}.${keyFor(sector.name)}`, `${sector.dimension} direction: ${sector.name}`, sector.direction ?? 'UNAVAILABLE')
+      fact(
+        `consensusSector.${sector.dimension.toLowerCase()}.${keyFor(sector.name)}`,
+        `${sector.dimension} direction: ${sector.name}`,
+        sector.direction ?? 'UNAVAILABLE',
+      )
     }
   }
 
@@ -253,13 +296,13 @@ export function buildGuruAnalysisContext(input: GuruAnalysisContextInput) {
     history,
     consensus: consensus
       ? {
-        periodEnd: consensus.periodEnd,
-        consensusVersion: consensus.consensusVersion,
-        eligibleManagerCount: consensus.eligibleManagerCount,
-        readyManagerCount: consensus.readyManagerCount,
-        positions: consensus.positions.slice(0, SECTION_LIMIT),
-        sectors: consensus.sectors.slice(0, SECTOR_LIMIT),
-      }
+          periodEnd: consensus.periodEnd,
+          consensusVersion: consensus.consensusVersion,
+          eligibleManagerCount: consensus.eligibleManagerCount,
+          readyManagerCount: consensus.readyManagerCount,
+          positions: consensus.positions.slice(0, SECTION_LIMIT),
+          sectors: consensus.sectors.slice(0, SECTOR_LIMIT),
+        }
       : null,
     facts,
   }

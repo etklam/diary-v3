@@ -1,5 +1,13 @@
-import type { ResearchLatestCompletedSession, ResearchTransport, ResearchEvidenceProvider } from '../../apps/api/src/research-studio/service'
-import { createYahooResearchEvidenceProvider, type CompleteResearchMarket, type ResearchCalendarProvider } from '../../apps/api/src/research-studio/sources'
+import type {
+  ResearchLatestCompletedSession,
+  ResearchTransport,
+  ResearchEvidenceProvider,
+} from '../../apps/api/src/research-studio/service'
+import {
+  createYahooResearchEvidenceProvider,
+  type CompleteResearchMarket,
+  type ResearchCalendarProvider,
+} from '../../apps/api/src/research-studio/sources'
 import { createSourcePolicy } from '../../apps/api/src/research-studio/source-policy'
 import type { CompleteDailyResearchBar } from '../../apps/api/src/market-data'
 
@@ -31,7 +39,7 @@ function barsFor(symbol: string): CompleteDailyResearchBar[] {
       low: Math.min(open, close) - 1.1,
       close,
       adjustedClose: close,
-      volume: 1_000_000 + (index * 1_933) % 250_000,
+      volume: 1_000_000 + ((index * 1_933) % 250_000),
       priceSourceId: 'YAHOO_CHART',
       volumeSourceId: 'YAHOO_CHART',
       adjustmentBasis: 'total_return_rebased',
@@ -68,7 +76,9 @@ function syntheticCalendar(): ResearchCalendarProvider {
     const sessions = dates.map(date => {
       const [year, month, day] = date.split('-').map(Number)
       const localAsUtc = Date.UTC(year!, month! - 1, day!, 16)
-      const offsetName = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'longOffset' }).formatToParts(new Date(localAsUtc)).find(part => part.type === 'timeZoneName')?.value
+      const offsetName = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'longOffset' })
+        .formatToParts(new Date(localAsUtc))
+        .find(part => part.type === 'timeZoneName')?.value
       const offset = offsetName?.match(/^GMT([+-])(\d{2}):(\d{2})$/u)
       const offsetMinutes = offset ? (Number(offset[2]) * 60 + Number(offset[3])) * (offset[1] === '-' ? -1 : 1) : 0
       const closeAt = new Date(localAsUtc - offsetMinutes * 60_000).toISOString()
@@ -102,10 +112,12 @@ function serverOwnedQa() {
     return {
       gateId,
       severity: 'CORE' as const,
-      status: needsHumanReview ? 'NOT_CHECKED' as const : 'PASS' as const,
+      status: needsHumanReview ? ('NOT_CHECKED' as const) : ('PASS' as const),
       evidence: needsHumanReview ? [] : [`${gateId} evaluated against the deterministic synthetic evidence fixture.`],
       reason: needsHumanReview ? 'This gate requires explicit administrator review.' : null,
-      remediation: needsHumanReview ? 'Review the corresponding citations or cross-section consistency before approving.' : null,
+      remediation: needsHumanReview
+        ? 'Review the corresponding citations or cross-section consistency before approving.'
+        : null,
       reviewerId: null,
       reviewedAt: null,
     }
@@ -206,6 +218,8 @@ export function createSyntheticResearchFixture() {
     latestCompletedSession,
     market,
     transport,
-    get transportCalls() { return transportCalls },
+    get transportCalls() {
+      return transportCalls
+    },
   }
 }

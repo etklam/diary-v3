@@ -16,7 +16,12 @@ type RegistrationState = {
 const copy = {
   'zh-TW': { install: '安裝 Diary', update: '套用更新', updated: '更新已準備，重新載入時套用。', later: '稍後' },
   'zh-CN': { install: '安装 Diary', update: '应用更新', updated: '更新已准备，重新加载时应用。', later: '稍后' },
-  en: { install: 'Install Diary', update: 'Apply update', updated: 'Update ready; it will apply on the next reload.', later: 'Later' },
+  en: {
+    install: 'Install Diary',
+    update: 'Apply update',
+    updated: 'Update ready; it will apply on the next reload.',
+    later: 'Later',
+  },
 } as const
 
 // A dismissed install prompt stays hidden for a week; the browser re-offers it after that.
@@ -34,7 +39,12 @@ function installDismissed() {
 export function PwaStatus() {
   const { locale } = useUi()
   const text = copy[locale]
-  const [state, setState] = useState<RegistrationState>({ registration: null, installPrompt: null, updateReady: false, updated: false })
+  const [state, setState] = useState<RegistrationState>({
+    registration: null,
+    installPrompt: null,
+    updateReady: false,
+    updated: false,
+  })
   const updateRequested = useRef(false)
 
   useEffect(() => {
@@ -52,19 +62,22 @@ export function PwaStatus() {
     try {
       serviceWorker = navigator.serviceWorker
       serviceWorker.addEventListener('controllerchange', onControllerChange)
-      void Promise.resolve().then(() => serviceWorker?.register('/sw.js', { updateViaCache: 'none' })).then(registration => {
-        if (!active || !registration) return
-        setState(current => ({ ...current, registration, updateReady: Boolean(registration.waiting) }))
-        registration.addEventListener('updatefound', () => {
-          const worker = registration.installing
-          if (!worker) return
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'installed' && serviceWorker?.controller && active) {
-              setState(current => ({ ...current, updateReady: true }))
-            }
+      void Promise.resolve()
+        .then(() => serviceWorker?.register('/sw.js', { updateViaCache: 'none' }))
+        .then(registration => {
+          if (!active || !registration) return
+          setState(current => ({ ...current, registration, updateReady: Boolean(registration.waiting) }))
+          registration.addEventListener('updatefound', () => {
+            const worker = registration.installing
+            if (!worker) return
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && serviceWorker?.controller && active) {
+                setState(current => ({ ...current, updateReady: true }))
+              }
+            })
           })
         })
-      }).catch(() => undefined)
+        .catch(() => undefined)
     } catch {
       serviceWorker = null
     }
@@ -99,9 +112,35 @@ export function PwaStatus() {
   }
 
   if (!state.installPrompt && !state.updateReady && !state.updated) return null
-  return <aside className="pwa-status" aria-label="PWA status" role="status">
-    {state.installPrompt && <><button type="button" className="secondary" data-testid="pwa-install" onClick={() => void install()}>{text.install}</button><button type="button" className="secondary" onClick={dismissInstall}>{text.later}</button></>}
-    {state.updateReady && <button type="button" className="secondary" data-testid="pwa-update" onClick={update}>{text.update}</button>}
-    {state.updated && <><span>{text.updated}</span><button type="button" className="secondary" onClick={() => setState(current => ({ ...current, updated: false }))}>{text.later}</button></>}
-  </aside>
+  return (
+    <aside className="pwa-status" aria-label="PWA status" role="status">
+      {state.installPrompt && (
+        <>
+          <button type="button" className="secondary" data-testid="pwa-install" onClick={() => void install()}>
+            {text.install}
+          </button>
+          <button type="button" className="secondary" onClick={dismissInstall}>
+            {text.later}
+          </button>
+        </>
+      )}
+      {state.updateReady && (
+        <button type="button" className="secondary" data-testid="pwa-update" onClick={update}>
+          {text.update}
+        </button>
+      )}
+      {state.updated && (
+        <>
+          <span>{text.updated}</span>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setState(current => ({ ...current, updated: false }))}
+          >
+            {text.later}
+          </button>
+        </>
+      )}
+    </aside>
+  )
 }

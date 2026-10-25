@@ -191,12 +191,8 @@
           "name": "diaries_user_id_users_id_fk",
           "tableFrom": "diaries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -206,18 +202,12 @@
         "diaries_user_date_key": {
           "name": "diaries_user_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "date"
-          ]
+          "columns": ["user_id", "date"]
         },
         "diaries_id_user_id_key": {
           "name": "diaries_id_user_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "user_id"
-          ]
+          "columns": ["id", "user_id"]
         }
       },
       "policies": {},
@@ -395,12 +385,8 @@
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -408,12 +394,8 @@
           "name": "refresh_tokens_parent_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -421,12 +403,8 @@
           "name": "refresh_tokens_replacement_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "replacement_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["replacement_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -436,16 +414,12 @@
         "refresh_tokens_token_key": {
           "name": "refresh_tokens_token_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         },
         "refresh_tokens_replacement_id_key": {
           "name": "refresh_tokens_replacement_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "replacement_id"
-          ]
+          "columns": ["replacement_id"]
         }
       },
       "policies": {},
@@ -607,57 +581,32 @@
     "public.diary_created_via": {
       "name": "diary_created_via",
       "schema": "public",
-      "values": [
-        "WEB",
-        "API_KEY",
-        "TELEGRAM_BOT"
-      ]
+      "values": ["WEB", "API_KEY", "TELEGRAM_BOT"]
     },
     "public.diary_review_status": {
       "name": "diary_review_status",
       "schema": "public",
-      "values": [
-        "none",
-        "pending",
-        "reviewed"
-      ]
+      "values": ["none", "pending", "reviewed"]
     },
     "public.refresh_token_client_type": {
       "name": "refresh_token_client_type",
       "schema": "public",
-      "values": [
-        "WEB",
-        "NATIVE"
-      ]
+      "values": ["WEB", "NATIVE"]
     },
     "public.refresh_token_revocation_reason": {
       "name": "refresh_token_revocation_reason",
       "schema": "public",
-      "values": [
-        "ROTATED",
-        "LOGOUT",
-        "LOGOUT_ALL",
-        "REUSE_DETECTED",
-        "EXPIRED"
-      ]
+      "values": ["ROTATED", "LOGOUT", "LOGOUT_ALL", "REUSE_DETECTED", "EXPIRED"]
     },
     "public.thesis_review_outcome": {
       "name": "thesis_review_outcome",
       "schema": "public",
-      "values": [
-        "INTACT",
-        "PARTIAL",
-        "INVALIDATED",
-        "UNCLEAR"
-      ]
+      "values": ["INTACT", "PARTIAL", "INVALIDATED", "UNCLEAR"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "USER",
-        "ADMIN"
-      ]
+      "values": ["USER", "ADMIN"]
     }
   },
   "schemas": {},

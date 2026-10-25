@@ -23,7 +23,9 @@ redisDescribe('Redis distributed rate-limit store', () => {
 
   it('atomically admits only the configured number of concurrent requests', async () => {
     const key = `concurrency:${randomUUID()}`
-    const results = await Promise.all(Array.from({ length: 50 }, () => store!.consume(key, { limit: 10, windowMs: 5_000 })))
+    const results = await Promise.all(
+      Array.from({ length: 50 }, () => store!.consume(key, { limit: 10, windowMs: 5_000 })),
+    )
     expect(results.filter(result => result.allowed)).toHaveLength(10)
     expect(results.filter(result => !result.allowed)).toHaveLength(40)
   })

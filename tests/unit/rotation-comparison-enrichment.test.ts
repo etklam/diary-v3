@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { enrichWithComparison, type EnrichedSnapshotInput } from '../../packages/domain/src/market-rotation/comparison-enrichment'
+import {
+  enrichWithComparison,
+  type EnrichedSnapshotInput,
+} from '../../packages/domain/src/market-rotation/comparison-enrichment'
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -26,9 +29,30 @@ describe('enrichWithComparison', () => {
   describe('basic 3 symbols with comparison data', () => {
     it('calculates correct 2W performance, percentile, score, rank, and signal', () => {
       const latest: EnrichedSnapshotInput[] = [
-        makeSnapshot({ symbol: 'SPY', adjustedClose: 110, rsi14: 65, rsiPercentile: 70, maScorePercentile: 60, distanceFromHighScorePercentile: 75 }),
-        makeSnapshot({ symbol: 'QQQ', adjustedClose: 220, rsi14: 55, rsiPercentile: 55, maScorePercentile: 70, distanceFromHighScorePercentile: 80 }),
-        makeSnapshot({ symbol: 'IWM', adjustedClose: 55, rsi14: 40, rsiPercentile: 30, maScorePercentile: 40, distanceFromHighScorePercentile: 50 }),
+        makeSnapshot({
+          symbol: 'SPY',
+          adjustedClose: 110,
+          rsi14: 65,
+          rsiPercentile: 70,
+          maScorePercentile: 60,
+          distanceFromHighScorePercentile: 75,
+        }),
+        makeSnapshot({
+          symbol: 'QQQ',
+          adjustedClose: 220,
+          rsi14: 55,
+          rsiPercentile: 55,
+          maScorePercentile: 70,
+          distanceFromHighScorePercentile: 80,
+        }),
+        makeSnapshot({
+          symbol: 'IWM',
+          adjustedClose: 55,
+          rsi14: 40,
+          rsiPercentile: 30,
+          maScorePercentile: 40,
+          distanceFromHighScorePercentile: 50,
+        }),
       ]
 
       const comparison: EnrichedSnapshotInput[] = [
@@ -40,9 +64,9 @@ describe('enrichWithComparison', () => {
       const result = enrichWithComparison(latest, comparison)
 
       // 2W performance
-      expect(result[0]!.twoWeekPerformancePct).toBeCloseTo(10, 4)   // (110-100)/100 * 100
-      expect(result[1]!.twoWeekPerformancePct).toBeCloseTo(10, 4)   // (220-200)/200 * 100
-      expect(result[2]!.twoWeekPerformancePct).toBeCloseTo(10, 4)   // (55-50)/50 * 100
+      expect(result[0]!.twoWeekPerformancePct).toBeCloseTo(10, 4) // (110-100)/100 * 100
+      expect(result[1]!.twoWeekPerformancePct).toBeCloseTo(10, 4) // (220-200)/200 * 100
+      expect(result[2]!.twoWeekPerformancePct).toBeCloseTo(10, 4) // (55-50)/50 * 100
 
       // All three have the same performance so they share the same percentile
       // Percentile for a value that equals others: (below / total) * 100
@@ -62,9 +86,9 @@ describe('enrichWithComparison', () => {
       expect(result[2]!.rotationRank).not.toBeNull()
 
       // RSI deltas
-      expect(result[0]!.rsiDelta2W).toBe(5)    // 65 - 60
-      expect(result[1]!.rsiDelta2W).toBe(5)    // 55 - 50
-      expect(result[2]!.rsiDelta2W).toBe(-5)   // 40 - 45
+      expect(result[0]!.rsiDelta2W).toBe(5) // 65 - 60
+      expect(result[1]!.rsiDelta2W).toBe(5) // 55 - 50
+      expect(result[2]!.rsiDelta2W).toBe(-5) // 40 - 45
 
       // rotationScoreDelta2W
       expect(result[0]!.rotationScoreDelta2W).not.toBeNull()
@@ -83,18 +107,14 @@ describe('enrichWithComparison', () => {
     })
 
     it('preserves original fields from input', () => {
-      const latest: EnrichedSnapshotInput[] = [
-        makeSnapshot({ symbol: 'SPY', adjustedClose: 110, extraField: 'hello' }),
-      ]
+      const latest: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 110, extraField: 'hello' })]
 
-      const comparison: EnrichedSnapshotInput[] = [
-        makeSnapshot({ symbol: 'SPY', adjustedClose: 100 }),
-      ]
+      const comparison: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 100 })]
 
       const result = enrichWithComparison(latest, comparison)
-      expect((result[0]!).extraField).toBe('hello')
-      expect((result[0]!).rankScope).toBe('sectors')
-      expect((result[0]!).rsi14).toBe(55)
+      expect(result[0]!.extraField).toBe('hello')
+      expect(result[0]!.rankScope).toBe('sectors')
+      expect(result[0]!.rsi14).toBe(55)
     })
   })
 
@@ -148,9 +168,27 @@ describe('enrichWithComparison', () => {
   // ─── Case 4: rotationScore complete → rank correct ────────────
   it('assigns correct ranks when all rotationScores are present', () => {
     const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'A', adjustedClose: 110, rsiPercentile: 90, maScorePercentile: 90, distanceFromHighScorePercentile: 90 }),
-      makeSnapshot({ symbol: 'B', adjustedClose: 110, rsiPercentile: 50, maScorePercentile: 50, distanceFromHighScorePercentile: 50 }),
-      makeSnapshot({ symbol: 'C', adjustedClose: 110, rsiPercentile: 10, maScorePercentile: 10, distanceFromHighScorePercentile: 10 }),
+      makeSnapshot({
+        symbol: 'A',
+        adjustedClose: 110,
+        rsiPercentile: 90,
+        maScorePercentile: 90,
+        distanceFromHighScorePercentile: 90,
+      }),
+      makeSnapshot({
+        symbol: 'B',
+        adjustedClose: 110,
+        rsiPercentile: 50,
+        maScorePercentile: 50,
+        distanceFromHighScorePercentile: 50,
+      }),
+      makeSnapshot({
+        symbol: 'C',
+        adjustedClose: 110,
+        rsiPercentile: 10,
+        maScorePercentile: 10,
+        distanceFromHighScorePercentile: 10,
+      }),
     ]
 
     const comparison: EnrichedSnapshotInput[] = [
@@ -207,9 +245,7 @@ describe('enrichWithComparison', () => {
 
   // ─── Case 6: insufficient_data → signal=null, signalStatus='insufficient_data' ─
   it('returns insufficient_data when comparison fields are missing', () => {
-    const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 110, maStatus: 'unknown' }),
-    ]
+    const latest: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 110, maStatus: 'unknown' })]
 
     const comparison: EnrichedSnapshotInput[] = [
       makeSnapshot({ symbol: 'SPY', adjustedClose: 100, rotationScore: 60, rotationRank: 1 }),
@@ -223,9 +259,7 @@ describe('enrichWithComparison', () => {
 
   // ─── Case 7: Empty latest → empty result ──────────────────────
   it('returns empty array for empty latest input', () => {
-    const result = enrichWithComparison([], [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 100 }),
-    ])
+    const result = enrichWithComparison([], [makeSnapshot({ symbol: 'SPY', adjustedClose: 100 })])
     expect(result).toEqual([])
   })
 
@@ -256,9 +290,21 @@ describe('enrichWithComparison', () => {
   it('calculates rankDelta2W as comparison rank minus current rank (positive = improving)', () => {
     const latest: EnrichedSnapshotInput[] = [
       // A: will get a high rotationScore → rank 1 in latest
-      makeSnapshot({ symbol: 'A', adjustedClose: 110, rsiPercentile: 90, maScorePercentile: 90, distanceFromHighScorePercentile: 90 }),
+      makeSnapshot({
+        symbol: 'A',
+        adjustedClose: 110,
+        rsiPercentile: 90,
+        maScorePercentile: 90,
+        distanceFromHighScorePercentile: 90,
+      }),
       // B: will get a low rotationScore → rank 2 in latest
-      makeSnapshot({ symbol: 'B', adjustedClose: 110, rsiPercentile: 30, maScorePercentile: 30, distanceFromHighScorePercentile: 30 }),
+      makeSnapshot({
+        symbol: 'B',
+        adjustedClose: 110,
+        rsiPercentile: 30,
+        maScorePercentile: 30,
+        distanceFromHighScorePercentile: 30,
+      }),
     ]
 
     const comparison: EnrichedSnapshotInput[] = [
@@ -284,9 +330,27 @@ describe('enrichWithComparison', () => {
   // ─── Case 10: Percentile is scope-local ───────────────────────
   it('calculates twoWeekPerformancePercentile from scope-local performance values', () => {
     const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 120, rsiPercentile: 60, maScorePercentile: 60, distanceFromHighScorePercentile: 60 }),
-      makeSnapshot({ symbol: 'QQQ', adjustedClose: 210, rsiPercentile: 50, maScorePercentile: 50, distanceFromHighScorePercentile: 50 }),
-      makeSnapshot({ symbol: 'IWM', adjustedClose: 45, rsiPercentile: 40, maScorePercentile: 40, distanceFromHighScorePercentile: 40 }),
+      makeSnapshot({
+        symbol: 'SPY',
+        adjustedClose: 120,
+        rsiPercentile: 60,
+        maScorePercentile: 60,
+        distanceFromHighScorePercentile: 60,
+      }),
+      makeSnapshot({
+        symbol: 'QQQ',
+        adjustedClose: 210,
+        rsiPercentile: 50,
+        maScorePercentile: 50,
+        distanceFromHighScorePercentile: 50,
+      }),
+      makeSnapshot({
+        symbol: 'IWM',
+        adjustedClose: 45,
+        rsiPercentile: 40,
+        maScorePercentile: 40,
+        distanceFromHighScorePercentile: 40,
+      }),
     ]
 
     const comparison: EnrichedSnapshotInput[] = [
@@ -314,9 +378,7 @@ describe('enrichWithComparison', () => {
   // ─── Additional edge cases ─────────────────────────────────────
 
   it('does not mutate input arrays', () => {
-    const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 110 }),
-    ]
+    const latest: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 110 })]
     const comparison: EnrichedSnapshotInput[] = [
       makeSnapshot({ symbol: 'SPY', adjustedClose: 100, rotationScore: 60, rotationRank: 1 }),
     ]
@@ -331,9 +393,7 @@ describe('enrichWithComparison', () => {
   })
 
   it('handles single symbol with full data', () => {
-    const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 105 }),
-    ]
+    const latest: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 105 })]
     const comparison: EnrichedSnapshotInput[] = [
       makeSnapshot({ symbol: 'SPY', adjustedClose: 100, rotationScore: 60, rotationRank: 1 }),
     ]
@@ -348,7 +408,13 @@ describe('enrichWithComparison', () => {
 
   it('calculates rotationScoreDelta2W correctly', () => {
     const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 110, rsiPercentile: 80, maScorePercentile: 70, distanceFromHighScorePercentile: 60 }),
+      makeSnapshot({
+        symbol: 'SPY',
+        adjustedClose: 110,
+        rsiPercentile: 80,
+        maScorePercentile: 70,
+        distanceFromHighScorePercentile: 60,
+      }),
     ]
     const comparison: EnrichedSnapshotInput[] = [
       makeSnapshot({ symbol: 'SPY', adjustedClose: 100, rotationScore: 50, rotationRank: 1 }),
@@ -358,10 +424,7 @@ describe('enrichWithComparison', () => {
 
     // rotationScoreDelta2W = currentScore - comparisonScore
     expect(result[0]!.rotationScoreDelta2W).not.toBeNull()
-    expect(result[0]!.rotationScoreDelta2W).toBeCloseTo(
-      result[0]!.rotationScore! - 50,
-      4,
-    )
+    expect(result[0]!.rotationScoreDelta2W).toBeCloseTo(result[0]!.rotationScore! - 50, 4)
   })
 
   it('returns null rotationScore when any percentile component is missing', () => {
@@ -390,9 +453,7 @@ describe('enrichWithComparison', () => {
   })
 
   it('handles duplicate symbols in comparison by using the last one', () => {
-    const latest: EnrichedSnapshotInput[] = [
-      makeSnapshot({ symbol: 'SPY', adjustedClose: 110 }),
-    ]
+    const latest: EnrichedSnapshotInput[] = [makeSnapshot({ symbol: 'SPY', adjustedClose: 110 })]
 
     const comparison: EnrichedSnapshotInput[] = [
       makeSnapshot({ symbol: 'SPY', adjustedClose: 100, rotationScore: 60, rotationRank: 1 }),
@@ -402,9 +463,6 @@ describe('enrichWithComparison', () => {
     const result = enrichWithComparison(latest, comparison)
 
     // Should use last occurrence (95)
-    expect(result[0]!.twoWeekPerformancePct).toBeCloseTo(
-      ((110 - 95) / 95) * 100,
-      4,
-    )
+    expect(result[0]!.twoWeekPerformancePct).toBeCloseTo(((110 - 95) / 95) * 100, 4)
   })
 })

@@ -1,5 +1,14 @@
 export class MarketDataError extends Error {
-  constructor(message: string, readonly kind: 'unavailable' | 'not-found' | 'rate-limited' | 'timeout' | 'overloaded' | 'cancelled' = 'unavailable') {
+  constructor(
+    message: string,
+    readonly kind:
+      | 'unavailable'
+      | 'not-found'
+      | 'rate-limited'
+      | 'timeout'
+      | 'overloaded'
+      | 'cancelled' = 'unavailable',
+  ) {
     super(message)
   }
 }
@@ -150,8 +159,11 @@ export function createYahooQueue(options: number | YahooQueueOptions = {}) {
     })
     try {
       let request: Promise<T>
-      try { request = Promise.resolve(job.fetcher(controller.signal)) }
-      catch (error) { request = Promise.reject(error) }
+      try {
+        request = Promise.resolve(job.fetcher(controller.signal))
+      } catch (error) {
+        request = Promise.reject(error)
+      }
       return await Promise.race([request, deadline, aborted])
     } catch (error) {
       if (job.controller.signal.aborted) throw cancellationReason(job.controller.signal)
@@ -209,10 +221,12 @@ export function createYahooQueue(options: number | YahooQueueOptions = {}) {
     if (signal?.aborted) return Promise.reject(cancellationReason(signal))
     const existing = inFlight.get(key) as Job<T> | undefined
     if (existing) {
-      if (existing.consumers.size >= maxConsumersPerJob) return Promise.reject(new MarketDataError('Market request has too many shared consumers', 'overloaded'))
+      if (existing.consumers.size >= maxConsumersPerJob)
+        return Promise.reject(new MarketDataError('Market request has too many shared consumers', 'overloaded'))
       return consumer(existing, signal)
     }
-    if (active >= 2 && waiters.length >= 256) return Promise.reject(new MarketDataError('Market request queue is full', 'overloaded'))
+    if (active >= 2 && waiters.length >= 256)
+      return Promise.reject(new MarketDataError('Market request queue is full', 'overloaded'))
 
     const job: Job<T> = {
       key,
@@ -224,10 +238,16 @@ export function createYahooQueue(options: number | YahooQueueOptions = {}) {
     }
     inFlight.set(key, job as Job<unknown>)
     const result = consumer(job, signal)
-    job.overallTimer = setTimeout(() => abortJob(job, new MarketDataError('Yahoo task timed out', 'timeout')), overallTimeoutMs)
+    job.overallTimer = setTimeout(
+      () => abortJob(job, new MarketDataError('Yahoo task timed out', 'timeout')),
+      overallTimeoutMs,
+    )
     waiters.push(job as Job<unknown>)
     if (active >= 2) {
-      job.queueTimer = setTimeout(() => abortJob(job, new MarketDataError('Yahoo queue wait timed out', 'timeout')), queueWaitTimeoutMs)
+      job.queueTimer = setTimeout(
+        () => abortJob(job, new MarketDataError('Yahoo queue wait timed out', 'timeout')),
+        queueWaitTimeoutMs,
+      )
     }
     pump()
     return result

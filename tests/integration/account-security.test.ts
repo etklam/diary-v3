@@ -73,7 +73,9 @@ async function waitForBlockedRequests(count: number) {
   throw new Error(`Expected ${count} blocked test requests`)
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('diary_v3_security') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('diary_v3_security')
+})
 beforeEach(async () => {
   const app = createApp({
     db: database.db,
@@ -88,8 +90,13 @@ beforeEach(async () => {
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 describe('account-wide session security', () => {
   it('logout-all invalidates every Web and Native session for one user only', async () => {
@@ -111,13 +118,17 @@ describe('account-wide session security', () => {
     expect(browser.cookies.has('access-token')).toBe(false)
     expect(browser.cookies.has('refresh-token')).toBe(false)
 
-    expect((await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${nativeA.accessToken}` } })).status).toBe(401)
+    expect(
+      (await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${nativeA.accessToken}` } })).status,
+    ).toBe(401)
     expect((await nativeRefresh(nativeA.refreshToken)).status).toBe(401)
     expect((await nativeRefresh(nativeB.refreshToken)).status).toBe(401)
     const staleWeb = new BrowserSession(baseUrl)
     staleWeb.cookies.set('refresh-token', webRefresh)
     expect((await staleWeb.post('/api/auth/refresh', {})).status).toBe(401)
-    expect((await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${other.accessToken}` } })).status).toBe(200)
+    expect(
+      (await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${other.accessToken}` } })).status,
+    ).toBe(200)
 
     const rows = await database.pool.query(
       'SELECT revoked_at, revocation_reason FROM refresh_tokens WHERE user_id = $1',
@@ -134,19 +145,22 @@ describe('account-wide session security', () => {
     const native = (await (await nativeLogin(credentials)).json()).data
 
     const missingCsrf = await browser.request('/api/user/password', {
-      method: 'PUT', headers: { 'content-type': 'application/json' },
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ currentPassword: credentials.password, newPassword: 'new-account-security-password' }),
     })
     expect(missingCsrf.status).toBe(403)
 
     const wrong = await changePassword(browser, {
-      currentPassword: 'wrong-password', newPassword: 'new-account-security-password',
+      currentPassword: 'wrong-password',
+      newPassword: 'new-account-security-password',
     })
     expect(wrong.status).toBe(401)
     expect((await browser.request('/api/auth/me')).status).toBe(200)
 
     const overlong = await changePassword(browser, {
-      currentPassword: credentials.password, newPassword: '密'.repeat(25),
+      currentPassword: credentials.password,
+      newPassword: '密'.repeat(25),
     })
     expect(overlong.status).toBe(400)
     const rotatedResponse = await nativeRefresh(native.refreshToken)
@@ -156,7 +170,8 @@ describe('account-wide session security', () => {
     const previousAccess = browser.cookies.get('access-token')!
     const previousRefresh = browser.cookies.get('refresh-token')!
     const changed = await changePassword(browser, {
-      currentPassword: credentials.password, newPassword: 'new-account-security-password',
+      currentPassword: credentials.password,
+      newPassword: 'new-account-security-password',
     })
     expect(changed.status).toBe(200)
     expect(await changed.json()).toEqual({
@@ -173,7 +188,9 @@ describe('account-wide session security', () => {
     replaced.cookies.set('access-token', previousAccess)
     replaced.cookies.set('refresh-token', previousRefresh)
     expect((await replaced.request('/api/auth/me')).status).toBe(401)
-    expect((await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${rotated.accessToken}` } })).status).toBe(401)
+    expect(
+      (await fetch(`${baseUrl}/api/auth/me`, { headers: { authorization: `Bearer ${rotated.accessToken}` } })).status,
+    ).toBe(401)
     expect((await nativeRefresh(rotated.refreshToken)).status).toBe(401)
     expect((await nativeLogin(credentials)).status).toBe(401)
     expect((await nativeLogin({ ...credentials, password: 'new-account-security-password' })).status).toBe(200)
@@ -203,19 +220,26 @@ describe('account-wide session security', () => {
     const credentials = await account()
     await register(credentials)
     const native = (await (await nativeLogin(credentials)).json()).data
-    const stored = await database.pool.query('SELECT id FROM refresh_tokens WHERE token = $1', [digest(native.refreshToken)])
+    const stored = await database.pool.query('SELECT id FROM refresh_tokens WHERE token = $1', [
+      digest(native.refreshToken),
+    ])
     const parentId = String(stored.rows[0].id)
     const gate = await database.pool.connect()
     let rotation: Promise<Response> | undefined
     let logoutAll: Promise<Response> | undefined
     try {
-      await database.pool.query(`CREATE FUNCTION account_rotation_gate() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.parent_id = ${parentId} THEN PERFORM pg_advisory_xact_lock(2026090506); END IF; RETURN NEW; END; $$`)
-      await database.pool.query('CREATE TRIGGER account_rotation_gate BEFORE INSERT ON refresh_tokens FOR EACH ROW EXECUTE FUNCTION account_rotation_gate()')
+      await database.pool.query(
+        `CREATE FUNCTION account_rotation_gate() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.parent_id = ${parentId} THEN PERFORM pg_advisory_xact_lock(2026090506); END IF; RETURN NEW; END; $$`,
+      )
+      await database.pool.query(
+        'CREATE TRIGGER account_rotation_gate BEFORE INSERT ON refresh_tokens FOR EACH ROW EXECUTE FUNCTION account_rotation_gate()',
+      )
       await gate.query('SELECT pg_advisory_lock(2026090506)')
       rotation = nativeRefresh(native.refreshToken)
       await waitForBlockedRequests(1)
       logoutAll = fetch(`${baseUrl}/api/auth/logout-all`, {
-        method: 'POST', headers: { authorization: `Bearer ${native.accessToken}` },
+        method: 'POST',
+        headers: { authorization: `Bearer ${native.accessToken}` },
       })
       await waitForBlockedRequests(2)
       await gate.query('SELECT pg_advisory_unlock(2026090506)')
@@ -224,7 +248,10 @@ describe('account-wide session security', () => {
       expect(loggedOut.status).toBe(200)
       const replacement = (await rotated.json()).data
       expect((await nativeRefresh(replacement.refreshToken)).status).toBe(401)
-      const active = await database.pool.query('SELECT id FROM refresh_tokens WHERE user_id = $1 AND revoked_at IS NULL', [native.user.id])
+      const active = await database.pool.query(
+        'SELECT id FROM refresh_tokens WHERE user_id = $1 AND revoked_at IS NULL',
+        [native.user.id],
+      )
       expect(active.rows).toHaveLength(0)
     } finally {
       await gate.query('SELECT pg_advisory_unlock(2026090506)')
@@ -245,11 +272,16 @@ describe('account-wide session security', () => {
     let changing: Promise<Response> | undefined
     let oldLogin: Promise<Response> | undefined
     try {
-      await database.pool.query(`CREATE FUNCTION account_password_gate() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.user_id = ${userId} THEN PERFORM pg_advisory_xact_lock(2026090507); END IF; RETURN OLD; END; $$`)
-      await database.pool.query('CREATE TRIGGER account_password_gate BEFORE DELETE ON refresh_tokens FOR EACH ROW EXECUTE FUNCTION account_password_gate()')
+      await database.pool.query(
+        `CREATE FUNCTION account_password_gate() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.user_id = ${userId} THEN PERFORM pg_advisory_xact_lock(2026090507); END IF; RETURN OLD; END; $$`,
+      )
+      await database.pool.query(
+        'CREATE TRIGGER account_password_gate BEFORE DELETE ON refresh_tokens FOR EACH ROW EXECUTE FUNCTION account_password_gate()',
+      )
       await gate.query('SELECT pg_advisory_lock(2026090507)')
       changing = changePassword(browser, {
-        currentPassword: credentials.password, newPassword: 'new-password-after-race',
+        currentPassword: credentials.password,
+        newPassword: 'new-password-after-race',
       })
       await waitForBlockedRequests(1)
       oldLogin = nativeLogin(credentials)

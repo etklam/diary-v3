@@ -15,7 +15,10 @@ function baselineGrouping(pending) {
   const result = new Map()
   for (const { symbol } of pending) {
     if (result.has(symbol)) continue
-    result.set(symbol, pending.some(row => row.symbol === symbol && row.type === 'MOVING_AVG'))
+    result.set(
+      symbol,
+      pending.some(row => row.symbol === symbol && row.type === 'MOVING_AVG'),
+    )
   }
   return result
 }
@@ -44,7 +47,7 @@ function percentile(sorted, fraction) {
 
 function summarize(samples) {
   const sorted = [...samples].sort((a, b) => a - b)
-  return { p50Ms: percentile(sorted, 0.50), p95Ms: percentile(sorted, 0.95), minMs: sorted[0], maxMs: sorted.at(-1) }
+  return { p50Ms: percentile(sorted, 0.5), p95Ms: percentile(sorted, 0.95), minMs: sorted[0], maxMs: sorted.at(-1) }
 }
 
 const coldBaseline = measure(() => baselineGrouping(rows))
@@ -61,10 +64,34 @@ for (let index = 0; index < repetitions; index++) {
   groupedSamples.push(measure(() => groupPriceAlertHistoryNeeds(rows)).elapsedMs)
 }
 
-log(JSON.stringify({
-  node: version,
-  fixture: { rules: rows.length, uniqueSymbols: new Set(rows.map(row => row.symbol)).size, movingAverageRules: rows.filter(row => row.type === 'MOVING_AVG').length },
-  environment: { concurrency: 1, warmupsPerAlgorithm: warmups, repetitionsPerAlgorithm: repetitions, coldRun: 'first invocation in this process', heap: 'retained result Map after forced GC; run with --expose-gc' },
-  baselineSome: { coldMs: coldBaseline.elapsedMs, warm: summarize(baselineSamples), memory: memoryDelta(() => baselineGrouping(rows)) },
-  groupedSinglePass: { coldMs: coldGrouped.elapsedMs, warm: summarize(groupedSamples), memory: memoryDelta(() => groupPriceAlertHistoryNeeds(rows)) },
-}, null, 2))
+log(
+  JSON.stringify(
+    {
+      node: version,
+      fixture: {
+        rules: rows.length,
+        uniqueSymbols: new Set(rows.map(row => row.symbol)).size,
+        movingAverageRules: rows.filter(row => row.type === 'MOVING_AVG').length,
+      },
+      environment: {
+        concurrency: 1,
+        warmupsPerAlgorithm: warmups,
+        repetitionsPerAlgorithm: repetitions,
+        coldRun: 'first invocation in this process',
+        heap: 'retained result Map after forced GC; run with --expose-gc',
+      },
+      baselineSome: {
+        coldMs: coldBaseline.elapsedMs,
+        warm: summarize(baselineSamples),
+        memory: memoryDelta(() => baselineGrouping(rows)),
+      },
+      groupedSinglePass: {
+        coldMs: coldGrouped.elapsedMs,
+        warm: summarize(groupedSamples),
+        memory: memoryDelta(() => groupPriceAlertHistoryNeeds(rows)),
+      },
+    },
+    null,
+    2,
+  ),
+)

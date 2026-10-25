@@ -80,29 +80,39 @@ export function calculateTradePlanExecution(input: {
   const averageText = average === null ? null : formatScaled(average, PRICE_SCALE)
   const buyQuantity = quantity === 0n ? null : formatScaled(quantity, QUANTITY_SCALE)
   const entryPrice = input.baseline?.entryPrice ?? null
-  const entryPriceDelta = average === null || entryPrice === null
-    ? null
-    : formatScaled(average - parseScaled(entryPrice, PRICE_SCALE), PRICE_SCALE)
-  const entryPriceDeltaPercent = average === null || entryPrice === null || parseScaled(entryPrice, PRICE_SCALE) === 0n
-    ? null
-    : formatScaled(roundSigned(
-      (average - parseScaled(entryPrice, PRICE_SCALE)) * 100n * 10n ** BigInt(PERCENT_SCALE),
-      parseScaled(entryPrice, PRICE_SCALE),
-    ), PERCENT_SCALE)
+  const entryPriceDelta =
+    average === null || entryPrice === null
+      ? null
+      : formatScaled(average - parseScaled(entryPrice, PRICE_SCALE), PRICE_SCALE)
+  const entryPriceDeltaPercent =
+    average === null || entryPrice === null || parseScaled(entryPrice, PRICE_SCALE) === 0n
+      ? null
+      : formatScaled(
+          roundSigned(
+            (average - parseScaled(entryPrice, PRICE_SCALE)) * 100n * 10n ** BigInt(PERCENT_SCALE),
+            parseScaled(entryPrice, PRICE_SCALE),
+          ),
+          PERCENT_SCALE,
+        )
 
   let entryZoneRelation: TradePlanExecutionCalculation['entryZoneRelation'] = 'unavailable'
   if (average !== null && input.baseline) {
-    if (input.baseline.entryZoneLow !== null && compareScaled(averageText, input.baseline.entryZoneLow) < 0) entryZoneRelation = 'below'
-    else if (input.baseline.entryZoneHigh !== null && compareScaled(averageText, input.baseline.entryZoneHigh) > 0) entryZoneRelation = 'above'
+    if (input.baseline.entryZoneLow !== null && compareScaled(averageText, input.baseline.entryZoneLow) < 0)
+      entryZoneRelation = 'below'
+    else if (input.baseline.entryZoneHigh !== null && compareScaled(averageText, input.baseline.entryZoneHigh) > 0)
+      entryZoneRelation = 'above'
     else if (input.baseline.entryZoneLow !== null || input.baseline.entryZoneHigh !== null) entryZoneRelation = 'inside'
   }
 
   return {
-    comparisonStatus: input.baseline === null
-      ? 'unconfirmed'
-      : input.baselineIsOutdated
-        ? 'outdated'
-        : average === null ? 'unavailable' : 'ready',
+    comparisonStatus:
+      input.baseline === null
+        ? 'unconfirmed'
+        : input.baselineIsOutdated
+          ? 'outdated'
+          : average === null
+            ? 'unavailable'
+            : 'ready',
     buyQuantity,
     averageExecutionPrice: averageText,
     entryPriceDelta,

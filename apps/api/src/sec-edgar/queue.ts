@@ -47,7 +47,9 @@ export class SecRequestQueue {
       await this.waitForStartSlot(signal)
       throwIfAborted(signal)
       try {
-        const scheduled = this.sharedScheduler ? await this.sharedScheduler.start(operation, signal) : { response: operation() }
+        const scheduled = this.sharedScheduler
+          ? await this.sharedScheduler.start(operation, signal)
+          : { response: operation() }
         const result = await scheduled.response
         await this.sharedScheduler?.recordResult(!(result instanceof Response) || result.ok).catch(() => undefined)
         return result
@@ -63,7 +65,9 @@ export class SecRequestQueue {
   private async waitForStartSlot(signal?: AbortSignal): Promise<void> {
     let release!: () => void
     const previous = this.startGate
-    this.startGate = new Promise<void>(resolve => { release = resolve })
+    this.startGate = new Promise<void>(resolve => {
+      release = resolve
+    })
     let previousAcquired = false
     try {
       await withAbort(previous, signal)

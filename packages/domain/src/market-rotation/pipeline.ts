@@ -81,19 +81,20 @@ export function runSnapshotPipeline(
       enriched.map((snapshot): EnrichedSnapshotInput => ({ ...snapshot })),
       comparisonSnapshots,
     )
-  }
-  else {
+  } else {
     // No comparison data — wrap enriched as-is (2W fields all null)
-    latest = enriched.map((snap): FinalSnapshot => ({
-      ...snap,
-      twoWeekPerformancePct: null,
-      twoWeekPerformancePercentile: null,
-      rsiDelta2W: null,
-      rotationScoreDelta2W: null,
-      rankDelta2W: null,
-      signal: null,
-      signalStatus: 'insufficient_data' as const,
-    }))
+    latest = enriched.map(
+      (snap): FinalSnapshot => ({
+        ...snap,
+        twoWeekPerformancePct: null,
+        twoWeekPerformancePercentile: null,
+        rsiDelta2W: null,
+        rotationScoreDelta2W: null,
+        rankDelta2W: null,
+        signal: null,
+        signalStatus: 'insufficient_data' as const,
+      }),
+    )
   }
 
   return { latest, snapshots, enriched }

@@ -46,7 +46,7 @@ describe('enrichScopes', () => {
 
     // XLK has the highest values across the board
     const xlk = result.find(r => r.symbol === 'XLK')!
-    expect(xlk.rsiPercentile).toBeCloseTo(66.67, 1)  // 2/3 * 100
+    expect(xlk.rsiPercentile).toBeCloseTo(66.67, 1) // 2/3 * 100
     expect(xlk.maScorePercentile).toBeCloseTo(66.67, 1)
     expect(xlk.distanceFromHighScorePercentile).toBeCloseTo(66.67, 1)
 
@@ -87,7 +87,7 @@ describe('enrichScopes', () => {
       makeSnapshot({
         symbol: 'XLK',
         rsi14: null,
-        maScore: 0,         // maScore is never null in SnapshotData
+        maScore: 0, // maScore is never null in SnapshotData
         distanceFromHighScore: null,
       }),
       makeSnapshot({
@@ -225,10 +225,38 @@ describe('enrichScopes', () => {
       // Legacy single pool (4 entries): SPY below = 2 (QQQ, MSFT), total = 4 → 50
       // The split is observable when ETF vs stock outliers differ — see next test.
       const snapshots: SnapshotData[] = [
-        makeSnapshot({ symbol: 'SPY', rankScope: 'core', groupType: 'core_etf', rsi14: 80, maScore: 90, distanceFromHighScore: 80 }),
-        makeSnapshot({ symbol: 'QQQ', rankScope: 'core', groupType: 'core_etf', rsi14: 60, maScore: 70, distanceFromHighScore: 70 }),
-        makeSnapshot({ symbol: 'NVDA', rankScope: 'core', groupType: 'mega_cap', rsi14: 95, maScore: 100, distanceFromHighScore: 95 }),
-        makeSnapshot({ symbol: 'MSFT', rankScope: 'core', groupType: 'mega_cap', rsi14: 50, maScore: 60, distanceFromHighScore: 60 }),
+        makeSnapshot({
+          symbol: 'SPY',
+          rankScope: 'core',
+          groupType: 'core_etf',
+          rsi14: 80,
+          maScore: 90,
+          distanceFromHighScore: 80,
+        }),
+        makeSnapshot({
+          symbol: 'QQQ',
+          rankScope: 'core',
+          groupType: 'core_etf',
+          rsi14: 60,
+          maScore: 70,
+          distanceFromHighScore: 70,
+        }),
+        makeSnapshot({
+          symbol: 'NVDA',
+          rankScope: 'core',
+          groupType: 'mega_cap',
+          rsi14: 95,
+          maScore: 100,
+          distanceFromHighScore: 95,
+        }),
+        makeSnapshot({
+          symbol: 'MSFT',
+          rankScope: 'core',
+          groupType: 'mega_cap',
+          rsi14: 50,
+          maScore: 60,
+          distanceFromHighScore: 60,
+        }),
       ]
 
       const result = enrichScopes(snapshots)
@@ -252,10 +280,38 @@ describe('enrichScopes', () => {
       // The pool split changes relative position: defensive ETF is no longer
       // dragged down by mega-cap outliers.
       const snapshots: SnapshotData[] = [
-        makeSnapshot({ symbol: 'XLP', rankScope: 'core', groupType: 'core_etf', rsi14: 40, maScore: 50, distanceFromHighScore: 40 }),
-        makeSnapshot({ symbol: 'XLU', rankScope: 'core', groupType: 'core_etf', rsi14: 35, maScore: 40, distanceFromHighScore: 35 }),
-        makeSnapshot({ symbol: 'NVDA', rankScope: 'core', groupType: 'mega_cap', rsi14: 90, maScore: 100, distanceFromHighScore: 90 }),
-        makeSnapshot({ symbol: 'TSLA', rankScope: 'core', groupType: 'mega_cap', rsi14: 85, maScore: 90, distanceFromHighScore: 85 }),
+        makeSnapshot({
+          symbol: 'XLP',
+          rankScope: 'core',
+          groupType: 'core_etf',
+          rsi14: 40,
+          maScore: 50,
+          distanceFromHighScore: 40,
+        }),
+        makeSnapshot({
+          symbol: 'XLU',
+          rankScope: 'core',
+          groupType: 'core_etf',
+          rsi14: 35,
+          maScore: 40,
+          distanceFromHighScore: 35,
+        }),
+        makeSnapshot({
+          symbol: 'NVDA',
+          rankScope: 'core',
+          groupType: 'mega_cap',
+          rsi14: 90,
+          maScore: 100,
+          distanceFromHighScore: 90,
+        }),
+        makeSnapshot({
+          symbol: 'TSLA',
+          rankScope: 'core',
+          groupType: 'mega_cap',
+          rsi14: 85,
+          maScore: 90,
+          distanceFromHighScore: 85,
+        }),
       ]
 
       const result = enrichScopes(snapshots)
@@ -274,8 +330,22 @@ describe('enrichScopes', () => {
       // NVDA: below=1 (PLTR), total=2 → 50
       // PLTR: below=0, total=2 → 0
       const snapshots: SnapshotData[] = [
-        makeSnapshot({ symbol: 'NVDA', rankScope: 'core', groupType: 'mega_cap', rsi14: 90, maScore: 100, distanceFromHighScore: 90 }),
-        makeSnapshot({ symbol: 'PLTR', rankScope: 'core', groupType: 'single_stock', rsi14: 70, maScore: 80, distanceFromHighScore: 75 }),
+        makeSnapshot({
+          symbol: 'NVDA',
+          rankScope: 'core',
+          groupType: 'mega_cap',
+          rsi14: 90,
+          maScore: 100,
+          distanceFromHighScore: 90,
+        }),
+        makeSnapshot({
+          symbol: 'PLTR',
+          rankScope: 'core',
+          groupType: 'single_stock',
+          rsi14: 70,
+          maScore: 80,
+          distanceFromHighScore: 75,
+        }),
       ]
 
       const result = enrichScopes(snapshots)

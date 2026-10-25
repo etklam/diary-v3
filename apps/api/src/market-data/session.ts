@@ -1,7 +1,7 @@
-import { calendarDateInTimezone } from '@diary/domain';
-import type { MarketQuote, SpxSessionSummary } from '../../../../packages/contracts/src/market';
-import { MarketDataError } from './queue';
-import type { IntradayQuote } from './index';
+import { calendarDateInTimezone } from '@diary/domain'
+import type { MarketQuote, SpxSessionSummary } from '../../../../packages/contracts/src/market'
+import { MarketDataError } from './queue'
+import type { IntradayQuote } from './index'
 
 export interface MarketSessionInput {
   previousClose: number
@@ -60,25 +60,48 @@ export function classifyMarketSession(input: MarketSessionInput): SpxSessionSumm
   return 'rangeBound'
 }
 
-export function buildSpxSessionSummary(quote:MarketQuote,quotes:IntradayQuote[]):SpxSessionSummary {
-  if(quote.previousClose===null||quote.previousClose<=0||quote.regularMarketPrice<=0||!quote.lastUpdateTime)
-    throw new MarketDataError('SPX session lacks a valid prior close or quote timestamp');
-  const sorted=quotes.filter(bar=>Number.isFinite(bar.timestamp)&&Number.isFinite(bar.close)).sort((a,b)=>a.timestamp-b.timestamp);
-  const latest=sorted.at(-1);
-  if(!latest)throw new MarketDataError('SPX intraday session unavailable');
-  const day=(timestamp:number)=>calendarDateInTimezone(new Date(timestamp*1000),'America/New_York');
-  const latestDay=day(latest.timestamp);
-  if(latestDay!==calendarDateInTimezone(new Date(quote.lastUpdateTime),'America/New_York'))
-    throw new MarketDataError('SPX quote and intraday prices describe different sessions');
-  const session=sorted.filter(bar=>day(bar.timestamp)===latestDay);
-  const first=session[0]!;const open=first.open??first.close;
-  if(open<=0)throw new MarketDataError('SPX opening price unavailable');
-  const high=Math.max(...session.map(bar=>bar.high??bar.close));
-  const low=Math.min(...session.map(bar=>bar.low??bar.close));
-  return {symbol:'SPX',sourceSymbol:quote.symbol,
-    condition:classifyMarketSession({previousClose:quote.previousClose,open,close:quote.regularMarketPrice,high,low}),
-    price:quote.regularMarketPrice,previousClose:quote.previousClose,open,high,low,
-    change:quote.regularMarketPrice-quote.previousClose,changePercent:percentChange(quote.regularMarketPrice,quote.previousClose),
-    intradayMovePercent:percentChange(quote.regularMarketPrice,open),openGapPercent:percentChange(open,quote.previousClose),
-    asOf:new Date(latest.timestamp*1000).toISOString()};
+export function buildSpxSessionSummary(quote: MarketQuote, quotes: IntradayQuote[]): SpxSessionSummary {
+  if (
+    quote.previousClose === null ||
+    quote.previousClose <= 0 ||
+    quote.regularMarketPrice <= 0 ||
+    !quote.lastUpdateTime
+  )
+    throw new MarketDataError('SPX session lacks a valid prior close or quote timestamp')
+  const sorted = quotes
+    .filter(bar => Number.isFinite(bar.timestamp) && Number.isFinite(bar.close))
+    .sort((a, b) => a.timestamp - b.timestamp)
+  const latest = sorted.at(-1)
+  if (!latest) throw new MarketDataError('SPX intraday session unavailable')
+  const day = (timestamp: number) => calendarDateInTimezone(new Date(timestamp * 1000), 'America/New_York')
+  const latestDay = day(latest.timestamp)
+  if (latestDay !== calendarDateInTimezone(new Date(quote.lastUpdateTime), 'America/New_York'))
+    throw new MarketDataError('SPX quote and intraday prices describe different sessions')
+  const session = sorted.filter(bar => day(bar.timestamp) === latestDay)
+  const first = session[0]!
+  const open = first.open ?? first.close
+  if (open <= 0) throw new MarketDataError('SPX opening price unavailable')
+  const high = Math.max(...session.map(bar => bar.high ?? bar.close))
+  const low = Math.min(...session.map(bar => bar.low ?? bar.close))
+  return {
+    symbol: 'SPX',
+    sourceSymbol: quote.symbol,
+    condition: classifyMarketSession({
+      previousClose: quote.previousClose,
+      open,
+      close: quote.regularMarketPrice,
+      high,
+      low,
+    }),
+    price: quote.regularMarketPrice,
+    previousClose: quote.previousClose,
+    open,
+    high,
+    low,
+    change: quote.regularMarketPrice - quote.previousClose,
+    changePercent: percentChange(quote.regularMarketPrice, quote.previousClose),
+    intradayMovePercent: percentChange(quote.regularMarketPrice, open),
+    openGapPercent: percentChange(open, quote.previousClose),
+    asOf: new Date(latest.timestamp * 1000).toISOString(),
+  }
 }

@@ -31,7 +31,9 @@ describe('pinned research source transport deadlines', () => {
     })
     const transport = createPinnedSourceTransport({ resolveEndpoint })
 
-    await expect(transport({ ...input, timeoutMs: 1_000, signal: controller.signal })).rejects.toMatchObject({ code: 'SOURCE_TIMEOUT' })
+    await expect(transport({ ...input, timeoutMs: 1_000, signal: controller.signal })).rejects.toMatchObject({
+      code: 'SOURCE_TIMEOUT',
+    })
     expect(resolveEndpoint).toHaveBeenCalledOnce()
   })
 })

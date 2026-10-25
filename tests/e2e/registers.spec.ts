@@ -23,15 +23,24 @@ test('every register reaches the page it was assigned to', async ({ page, contex
   await page.setViewportSize({ width: 1440, height: 900 })
   await signIn(page, `registers-${randomUUID()}@example.test`)
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
-  const created = await page.request.post('/api/diaries', { headers, data: {
-    date: '2026-01-02', title: 'A recorded judgment', content: 'The original reasoning, at length.',
-    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-02T00:00:00Z' }],
-  } })
+  const created = await page.request.post('/api/diaries', {
+    headers,
+    data: {
+      date: '2026-01-02',
+      title: 'A recorded judgment',
+      content: 'The original reasoning, at length.',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-02T00:00:00Z' }],
+    },
+  })
   expect(created.status()).toBe(201)
-  const diary = await created.json() as { id: string }
+  const diary = (await created.json()) as { id: string }
 
   const main = page.locator('main#main')
-  for (const [path, register] of [['/stocks', 'ledger'], ['/diaries/quick', 'capture'], [`/diaries/${diary.id}`, 'reading']] as const) {
+  for (const [path, register] of [
+    ['/stocks', 'ledger'],
+    ['/diaries/quick', 'capture'],
+    [`/diaries/${diary.id}`, 'reading'],
+  ] as const) {
     await page.goto(path)
     await expect(main).toHaveAttribute('data-register', register)
   }
@@ -57,12 +66,17 @@ test('the reading register subordinates what is attached to the record', async (
   await page.setViewportSize({ width: 1440, height: 900 })
   await signIn(page, `registers-reading-${randomUUID()}@example.test`)
   const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
-  const created = await page.request.post('/api/diaries', { headers, data: {
-    date: '2026-01-03', title: 'A recorded judgment', content: 'The original reasoning, at length.',
-    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-03T00:00:00Z' }],
-  } })
+  const created = await page.request.post('/api/diaries', {
+    headers,
+    data: {
+      date: '2026-01-03',
+      title: 'A recorded judgment',
+      content: 'The original reasoning, at length.',
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-03T00:00:00Z' }],
+    },
+  })
   expect(created.status()).toBe(201)
-  const diary = await created.json() as { id: string }
+  const diary = (await created.json()) as { id: string }
   await page.goto(`/diaries/${diary.id}`)
 
   // What is attached to the entry is one group with one heading…

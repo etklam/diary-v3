@@ -28,7 +28,7 @@ export interface QuickNoteReminders {
 export interface RecentClosedTrade {
   id: string
   symbol: string
-  sellDate: string  // ISO string
+  sellDate: string // ISO string
   sellQuantity: string
   realizedPnL: string
   realizedPnLPct: string

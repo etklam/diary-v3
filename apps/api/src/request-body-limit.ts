@@ -38,34 +38,37 @@ function boundedBodyStream(
     }
   }
 
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      onUse()
-      try {
-        reader ??= body.getReader()
-        const { done, value } = await reader.read()
-        if (done) {
+  return new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        onUse()
+        try {
+          reader ??= body.getReader()
+          const { done, value } = await reader.read()
+          if (done) {
+            release()
+            controller.close()
+            return
+          }
+          size += value.byteLength
+          if (size > maxBytes) {
+            void cancelSource()
+            controller.error(new RequestBodyLimitError())
+            return
+          }
+          controller.enqueue(value)
+        } catch (error) {
           release()
-          controller.close()
-          return
+          controller.error(error)
         }
-        size += value.byteLength
-        if (size > maxBytes) {
-          void cancelSource()
-          controller.error(new RequestBodyLimitError())
-          return
-        }
-        controller.enqueue(value)
-      } catch (error) {
-        release()
-        controller.error(error)
-      }
+      },
+      cancel(reason) {
+        onUse()
+        return cancelSource(reason)
+      },
     },
-    cancel(reason) {
-      onUse()
-      return cancelSource(reason)
-    },
-  }, { highWaterMark: 0 })
+    { highWaterMark: 0 },
+  )
 }
 
 function lazyBoundedRequest(raw: Request, maxBytes: number): Request {
@@ -75,7 +78,10 @@ function lazyBoundedRequest(raw: Request, maxBytes: number): Request {
   let used = false
   // Request.clone() tees the current body stream. Resolve it at consumption
   // time so a clone made before reading is wrapped on its own tee branch.
-  const body = () => bounded ??= boundedBodyStream(raw.body!, maxBytes, () => { used = true })
+  const body = () =>
+    (bounded ??= boundedBodyStream(raw.body!, maxBytes, () => {
+      used = true
+    }))
   const response = () => new Response(body(), { headers: raw.headers })
   const clone = () => {
     // A reader held by the bounded wrapper makes the logical request body

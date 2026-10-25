@@ -1,75 +1,90 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
-import type { LedgerTransactionResponse } from '@diary/contracts/ledger';
-import { Evidence } from '../evidence';
-import { DiaryGuruSnapshots } from '../diary-guru-snapshot';
-import { companyContextCopy } from '../company-context-input';
-import { reviewScheduleCopy } from '../review-scheduling';
-import { ledgerCopy, ledgerEmotions } from '../ledger-copy';
-import { deviceTimeZone, formatAmount, formatInstantIn, formatInstantUtc, formatQuantity } from '../market-display';
-import '../ledger.css';
-import '../diary-editor.css';
-import './diary-reading.css';
-import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error';
-import { ActionButton, api, useConfirm, useUi } from '../ui';
-import { signInPath } from '../session';
-import { buildCompanyPath, normalizeCaptureContext, type CaptureContext } from '../capture-context';
-import { diaryCopy } from '../diary-copy';
-import { Markdown } from '../markdown';
-import { OriginalJudgment } from '../original-judgment';
-import { originalJudgmentCopy } from '../original-judgment-copy';
-import type { DiaryFields } from '../diary-editor';
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import type { LedgerTransactionResponse } from '@diary/contracts/ledger'
+import { Evidence } from '../evidence'
+import { DiaryGuruSnapshots } from '../diary-guru-snapshot'
+import { companyContextCopy } from '../company-context-input'
+import { reviewScheduleCopy } from '../review-scheduling'
+import { ledgerCopy, ledgerEmotions } from '../ledger-copy'
+import { deviceTimeZone, formatAmount, formatInstantIn, formatInstantUtc, formatQuantity } from '../market-display'
+import '../ledger.css'
+import '../diary-editor.css'
+import './diary-reading.css'
+import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
+import { ActionButton, api, useConfirm, useUi } from '../ui'
+import { signInPath } from '../session'
+import { buildCompanyPath, normalizeCaptureContext, type CaptureContext } from '../capture-context'
+import { diaryCopy } from '../diary-copy'
+import { Markdown } from '../markdown'
+import { OriginalJudgment } from '../original-judgment'
+import { originalJudgmentCopy } from '../original-judgment-copy'
+import type { DiaryFields } from '../diary-editor'
 
 type Diary = Omit<DiaryFields, 'content'> & {
-  id: string;
-  content: string | null;
-  createdVia?: 'WEB' | 'API_KEY' | 'TELEGRAM_BOT';
-  createdByLabel?: string | null;
-  transactions?: LedgerTransactionResponse[];
-  reviewedAt?: string | null;
-  reviewOutcome?: 'INTACT' | 'PARTIAL' | 'INVALIDATED' | 'UNCLEAR' | null;
-};
+  id: string
+  content: string | null
+  createdVia?: 'WEB' | 'API_KEY' | 'TELEGRAM_BOT'
+  createdByLabel?: string | null
+  transactions?: LedgerTransactionResponse[]
+  reviewedAt?: string | null
+  reviewOutcome?: 'INTACT' | 'PARTIAL' | 'INVALIDATED' | 'UNCLEAR' | null
+}
 
 export default function DiaryPage() {
-  const { t, locale } = useUi();
-  const labels = diaryCopy[locale];
-  const { id } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const confirm = useConfirm();
-  const [diary, setDiary] = useState<Diary | null>(null);
-  const [error, setError] = useState<Failure | null>(null);
-  const [pending, setPending] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  const [timezone, setTimezone] = useState<string | null>(null);
-  const reviewLabels = reviewScheduleCopy[locale];
-  const reviewDue = diary?.reviewDueAt ? new Date(diary.reviewDueAt) : null;
-  const reviewOverdue = reviewDue !== null && reviewDue.getTime() <= Date.now();
+  const { t, locale } = useUi()
+  const labels = diaryCopy[locale]
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const confirm = useConfirm()
+  const [diary, setDiary] = useState<Diary | null>(null)
+  const [error, setError] = useState<Failure | null>(null)
+  const [pending, setPending] = useState(true)
+  const [deleting, setDeleting] = useState(false)
+  const [timezone, setTimezone] = useState<string | null>(null)
+  const reviewLabels = reviewScheduleCopy[locale]
+  const reviewDue = diary?.reviewDueAt ? new Date(diary.reviewDueAt) : null
+  const reviewOverdue = reviewDue !== null && reviewDue.getTime() <= Date.now()
   // A review due moment is the same role the Review page renders, so it takes the
   // same date-and-time format rather than a date-only variant of it.
   const reviewDueText = reviewDue
-    ? timezone ? formatInstantIn(locale, reviewDue.toISOString(), timezone) : formatInstantUtc(locale, reviewDue.toISOString())
-    : null;
-  const deviceZone = deviceTimeZone();
+    ? timezone
+      ? formatInstantIn(locale, reviewDue.toISOString(), timezone)
+      : formatInstantUtc(locale, reviewDue.toISOString())
+    : null
+  const deviceZone = deviceTimeZone()
 
   async function load() {
-    setPending(true);
-    setError(null);
-    setDiary(null);
-    api.GET('/api/auth/me').then(me => {
-      if (me.response.ok && me.data) setTimezone(me.data.data.timezone);
-    }).catch(() => {});
+    setPending(true)
+    setError(null)
+    setDiary(null)
+    api
+      .GET('/api/auth/me')
+      .then(me => {
+        if (me.response.ok && me.data) setTimezone(me.data.data.timezone)
+      })
+      .catch(() => {})
     try {
-      const result = await api.GET('/api/diaries/{id}', { params: { path: { id: id ?? '' } } });
+      const result = await api.GET('/api/diaries/{id}', { params: { path: { id: id ?? '' } } })
       if (result.response.ok && result.data) {
-        setDiary({ ...result.data, thesis: result.data.thesis ?? null, risk: result.data.risk ?? null, execution: result.data.execution ?? null });
+        setDiary({
+          ...result.data,
+          thesis: result.data.thesis ?? null,
+          risk: result.data.risk ?? null,
+          execution: result.data.execution ?? null,
+        })
       } else {
-        setError(apiFailure(result.error, t(result.response.status === 404 || result.response.status === 403 ? 'notFound' : 'failed')));
+        setError(
+          apiFailure(
+            result.error,
+            t(result.response.status === 404 || result.response.status === 403 ? 'notFound' : 'failed'),
+          ),
+        )
       }
     } catch {
-      setError(apiFailure(null, t('connection')));
+      setError(apiFailure(null, t('connection')))
     } finally {
-      setPending(false);
+      setPending(false)
     }
   }
 
@@ -78,7 +93,7 @@ export default function DiaryPage() {
   // flight. It now runs the delete inside the shared dialog, so that behaviour
   // reaches the other thirty call sites instead of only this one (ticket 122).
   async function remove() {
-    if (!diary) return;
+    if (!diary) return
     await confirm({
       title: labels.confirm,
       body: diary.title,
@@ -86,102 +101,248 @@ export default function DiaryPage() {
       cancel: labels.cancel,
       tone: 'danger',
       action: async () => {
-        setDeleting(true);
+        setDeleting(true)
         try {
-          const result = await api.DELETE('/api/diaries/{id}', { params: { path: { id: id ?? '' } } });
+          const result = await api.DELETE('/api/diaries/{id}', { params: { path: { id: id ?? '' } } })
           if (result.response.ok) {
-            setDiary(null);
-            navigate('/diaries/new', { replace: true, state: { deleted: true } });
+            setDiary(null)
+            navigate('/diaries/new', { replace: true, state: { deleted: true } })
           } else {
-            setError(apiFailure(result.error, t('failed')));
+            setError(apiFailure(result.error, t('failed')))
           }
         } catch {
-          setError(apiFailure(null, t('connection')));
+          setError(apiFailure(null, t('connection')))
         } finally {
-          setDeleting(false);
+          setDeleting(false)
         }
       },
-    });
+    })
   }
 
-  useEffect(() => { void load(); }, [id]);
+  useEffect(() => {
+    void load()
+  }, [id])
 
   // The research handoff survives reloads through a session-scoped hint; the
   // diary itself never stores the source. State from a fresh save always wins.
-  const captureKey = `diary-capture-return:${id}`;
-  const incomingCapture = normalizeCaptureContext((location.state as { captureContext?: CaptureContext | null } | null)?.captureContext ?? null);
+  const captureKey = `diary-capture-return:${id}`
+  const incomingCapture = normalizeCaptureContext(
+    (location.state as { captureContext?: CaptureContext | null } | null)?.captureContext ?? null,
+  )
   useEffect(() => {
-    if (!incomingCapture) return;
-    try { sessionStorage.setItem(captureKey, JSON.stringify(incomingCapture)); } catch { /* Return hint is best effort. */ }
-  }, [incomingCapture, captureKey]);
-  const captureReturn = incomingCapture ?? (() => {
+    if (!incomingCapture) return
     try {
-      const raw = sessionStorage.getItem(captureKey);
-      return raw ? normalizeCaptureContext(JSON.parse(raw)) : null;
+      sessionStorage.setItem(captureKey, JSON.stringify(incomingCapture))
     } catch {
-      return null;
+      /* Return hint is best effort. */
     }
-  })();
-  const companyPath = buildCompanyPath(captureReturn);
-  const diaryPath = `/diaries/${id ?? ''}`;
-  const reviewSchedulePath = `${diaryPath}/edit?returnTo=${encodeURIComponent(diaryPath)}#review-schedule`;
+  }, [incomingCapture, captureKey])
+  const captureReturn =
+    incomingCapture ??
+    (() => {
+      try {
+        const raw = sessionStorage.getItem(captureKey)
+        return raw ? normalizeCaptureContext(JSON.parse(raw)) : null
+      } catch {
+        return null
+      }
+    })()
+  const companyPath = buildCompanyPath(captureReturn)
+  const diaryPath = `/diaries/${id ?? ''}`
+  const reviewSchedulePath = `${diaryPath}/edit?returnTo=${encodeURIComponent(diaryPath)}#review-schedule`
 
-  return <article className="diary-reading diary-record">
-    {pending ? <p role="status">{t('loading')}</p> : error ? <>
-      <h1>{t('readTitle')}</h1>
-      <FailureNotice failure={error} />
-      {invalidField(error, 'transactions') && <p className="error">{ledgerCopy[locale].oversell}</p>}
-      <button onClick={() => void load()}>{t('retry')}</button>
-      <Link className="inline-link" to={signInPath(`/diaries/${id}`)}>{t('login')}</Link>
-    </> : diary && diary.id === id && <>
-      {location.state?.saved && <p className="success" role="status">{t('saved')}</p>}
-      <header>
-        <div className="diary-reading-title-row">
-          <div>
-            <time dateTime={diary.date}>{diary.date}</time>
-            <h1>{diary.title}</h1>
-          </div>
-          {/* Delete sits with the record it destroys, not at the end of a page
+  return (
+    <article className="diary-reading diary-record">
+      {pending ? (
+        <p role="status">{t('loading')}</p>
+      ) : error ? (
+        <>
+          <h1>{t('readTitle')}</h1>
+          <FailureNotice failure={error} />
+          {invalidField(error, 'transactions') && <p className="error">{ledgerCopy[locale].oversell}</p>}
+          <button onClick={() => void load()}>{t('retry')}</button>
+          <Link className="inline-link" to={signInPath(`/diaries/${id}`)}>
+            {t('login')}
+          </Link>
+        </>
+      ) : (
+        diary &&
+        diary.id === id && (
+          <>
+            {location.state?.saved && (
+              <p className="success" role="status">
+                {t('saved')}
+              </p>
+            )}
+            <header>
+              <div className="diary-reading-title-row">
+                <div>
+                  <time dateTime={diary.date}>{diary.date}</time>
+                  <h1>{diary.title}</h1>
+                </div>
+                {/* Delete sits with the record it destroys, not at the end of a page
               that runs to 2,984px on a phone — where it was the last thing in
               the reader's path after finishing an entry, and the first control
               in that row whenever there was no company to return to
               (ticket 122). */}
-          <div className="diary-reading-title-actions">
-            <Link className="button secondary" to={`/diaries/${id}/edit`}>{labels.edit}</Link>
-            <ActionButton type="button" className="danger-button button-compact" pending={deleting} onClick={() => void remove()}>{labels.remove}</ActionButton>
-          </div>
-        </div>
-        {diary.createdVia && diary.createdVia !== 'WEB' && <p data-testid="diary-source">{diary.createdVia === 'API_KEY' ? (locale === 'en' ? 'Created via API key' : locale === 'zh-CN' ? '通过 API 密钥创建' : '透過 API 金鑰建立') : 'Telegram'}{diary.createdByLabel ? ` · ${diary.createdByLabel}` : ''}</p>}
-      </header>
-      {/* The record itself, in its recorded order; what is attached to it and
+                <div className="diary-reading-title-actions">
+                  <Link className="button secondary" to={`/diaries/${id}/edit`}>
+                    {labels.edit}
+                  </Link>
+                  <ActionButton
+                    type="button"
+                    className="danger-button button-compact"
+                    pending={deleting}
+                    onClick={() => void remove()}
+                  >
+                    {labels.remove}
+                  </ActionButton>
+                </div>
+              </div>
+              {diary.createdVia && diary.createdVia !== 'WEB' && (
+                <p data-testid="diary-source">
+                  {diary.createdVia === 'API_KEY'
+                    ? locale === 'en'
+                      ? 'Created via API key'
+                      : locale === 'zh-CN'
+                        ? '通过 API 密钥创建'
+                        : '透過 API 金鑰建立'
+                    : 'Telegram'}
+                  {diary.createdByLabel ? ` · ${diary.createdByLabel}` : ''}
+                </p>
+              )}
+            </header>
+            {/* The record itself, in its recorded order; what is attached to it and
           what to do next move beside it on a wide screen. */}
-      <div className="diary-reading-body">
-      <Markdown>{diary.content ?? ''}</Markdown>
-      <section className="original-reasoning" aria-labelledby="diary-original-judgment">
-        <OriginalJudgment
-          headingId="diary-original-judgment"
-          heading={labels.original}
-          values={diary}
-          labels={{ thesis: labels.thesis, risk: labels.risk, execution: labels.execution }}
-          emptyText={originalJudgmentCopy[locale].missing}
-        />
-      </section>
-      {Boolean(diary.transactions?.length) && <section className="ledger-reading"><h2>{ledgerCopy[locale].title}</h2>{diary.transactions?.map(transaction => <section key={transaction.id}><h3>{transaction.symbol} · {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}</h3><dl>{(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => <div key={field}><dt>{ledgerCopy[locale][field]}</dt><dd className={field === 'quantity' || field === 'price' || field === 'tradeDate' ? 'num' : undefined}>{field === 'tradeDate' ? `${formatInstantIn(locale, transaction.tradeDate, deviceZone)} · ${deviceZone}` : field === 'quantity' ? formatQuantity(locale, transaction.quantity) : field === 'price' ? formatAmount(locale, transaction.price) : field === 'emotion' && transaction.emotion && Object.hasOwn(ledgerEmotions[locale], transaction.emotion) ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en] : transaction[field] || '—'}</dd></div>)}</dl></section>)}<Link className="inline-link" to="/stocks">{ledgerCopy[locale].view}</Link></section>}
-      </div>
-      {/* The reading register: the record and its original reasoning are the
+            <div className="diary-reading-body">
+              <Markdown>{diary.content ?? ''}</Markdown>
+              <section className="original-reasoning" aria-labelledby="diary-original-judgment">
+                <OriginalJudgment
+                  headingId="diary-original-judgment"
+                  heading={labels.original}
+                  values={diary}
+                  labels={{ thesis: labels.thesis, risk: labels.risk, execution: labels.execution }}
+                  emptyText={originalJudgmentCopy[locale].missing}
+                />
+              </section>
+              {Boolean(diary.transactions?.length) && (
+                <section className="ledger-reading">
+                  <h2>{ledgerCopy[locale].title}</h2>
+                  {diary.transactions?.map(transaction => (
+                    <section key={transaction.id}>
+                      <h3>
+                        {transaction.symbol} ·{' '}
+                        {transaction.type === 'BUY' ? ledgerCopy[locale].buy : ledgerCopy[locale].sell}
+                      </h3>
+                      <dl>
+                        {(['quantity', 'price', 'tradeDate', 'strategy', 'emotion', 'notes'] as const).map(field => (
+                          <div key={field}>
+                            <dt>{ledgerCopy[locale][field]}</dt>
+                            <dd
+                              className={
+                                field === 'quantity' || field === 'price' || field === 'tradeDate' ? 'num' : undefined
+                              }
+                            >
+                              {field === 'tradeDate'
+                                ? `${formatInstantIn(locale, transaction.tradeDate, deviceZone)} · ${deviceZone}`
+                                : field === 'quantity'
+                                  ? formatQuantity(locale, transaction.quantity)
+                                  : field === 'price'
+                                    ? formatAmount(locale, transaction.price)
+                                    : field === 'emotion' &&
+                                        transaction.emotion &&
+                                        Object.hasOwn(ledgerEmotions[locale], transaction.emotion)
+                                      ? ledgerEmotions[locale][transaction.emotion as keyof typeof ledgerEmotions.en]
+                                      : transaction[field] || '—'}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                  ))}
+                  <Link className="inline-link" to="/stocks">
+                    {ledgerCopy[locale].view}
+                  </Link>
+                </section>
+              )}
+            </div>
+            {/* The reading register: the record and its original reasoning are the
           page; everything attached to it is grouped under one heading and set
           one step down, so an optional module no longer sits at the same
           visual rank as Transactions (ticket 120). */}
-      <aside className="diary-reading-aside" aria-labelledby="diary-aside-title">
-      <h2 id="diary-aside-title" className="diary-aside-title">{locale === 'en' ? 'Attached to this entry' : locale === 'zh-CN' ? '与这篇记录相关' : '與這篇記錄相關'}</h2>
-      <ul className="diary-tags" aria-label={labels.tags}>{diary.tags.map(tag => <li key={tag}>{tag}</li>)}</ul>
-      {Boolean(diary.stockSymbols?.length) && <div className="diary-companies"><h2>{companyContextCopy[locale].label}</h2><ul>{diary.stockSymbols?.map(symbol => <li key={symbol}><Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link></li>)}</ul></div>}
-      <section className="original-reasoning diary-review-summary"><h2>{reviewLabels.review}</h2>{diary.reviewStatus === 'reviewed' ? <><p>{reviewLabels.reviewed}{diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}</p><Link className="button secondary" to={`/diaries/${id}/review`}>{reviewLabels.viewReview}</Link></> : reviewDue ? <><p>{reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : reviewLabels.duePrefix}{' '}<time dateTime={reviewDue.toISOString()}>{reviewDueText}</time></p><Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>{reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}</Link></> : <><p>{reviewLabels.noneState}</p><Link className="button secondary" to={reviewSchedulePath}>{reviewLabels.schedule}</Link></>}</section>
-      <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
-      <DiaryGuruSnapshots diaryId={diary.id} symbols={diary.stockSymbols ?? []} />
-      </aside>
-      {/* The footer offers the next thing to do, not the way to undo this one. */}
-      <footer><div className="diary-actions">{companyPath && captureReturn && <Link className="button secondary" data-testid="capture-return" to={companyPath}>{locale === 'en' ? `Return to ${captureReturn.symbol} research` : `返回 ${captureReturn.symbol} 研究`}</Link>}<Link className="button secondary" to="/diaries/new">{t('write')}</Link></div></footer>
-    </>}
-  </article>;
+            <aside className="diary-reading-aside" aria-labelledby="diary-aside-title">
+              <h2 id="diary-aside-title" className="diary-aside-title">
+                {locale === 'en' ? 'Attached to this entry' : locale === 'zh-CN' ? '与这篇记录相关' : '與這篇記錄相關'}
+              </h2>
+              <ul className="diary-tags" aria-label={labels.tags}>
+                {diary.tags.map(tag => (
+                  <li key={tag}>{tag}</li>
+                ))}
+              </ul>
+              {Boolean(diary.stockSymbols?.length) && (
+                <div className="diary-companies">
+                  <h2>{companyContextCopy[locale].label}</h2>
+                  <ul>
+                    {diary.stockSymbols?.map(symbol => (
+                      <li key={symbol}>
+                        <Link to={`/stocks/${encodeURIComponent(symbol)}`}>{symbol}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <section className="original-reasoning diary-review-summary">
+                <h2>{reviewLabels.review}</h2>
+                {diary.reviewStatus === 'reviewed' ? (
+                  <>
+                    <p>
+                      {reviewLabels.reviewed}
+                      {diary.reviewOutcome ? ` · ${reviewLabels[diary.reviewOutcome]}` : ''}
+                    </p>
+                    <Link className="button secondary" to={`/diaries/${id}/review`}>
+                      {reviewLabels.viewReview}
+                    </Link>
+                  </>
+                ) : reviewDue ? (
+                  <>
+                    <p>
+                      {reviewOverdue ? <strong>{reviewLabels.dueNow}</strong> : reviewLabels.duePrefix}{' '}
+                      <time dateTime={reviewDue.toISOString()}>{reviewDueText}</time>
+                    </p>
+                    <Link className={reviewOverdue ? 'button' : 'button secondary'} to={`/diaries/${id}/review`}>
+                      {reviewOverdue ? reviewLabels.reviewNow : reviewLabels.review}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p>{reviewLabels.noneState}</p>
+                    <Link className="button secondary" to={reviewSchedulePath}>
+                      {reviewLabels.schedule}
+                    </Link>
+                  </>
+                )}
+              </section>
+              <Evidence key={diary.id} collapsed source={{ title: diary.title, path: diaryPath }} />
+              <DiaryGuruSnapshots diaryId={diary.id} symbols={diary.stockSymbols ?? []} />
+            </aside>
+            {/* The footer offers the next thing to do, not the way to undo this one. */}
+            <footer>
+              <div className="diary-actions">
+                {companyPath && captureReturn && (
+                  <Link className="button secondary" data-testid="capture-return" to={companyPath}>
+                    {locale === 'en'
+                      ? `Return to ${captureReturn.symbol} research`
+                      : `返回 ${captureReturn.symbol} 研究`}
+                  </Link>
+                )}
+                <Link className="button secondary" to="/diaries/new">
+                  {t('write')}
+                </Link>
+              </div>
+            </footer>
+          </>
+        )
+      )}
+    </article>
+  )
 }

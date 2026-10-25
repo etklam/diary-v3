@@ -8,7 +8,9 @@ import { MARKET_STATE_UNIVERSE_KEY } from './market-state-universe.js'
 import { upsertMarketBreadthRows } from './market-state-persistence.js'
 
 export class MarketStateBatchBusy extends Error {
-  constructor() { super('This market state universe is already updating') }
+  constructor() {
+    super('This market state universe is already updating')
+  }
 }
 
 type MarketData = Pick<ReturnType<typeof createMarketData>, 'dailyPrices'>
@@ -46,16 +48,29 @@ export async function runMarketStateBatch(
   const lockKey = `diary:market-state:${MARKET_STATE_UNIVERSE_KEY}`
   let acquired = false
   try {
-    acquired = (await lock.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired', [lockKey])).rows[0]?.acquired === true
+    acquired =
+      (await lock.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired', [lockKey])).rows[0]
+        ?.acquired === true
     if (!acquired) throw new MarketStateBatchBusy()
 
-    const universe = await dependencies.db.select({ symbol: marketUniverse.symbol })
+    const universe = await dependencies.db
+      .select({ symbol: marketUniverse.symbol })
       .from(marketUniverse)
       .where(and(eq(marketUniverse.isActive, true), eq(marketUniverse.assetType, 'stock')))
       .orderBy(asc(marketUniverse.symbol))
     const symbols = universe.map(row => row.symbol)
     if (symbols.length === 0) {
-      return { universeKey: MARKET_STATE_UNIVERSE_KEY, status: 'empty', backfill, symbolCount: 0, successfulSymbolCount: 0, failedSymbolCount: 0, fetchedPriceCount: 0, breadthDateCount: 0, upsertedCount: 0 }
+      return {
+        universeKey: MARKET_STATE_UNIVERSE_KEY,
+        status: 'empty',
+        backfill,
+        symbolCount: 0,
+        successfulSymbolCount: 0,
+        failedSymbolCount: 0,
+        fetchedPriceCount: 0,
+        breadthDateCount: 0,
+        upsertedCount: 0,
+      }
     }
 
     const fetchedDateKeys = new Set<string>()
@@ -84,28 +99,80 @@ export async function runMarketStateBatch(
 
     const datesToCalculate = [...fetchedDateKeys].sort().slice(-targetDays).map(dateFromKey)
     if (datesToCalculate.length === 0) {
-      return { universeKey: MARKET_STATE_UNIVERSE_KEY, status: failedSymbolCount ? 'partial' : 'success', backfill, symbolCount: symbols.length, successfulSymbolCount, failedSymbolCount, fetchedPriceCount, breadthDateCount: 0, upsertedCount: 0 }
+      return {
+        universeKey: MARKET_STATE_UNIVERSE_KEY,
+        status: failedSymbolCount ? 'partial' : 'success',
+        backfill,
+        symbolCount: symbols.length,
+        successfulSymbolCount,
+        failedSymbolCount,
+        fetchedPriceCount,
+        breadthDateCount: 0,
+        upsertedCount: 0,
+      }
     }
     const historyStart = subtractDays(datesToCalculate[0]!, 90)
     const [priceRows, breadthRows] = await Promise.all([
-      dependencies.db.select({ symbol: marketDailyPrices.symbol, date: marketDailyPrices.date, adjustedClose: marketDailyPrices.adjustedClose })
+      dependencies.db
+        .select({
+          symbol: marketDailyPrices.symbol,
+          date: marketDailyPrices.date,
+          adjustedClose: marketDailyPrices.adjustedClose,
+        })
         .from(marketDailyPrices)
-        .where(and(inArray(marketDailyPrices.symbol, symbols), gte(marketDailyPrices.date, historyStart.toISOString().slice(0, 10))))
+        .where(
+          and(
+            inArray(marketDailyPrices.symbol, symbols),
+            gte(marketDailyPrices.date, historyStart.toISOString().slice(0, 10)),
+          ),
+        )
         .orderBy(asc(marketDailyPrices.symbol), asc(marketDailyPrices.date)),
-      dependencies.db.select({ date: marketBreadthDaily.date, up4Count: marketBreadthDaily.up4Count, down4Count: marketBreadthDaily.down4Count })
+      dependencies.db
+        .select({
+          date: marketBreadthDaily.date,
+          up4Count: marketBreadthDaily.up4Count,
+          down4Count: marketBreadthDaily.down4Count,
+        })
         .from(marketBreadthDaily)
-        .where(and(eq(marketBreadthDaily.universeKey, MARKET_STATE_UNIVERSE_KEY), gte(marketBreadthDaily.date, historyStart.toISOString().slice(0, 10))))
+        .where(
+          and(
+            eq(marketBreadthDaily.universeKey, MARKET_STATE_UNIVERSE_KEY),
+            gte(marketBreadthDaily.date, historyStart.toISOString().slice(0, 10)),
+          ),
+        )
         .orderBy(asc(marketBreadthDaily.date)),
     ])
-    const prices: PricePoint[] = priceRows.map(row => ({ symbol: row.symbol, date: dateFromKey(row.date), adjustedClose: Number(row.adjustedClose) }))
-    const existingHistory = breadthRows.flatMap(row => row.up4Count === null || row.down4Count === null ? [] : [{ date: dateFromKey(row.date), up4Count: row.up4Count, down4Count: row.down4Count }])
+    const prices: PricePoint[] = priceRows.map(row => ({
+      symbol: row.symbol,
+      date: dateFromKey(row.date),
+      adjustedClose: Number(row.adjustedClose),
+    }))
+    const existingHistory = breadthRows.flatMap(row =>
+      row.up4Count === null || row.down4Count === null
+        ? []
+        : [{ date: dateFromKey(row.date), up4Count: row.up4Count, down4Count: row.down4Count }],
+    )
     const rows = calculateBreadthRows(prices, symbols, datesToCalculate, existingHistory)
     const upsertedCount = await upsertMarketBreadthRows(dependencies.db, MARKET_STATE_UNIVERSE_KEY, rows)
-    return { universeKey: MARKET_STATE_UNIVERSE_KEY, status: failedSymbolCount ? 'partial' : 'success', backfill, symbolCount: symbols.length, successfulSymbolCount, failedSymbolCount, fetchedPriceCount, breadthDateCount: rows.length, upsertedCount }
+    return {
+      universeKey: MARKET_STATE_UNIVERSE_KEY,
+      status: failedSymbolCount ? 'partial' : 'success',
+      backfill,
+      symbolCount: symbols.length,
+      successfulSymbolCount,
+      failedSymbolCount,
+      fetchedPriceCount,
+      breadthDateCount: rows.length,
+      upsertedCount,
+    }
   } finally {
     let discard = false
     try {
       if (acquired) await lock.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [lockKey])
-    } catch { discard = true } finally { lock.release(discard) }
+    } catch {
+      discard = true
+    } finally {
+      lock.release(discard)
+    }
   }
 }

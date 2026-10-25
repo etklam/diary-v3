@@ -56,8 +56,16 @@ const palette = {
 function acceptedApiOrigin(value: string) {
   try {
     const url = new URL(value)
-    if (!['http:', 'https:'].includes(url.protocol) || !url.host || url.username || url.password
-      || url.pathname !== '/' || url.search || url.hash) return ''
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      !url.host ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash
+    )
+      return ''
     if (!__DEV__ && url.protocol !== 'https:') return ''
     return url.origin
   } catch {
@@ -87,17 +95,30 @@ const nativeStorage = {
 }
 
 const nativeSession = apiOrigin ? createNativeSession({ baseUrl: apiOrigin, storage: nativeStorage }) : null
-const api = apiOrigin && nativeSession
-  ? createApiClient({ baseUrl: apiOrigin, fetch: nativeSession.fetch })
-  : null
+const api = apiOrigin && nativeSession ? createApiClient({ baseUrl: apiOrigin, fetch: nativeSession.fetch }) : null
 
-type Screen = 'restoring' | 'configuration' | 'login' | 'restore-error' | 'home' | 'quick' | 'timeline' | 'diary' | 'reviews' | 'review' | 'company'
+type Screen =
+  | 'restoring'
+  | 'configuration'
+  | 'login'
+  | 'restore-error'
+  | 'home'
+  | 'quick'
+  | 'timeline'
+  | 'diary'
+  | 'reviews'
+  | 'review'
+  | 'company'
 type QuickDraft = { date: string; content: string; tags: string; symbol: string }
 type ApiResult<T> = { data?: T; error?: unknown; response: Response }
 type DiaryReview = z.infer<typeof diaryReviewResponseSchema>
 
 class ApiRequestError extends Error {
-  constructor(message: string, readonly status: number, readonly code?: string) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
     super(message)
     this.name = 'ApiRequestError'
   }
@@ -105,7 +126,9 @@ class ApiRequestError extends Error {
 
 class UnconfirmedWriteError extends Error {
   constructor() {
-    super('The API did not confirm this save. It may already be in your Timeline. Check Timeline before retrying. Your draft is still held in memory; retrying is not guaranteed to be duplicate-safe.')
+    super(
+      'The API did not confirm this save. It may already be in your Timeline. Check Timeline before retrying. Your draft is still held in memory; retrying is not guaranteed to be duplicate-safe.',
+    )
     this.name = 'UnconfirmedWriteError'
   }
 }
@@ -114,7 +137,9 @@ function requireResponse<T>(result: ApiResult<T>, label: string): T {
   if (!result.response.ok || result.data === undefined) {
     const parsed = apiErrorResponseSchema.safeParse(result.error)
     throw new ApiRequestError(
-      parsed.success ? `${parsed.data.data.code}: ${parsed.data.statusMessage}` : `${label} failed (${result.response.status})`,
+      parsed.success
+        ? `${parsed.data.data.code}: ${parsed.data.statusMessage}`
+        : `${label} failed (${result.response.status})`,
       result.response.status,
       parsed.success ? parsed.data.data.code : undefined,
     )
@@ -129,15 +154,25 @@ function errorText(error: unknown) {
 function emptyDraft(user: AuthUser | null): QuickDraft {
   return {
     date: user ? calendarDateInTimezone(new Date(), user.timezone) : currentUtcDate(),
-    content: '', tags: '', symbol: '',
+    content: '',
+    tags: '',
+    symbol: '',
   }
 }
 
 function diaryIdFromUrl(value: string) {
   try {
     const url = new URL(value)
-    if (url.protocol !== 'diary-v3:' || url.hostname !== 'diaries' || url.username || url.password
-      || url.port || url.search || url.hash) return null
+    if (
+      url.protocol !== 'diary-v3:' ||
+      url.hostname !== 'diaries' ||
+      url.username ||
+      url.password ||
+      url.port ||
+      url.search ||
+      url.hash
+    )
+      return null
     const path = url.pathname.split('/').filter(Boolean)
     if (path.length !== 1) return null
     const result = serializedIdSchema.safeParse(decodeURIComponent(path[0]!))
@@ -147,7 +182,12 @@ function diaryIdFromUrl(value: string) {
   }
 }
 
-function ActionButton({ title, onPress, disabled = false, quiet = false }: {
+function ActionButton({
+  title,
+  onPress,
+  disabled = false,
+  quiet = false,
+}: {
   title: string
   onPress: () => void
   disabled?: boolean
@@ -233,65 +273,79 @@ export default function App() {
     setCompany(null)
   }, [])
 
-  const clearPrivateState = useCallback((nextUser: AuthUser | null) => {
-    setDraft(emptyDraft(nextUser))
-    setDraftOwnerId(nextUser?.id ?? null)
-    setPrivateStateOwnerId(nextUser?.id ?? null)
-    clearPrivateCollections()
-  }, [clearPrivateCollections])
-
-  const bindPrivateStateOwner = useCallback((ownerId: string) => {
-    if (privateStateOwnerId !== ownerId) {
-      clearPrivateCollections()
-      setPrivateStateOwnerId(ownerId)
-    }
-  }, [clearPrivateCollections, privateStateOwnerId])
-
-  const bindUserContext = useCallback((nextUser: AuthUser) => {
-    bindPrivateStateOwner(nextUser.id)
-    if (draftOwnerId !== nextUser.id) {
+  const clearPrivateState = useCallback(
+    (nextUser: AuthUser | null) => {
       setDraft(emptyDraft(nextUser))
-      setDraftOwnerId(nextUser.id)
-    }
-  }, [bindPrivateStateOwner, draftOwnerId])
+      setDraftOwnerId(nextUser?.id ?? null)
+      setPrivateStateOwnerId(nextUser?.id ?? null)
+      clearPrivateCollections()
+    },
+    [clearPrivateCollections],
+  )
 
-  const perform = useCallback(async (operation: () => Promise<void>) => {
-    if (!api || !nativeSession || busyRef.current) return false
-    busyRef.current = true
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      await operation()
-      return true
-    } catch (cause) {
-      if (cause instanceof UnconfirmedWriteError) {
-        setError(cause.message)
-      } else if (cause instanceof ApiRequestError && cause.status === 401) {
-        try {
-          await nativeSession.logout()
-        } catch {
-          // Native logout clears SecureStore before attempting server revocation.
-        }
-        setUser(null)
-        setScreen('login')
-        const hasOwnDraft = Boolean(userRef.current && draftOwnerId === userRef.current.id && draft.content.trim())
-        setError(hasOwnDraft
-          ? 'Session expired. Your Quick Diary draft is still in memory. Sign in again, check Timeline, then decide whether to save it again.'
-          : 'Session expired. Sign in again to continue.')
-      } else {
-        if (cause instanceof ApiRequestError && cause.status === 404 && pendingDiaryIdRef.current) {
-          pendingDiaryIdRef.current = null
-          setPendingDiaryId(null)
-        }
-        setError(errorText(cause))
+  const bindPrivateStateOwner = useCallback(
+    (ownerId: string) => {
+      if (privateStateOwnerId !== ownerId) {
+        clearPrivateCollections()
+        setPrivateStateOwnerId(ownerId)
       }
-      return false
-    } finally {
-      busyRef.current = false
-      setBusy(false)
-    }
-  }, [draft.content, draftOwnerId])
+    },
+    [clearPrivateCollections, privateStateOwnerId],
+  )
+
+  const bindUserContext = useCallback(
+    (nextUser: AuthUser) => {
+      bindPrivateStateOwner(nextUser.id)
+      if (draftOwnerId !== nextUser.id) {
+        setDraft(emptyDraft(nextUser))
+        setDraftOwnerId(nextUser.id)
+      }
+    },
+    [bindPrivateStateOwner, draftOwnerId],
+  )
+
+  const perform = useCallback(
+    async (operation: () => Promise<void>) => {
+      if (!api || !nativeSession || busyRef.current) return false
+      busyRef.current = true
+      setBusy(true)
+      setError('')
+      setNotice('')
+      try {
+        await operation()
+        return true
+      } catch (cause) {
+        if (cause instanceof UnconfirmedWriteError) {
+          setError(cause.message)
+        } else if (cause instanceof ApiRequestError && cause.status === 401) {
+          try {
+            await nativeSession.logout()
+          } catch {
+            // Native logout clears SecureStore before attempting server revocation.
+          }
+          setUser(null)
+          setScreen('login')
+          const hasOwnDraft = Boolean(userRef.current && draftOwnerId === userRef.current.id && draft.content.trim())
+          setError(
+            hasOwnDraft
+              ? 'Session expired. Your Quick Diary draft is still in memory. Sign in again, check Timeline, then decide whether to save it again.'
+              : 'Session expired. Sign in again to continue.',
+          )
+        } else {
+          if (cause instanceof ApiRequestError && cause.status === 404 && pendingDiaryIdRef.current) {
+            pendingDiaryIdRef.current = null
+            setPendingDiaryId(null)
+          }
+          setError(errorText(cause))
+        }
+        return false
+      } finally {
+        busyRef.current = false
+        setBusy(false)
+      }
+    },
+    [draft.content, draftOwnerId],
+  )
 
   const readCurrentUser = useCallback(async () => {
     if (!api) throw new Error('API client is not configured.')
@@ -299,20 +353,23 @@ export default function App() {
     return authUserResponseSchema.parse(requireResponse(result, 'Session restore')).data
   }, [])
 
-  const openDiary = useCallback(async (id: string) => {
-    const succeeded = await perform(async () => {
-      if (!api) throw new Error('API client is not configured.')
-      const result = await api.GET('/api/diaries/{id}', { params: { path: { id } } })
-      const diary = diaryResponseSchema.parse(requireResponse(result, 'Diary read'))
-      setSelectedDiary(diary)
-      setScreen('diary')
-    })
-    if (succeeded && pendingDiaryIdRef.current === id) {
-      pendingDiaryIdRef.current = null
-      setPendingDiaryId(null)
-    }
-    return succeeded
-  }, [perform])
+  const openDiary = useCallback(
+    async (id: string) => {
+      const succeeded = await perform(async () => {
+        if (!api) throw new Error('API client is not configured.')
+        const result = await api.GET('/api/diaries/{id}', { params: { path: { id } } })
+        const diary = diaryResponseSchema.parse(requireResponse(result, 'Diary read'))
+        setSelectedDiary(diary)
+        setScreen('diary')
+      })
+      if (succeeded && pendingDiaryIdRef.current === id) {
+        pendingDiaryIdRef.current = null
+        setPendingDiaryId(null)
+      }
+      return succeeded
+    },
+    [perform],
+  )
 
   openDiaryRef.current = openDiary
 
@@ -365,10 +422,14 @@ export default function App() {
       pendingDiaryIdRef.current = id
       setPendingDiaryId(id)
       if (userRef.current) void openDiaryRef.current(id)
-      else setScreen(current => current === 'restoring' ? current : 'login')
+      else setScreen(current => (current === 'restoring' ? current : 'login'))
     }
     const subscription = Linking.addEventListener('url', ({ url }) => receive(url))
-    void Linking.getInitialURL().then(value => { if (value) receive(value) }).catch(() => {})
+    void Linking.getInitialURL()
+      .then(value => {
+        if (value) receive(value)
+      })
+      .catch(() => {})
     return () => subscription.remove()
   }, [])
 
@@ -377,8 +438,8 @@ export default function App() {
     const succeeded = await perform(async () => {
       const pair = await nativeSession.login({ email: email.trim(), password })
       const changedAccount = Boolean(
-        (draftOwnerId && draftOwnerId !== pair.user.id)
-        || (privateStateOwnerId && privateStateOwnerId !== pair.user.id),
+        (draftOwnerId && draftOwnerId !== pair.user.id) ||
+        (privateStateOwnerId && privateStateOwnerId !== pair.user.id),
       )
       bindUserContext(pair.user)
       setUser(pair.user)
@@ -388,9 +449,11 @@ export default function App() {
       setUser(current)
       setPassword('')
       setScreen('home')
-      setNotice(changedAccount
-        ? 'Account changed. The previous account draft and private state were cleared.'
-        : 'Signed in. Writes are sent only when you press Save.')
+      setNotice(
+        changedAccount
+          ? 'Account changed. The previous account draft and private state were cleared.'
+          : 'Signed in. Writes are sent only when you press Save.',
+      )
     })
     if (succeeded && pendingDiaryIdRef.current) void openDiary(pendingDiaryIdRef.current)
   }
@@ -464,13 +527,20 @@ export default function App() {
         title: deriveQuickTitle(draft.content, `Quick Diary ${date}`),
         content: draft.content,
         date,
-        tags: draft.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        tags: draft.tags
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean),
         stockSymbols: draft.symbol.trim() ? [draft.symbol.trim().toUpperCase()] : [],
       })
-      const result = await api.POST('/api/diaries', {
-        body: request,
-        headers: { [NO_AUTOMATIC_SESSION_RETRY_HEADER]: '1' },
-      }).catch(() => { throw new UnconfirmedWriteError() })
+      const result = await api
+        .POST('/api/diaries', {
+          body: request,
+          headers: { [NO_AUTOMATIC_SESSION_RETRY_HEADER]: '1' },
+        })
+        .catch(() => {
+          throw new UnconfirmedWriteError()
+        })
       const created = diaryResponseSchema.parse(requireResponse(result, 'Quick Diary save'))
       setDraft(emptyDraft(user))
       setSelectedDiary(created)
@@ -515,7 +585,13 @@ export default function App() {
   }
 
   const queueItems: ReviewItem[] = reviewGroups
-    ? [...reviewGroups.overdue, ...reviewGroups.today, ...reviewGroups.upcoming, ...reviewGroups.unscheduled, ...reviewGroups.completed]
+    ? [
+        ...reviewGroups.overdue,
+        ...reviewGroups.today,
+        ...reviewGroups.upcoming,
+        ...reviewGroups.unscheduled,
+        ...reviewGroups.completed,
+      ]
     : []
   const hasDraft = Boolean(draftOwnerId === user?.id && draft.content.trim())
 
@@ -525,60 +601,190 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <Text style={styles.eyebrow}>EXPO MANAGED · REACT NATIVE</Text>
         <Text style={styles.appTitle}>Diary Native Proof</Text>
-        {busy && <View style={styles.busyRow}><ActivityIndicator color={palette.action} /><Text style={styles.muted}>Connecting to the API…</Text></View>}
-        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+        {busy && (
+          <View style={styles.busyRow}>
+            <ActivityIndicator color={palette.action} />
+            <Text style={styles.muted}>Connecting to the API…</Text>
+          </View>
+        )}
+        {error ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {screen === 'restoring' && <Text style={styles.muted}>Checking SecureStore…</Text>}
 
         {screen === 'configuration' && (
           <Panel title="Set the API origin">
-            <Text style={styles.body}>Set EXPO_PUBLIC_API_BASE_URL to an absolute local or staging API origin, then restart Expo. Development may use HTTP for a local simulator; non-development builds require HTTPS.</Text>
+            <Text style={styles.body}>
+              Set EXPO_PUBLIC_API_BASE_URL to an absolute local or staging API origin, then restart Expo. Development
+              may use HTTP for a local simulator; non-development builds require HTTPS.
+            </Text>
           </Panel>
         )}
 
         {screen === 'login' && (
           <Panel title="Sign in">
-            {hasDraft && <Text style={styles.notice}>Your Quick Diary draft remains in memory. Sign in to the same account, check Timeline, then decide whether to save it again. A retry may create a duplicate.</Text>}
-            {pendingDiaryId && <Text style={styles.muted}>Diary {pendingDiaryId} is queued and will open after sign-in.</Text>}
-            <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} textContentType="emailAddress" />
-            <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" textContentType="password" />
-            <ActionButton title="Sign in and check session" disabled={busy || !email.trim() || !password} onPress={() => { void signIn() }} />
+            {hasDraft && (
+              <Text style={styles.notice}>
+                Your Quick Diary draft remains in memory. Sign in to the same account, check Timeline, then decide
+                whether to save it again. A retry may create a duplicate.
+              </Text>
+            )}
+            {pendingDiaryId && (
+              <Text style={styles.muted}>Diary {pendingDiaryId} is queued and will open after sign-in.</Text>
+            )}
+            <Field
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="emailAddress"
+            />
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              textContentType="password"
+            />
+            <ActionButton
+              title="Sign in and check session"
+              disabled={busy || !email.trim() || !password}
+              onPress={() => {
+                void signIn()
+              }}
+            />
           </Panel>
         )}
 
         {screen === 'restore-error' && (
           <Panel title="Restore session">
             {user && <Text style={styles.body}>Stored native session for {user.email}</Text>}
-            <ActionButton title="Retry authenticated session check" disabled={busy} onPress={() => { void restoreSession() }} />
-            <ActionButton title="Sign in with another account" disabled={busy} quiet onPress={() => { void switchAccount() }} />
+            <ActionButton
+              title="Retry authenticated session check"
+              disabled={busy}
+              onPress={() => {
+                void restoreSession()
+              }}
+            />
+            <ActionButton
+              title="Sign in with another account"
+              disabled={busy}
+              quiet
+              onPress={() => {
+                void switchAccount()
+              }}
+            />
           </Panel>
         )}
 
         {screen === 'home' && user && (
           <Panel title={`Signed in as ${user.email}`}>
-            <Text style={styles.body}>The session is restored through GET /api/auth/me. Calendar dates use the account timezone ({user.timezone}).</Text>
+            <Text style={styles.body}>
+              The session is restored through GET /api/auth/me. Calendar dates use the account timezone ({user.timezone}
+              ).
+            </Text>
             <ActionButton title="Quick Diary" disabled={busy} onPress={enterQuickDiary} />
-            <ActionButton title="Timeline" disabled={busy} onPress={() => { void loadTimeline() }} />
-            <ActionButton title="Review Queue" disabled={busy} onPress={() => { void loadReviewQueue() }} />
-            {selectedReview && <ActionButton title="Continue Diary Review" disabled={busy} onPress={() => setScreen('review')} />}
+            <ActionButton
+              title="Timeline"
+              disabled={busy}
+              onPress={() => {
+                void loadTimeline()
+              }}
+            />
+            <ActionButton
+              title="Review Queue"
+              disabled={busy}
+              onPress={() => {
+                void loadReviewQueue()
+              }}
+            />
+            {selectedReview && (
+              <ActionButton title="Continue Diary Review" disabled={busy} onPress={() => setScreen('review')} />
+            )}
             <View style={styles.row}>
-              <Field label="Company symbol" value={companySymbol} onChangeText={setCompanySymbol} autoCapitalize="characters" autoCorrect={false} />
-              <ActionButton title="Open company" disabled={busy} onPress={() => { void loadCompany() }} />
+              <Field
+                label="Company symbol"
+                value={companySymbol}
+                onChangeText={setCompanySymbol}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              <ActionButton
+                title="Open company"
+                disabled={busy}
+                onPress={() => {
+                  void loadCompany()
+                }}
+              />
             </View>
-            {pendingDiaryId && <ActionButton title={`Open linked Diary ${pendingDiaryId}`} disabled={busy} quiet onPress={() => { void openDiary(pendingDiaryId) }} />}
-            <ActionButton title="Log out / switch account" disabled={busy} quiet onPress={() => { void switchAccount() }} />
+            {pendingDiaryId && (
+              <ActionButton
+                title={`Open linked Diary ${pendingDiaryId}`}
+                disabled={busy}
+                quiet
+                onPress={() => {
+                  void openDiary(pendingDiaryId)
+                }}
+              />
+            )}
+            <ActionButton
+              title="Log out / switch account"
+              disabled={busy}
+              quiet
+              onPress={() => {
+                void switchAccount()
+              }}
+            />
           </Panel>
         )}
 
         {screen === 'quick' && (
           <Panel title="Quick Diary">
-            <Text style={styles.body}>Saves are explicit. A 401 keeps this draft for after sign-in. If the connection ends without a response, the API may already have saved it: check Timeline before retrying. This proof cannot guarantee retries are duplicate-safe.</Text>
-            <Field label="Diary date (YYYY-MM-DD)" value={draft.date} onChangeText={date => setDraft(current => ({ ...current, date }))} autoCapitalize="none" />
-            <Field label="Markdown content" value={draft.content} onChangeText={content => setDraft(current => ({ ...current, content }))} multiline textAlignVertical="top" placeholder="What changed? What evidence matters?" />
-            <Field label="Tags (comma separated)" value={draft.tags} onChangeText={tags => setDraft(current => ({ ...current, tags }))} autoCapitalize="none" />
-            <Field label="Company symbol (optional)" value={draft.symbol} onChangeText={symbol => setDraft(current => ({ ...current, symbol }))} autoCapitalize="characters" />
-            <ActionButton title="Save Quick Diary" disabled={busy || !draft.content.trim()} onPress={() => { void saveQuickDiary() }} />
+            <Text style={styles.body}>
+              Saves are explicit. A 401 keeps this draft for after sign-in. If the connection ends without a response,
+              the API may already have saved it: check Timeline before retrying. This proof cannot guarantee retries are
+              duplicate-safe.
+            </Text>
+            <Field
+              label="Diary date (YYYY-MM-DD)"
+              value={draft.date}
+              onChangeText={date => setDraft(current => ({ ...current, date }))}
+              autoCapitalize="none"
+            />
+            <Field
+              label="Markdown content"
+              value={draft.content}
+              onChangeText={content => setDraft(current => ({ ...current, content }))}
+              multiline
+              textAlignVertical="top"
+              placeholder="What changed? What evidence matters?"
+            />
+            <Field
+              label="Tags (comma separated)"
+              value={draft.tags}
+              onChangeText={tags => setDraft(current => ({ ...current, tags }))}
+              autoCapitalize="none"
+            />
+            <Field
+              label="Company symbol (optional)"
+              value={draft.symbol}
+              onChangeText={symbol => setDraft(current => ({ ...current, symbol }))}
+              autoCapitalize="characters"
+            />
+            <ActionButton
+              title="Save Quick Diary"
+              disabled={busy || !draft.content.trim()}
+              onPress={() => {
+                void saveQuickDiary()
+              }}
+            />
             <ActionButton title="Back to home" quiet disabled={busy} onPress={() => setScreen('home')} />
           </Panel>
         )}
@@ -587,44 +793,105 @@ export default function App() {
           <Panel title="Timeline · latest 20">
             {timeline.length === 0 && <Text style={styles.muted}>No Diaries yet.</Text>}
             {timeline.map(item => (
-              <Pressable key={item.id} accessibilityRole="button" onPress={() => { void openDiary(item.id) }} style={styles.listItem}>
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                onPress={() => {
+                  void openDiary(item.id)
+                }}
+                style={styles.listItem}
+              >
                 <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.muted}>{item.date} · {item.reviewStatus}</Text>
+                <Text style={styles.muted}>
+                  {item.date} · {item.reviewStatus}
+                </Text>
                 <Text style={styles.body}>{item.excerpt}</Text>
               </Pressable>
             ))}
-            <ActionButton title="Refresh Timeline" disabled={busy} onPress={() => { void loadTimeline() }} />
+            <ActionButton
+              title="Refresh Timeline"
+              disabled={busy}
+              onPress={() => {
+                void loadTimeline()
+              }}
+            />
             <ActionButton title="Back to home" quiet disabled={busy} onPress={() => setScreen('home')} />
           </Panel>
         )}
 
         {screen === 'diary' && selectedDiary && (
           <Panel title={selectedDiary.title}>
-            <Text style={styles.muted}>{selectedDiary.date} · {selectedDiary.tags.join(', ') || 'No tags'}</Text>
+            <Text style={styles.muted}>
+              {selectedDiary.date} · {selectedDiary.tags.join(', ') || 'No tags'}
+            </Text>
             <Text style={styles.label}>Markdown source</Text>
-            <Text selectable style={styles.markdown}>{selectedDiary.content ?? ''}</Text>
+            <Text selectable style={styles.markdown}>
+              {selectedDiary.content ?? ''}
+            </Text>
             <Text style={styles.muted}>This is the raw Markdown string rendered as native text, not HTML.</Text>
             {selectedDiary.stockSymbols.map(symbol => (
-              <ActionButton key={symbol} title={`Company context · ${symbol}`} disabled={busy} onPress={() => { setCompanySymbol(symbol); void loadCompany(symbol) }} />
+              <ActionButton
+                key={symbol}
+                title={`Company context · ${symbol}`}
+                disabled={busy}
+                onPress={() => {
+                  setCompanySymbol(symbol)
+                  void loadCompany(symbol)
+                }}
+              />
             ))}
-            <ActionButton title="Open Review Queue" disabled={busy} onPress={() => { void loadReviewQueue() }} />
-            <Text selectable style={styles.muted}>Deep link: diary-v3://diaries/{selectedDiary.id}</Text>
-            <ActionButton title="Back to Timeline" quiet disabled={busy} onPress={() => { setScreen('timeline') }} />
+            <ActionButton
+              title="Open Review Queue"
+              disabled={busy}
+              onPress={() => {
+                void loadReviewQueue()
+              }}
+            />
+            <Text selectable style={styles.muted}>
+              Deep link: diary-v3://diaries/{selectedDiary.id}
+            </Text>
+            <ActionButton
+              title="Back to Timeline"
+              quiet
+              disabled={busy}
+              onPress={() => {
+                setScreen('timeline')
+              }}
+            />
             <ActionButton title="Back to home" quiet disabled={busy} onPress={() => setScreen('home')} />
           </Panel>
         )}
 
         {screen === 'reviews' && (
           <Panel title="Review Queue · Diary items">
-            {!queueItems.some(item => item.targetType === 'diary') && <Text style={styles.muted}>No Diary Reviews are waiting.</Text>}
-            {queueItems.filter((item): item is Extract<ReviewItem, { targetType: 'diary' }> => item.targetType === 'diary').map(item => (
-              <Pressable key={item.id} accessibilityRole="button" onPress={() => { void openReview(item) }} style={styles.listItem}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.muted}>{item.date} · {item.reviewStatus} · {item.reviewOutcome ?? 'not reviewed'}</Text>
-                {item.stockSymbols.length > 0 && <Text style={styles.muted}>{item.stockSymbols.join(', ')}</Text>}
-              </Pressable>
-            ))}
-            <ActionButton title="Refresh Review Queue" disabled={busy} onPress={() => { void loadReviewQueue() }} />
+            {!queueItems.some(item => item.targetType === 'diary') && (
+              <Text style={styles.muted}>No Diary Reviews are waiting.</Text>
+            )}
+            {queueItems
+              .filter((item): item is Extract<ReviewItem, { targetType: 'diary' }> => item.targetType === 'diary')
+              .map(item => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void openReview(item)
+                  }}
+                  style={styles.listItem}
+                >
+                  <Text style={styles.itemTitle}>{item.title}</Text>
+                  <Text style={styles.muted}>
+                    {item.date} · {item.reviewStatus} · {item.reviewOutcome ?? 'not reviewed'}
+                  </Text>
+                  {item.stockSymbols.length > 0 && <Text style={styles.muted}>{item.stockSymbols.join(', ')}</Text>}
+                </Pressable>
+              ))}
+            <ActionButton
+              title="Refresh Review Queue"
+              disabled={busy}
+              onPress={() => {
+                void loadReviewQueue()
+              }}
+            />
             <ActionButton title="Back to home" quiet disabled={busy} onPress={() => setScreen('home')} />
           </Panel>
         )}
@@ -632,36 +899,85 @@ export default function App() {
         {screen === 'review' && selectedReview && (
           <Panel title={`Diary Review · ${selectedReview.title}`}>
             <Text style={styles.muted}>{selectedReview.date} · original decision</Text>
-            <Text selectable style={styles.markdown}>{selectedReview.content ?? ''}</Text>
+            <Text selectable style={styles.markdown}>
+              {selectedReview.content ?? ''}
+            </Text>
             <Text style={styles.label}>Outcome</Text>
             <View style={styles.choiceRow}>
               {(['INTACT', 'PARTIAL', 'INVALIDATED', 'UNCLEAR'] as const).map(value => (
-                <Pressable key={value} accessibilityRole="button" onPress={() => setReviewOutcome(value)} style={[styles.choice, reviewOutcome === value && styles.choiceSelected]}>
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  onPress={() => setReviewOutcome(value)}
+                  style={[styles.choice, reviewOutcome === value && styles.choiceSelected]}
+                >
                   <Text style={styles.choiceText}>{value}</Text>
                 </Pressable>
               ))}
             </View>
-            <Field label="Reflection" value={reviewSummary} onChangeText={setReviewSummary} multiline textAlignVertical="top" placeholder="What did the outcome teach you?" />
-            <ActionButton title="Save Review" disabled={busy || !reviewSummary.trim()} onPress={() => { void saveDiaryReview() }} />
-            <ActionButton title="Back to Review Queue" quiet disabled={busy} onPress={() => { void loadReviewQueue() }} />
+            <Field
+              label="Reflection"
+              value={reviewSummary}
+              onChangeText={setReviewSummary}
+              multiline
+              textAlignVertical="top"
+              placeholder="What did the outcome teach you?"
+            />
+            <ActionButton
+              title="Save Review"
+              disabled={busy || !reviewSummary.trim()}
+              onPress={() => {
+                void saveDiaryReview()
+              }}
+            />
+            <ActionButton
+              title="Back to Review Queue"
+              quiet
+              disabled={busy}
+              onPress={() => {
+                void loadReviewQueue()
+              }}
+            />
           </Panel>
         )}
 
         {screen === 'company' && company && (
           <Panel title={`${company.company.symbol} · Company context`}>
-            <Text style={styles.body}>{company.company.name ?? 'Name unavailable'} · {company.company.currency ?? 'Currency unavailable'}</Text>
+            <Text style={styles.body}>
+              {company.company.name ?? 'Name unavailable'} · {company.company.currency ?? 'Currency unavailable'}
+            </Text>
             <Text style={styles.body}>Position: {company.position.state}</Text>
-            <Text style={styles.body}>Quote: {company.position.price === null ? 'Unavailable' : `${company.position.price} ${company.company.currency ?? ''}`} · {company.position.quoteStatus}</Text>
+            <Text style={styles.body}>
+              Quote:{' '}
+              {company.position.price === null
+                ? 'Unavailable'
+                : `${company.position.price} ${company.company.currency ?? ''}`}{' '}
+              · {company.position.quoteStatus}
+            </Text>
             {company.company.watchStatus && <Text style={styles.body}>Watchlist: {company.company.watchStatus}</Text>}
             <Text style={styles.label}>Related private Diaries</Text>
-            {company.relatedDiaries.length === 0 && <Text style={styles.muted}>No related Diaries for this account.</Text>}
-            {company.relatedDiaries.map(item => <Text key={item.id} style={styles.body}>{item.date} · {item.title} · {item.relation}</Text>)}
+            {company.relatedDiaries.length === 0 && (
+              <Text style={styles.muted}>No related Diaries for this account.</Text>
+            )}
+            {company.relatedDiaries.map(item => (
+              <Text key={item.id} style={styles.body}>
+                {item.date} · {item.title} · {item.relation}
+              </Text>
+            ))}
             <Text style={styles.label}>Recent notes</Text>
             {company.notes.length === 0 && <Text style={styles.muted}>No notes available.</Text>}
-            {company.notes.map(item => <Text key={item.id} style={styles.body}>{item.title}: {item.content}</Text>)}
+            {company.notes.map(item => (
+              <Text key={item.id} style={styles.body}>
+                {item.title}: {item.content}
+              </Text>
+            ))}
             <Text style={styles.label}>Recent evidence</Text>
             {company.evidence.length === 0 && <Text style={styles.muted}>No evidence available.</Text>}
-            {company.evidence.map(item => <Text key={item.id} style={styles.body}>{item.occurredAt} · {item.summary}</Text>)}
+            {company.evidence.map(item => (
+              <Text key={item.id} style={styles.body}>
+                {item.occurredAt} · {item.summary}
+              </Text>
+            ))}
             <ActionButton title="Back to home" quiet disabled={busy} onPress={() => setScreen('home')} />
           </Panel>
         )}
@@ -672,31 +988,85 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: palette.canvas },
-  page: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 48, gap: 12 },
+  page: {
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 48,
+    gap: 12,
+  },
   eyebrow: { color: palette.action, fontSize: 12, fontWeight: '700' },
   appTitle: { color: palette.text, fontSize: 24, lineHeight: 32, fontWeight: '700', marginBottom: 8 },
-  panel: { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 16, gap: 12 },
+  panel: {
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
+    gap: 12,
+  },
   panelTitle: { color: palette.text, fontSize: 18, lineHeight: 25, fontWeight: '700' },
   body: { color: palette.text, fontSize: 16, lineHeight: 26 },
   muted: { color: palette.muted, fontSize: 14, lineHeight: 20 },
   label: { color: palette.text, fontSize: 14, fontWeight: '600', marginBottom: 4 },
   field: { flex: 1, gap: 4 },
-  input: { borderColor: palette.control, borderWidth: 1, borderRadius: 6, color: palette.text, backgroundColor: palette.surface, minHeight: 48, paddingHorizontal: 11, paddingVertical: 9 },
+  input: {
+    borderColor: palette.control,
+    borderWidth: 1,
+    borderRadius: 6,
+    color: palette.text,
+    backgroundColor: palette.surface,
+    minHeight: 48,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
   multilineInput: { minHeight: 150, textAlignVertical: 'top' },
   markdown: { color: palette.text, fontSize: 16, lineHeight: 30 },
-  button: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 6, backgroundColor: palette.action },
+  button: {
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 6,
+    backgroundColor: palette.action,
+  },
   quietButton: { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
   disabledButton: { opacity: 0.5 },
   pressedButton: { opacity: 0.78 },
   buttonText: { color: palette.onAction, fontSize: 14, fontWeight: '700' },
   quietButtonText: { color: palette.text },
-  error: { color: palette.negative, backgroundColor: palette.surface, borderColor: palette.negative, borderWidth: 1, borderRadius: 8, padding: 12, lineHeight: 20 },
-  notice: { color: palette.infoText, backgroundColor: palette.infoSurface, borderRadius: 8, padding: 12, lineHeight: 22 },
+  error: {
+    color: palette.negative,
+    backgroundColor: palette.surface,
+    borderColor: palette.negative,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    lineHeight: 20,
+  },
+  notice: {
+    color: palette.infoText,
+    backgroundColor: palette.infoSurface,
+    borderRadius: 8,
+    padding: 12,
+    lineHeight: 22,
+  },
   listItem: { borderTopColor: palette.border, borderTopWidth: 1, minHeight: 48, paddingVertical: 12, gap: 5 },
   itemTitle: { color: palette.text, fontSize: 16, fontWeight: '600' },
   row: { gap: 8 },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  choice: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 9, paddingVertical: 8, borderColor: palette.borderStrong, borderWidth: 1, borderRadius: 6 },
+  choice: {
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    borderColor: palette.borderStrong,
+    borderWidth: 1,
+    borderRadius: 6,
+  },
   choiceSelected: { borderColor: palette.action, backgroundColor: palette.selected },
   choiceText: { color: palette.text, fontSize: 12, fontWeight: '600' },
   busyRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

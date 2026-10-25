@@ -42,12 +42,17 @@ function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>
-    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(',')}}`
+    return `{${Object.keys(record)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .join(',')}}`
   }
   return JSON.stringify(value) ?? 'null'
 }
 
-function hash(value: unknown): string { return createHash('sha256').update(stableJson(value)).digest('hex') }
+function hash(value: unknown): string {
+  return createHash('sha256').update(stableJson(value)).digest('hex')
+}
 
 function previousQuarterEnd(periodEnd: string): string {
   const [year, month] = periodEnd.split('-').map(Number)
@@ -64,52 +69,82 @@ function periodState(value: string | null | undefined): EffectivePortfolioInput[
   return 'PARTIAL'
 }
 
-async function readEffectivePortfolio(tx: DatabaseTx, managerId: bigint, periodEnd: string): Promise<EffectivePortfolioInput | undefined> {
-  const [snapshot] = await tx.select({
-    id: institutionalEffectiveSnapshots.id,
-    snapshotHash: institutionalEffectiveSnapshots.snapshotHash,
-    periodEnd: institutionalEffectiveSnapshots.periodEnd,
-    state: institutionalEffectivePeriodStates.status,
-    stateReason: institutionalEffectivePeriodStates.reason,
-  }).from(institutionalEffectiveSnapshotPublications)
-    .innerJoin(institutionalEffectiveSnapshots, eq(institutionalEffectiveSnapshots.id, institutionalEffectiveSnapshotPublications.snapshotId))
-    .leftJoin(institutionalEffectivePeriodStates, and(
-      eq(institutionalEffectivePeriodStates.managerId, institutionalEffectiveSnapshots.managerId),
-      eq(institutionalEffectivePeriodStates.periodEnd, institutionalEffectiveSnapshots.periodEnd),
-    ))
-    .where(and(
-      eq(institutionalEffectiveSnapshotPublications.managerId, managerId),
-      eq(institutionalEffectiveSnapshotPublications.periodEnd, periodEnd),
-      eq(institutionalEffectiveSnapshotPublications.active, true),
-      eq(institutionalEffectiveSnapshotPublications.status, 'READY'),
-    )).limit(1)
+async function readEffectivePortfolio(
+  tx: DatabaseTx,
+  managerId: bigint,
+  periodEnd: string,
+): Promise<EffectivePortfolioInput | undefined> {
+  const [snapshot] = await tx
+    .select({
+      id: institutionalEffectiveSnapshots.id,
+      snapshotHash: institutionalEffectiveSnapshots.snapshotHash,
+      periodEnd: institutionalEffectiveSnapshots.periodEnd,
+      state: institutionalEffectivePeriodStates.status,
+      stateReason: institutionalEffectivePeriodStates.reason,
+    })
+    .from(institutionalEffectiveSnapshotPublications)
+    .innerJoin(
+      institutionalEffectiveSnapshots,
+      eq(institutionalEffectiveSnapshots.id, institutionalEffectiveSnapshotPublications.snapshotId),
+    )
+    .leftJoin(
+      institutionalEffectivePeriodStates,
+      and(
+        eq(institutionalEffectivePeriodStates.managerId, institutionalEffectiveSnapshots.managerId),
+        eq(institutionalEffectivePeriodStates.periodEnd, institutionalEffectiveSnapshots.periodEnd),
+      ),
+    )
+    .where(
+      and(
+        eq(institutionalEffectiveSnapshotPublications.managerId, managerId),
+        eq(institutionalEffectiveSnapshotPublications.periodEnd, periodEnd),
+        eq(institutionalEffectiveSnapshotPublications.active, true),
+        eq(institutionalEffectiveSnapshotPublications.status, 'READY'),
+      ),
+    )
+    .limit(1)
   if (!snapshot) return undefined
 
-  const rows = await tx.select({
-    sourceRowKey: institutionalEffectiveHoldings.sourceRowKey,
-    securityId: institutionalEffectiveHoldings.securityId,
-    sourceIssuer: institutionalEffectiveHoldings.issuer,
-    quantityType: institutionalEffectiveHoldings.quantityType,
-    putCall: institutionalEffectiveHoldings.putCall,
-    quantity: institutionalEffectiveHoldings.quantity,
-    reportedValue: institutionalEffectiveHoldings.reportedValue,
-    reportedValueUnit: institutionalEffectiveHoldings.reportedValueUnit,
-    mappingStatus: institutionalEffectiveHoldings.mappingStatus,
-    company: institutionalSecurities.issuer,
-    sector: institutionalSecurities.sector,
-    industry: institutionalSecurities.industry,
-  }).from(institutionalEffectiveHoldings)
+  const rows = await tx
+    .select({
+      sourceRowKey: institutionalEffectiveHoldings.sourceRowKey,
+      securityId: institutionalEffectiveHoldings.securityId,
+      sourceIssuer: institutionalEffectiveHoldings.issuer,
+      quantityType: institutionalEffectiveHoldings.quantityType,
+      putCall: institutionalEffectiveHoldings.putCall,
+      quantity: institutionalEffectiveHoldings.quantity,
+      reportedValue: institutionalEffectiveHoldings.reportedValue,
+      reportedValueUnit: institutionalEffectiveHoldings.reportedValueUnit,
+      mappingStatus: institutionalEffectiveHoldings.mappingStatus,
+      company: institutionalSecurities.issuer,
+      sector: institutionalSecurities.sector,
+      industry: institutionalSecurities.industry,
+    })
+    .from(institutionalEffectiveHoldings)
     .leftJoin(institutionalSecurities, eq(institutionalSecurities.id, institutionalEffectiveHoldings.securityId))
     .where(eq(institutionalEffectiveHoldings.snapshotId, snapshot.id))
     .orderBy(asc(institutionalEffectiveHoldings.ordinal))
-  const securityIds = [...new Set(rows.flatMap(row => row.securityId === null ? [] : [row.securityId]))]
-  const tickerRows = securityIds.length ? await tx.select({ securityId: institutionalSecurityIdentifiers.securityId, ticker: institutionalSecurityIdentifiers.value })
-    .from(institutionalSecurityIdentifiers).where(and(
-      inArray(institutionalSecurityIdentifiers.securityId, securityIds),
-      eq(institutionalSecurityIdentifiers.type, 'TICKER'),
-      lte(institutionalSecurityIdentifiers.validFrom, periodEnd),
-      or(gte(institutionalSecurityIdentifiers.validTo, periodEnd), isNull(institutionalSecurityIdentifiers.validTo)),
-    )).orderBy(desc(institutionalSecurityIdentifiers.validFrom), desc(institutionalSecurityIdentifiers.id)) : []
+  const securityIds = [...new Set(rows.flatMap(row => (row.securityId === null ? [] : [row.securityId])))]
+  const tickerRows = securityIds.length
+    ? await tx
+        .select({
+          securityId: institutionalSecurityIdentifiers.securityId,
+          ticker: institutionalSecurityIdentifiers.value,
+        })
+        .from(institutionalSecurityIdentifiers)
+        .where(
+          and(
+            inArray(institutionalSecurityIdentifiers.securityId, securityIds),
+            eq(institutionalSecurityIdentifiers.type, 'TICKER'),
+            lte(institutionalSecurityIdentifiers.validFrom, periodEnd),
+            or(
+              gte(institutionalSecurityIdentifiers.validTo, periodEnd),
+              isNull(institutionalSecurityIdentifiers.validTo),
+            ),
+          ),
+        )
+        .orderBy(desc(institutionalSecurityIdentifiers.validFrom), desc(institutionalSecurityIdentifiers.id))
+    : []
   const tickers = new Map<bigint, string>()
   for (const row of tickerRows) if (!tickers.has(row.securityId)) tickers.set(row.securityId, row.ticker)
   return {
@@ -121,7 +156,7 @@ async function readEffectivePortfolio(tx: DatabaseTx, managerId: bigint, periodE
     holdings: rows.map(row => ({
       sourceRowKey: row.sourceRowKey,
       securityId: row.securityId?.toString() ?? null,
-      ticker: row.securityId === null ? null : tickers.get(row.securityId) ?? null,
+      ticker: row.securityId === null ? null : (tickers.get(row.securityId) ?? null),
       company: row.company ?? row.sourceIssuer,
       sector: row.sector,
       industry: row.industry,
@@ -136,7 +171,9 @@ async function readEffectivePortfolio(tx: DatabaseTx, managerId: bigint, periodE
 }
 
 async function readIdentityEvents(tx: DatabaseTx): Promise<GuruSecurityIdentityEvent[]> {
-  const events = await tx.select().from(institutionalSecurityIdentityEvents)
+  const events = await tx
+    .select()
+    .from(institutionalSecurityIdentityEvents)
     .orderBy(asc(institutionalSecurityIdentityEvents.effectiveOn), asc(institutionalSecurityIdentityEvents.id))
   return events.map(event => ({
     id: event.id.toString(),
@@ -156,14 +193,22 @@ function relevantIdentityEvents(
   events: readonly GuruSecurityIdentityEvent[],
 ): GuruSecurityIdentityEvent[] {
   if (!previous) return []
-  const inPeriod = events.filter(event => previous.periodEnd < event.effectiveOn && event.effectiveOn <= current.periodEnd)
+  const inPeriod = events.filter(
+    event => previous.periodEnd < event.effectiveOn && event.effectiveOn <= current.periodEnd,
+  )
   const relevant = new Set<string>()
-  const reachable = new Set([...current.holdings, ...previous.holdings].flatMap(holding => holding.securityId ? [holding.securityId] : []))
+  const reachable = new Set(
+    [...current.holdings, ...previous.holdings].flatMap(holding => (holding.securityId ? [holding.securityId] : [])),
+  )
   let added = true
   while (added) {
     added = false
     for (const event of inPeriod) {
-      if (relevant.has(event.id) || (!reachable.has(event.fromSecurityId) && (!event.toSecurityId || !reachable.has(event.toSecurityId)))) continue
+      if (
+        relevant.has(event.id) ||
+        (!reachable.has(event.fromSecurityId) && (!event.toSecurityId || !reachable.has(event.toSecurityId)))
+      )
+        continue
       relevant.add(event.id)
       reachable.add(event.fromSecurityId)
       if (event.toSecurityId) reachable.add(event.toSecurityId)
@@ -200,12 +245,26 @@ function readyValues(result: GuruPortfolioAnalytics) {
   }
 }
 
-function structuredContextHash(result: GuruPortfolioAnalytics, state: EffectivePortfolioInput['state'], stateReason: string | null): string {
-  const publicChange = ({ corporateActionEventIds: _auditEventIds, ...change }: GuruPortfolioAnalytics['changes'][number]) => change
-  const largestPosition = result.portfolio.largestPosition?.securityId === null
-    ? { ...result.portfolio.largestPosition, positionKey: null }
-    : result.portfolio.largestPosition
-  if (state !== 'READY') return hash({ status: state, reason: stateReason, periodEnd: result.periodEnd, portfolio: { ...result.portfolio, largestPosition } })
+function structuredContextHash(
+  result: GuruPortfolioAnalytics,
+  state: EffectivePortfolioInput['state'],
+  stateReason: string | null,
+): string {
+  const publicChange = ({
+    corporateActionEventIds: _auditEventIds,
+    ...change
+  }: GuruPortfolioAnalytics['changes'][number]) => change
+  const largestPosition =
+    result.portfolio.largestPosition?.securityId === null
+      ? { ...result.portfolio.largestPosition, positionKey: null }
+      : result.portfolio.largestPosition
+  if (state !== 'READY')
+    return hash({
+      status: state,
+      reason: stateReason,
+      periodEnd: result.periodEnd,
+      portfolio: { ...result.portfolio, largestPosition },
+    })
   return hash({
     status: state,
     result: {
@@ -218,8 +277,19 @@ function structuredContextHash(result: GuruPortfolioAnalytics, state: EffectiveP
   })
 }
 
-async function persistPeriod(tx: DatabaseTx, managerId: bigint, current: EffectivePortfolioInput, previous: EffectivePortfolioInput | undefined, identityEvents: readonly GuruSecurityIdentityEvent[], now: Date) {
-  const currentSnapshot: GuruAnalyticsSnapshot = { periodEnd: current.periodEnd, status: current.state, holdings: current.holdings }
+async function persistPeriod(
+  tx: DatabaseTx,
+  managerId: bigint,
+  current: EffectivePortfolioInput,
+  previous: EffectivePortfolioInput | undefined,
+  identityEvents: readonly GuruSecurityIdentityEvent[],
+  now: Date,
+) {
+  const currentSnapshot: GuruAnalyticsSnapshot = {
+    periodEnd: current.periodEnd,
+    status: current.state,
+    holdings: current.holdings,
+  }
   const previousSnapshot: GuruAnalyticsSnapshot | undefined = previous
     ? { periodEnd: previous.periodEnd, status: previous.state, holdings: previous.holdings }
     : undefined
@@ -233,17 +303,38 @@ async function persistPeriod(tx: DatabaseTx, managerId: bigint, current: Effecti
   const sourceHash = hash({
     analyticsVersion: GURU_PORTFOLIO_ANALYTICS_VERSION,
     thresholds: DEFAULT_GURU_ACTION_THRESHOLDS,
-    current: { snapshotId: current.id, snapshotHash: current.snapshotHash, state: current.state, stateReason: current.stateReason, holdings: current.holdings },
-    previous: previous ? { snapshotId: previous.id, snapshotHash: previous.snapshotHash, state: previous.state, stateReason: previous.stateReason, holdings: previous.holdings } : null,
+    current: {
+      snapshotId: current.id,
+      snapshotHash: current.snapshotHash,
+      state: current.state,
+      stateReason: current.stateReason,
+      holdings: current.holdings,
+    },
+    previous: previous
+      ? {
+          snapshotId: previous.id,
+          snapshotHash: previous.snapshotHash,
+          state: previous.state,
+          stateReason: previous.stateReason,
+          holdings: previous.holdings,
+        }
+      : null,
     identityEvents,
   })
   const contextHash = structuredContextHash(result, current.state, current.stateReason)
-  const [existing] = await tx.select().from(guruQuarterAnalytics).where(and(
-    eq(guruQuarterAnalytics.managerId, managerId),
-    eq(guruQuarterAnalytics.periodEnd, current.periodEnd),
-    eq(guruQuarterAnalytics.analyticsVersion, GURU_PORTFOLIO_ANALYTICS_VERSION),
-  )).limit(1)
-  if (existing?.inputHash === sourceHash && existing.status === (ready ? 'READY' : current.state)) return { status: current.state, analyticsId: existing.id, changed: false }
+  const [existing] = await tx
+    .select()
+    .from(guruQuarterAnalytics)
+    .where(
+      and(
+        eq(guruQuarterAnalytics.managerId, managerId),
+        eq(guruQuarterAnalytics.periodEnd, current.periodEnd),
+        eq(guruQuarterAnalytics.analyticsVersion, GURU_PORTFOLIO_ANALYTICS_VERSION),
+      ),
+    )
+    .limit(1)
+  if (existing?.inputHash === sourceHash && existing.status === (ready ? 'READY' : current.state))
+    return { status: current.state, analyticsId: existing.id, changed: false }
 
   const values = {
     managerId,
@@ -255,14 +346,22 @@ async function persistPeriod(tx: DatabaseTx, managerId: bigint, current: Effecti
     contextHash,
     status: ready ? 'READY' : current.state,
     ...readyValues(result),
-    ...(ready ? {} : {
-      comparisonStatus: `CURRENT_${current.state}`,
-      disclosedWeightTurnoverPercent: null,
-      turnoverBand: null,
-      turnoverUnavailableReason: 'CURRENT_NOT_READY',
-      newCount: 0, strongAddCount: 0, addCount: 0, unchangedCount: 0, reduceCount: 0, strongReduceCount: 0, exitCount: 0,
-      result: null,
-    }),
+    ...(ready
+      ? {}
+      : {
+          comparisonStatus: `CURRENT_${current.state}`,
+          disclosedWeightTurnoverPercent: null,
+          turnoverBand: null,
+          turnoverUnavailableReason: 'CURRENT_NOT_READY',
+          newCount: 0,
+          strongAddCount: 0,
+          addCount: 0,
+          unchangedCount: 0,
+          reduceCount: 0,
+          strongReduceCount: 0,
+          exitCount: 0,
+          result: null,
+        }),
     calculatedAt: now,
   }
   const [stored] = existing
@@ -297,7 +396,8 @@ async function persistPeriod(tx: DatabaseTx, managerId: bigint, current: Effecti
       currentReportedValueUsd: change.currentReportedValueUsd,
       reportedValueChangeUsd: change.reportedValueChangeUsd,
     }))
-    for (let offset = 0; offset < changes.length; offset += 250) await tx.insert(guruHoldingChanges).values(changes.slice(offset, offset + 250))
+    for (let offset = 0; offset < changes.length; offset += 250)
+      await tx.insert(guruHoldingChanges).values(changes.slice(offset, offset + 250))
   }
   return { status: current.state, analyticsId: stored.id, changed: true }
 }
@@ -310,7 +410,9 @@ async function rebuildAffectedPeriods(tx: DatabaseTx, managerId: bigint, changed
     const current = await readEffectivePortfolio(tx, managerId, periodEnd)
     if (!current) continue
     const prior = await readEffectivePortfolio(tx, managerId, previousQuarterEnd(periodEnd))
-    results.push(await persistPeriod(tx, managerId, current, prior, relevantIdentityEvents(current, prior, identityEvents), now))
+    results.push(
+      await persistPeriod(tx, managerId, current, prior, relevantIdentityEvents(current, prior, identityEvents), now),
+    )
   }
   return results
 }
@@ -320,39 +422,70 @@ export async function runPendingGuruPortfolioAnalyticsOnce(db: Database, now = n
   try {
     return await db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${ANALYTICS_EVENT_LOCK}, 0))`)
-      const [event] = await tx.select({
-        id: institutionalSnapshotChangeEvents.id,
-        managerId: institutionalSnapshotChangeEvents.managerId,
-        periodEnd: institutionalSnapshotChangeEvents.periodEnd,
-      }).from(institutionalSnapshotChangeEvents)
-        .leftJoin(guruAnalyticsEventDeliveries, eq(guruAnalyticsEventDeliveries.eventId, institutionalSnapshotChangeEvents.id))
-        .where(and(
-          isNull(guruAnalyticsEventDeliveries.processedAt),
-          or(isNull(guruAnalyticsEventDeliveries.eventId), lte(guruAnalyticsEventDeliveries.nextAttemptAt, now)),
-        ))
-        .orderBy(asc(institutionalSnapshotChangeEvents.id)).limit(1)
+      const [event] = await tx
+        .select({
+          id: institutionalSnapshotChangeEvents.id,
+          managerId: institutionalSnapshotChangeEvents.managerId,
+          periodEnd: institutionalSnapshotChangeEvents.periodEnd,
+        })
+        .from(institutionalSnapshotChangeEvents)
+        .leftJoin(
+          guruAnalyticsEventDeliveries,
+          eq(guruAnalyticsEventDeliveries.eventId, institutionalSnapshotChangeEvents.id),
+        )
+        .where(
+          and(
+            isNull(guruAnalyticsEventDeliveries.processedAt),
+            or(isNull(guruAnalyticsEventDeliveries.eventId), lte(guruAnalyticsEventDeliveries.nextAttemptAt, now)),
+          ),
+        )
+        .orderBy(asc(institutionalSnapshotChangeEvents.id))
+        .limit(1)
       if (!event) return undefined
       attemptedEventId = event.id
       const result = await rebuildAffectedPeriods(tx, event.managerId, event.periodEnd, now)
-      await tx.insert(guruAnalyticsEventDeliveries).values({ eventId: event.id, attemptCount: 0, nextAttemptAt: now, processedAt: now, lastError: null })
-        .onConflictDoUpdate({ target: guruAnalyticsEventDeliveries.eventId, set: { nextAttemptAt: now, processedAt: now, lastError: null } })
-      return { eventId: event.id, managerId: event.managerId, periodEnd: event.periodEnd, status: 'READY' as const, analytics: result }
+      await tx
+        .insert(guruAnalyticsEventDeliveries)
+        .values({ eventId: event.id, attemptCount: 0, nextAttemptAt: now, processedAt: now, lastError: null })
+        .onConflictDoUpdate({
+          target: guruAnalyticsEventDeliveries.eventId,
+          set: { nextAttemptAt: now, processedAt: now, lastError: null },
+        })
+      return {
+        eventId: event.id,
+        managerId: event.managerId,
+        periodEnd: event.periodEnd,
+        status: 'READY' as const,
+        analytics: result,
+      }
     })
   } catch {
     if (attemptedEventId === undefined) throw new Error('GURU_ANALYTICS_EVENT_CLAIM_FAILED')
     await db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${ANALYTICS_EVENT_LOCK}, 0))`)
-      const [previous] = await tx.select({ attemptCount: guruAnalyticsEventDeliveries.attemptCount }).from(guruAnalyticsEventDeliveries)
-        .where(eq(guruAnalyticsEventDeliveries.eventId, attemptedEventId!)).limit(1)
-      await tx.insert(guruAnalyticsEventDeliveries).values({
-        eventId: attemptedEventId!, attemptCount: 1, nextAttemptAt: new Date(now.getTime() + FAILURE_BACKOFF_MS),
-        lastError: 'GURU_ANALYTICS_REBUILD_FAILED', processedAt: null,
-      }).onConflictDoUpdate({ target: guruAnalyticsEventDeliveries.eventId, set: {
-        attemptCount: (previous?.attemptCount ?? 0) + 1,
-        nextAttemptAt: new Date(now.getTime() + FAILURE_BACKOFF_MS),
-        lastError: 'GURU_ANALYTICS_REBUILD_FAILED',
-        processedAt: null,
-      } })
+      const [previous] = await tx
+        .select({ attemptCount: guruAnalyticsEventDeliveries.attemptCount })
+        .from(guruAnalyticsEventDeliveries)
+        .where(eq(guruAnalyticsEventDeliveries.eventId, attemptedEventId!))
+        .limit(1)
+      await tx
+        .insert(guruAnalyticsEventDeliveries)
+        .values({
+          eventId: attemptedEventId!,
+          attemptCount: 1,
+          nextAttemptAt: new Date(now.getTime() + FAILURE_BACKOFF_MS),
+          lastError: 'GURU_ANALYTICS_REBUILD_FAILED',
+          processedAt: null,
+        })
+        .onConflictDoUpdate({
+          target: guruAnalyticsEventDeliveries.eventId,
+          set: {
+            attemptCount: (previous?.attemptCount ?? 0) + 1,
+            nextAttemptAt: new Date(now.getTime() + FAILURE_BACKOFF_MS),
+            lastError: 'GURU_ANALYTICS_REBUILD_FAILED',
+            processedAt: null,
+          },
+        })
     })
     return { eventId: attemptedEventId, status: 'ERROR' as const }
   }

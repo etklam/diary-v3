@@ -4,7 +4,12 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
 import type { Root } from 'mdast'
-import { TranslationProviderError, type ArticleTranslationLocale, type TranslationProvider, type TranslationUsageMetadata } from './types.js'
+import {
+  TranslationProviderError,
+  type ArticleTranslationLocale,
+  type TranslationProvider,
+  type TranslationUsageMetadata,
+} from './types.js'
 
 export interface TranslateMarkdownOptions {
   markdown: string
@@ -30,10 +35,25 @@ export interface TranslateMarkdownDocumentsResult {
   translatedBlockCount: number
 }
 
-interface TextRange { start: number; end: number }
-interface MarkdownUnit { kind: 'heading' | 'paragraph' | 'list-item' | 'blockquote' | 'table-cell'; range: TextRange }
-interface Marker { value: string; structural: boolean; immutable: boolean }
-interface PreparedUnit { block: string; markerPrefix: string; markers: Map<string, Marker>; structureOrder: string[] }
+interface TextRange {
+  start: number
+  end: number
+}
+interface MarkdownUnit {
+  kind: 'heading' | 'paragraph' | 'list-item' | 'blockquote' | 'table-cell'
+  range: TextRange
+}
+interface Marker {
+  value: string
+  structural: boolean
+  immutable: boolean
+}
+interface PreparedUnit {
+  block: string
+  markerPrefix: string
+  markers: Map<string, Marker>
+  structureOrder: string[]
+}
 interface MdNode {
   type: string
   position?: { start: { offset?: number; line: number }; end: { offset?: number; line: number } }
@@ -56,7 +76,9 @@ function nodeOffset(node: MdNode, edge: 'start' | 'end'): number | null {
   return typeof offset === 'number' ? offset : null
 }
 
-function isAncestor(ancestors: readonly string[], type: string): boolean { return ancestors.includes(type) }
+function isAncestor(ancestors: readonly string[], type: string): boolean {
+  return ancestors.includes(type)
+}
 
 function trimmedRange(markdown: string, start: number, end: number): TextRange | null {
   while (start < end && /\s/.test(markdown[start]!)) start++
@@ -110,7 +132,11 @@ function discoverUnits(markdown: string, root: MdNode): MarkdownUnit[] {
       const start = nodeOffset(node, 'start')
       const end = nodeOffset(node, 'end')
       if (start !== null && end !== null) {
-        const kind = isAncestor(ancestors, 'listItem') ? 'list-item' : isAncestor(ancestors, 'blockquote') ? 'blockquote' : 'paragraph'
+        const kind = isAncestor(ancestors, 'listItem')
+          ? 'list-item'
+          : isAncestor(ancestors, 'blockquote')
+            ? 'blockquote'
+            : 'paragraph'
         const range = trimmedRange(markdown, start, end)
         if (range) units.push({ kind, range })
       }
@@ -125,7 +151,10 @@ function discoverUnits(markdown: string, root: MdNode): MarkdownUnit[] {
 function findClosingBracket(text: string, start: number, open: string, close: string): number {
   let depth = 0
   for (let index = start; index < text.length; index++) {
-    if (text[index] === '\\') { index++; continue }
+    if (text[index] === '\\') {
+      index++
+      continue
+    }
     if (text[index] === open) depth++
     if (text[index] === close && --depth === 0) return index
   }
@@ -137,9 +166,18 @@ function findClosingParenthesis(text: string, start: number): number {
   let quote = ''
   for (let index = start; index < text.length; index++) {
     const character = text[index]!
-    if (character === '\\') { index++; continue }
-    if (quote) { if (character === quote) quote = ''; continue }
-    if (character === '"' || character === "'") { quote = character; continue }
+    if (character === '\\') {
+      index++
+      continue
+    }
+    if (quote) {
+      if (character === quote) quote = ''
+      continue
+    }
+    if (character === '"' || character === "'") {
+      quote = character
+      continue
+    }
     if (character === '(') depth++
     if (character === ')' && --depth === 0) return index
   }
@@ -160,10 +198,16 @@ function matchingEmphasis(text: string, index: number): string | null {
   return null
 }
 
-function isWordCharacter(value: string | undefined): boolean { return value !== undefined && /[A-Za-z0-9_]/.test(value) }
+function isWordCharacter(value: string | undefined): boolean {
+  return value !== undefined && /[A-Za-z0-9_]/.test(value)
+}
 
 function findUnescapedSequence(text: string, sequence: string, start: number): number {
-  for (let index = text.indexOf(sequence, start); index !== -1; index = text.indexOf(sequence, index + sequence.length)) {
+  for (
+    let index = text.indexOf(sequence, start);
+    index !== -1;
+    index = text.indexOf(sequence, index + sequence.length)
+  ) {
     let slashCount = 0
     for (let prior = index - 1; prior >= 0 && text[prior] === '\\'; prior--) slashCount++
     if (slashCount % 2 === 0) return index
@@ -176,7 +220,12 @@ function citationToken(text: string): string | null {
   return match?.[0] ?? null
 }
 
-function protectInline(text: string, markerPrefix: string, markers: Map<string, Marker>, structureOrder: string[]): string {
+function protectInline(
+  text: string,
+  markerPrefix: string,
+  markers: Map<string, Marker>,
+  structureOrder: string[],
+): string {
   let result = ''
   let nextMarker = markers.size
   const marker = (value: string, structural: boolean, immutable = !structural): string => {
@@ -185,8 +234,12 @@ function protectInline(text: string, markerPrefix: string, markers: Map<string, 
     if (structural) structureOrder.push(token)
     return token
   }
-  for (let index = 0; index < text.length;) {
-    if ((text[index] === '\r' || text[index] === '\n') || (text[index] === ' ' || text[index] === '\t') && /^[ \t]{2,}(?=\r?\n)/.test(text.slice(index))) {
+  for (let index = 0; index < text.length; ) {
+    if (
+      text[index] === '\r' ||
+      text[index] === '\n' ||
+      ((text[index] === ' ' || text[index] === '\t') && /^[ \t]{2,}(?=\r?\n)/.test(text.slice(index)))
+    ) {
       let end = index
       if (text[index] !== '\r' && text[index] !== '\n') while (text[end] === ' ' || text[end] === '\t') end++
       if (text[end] === '\r' && text[end + 1] === '\n') end += 2
@@ -286,7 +339,11 @@ function protectInline(text: string, markerPrefix: string, markers: Map<string, 
       } else {
         const previous = text[index - 1]
         const next = text[index + candidate.length]
-        if ((pattern === immutablePatterns[2] || pattern === immutablePatterns[3]) && (isWordCharacter(previous) || isWordCharacter(next))) continue
+        if (
+          (pattern === immutablePatterns[2] || pattern === immutablePatterns[3]) &&
+          (isWordCharacter(previous) || isWordCharacter(next))
+        )
+          continue
         immutable = candidate
       }
       if (immutable) break
@@ -313,7 +370,8 @@ function prepareUnit(markdown: string, unit: MarkdownUnit): PreparedUnit {
   const markers = new Map<string, Marker>()
   const structureOrder: string[] = []
   const block = protectInline(markdown.slice(unit.range.start, unit.range.end), markerPrefix, markers, structureOrder)
-  if (Buffer.byteLength(block, 'utf8') > MAX_TRANSLATED_BLOCK_BYTES) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
+  if (Buffer.byteLength(block, 'utf8') > MAX_TRANSLATED_BLOCK_BYTES)
+    throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
   return { block, markerPrefix, markers, structureOrder }
 }
 
@@ -321,7 +379,11 @@ function decodedBlock(output: string, prepared: PreparedUnit): string {
   const markerRegex = new RegExp(`${prepared.markerPrefix}\\d{4}QXZ`, 'g')
   const found: string[] = output.match(markerRegex) ?? []
   const expected = [...prepared.markers.keys()]
-  if (found.length !== expected.length || new Set(found).size !== found.length || expected.some(token => !found.includes(token))) {
+  if (
+    found.length !== expected.length ||
+    new Set(found).size !== found.length ||
+    expected.some(token => !found.includes(token))
+  ) {
     throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   }
   let prior = -1
@@ -358,7 +420,10 @@ function immutableValues(markdown: string): string[][] {
   const units = discoverUnits(markdown, parseMarkdown(markdown))
   return units.map(unit => {
     const prepared = prepareUnit(markdown, unit)
-    return [...prepared.markers.values()].filter(value => value.immutable).map(value => value.value).sort()
+    return [...prepared.markers.values()]
+      .filter(value => value.immutable)
+      .map(value => value.value)
+      .sort()
   })
 }
 
@@ -366,15 +431,23 @@ export function assertMarkdownTranslationPreservesSource(source: string, candida
   const sourceTree = parseMarkdown(source)
   const candidateTree = parseMarkdown(candidate)
   markdownProcessor.stringify(candidateTree)
-  if (structuralSignature(sourceTree) !== structuralSignature(candidateTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  if (structuralSignature(sourceTree) !== structuralSignature(candidateTree))
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   const sourceValues = immutableValues(source)
   const candidateValues = immutableValues(candidate)
-  if (sourceValues.length !== candidateValues.length || sourceValues.some((values, index) => JSON.stringify(values) !== JSON.stringify(candidateValues[index]))) {
+  if (
+    sourceValues.length !== candidateValues.length ||
+    sourceValues.some((values, index) => JSON.stringify(values) !== JSON.stringify(candidateValues[index]))
+  ) {
     throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   }
 }
 
-export async function translateMarkdown(markdown: string, options: TranslateMarkdownOptions, provider: TranslationProvider): Promise<TranslateMarkdownResult> {
+export async function translateMarkdown(
+  markdown: string,
+  options: TranslateMarkdownOptions,
+  provider: TranslationProvider,
+): Promise<TranslateMarkdownResult> {
   const translated = await translateMarkdownDocuments([{ key: 'content', markdown }], options, provider)
   return {
     markdown: translated.documents.content ?? markdown,
@@ -390,15 +463,24 @@ export async function translateMarkdownDocuments(
   options: Omit<TranslateMarkdownOptions, 'markdown'>,
   provider: TranslationProvider,
 ): Promise<TranslateMarkdownDocumentsResult> {
-  if (documents.length === 0 || new Set(documents.map(document => document.key)).size !== documents.length || documents.some(document => !document.key)) {
+  if (
+    documents.length === 0 ||
+    new Set(documents.map(document => document.key)).size !== documents.length ||
+    documents.some(document => !document.key)
+  ) {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
-  if (documents.reduce((total, document) => total + Buffer.byteLength(document.markdown, 'utf8'), 0) > MAX_MARKDOWN_BYTES) {
+  if (
+    documents.reduce((total, document) => total + Buffer.byteLength(document.markdown, 'utf8'), 0) > MAX_MARKDOWN_BYTES
+  ) {
     throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
   }
-  if (options.sourceLocale === options.targetLocale) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (options.sourceLocale === options.targetLocale)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   const parsedDocuments = documents.map(document => ({ ...document, sourceTree: parseMarkdown(document.markdown) }))
-  const units = parsedDocuments.flatMap(document => discoverUnits(document.markdown, document.sourceTree).map(unit => ({ ...unit, key: document.key })))
+  const units = parsedDocuments.flatMap(document =>
+    discoverUnits(document.markdown, document.sourceTree).map(unit => ({ ...unit, key: document.key })),
+  )
   if (units.length > MAX_MARKDOWN_UNITS) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
   if (units.length === 0) {
     return {
@@ -418,24 +500,35 @@ export async function translateMarkdownDocuments(
     blocks: prepared.map(unit => unit.block),
     ...(options.signal ? { signal: options.signal } : {}),
   })
-  if (!Array.isArray(response.translations) || response.translations.length !== prepared.length) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  if (!Array.isArray(response.translations) || response.translations.length !== prepared.length)
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   const replacementsByKey = new Map<string, { range: TextRange; value: string }[]>()
-  units.forEach((unit, index) => replacementsByKey.set(unit.key, [
-    ...(replacementsByKey.get(unit.key) ?? []),
-    { range: unit.range, value: decodedBlock(response.translations[index]!, prepared[index]!) },
-  ]))
+  units.forEach((unit, index) =>
+    replacementsByKey.set(unit.key, [
+      ...(replacementsByKey.get(unit.key) ?? []),
+      { range: unit.range, value: decodedBlock(response.translations[index]!, prepared[index]!) },
+    ]),
+  )
   const translatedDocuments: Record<string, string> = {}
   for (const document of parsedDocuments) {
     let translated = document.markdown
     const replacements = replacementsByKey.get(document.key) ?? []
     replacements.sort((left, right) => right.range.start - left.range.start)
-    for (const replacement of replacements) translated = `${translated.slice(0, replacement.range.start)}${replacement.value}${translated.slice(replacement.range.end)}`
+    for (const replacement of replacements)
+      translated = `${translated.slice(0, replacement.range.start)}${replacement.value}${translated.slice(replacement.range.end)}`
     const translatedTree = parseMarkdown(translated)
     markdownProcessor.stringify(translatedTree)
-    if (structuralSignature(document.sourceTree) !== structuralSignature(translatedTree)) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+    if (structuralSignature(document.sourceTree) !== structuralSignature(translatedTree))
+      throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
     translatedDocuments[document.key] = translated
   }
-  return { documents: translatedDocuments, provider: response.provider, model: response.model, usage: response.usage, translatedBlockCount: prepared.length }
+  return {
+    documents: translatedDocuments,
+    provider: response.provider,
+    model: response.model,
+    usage: response.usage,
+    translatedBlockCount: prepared.length,
+  }
 }
 
 export function markdownTranslationUnitCount(markdown: string): number {

@@ -5,17 +5,51 @@ pipeline. Each item records a real incident, the root cause, and the rule that
 prevents a repeat. Update this file whenever a new CI failure mode is
 diagnosed.
 
+## Pre-merge gate
+
+`.forgejo/workflows/ci.yml` runs on `pull_request` against `main` and is the
+only tier that can block a change before it lands. Two jobs:
+
+| Job | Runs | Why this tier |
+| --- | --- | --- |
+| `source-gates` | tracked-secret scan, `lint`, `typecheck`, `test:unit`, `contracts:check`, `design:check`, `manifests:check` | Seconds to a couple of minutes, no services, deterministic. |
+| `integration` | `test:integration` against a disposable PostgreSQL | A few minutes, and the higher-value half of the slow tiers. |
+
+**Tier policy — the deliberate choice.** Integration gates the merge; the
+browser suites do not. Full Chromium and WebKit critical take 20–36 minutes and
+stay nightly in `regression.yml`, because paying that per pull request is not a
+trade this project wants and because a suite with unowned flakiness
+(`.scratch/diary-v3-rebuild/issues/126-own-the-e2e-flakiness.md`) blocking every
+merge converts a flake into a work stoppage. The consequence is accepted
+explicitly: a change that breaks only a browser flow can merge and will be
+caught by the next nightly run, not before.
+
+**Branch protection is required and is not in this repository.** A failing
+workflow does not by itself prevent a merge or a direct push. The authoritative
+Forgejo repository must protect `main` with:
+
+- Required status checks: `ci / source-gates` and `ci / integration`.
+- Block direct pushes to `main`; no bypass for administrators.
+
+Those are repository settings on the Forgejo server, so no file here can
+establish them. Record the applied configuration alongside this note once set;
+until then the pre-merge gate reports but does not enforce.
+
+`design:check` also runs in `deploy.yml`, so a direct push to `main` is still
+checked even though it opens no pull request.
+
 ## Pipeline overview
 
 The production workflow is `.forgejo/workflows/deploy.yml`. A push to `main`
-starts job `verify-build-deploy` on the `hk` runner; tags and pull requests do
-not start this workflow. The separate `.forgejo/workflows/staging.yml` is a
+starts job `verify-build-deploy` on the `hk` runner; tags do not start this
+workflow. Pull requests start `ci.yml` instead, not this one. The separate `.forgejo/workflows/staging.yml` is a
 manual `workflow_dispatch` workflow that consumes a successful production
 source SHA, immutable API/Web image digests, and an isolated staging hostname.
 
 The production critical path runs the tracked-secret scan, dependency install,
-lint, one explicit typecheck, unit tests, contracts and source-manifest checks,
-then builds and smoke-tests the exact Docker API/Web images before pushing.
+lint, one explicit typecheck, unit tests, contracts, design and source-manifest
+checks, then builds and smoke-tests the exact Docker API/Web images before
+pushing.
 Image IDs are checked again before publication; rendered production manifests
 must use registry digests. Migrations, system seed, production rollout, public
 and API smoke checks, and mutation-aware rollback remain blocking. The
@@ -28,6 +62,13 @@ the PostgreSQL backup/restore smoke, full Chromium and WebKit critical suites,
 and the extended release-artifact flows against Docker-built images. These
 checks remain blocking in that workflow; they no longer delay or silently
 permit a production deployment from the same run.
+
+The browser suites retry once in CI and publish a flake count per run
+(`playwright-report/flaky-<suite>.json`) so a retried pass is recorded as
+*flaky* rather than hidden inside green. Quarantined cases run in a separate
+non-blocking step, which is the only sanctioned way for a case to stop gating —
+see [end-to-end flakiness](e2e-flakiness.md) for the rule. The release smoke
+keeps zero retries by design.
 
 Production concurrency stays on `cancel-in-progress: false`. Forgejo applies
 the concurrency group to the whole workflow, so cancellation could stop a run

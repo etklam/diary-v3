@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { seasonalityMonthData, seasonalityMonthInTimezone, seasonalityPeriodAverage, strongestSeasonalityMonths, weakestSeasonalityMonths } from '../../packages/domain/src/seasonality'
+import {
+  seasonalityMonthData,
+  seasonalityMonthInTimezone,
+  seasonalityPeriodAverage,
+  strongestSeasonalityMonths,
+  weakestSeasonalityMonths,
+} from '../../packages/domain/src/seasonality'
 
 describe('seasonality domain', () => {
   it('uses monthly means and stable tie ordering', () => {

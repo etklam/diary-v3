@@ -21,18 +21,31 @@ async function registerAndLogin(browser: BrowserSession) {
   expect((await browser.request('/api/auth/me')).status).toBe(200)
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('holidays_http') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('holidays_http')
+})
 beforeEach(async () => {
-  publicHolidays = vi.fn(async () => [{
-    date: '2026-01-01', localName: '元旦', name: "New Year's Day", countryCode: 'TW' as const,
-    fixed: true, global: true, counties: null, launchYear: null, types: ['Public'],
-  }])
+  publicHolidays = vi.fn(async () => [
+    {
+      date: '2026-01-01',
+      localName: '元旦',
+      name: "New Year's Day",
+      countryCode: 'TW' as const,
+      fixed: true,
+      global: true,
+      counties: null,
+      launchYear: null,
+      types: ['Public'],
+    },
+  ])
   const app = createApp({
     db: database.db,
     holidays: { publicHolidays },
     config: {
       jwtSecret: 'test-only-holiday-http-secret-over-32-characters',
-      nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
     },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
@@ -43,7 +56,9 @@ afterEach(async () => {
   server.close()
   await once(server, 'close')
 })
-afterAll(async () => { await database?.dispose() })
+afterAll(async () => {
+  await database?.dispose()
+})
 
 describe('holiday HTTP contract with injected provider', () => {
   it('requires an authenticated owner and returns normalized query data with official fields', async () => {
@@ -53,10 +68,22 @@ describe('holiday HTTP contract with injected provider', () => {
     const response = await browser.request('/api/holidays?year=2026&countryCode=tw')
     expect(response.status).toBe(200)
     expect(publicHolidays).toHaveBeenCalledWith(2026, 'TW')
-    expect(await response.json()).toEqual({ success: true, data: [{
-      date: '2026-01-01', localName: '元旦', name: "New Year's Day", countryCode: 'TW',
-      fixed: true, global: true, counties: null, launchYear: null, types: ['Public'],
-    }] })
+    expect(await response.json()).toEqual({
+      success: true,
+      data: [
+        {
+          date: '2026-01-01',
+          localName: '元旦',
+          name: "New Year's Day",
+          countryCode: 'TW',
+          fixed: true,
+          global: true,
+          counties: null,
+          launchYear: null,
+          types: ['Public'],
+        },
+      ],
+    })
   })
 
   it('fails closed on an invalid explicit Bearer even with valid browser cookies', async () => {

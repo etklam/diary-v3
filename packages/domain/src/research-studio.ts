@@ -10,8 +10,7 @@ const RESEARCH_METHOD_ID = 'us-equity-swing-report' as const
 const RESEARCH_METHOD_VERSION = '1.0.0' as const
 export const RESEARCH_CALCULATOR_VERSION = 'ts-research-calculator-1.0.0' as const
 const RESEARCH_METHOD_SOURCE_FIXTURE = 'tests/fixtures/research-method/notion-pages.json' as const
-const RESEARCH_METHOD_SOURCE_SHA256 =
-  'b45697fb82435cfc4c45961620be209ab8ebe59f558e36c02bcda380eff6206d' as const
+const RESEARCH_METHOD_SOURCE_SHA256 = 'b45697fb82435cfc4c45961620be209ab8ebe59f558e36c02bcda380eff6206d' as const
 
 export type ResearchMethodAppendix = {
   name: string
@@ -104,16 +103,76 @@ export const RESEARCH_METHOD_BUNDLE = {
     minimumCompletedWeeks: 34,
   },
   coverage: [
-    { id: 'M01', rule: 'Canonical bars and data quality gates', implementation: 'validateResearchInput/normalizeResearchBars', evidence: ['02-data-contract', '06-report-and-qa'], manualQa: true },
-    { id: 'M02', rule: 'SMA/EMA/RMA seeds and slopes', implementation: 'calculateResearchMetrics', evidence: ['03-indicator-spec'], manualQa: true },
-    { id: 'M03', rule: 'RSI14, MACD12/26/9, ATR14', implementation: 'calculateResearchMetrics', evidence: ['03-indicator-spec'], manualQa: true },
-    { id: 'M04', rule: 'DMI/ADX14 and Bollinger20/2', implementation: 'calculateResearchMetrics', evidence: ['03-indicator-spec'], manualQa: true },
-    { id: 'M05', rule: 'Prior-20-day volume and completed weekly bars', implementation: 'calculateResearchMetrics', evidence: ['03-indicator-spec'], manualQa: true },
-    { id: 'M06', rule: 'Common-window price and relative returns', implementation: 'calculateRelativeStrength', evidence: ['03-indicator-spec', '06-report-and-qa'], manualQa: true },
-    { id: 'M07', rule: 'Confirmed pivots and recent gaps', implementation: 'findConfirmedPivots/findGaps', evidence: ['03-indicator-spec'], manualQa: true },
-    { id: 'M08', rule: 'Structural levels and two reward/risk views', implementation: 'deriveStructuralLevels/calculateRewardRisk', evidence: ['04-analysis-and-trades'], manualQa: true },
-    { id: 'M09', rule: 'Transparent direction score and caps', implementation: 'calculateDirectionScore', evidence: ['04-analysis-and-trades'], manualQa: true },
-    { id: 'M10', rule: 'Human review remains required for subjective claims', implementation: 'RESEARCH_METHOD_BUNDLE coverage and QA handoff', evidence: ['04-analysis-and-trades', '06-report-and-qa'], manualQa: true },
+    {
+      id: 'M01',
+      rule: 'Canonical bars and data quality gates',
+      implementation: 'validateResearchInput/normalizeResearchBars',
+      evidence: ['02-data-contract', '06-report-and-qa'],
+      manualQa: true,
+    },
+    {
+      id: 'M02',
+      rule: 'SMA/EMA/RMA seeds and slopes',
+      implementation: 'calculateResearchMetrics',
+      evidence: ['03-indicator-spec'],
+      manualQa: true,
+    },
+    {
+      id: 'M03',
+      rule: 'RSI14, MACD12/26/9, ATR14',
+      implementation: 'calculateResearchMetrics',
+      evidence: ['03-indicator-spec'],
+      manualQa: true,
+    },
+    {
+      id: 'M04',
+      rule: 'DMI/ADX14 and Bollinger20/2',
+      implementation: 'calculateResearchMetrics',
+      evidence: ['03-indicator-spec'],
+      manualQa: true,
+    },
+    {
+      id: 'M05',
+      rule: 'Prior-20-day volume and completed weekly bars',
+      implementation: 'calculateResearchMetrics',
+      evidence: ['03-indicator-spec'],
+      manualQa: true,
+    },
+    {
+      id: 'M06',
+      rule: 'Common-window price and relative returns',
+      implementation: 'calculateRelativeStrength',
+      evidence: ['03-indicator-spec', '06-report-and-qa'],
+      manualQa: true,
+    },
+    {
+      id: 'M07',
+      rule: 'Confirmed pivots and recent gaps',
+      implementation: 'findConfirmedPivots/findGaps',
+      evidence: ['03-indicator-spec'],
+      manualQa: true,
+    },
+    {
+      id: 'M08',
+      rule: 'Structural levels and two reward/risk views',
+      implementation: 'deriveStructuralLevels/calculateRewardRisk',
+      evidence: ['04-analysis-and-trades'],
+      manualQa: true,
+    },
+    {
+      id: 'M09',
+      rule: 'Transparent direction score and caps',
+      implementation: 'calculateDirectionScore',
+      evidence: ['04-analysis-and-trades'],
+      manualQa: true,
+    },
+    {
+      id: 'M10',
+      rule: 'Human review remains required for subjective claims',
+      implementation: 'RESEARCH_METHOD_BUNDLE coverage and QA handoff',
+      evidence: ['04-analysis-and-trades', '06-report-and-qa'],
+      manualQa: true,
+    },
   ] satisfies readonly ResearchCoverageEntry[],
 } as const
 
@@ -459,19 +518,34 @@ function sortBars<T extends { date: string }>(bars: readonly T[]): T[] {
 }
 
 function isIsoInstant(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/u.test(value) && !Number.isNaN(Date.parse(value))
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/u.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  )
 }
 
 function latestCompletedSession(sessions: readonly ResearchSession[], asOf: string): string | null {
   const asOfTime = Date.parse(asOf)
-  return sessions
-    .filter(session => session.isCompleted && isIsoDate(session.date) && isIsoInstant(session.closeAt) && Date.parse(session.closeAt) <= asOfTime && session.date <= asOf.slice(0, 10))
-    .map(session => session.date)
-    .sort()
-    .at(-1) ?? null
+  return (
+    sessions
+      .filter(
+        session =>
+          session.isCompleted &&
+          isIsoDate(session.date) &&
+          isIsoInstant(session.closeAt) &&
+          Date.parse(session.closeAt) <= asOfTime &&
+          session.date <= asOf.slice(0, 10),
+      )
+      .map(session => session.date)
+      .sort()
+      .at(-1) ?? null
+  )
 }
 
-function countCompletedWeeks(bars: readonly Pick<ResearchBar, 'date' | 'isComplete'>[], sessionsByDate: ReadonlyMap<string, ResearchSession>): number {
+function countCompletedWeeks(
+  bars: readonly Pick<ResearchBar, 'date' | 'isComplete'>[],
+  sessionsByDate: ReadonlyMap<string, ResearchSession>,
+): number {
   const rowsByWeek = new Map<string, Set<string>>()
   for (const bar of bars) {
     if (bar.isComplete === false || !sessionsByDate.has(bar.date)) continue
@@ -482,9 +556,20 @@ function countCompletedWeeks(bars: readonly Pick<ResearchBar, 'date' | 'isComple
   }
   let count = 0
   for (const [week, dates] of rowsByWeek) {
-    const expected = [...sessionsByDate.values()].filter(session => session.isCompleted && isoWeekKey(session.date) === week)
-    const last = expected.map(session => session.date).sort().at(-1)
-    if (expected.length > 0 && expected.every(session => dates.has(session.date)) && last && sessionsByDate.get(last)?.isWeekFinal === true) count += 1
+    const expected = [...sessionsByDate.values()].filter(
+      session => session.isCompleted && isoWeekKey(session.date) === week,
+    )
+    const last = expected
+      .map(session => session.date)
+      .sort()
+      .at(-1)
+    if (
+      expected.length > 0 &&
+      expected.every(session => dates.has(session.date)) &&
+      last &&
+      sessionsByDate.get(last)?.isWeekFinal === true
+    )
+      count += 1
   }
   return count
 }
@@ -511,30 +596,79 @@ export function validateResearchInput(input: ResearchCalculationInput): Research
     ...(input.sourceRegistry ?? []).map(source => source.sourceId),
   ])
 
-  if (!input.instrument.symbol || !input.instrument.name || !input.instrument.exchange || input.instrument.currency !== 'USD') {
-    issues.push({ code: 'IDENTITY_INVALID', message: 'Instrument identity, exchange, or USD currency is incomplete.', severity: 'error' })
+  if (
+    !input.instrument.symbol ||
+    !input.instrument.name ||
+    !input.instrument.exchange ||
+    input.instrument.currency !== 'USD'
+  ) {
+    issues.push({
+      code: 'IDENTITY_INVALID',
+      message: 'Instrument identity, exchange, or USD currency is incomplete.',
+      severity: 'error',
+    })
   }
   if (!['equity', 'etf'].includes(input.instrument.assetType)) {
-    issues.push({ code: 'ASSET_TYPE_UNSUPPORTED', message: 'Only equity and ETF instruments are supported.', severity: 'error' })
+    issues.push({
+      code: 'ASSET_TYPE_UNSUPPORTED',
+      message: 'Only equity and ETF instruments are supported.',
+      severity: 'error',
+    })
   }
   if (!isIsoDate(input.referenceSession) || !isIsoInstant(input.asOf)) {
-    issues.push({ code: 'DATE_INVALID', message: 'Reference session and as-of must use ISO dates/timestamps.', severity: 'error' })
+    issues.push({
+      code: 'DATE_INVALID',
+      message: 'Reference session and as-of must use ISO dates/timestamps.',
+      severity: 'error',
+    })
   }
   if (input.sessions.length !== sessionsByDate.size) {
-    issues.push({ code: 'DUPLICATE_SESSIONS', message: 'The session calendar contains duplicate dates.', severity: 'error' })
+    issues.push({
+      code: 'DUPLICATE_SESSIONS',
+      message: 'The session calendar contains duplicate dates.',
+      severity: 'error',
+    })
   }
   for (const session of input.sessions) {
     if (!isIsoDate(session.date) || !isIsoInstant(session.closeAt)) {
-      issues.push({ code: 'SESSION_TIMESTAMP_INVALID', message: 'Session date or close timestamp is invalid.', date: session.date, severity: 'error' })
-    } else if (isIsoInstant(input.asOf) && session.isCompleted && Date.parse(session.closeAt) > Date.parse(input.asOf)) {
-      issues.push({ code: 'SESSION_AFTER_AS_OF', message: 'A session marked in the calendar occurs after as-of.', date: session.date, severity: 'error' })
+      issues.push({
+        code: 'SESSION_TIMESTAMP_INVALID',
+        message: 'Session date or close timestamp is invalid.',
+        date: session.date,
+        severity: 'error',
+      })
+    } else if (
+      isIsoInstant(input.asOf) &&
+      session.isCompleted &&
+      Date.parse(session.closeAt) > Date.parse(input.asOf)
+    ) {
+      issues.push({
+        code: 'SESSION_AFTER_AS_OF',
+        message: 'A session marked in the calendar occurs after as-of.',
+        date: session.date,
+        severity: 'error',
+      })
     }
-    if (!session.isCompleted && isIsoInstant(session.closeAt) && isIsoInstant(input.asOf) && Date.parse(session.closeAt) <= Date.parse(input.asOf)) {
-      issues.push({ code: 'SESSION_COMPLETION_MISMATCH', message: 'A past session close is marked incomplete in the verified calendar.', date: session.date, severity: 'error' })
+    if (
+      !session.isCompleted &&
+      isIsoInstant(session.closeAt) &&
+      isIsoInstant(input.asOf) &&
+      Date.parse(session.closeAt) <= Date.parse(input.asOf)
+    ) {
+      issues.push({
+        code: 'SESSION_COMPLETION_MISMATCH',
+        message: 'A past session close is marked incomplete in the verified calendar.',
+        date: session.date,
+        severity: 'error',
+      })
     }
   }
   if (latestSession !== null && input.referenceSession !== latestSession) {
-    issues.push({ code: 'REFERENCE_NOT_LATEST', message: 'Reference session is not the latest completed session.', severity: 'error' })
+    issues.push({
+      code: 'REFERENCE_NOT_LATEST',
+      message: 'Reference session is not the latest completed session.',
+      severity: 'error',
+    })
   }
   if (sorted.length === 0) {
     issues.push({ code: 'NO_BARS', message: 'No canonical bars were supplied.', severity: 'error' })
@@ -553,79 +687,193 @@ export function validateResearchInput(input: ResearchCalculationInput): Research
     seenDates.add(bar.date)
     const session = sessionsByDate.get(bar.date)
     if (!isIsoDate(bar.date) || !session) {
-      issues.push({ code: 'SESSION_UNKNOWN', message: 'Bar date is not present in the verified session calendar.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'SESSION_UNKNOWN',
+        message: 'Bar date is not present in the verified session calendar.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.symbol !== input.instrument.symbol) {
-      issues.push({ code: 'IDENTITY_MISMATCH', message: 'Bar symbol does not match instrument profile.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'IDENTITY_MISMATCH',
+        message: 'Bar symbol does not match instrument profile.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.session !== 'regular_close' || bar.isComplete === false || session?.isCompleted !== true) {
-      issues.push({ code: 'INCOMPLETE_SESSION', message: 'Only completed regular daily bars are eligible for calculation.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'INCOMPLETE_SESSION',
+        message: 'Only completed regular daily bars are eligible for calculation.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.date > input.referenceSession) {
-      issues.push({ code: 'BAR_AFTER_REFERENCE', message: 'A bar after the reference session cannot enter the calculation window.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'BAR_AFTER_REFERENCE',
+        message: 'A bar after the reference session cannot enter the calculation window.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.dataAsOf !== null && !isIsoInstant(bar.dataAsOf)) {
-      issues.push({ code: 'BAR_TIMESTAMP_INVALID', message: 'Data-as-of timestamp is invalid.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'BAR_TIMESTAMP_INVALID',
+        message: 'Data-as-of timestamp is invalid.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.retrievedAt !== null && !isIsoInstant(bar.retrievedAt)) {
-      issues.push({ code: 'BAR_TIMESTAMP_INVALID', message: 'Retrieval timestamp is invalid.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'BAR_TIMESTAMP_INVALID',
+        message: 'Retrieval timestamp is invalid.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.isWeekFinal === true && session?.isWeekFinal !== true) {
-      issues.push({ code: 'WEEK_FINAL_MISMATCH', message: 'A bar cannot mark a week final when the verified calendar does not.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'WEEK_FINAL_MISMATCH',
+        message: 'A bar cannot mark a week final when the verified calendar does not.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (!finitePositive(bar.close)) {
-      issues.push({ code: 'CLOSE_INVALID', message: 'Close must be positive and finite.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'CLOSE_INVALID',
+        message: 'Close must be positive and finite.',
+        date: bar.date,
+        severity: 'error',
+      })
     } else {
       closeCount += 1
     }
-    const ohlcValid = finitePositive(bar.open) && finitePositive(bar.high) && finitePositive(bar.low) && finitePositive(bar.close) &&
-      bar.low <= bar.open && bar.low <= bar.close && bar.high >= bar.open && bar.high >= bar.close && bar.high >= bar.low
+    const ohlcValid =
+      finitePositive(bar.open) &&
+      finitePositive(bar.high) &&
+      finitePositive(bar.low) &&
+      finitePositive(bar.close) &&
+      bar.low <= bar.open &&
+      bar.low <= bar.close &&
+      bar.high >= bar.open &&
+      bar.high >= bar.close &&
+      bar.high >= bar.low
     if (ohlcValid && recentRows.includes(bar)) completeOhlc += 1
     else if (bar.open !== null && bar.high !== null && bar.low !== null && !ohlcValid) {
-      issues.push({ code: 'OHLC_INVALID', message: 'OHLC ordering or positivity is invalid.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'OHLC_INVALID',
+        message: 'OHLC ordering or positivity is invalid.',
+        date: bar.date,
+        severity: 'error',
+      })
     } else if (recentRows.includes(bar)) {
-      issues.push({ code: 'RECENT_OHLC_MISSING', message: 'A recent row is missing one or more OHLC fields.', date: bar.date, severity: 'warning' })
+      issues.push({
+        code: 'RECENT_OHLC_MISSING',
+        message: 'A recent row is missing one or more OHLC fields.',
+        date: bar.date,
+        severity: 'warning',
+      })
     }
     if (bar.volume !== null && !finiteNonNegative(bar.volume)) {
-      issues.push({ code: 'VOLUME_INVALID', message: 'Volume must be null or non-negative.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'VOLUME_INVALID',
+        message: 'Volume must be null or non-negative.',
+        date: bar.date,
+        severity: 'error',
+      })
     } else if (bar.volume !== null && bar.volumeSourceId && bar.volumeBasis && recentVolumeRows.includes(bar)) {
       recentVolume += 1
       recentVolumePairs.add(`${bar.volumeSourceId}\u0000${bar.volumeBasis}`)
     }
     if (!bar.priceSourceId || !sourceIds.has(bar.priceSourceId)) {
-      issues.push({ code: 'PRICE_SOURCE_MISSING', message: 'Price source is not in the source registry.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'PRICE_SOURCE_MISSING',
+        message: 'Price source is not in the source registry.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
     if (bar.volume !== null && bar.volumeSourceId && !sourceIds.has(bar.volumeSourceId)) {
-      issues.push({ code: 'VOLUME_SOURCE_MISSING', message: 'Volume source is not in the source registry.', date: bar.date, severity: 'error' })
+      issues.push({
+        code: 'VOLUME_SOURCE_MISSING',
+        message: 'Volume source is not in the source registry.',
+        date: bar.date,
+        severity: 'error',
+      })
     }
   }
   if (duplicateDates.size > 0) {
-    issues.push({ code: 'DUPLICATE_DATES', message: `Duplicate canonical dates: ${[...duplicateDates].join(', ')}`, severity: 'error' })
+    issues.push({
+      code: 'DUPLICATE_DATES',
+      message: `Duplicate canonical dates: ${[...duplicateDates].join(', ')}`,
+      severity: 'error',
+    })
   }
-  const expectedSessions = input.sessions.filter(session => session.isCompleted && session.date >= (sorted[0]?.date ?? input.referenceSession) && session.date <= input.referenceSession)
+  const expectedSessions = input.sessions.filter(
+    session =>
+      session.isCompleted &&
+      session.date >= (sorted[0]?.date ?? input.referenceSession) &&
+      session.date <= input.referenceSession,
+  )
   const missingExpected = expectedSessions.filter(session => !seenDates.has(session.date)).map(session => session.date)
   if (missingExpected.length > 0) {
-    issues.push({ code: 'MISSING_EXPECTED_SESSION', message: `Missing ${missingExpected.length} completed session row(s): ${missingExpected.join(', ')}.`, severity: 'error' })
+    issues.push({
+      code: 'MISSING_EXPECTED_SESSION',
+      message: `Missing ${missingExpected.length} completed session row(s): ${missingExpected.join(', ')}.`,
+      severity: 'error',
+    })
   }
   const latestObserved = sorted.at(-1)
   if (!latestObserved || latestObserved.date !== input.referenceSession) {
-    issues.push({ code: 'REFERENCE_BAR_MISSING', message: 'The latest observed daily row must match the reference session.', date: input.referenceSession, severity: 'error' })
+    issues.push({
+      code: 'REFERENCE_BAR_MISSING',
+      message: 'The latest observed daily row must match the reference session.',
+      date: input.referenceSession,
+      severity: 'error',
+    })
   }
   if (recentVolumePairs.size > 1) {
-    issues.push({ code: 'VOLUME_BASIS_MISMATCH', message: 'The recent volume window mixes source or basis.', severity: 'error' })
+    issues.push({
+      code: 'VOLUME_BASIS_MISMATCH',
+      message: 'The recent volume window mixes source or basis.',
+      severity: 'error',
+    })
   }
   for (let index = 1; index < sorted.length; index += 1) {
     const previous = sorted[index - 1]
     const current = sorted[index]
-    if (previous && current && finitePositive(previous.close) && finitePositive(current.close) && Math.abs(current.close / previous.close - 1) > 0.25) {
-      issues.push({ code: 'OUTLIER_REVIEW', message: 'A daily close move exceeds 25% and requires corporate-action review.', date: current.date, severity: 'warning' })
+    if (
+      previous &&
+      current &&
+      finitePositive(previous.close) &&
+      finitePositive(current.close) &&
+      Math.abs(current.close / previous.close - 1) > 0.25
+    ) {
+      issues.push({
+        code: 'OUTLIER_REVIEW',
+        message: 'A daily close move exceeds 25% and requires corporate-action review.',
+        date: current.date,
+        severity: 'warning',
+      })
     }
   }
   if (input.adjustmentMode === 'total_return_rebased' && sorted.some(bar => !finitePositive(bar.adjClose))) {
-    issues.push({ code: 'ADJUSTED_CLOSE_MISSING', message: 'Total-return rebasing requires an adjusted close for every bar.', severity: 'error' })
+    issues.push({
+      code: 'ADJUSTED_CLOSE_MISSING',
+      message: 'Total-return rebasing requires an adjusted close for every bar.',
+      severity: 'error',
+    })
   }
   if (input.adjustmentMode === 'split_only') {
-    issues.push({ code: 'SPLIT_ONLY_LIMITATION', message: 'Cash-dividend adjustment is unavailable; results are LIMITED.', severity: 'warning' })
+    issues.push({
+      code: 'SPLIT_ONLY_LIMITATION',
+      message: 'Cash-dividend adjustment is unavailable; results are LIMITED.',
+      severity: 'warning',
+    })
   }
 
   const counts = {
@@ -635,24 +883,110 @@ export function validateResearchInput(input: ResearchCalculationInput): Research
     recentVolume: recentVolumePairs.size > 1 ? 0 : recentVolume,
     completedWeeks: countCompletedWeeks(sorted, sessionsByDate),
   }
-  if (counts.closes < 260) issues.push({ code: 'CLOSE_SAMPLE_SHORT', message: 'Fewer than 260 closes are available.', severity: 'warning' })
-  if (counts.completeOhlc < 150) issues.push({ code: 'OHLC_SAMPLE_SHORT', message: 'Fewer than 150 complete recent OHLC bars are available.', severity: 'warning' })
-  if (counts.recentVolume < 21) issues.push({ code: 'VOLUME_SAMPLE_SHORT', message: 'Fewer than 21 recent same-basis volume observations are available.', severity: 'warning' })
-  if (counts.completedWeeks < 34) issues.push({ code: 'WEEK_SAMPLE_SHORT', message: 'Fewer than 34 completed weeks are available.', severity: 'warning' })
+  if (counts.closes < 260)
+    issues.push({ code: 'CLOSE_SAMPLE_SHORT', message: 'Fewer than 260 closes are available.', severity: 'warning' })
+  if (counts.completeOhlc < 150)
+    issues.push({
+      code: 'OHLC_SAMPLE_SHORT',
+      message: 'Fewer than 150 complete recent OHLC bars are available.',
+      severity: 'warning',
+    })
+  if (counts.recentVolume < 21)
+    issues.push({
+      code: 'VOLUME_SAMPLE_SHORT',
+      message: 'Fewer than 21 recent same-basis volume observations are available.',
+      severity: 'warning',
+    })
+  if (counts.completedWeeks < 34)
+    issues.push({
+      code: 'WEEK_SAMPLE_SHORT',
+      message: 'Fewer than 34 completed weeks are available.',
+      severity: 'warning',
+    })
 
   const errorCodes = new Set(issues.filter(issue => issue.severity === 'error').map(issue => issue.code))
   const stale = errorCodes.has('REFERENCE_NOT_LATEST')
-  const quality: ResearchQuality = errorCodes.size > 0 && !stale ? 'FAILED' : stale ? 'STALE' :
-    input.adjustmentMode === 'split_only' || issues.some(issue => issue.severity === 'warning') ? 'LIMITED' : 'FULL'
-  const gate = (gateId: ResearchGateId, status: ValidationStatus, evidence: readonly string[], fixOrLimitation: string | null): GateResult => ({ gateId, status, evidence, fixOrLimitation })
-  const has = (codes: readonly string[]) => issues.some(issue => codes.includes(issue.code) && issue.severity === 'error')
+  const quality: ResearchQuality =
+    errorCodes.size > 0 && !stale
+      ? 'FAILED'
+      : stale
+        ? 'STALE'
+        : input.adjustmentMode === 'split_only' || issues.some(issue => issue.severity === 'warning')
+          ? 'LIMITED'
+          : 'FULL'
+  const gate = (
+    gateId: ResearchGateId,
+    status: ValidationStatus,
+    evidence: readonly string[],
+    fixOrLimitation: string | null,
+  ): GateResult => ({ gateId, status, evidence, fixOrLimitation })
+  const has = (codes: readonly string[]) =>
+    issues.some(issue => codes.includes(issue.code) && issue.severity === 'error')
   const gates: GateResult[] = [
-    gate('G01', has(['IDENTITY_INVALID', 'IDENTITY_MISMATCH', 'ASSET_TYPE_UNSUPPORTED']) ? 'FAIL' : 'PASS', ['instrument', 'canonical bars'], 'Verify name, ticker, exchange, USD, and asset type.'),
-    gate('G02', has(['DATE_INVALID', 'REFERENCE_NOT_LATEST', 'REFERENCE_BAR_MISSING']) ? 'FAIL' : 'PASS', ['referenceSession', 'session calendar'], has(['REFERENCE_NOT_LATEST', 'REFERENCE_BAR_MISSING']) ? 'Use the latest completed regular session and its observed row.' : null),
-    gate('G03', has(['NO_BARS', 'CLOSE_INVALID', 'DUPLICATE_DATES', 'OHLC_INVALID', 'DUPLICATE_SESSIONS', 'MISSING_EXPECTED_SESSION', 'BAR_AFTER_REFERENCE', 'VOLUME_INVALID', 'VOLUME_BASIS_MISMATCH', 'PRICE_SOURCE_MISSING', 'VOLUME_SOURCE_MISSING']) ? 'FAIL' : 'PASS', ['canonical bars', 'session calendar'], 'Resolve missing, duplicate, invalid, or conflicting daily rows.'),
-    gate('G04', has(['ADJUSTED_CLOSE_MISSING']) ? 'FAIL' : input.adjustmentMode === 'split_only' ? 'WARN' : 'PASS', ['adjustmentMode', 'adjClose'], input.adjustmentMode === 'split_only' ? 'Cash-dividend adjustment is unavailable.' : null),
-    gate('G05', counts.closes < 260 || counts.completeOhlc < 150 || counts.recentVolume < 21 || counts.completedWeeks < 34 ? 'WARN' : 'PASS', ['sample counts', 'calculatorVersion'], counts.closes < 200 ? 'SMA200 remains N/A.' : 'Full-sample thresholds are not met.'),
-    gate('G06', has(['INCOMPLETE_SESSION', 'SESSION_UNKNOWN', 'SESSION_AFTER_AS_OF', 'SESSION_COMPLETION_MISMATCH', 'WEEK_FINAL_MISMATCH', 'SESSION_TIMESTAMP_INVALID', 'BAR_TIMESTAMP_INVALID']) ? 'FAIL' : 'PASS', ['session calendar', 'bar.session'], 'Use only completed regular sessions from the verified calendar.'),
+    gate(
+      'G01',
+      has(['IDENTITY_INVALID', 'IDENTITY_MISMATCH', 'ASSET_TYPE_UNSUPPORTED']) ? 'FAIL' : 'PASS',
+      ['instrument', 'canonical bars'],
+      'Verify name, ticker, exchange, USD, and asset type.',
+    ),
+    gate(
+      'G02',
+      has(['DATE_INVALID', 'REFERENCE_NOT_LATEST', 'REFERENCE_BAR_MISSING']) ? 'FAIL' : 'PASS',
+      ['referenceSession', 'session calendar'],
+      has(['REFERENCE_NOT_LATEST', 'REFERENCE_BAR_MISSING'])
+        ? 'Use the latest completed regular session and its observed row.'
+        : null,
+    ),
+    gate(
+      'G03',
+      has([
+        'NO_BARS',
+        'CLOSE_INVALID',
+        'DUPLICATE_DATES',
+        'OHLC_INVALID',
+        'DUPLICATE_SESSIONS',
+        'MISSING_EXPECTED_SESSION',
+        'BAR_AFTER_REFERENCE',
+        'VOLUME_INVALID',
+        'VOLUME_BASIS_MISMATCH',
+        'PRICE_SOURCE_MISSING',
+        'VOLUME_SOURCE_MISSING',
+      ])
+        ? 'FAIL'
+        : 'PASS',
+      ['canonical bars', 'session calendar'],
+      'Resolve missing, duplicate, invalid, or conflicting daily rows.',
+    ),
+    gate(
+      'G04',
+      has(['ADJUSTED_CLOSE_MISSING']) ? 'FAIL' : input.adjustmentMode === 'split_only' ? 'WARN' : 'PASS',
+      ['adjustmentMode', 'adjClose'],
+      input.adjustmentMode === 'split_only' ? 'Cash-dividend adjustment is unavailable.' : null,
+    ),
+    gate(
+      'G05',
+      counts.closes < 260 || counts.completeOhlc < 150 || counts.recentVolume < 21 || counts.completedWeeks < 34
+        ? 'WARN'
+        : 'PASS',
+      ['sample counts', 'calculatorVersion'],
+      counts.closes < 200 ? 'SMA200 remains N/A.' : 'Full-sample thresholds are not met.',
+    ),
+    gate(
+      'G06',
+      has([
+        'INCOMPLETE_SESSION',
+        'SESSION_UNKNOWN',
+        'SESSION_AFTER_AS_OF',
+        'SESSION_COMPLETION_MISMATCH',
+        'WEEK_FINAL_MISMATCH',
+        'SESSION_TIMESTAMP_INVALID',
+        'BAR_TIMESTAMP_INVALID',
+      ])
+        ? 'FAIL'
+        : 'PASS',
+      ['session calendar', 'bar.session'],
+      'Use only completed regular sessions from the verified calendar.',
+    ),
     gate('G07', 'N/A', ['structural levels', 'trade plans'], 'Checked when trade plans are derived.'),
     gate('G08', 'N/A', ['events'], 'Event timing is owned by the evidence module.'),
     gate('G09', 'N/A', ['source registry', 'claim records'], 'Citation support is owned by the QA module.'),
@@ -671,18 +1005,31 @@ class ResearchNormalizationError extends Error {
   }
 }
 
-export function normalizeResearchBars(input: ResearchCalculationInput, mode: AdjustmentMode = input.adjustmentMode): NormalizedResearchResult {
+export function normalizeResearchBars(
+  input: ResearchCalculationInput,
+  mode: AdjustmentMode = input.adjustmentMode,
+): NormalizedResearchResult {
   const bars = sortBars(input.bars)
   const reference = bars.find(bar => bar.date === input.referenceSession)
-  if (!reference) throw new ResearchNormalizationError('REFERENCE_BAR_MISSING', 'The reference session has no canonical bar.')
-  if (!finitePositive(reference.close)) throw new ResearchNormalizationError('REFERENCE_CLOSE_INVALID', 'The reference close must be positive.')
-  const referenceFactor = mode === 'total_return_rebased' ?
-    (finitePositive(reference.adjClose) ? reference.adjClose / reference.close : null) : null
+  if (!reference)
+    throw new ResearchNormalizationError('REFERENCE_BAR_MISSING', 'The reference session has no canonical bar.')
+  if (!finitePositive(reference.close))
+    throw new ResearchNormalizationError('REFERENCE_CLOSE_INVALID', 'The reference close must be positive.')
+  const referenceFactor =
+    mode === 'total_return_rebased'
+      ? finitePositive(reference.adjClose)
+        ? reference.adjClose / reference.close
+        : null
+      : null
   if (mode === 'total_return_rebased' && referenceFactor === null) {
-    throw new ResearchNormalizationError('ADJUSTED_CLOSE_MISSING', 'Total-return rebasing requires a valid adjusted close at the reference session.')
+    throw new ResearchNormalizationError(
+      'ADJUSTED_CLOSE_MISSING',
+      'Total-return rebasing requires a valid adjusted close at the reference session.',
+    )
   }
   const warnings: string[] = []
-  if (mode === 'split_only') warnings.push('split_only: cash-dividend adjustment is unavailable; report quality is LIMITED.')
+  if (mode === 'split_only')
+    warnings.push('split_only: cash-dividend adjustment is unavailable; report quality is LIMITED.')
   const normalized = bars.map(bar => {
     if (mode === 'split_only') return { ...bar, adjustmentBasis: mode }
     if (!finitePositive(bar.adjClose)) {
@@ -711,7 +1058,8 @@ function smaSeries(values: readonly NullableNumber[], period: number): NullableN
   const result: NullableNumber[] = Array.from({ length: values.length }, () => null)
   for (let index = period - 1; index < values.length; index += 1) {
     const window = values.slice(index - period + 1, index + 1)
-    if (window.length === period && window.every(valid)) result[index] = (window as number[]).reduce((sum, item) => sum + item, 0) / period
+    if (window.length === period && window.every(valid))
+      result[index] = (window as number[]).reduce((sum, item) => sum + item, 0) / period
   }
   return result
 }
@@ -813,9 +1161,18 @@ function completedWeekBars(bars: readonly ResearchBar[], sessions: readonly Rese
   for (const [week, group] of [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const rows = [...group].sort((a, b) => a.date.localeCompare(b.date))
     const last = rows.at(-1)
-    const expectedDates = sessions.filter(session => session.isCompleted && isoWeekKey(session.date) === week).map(session => session.date)
+    const expectedDates = sessions
+      .filter(session => session.isCompleted && isoWeekKey(session.date) === week)
+      .map(session => session.date)
     const rowDates = new Set(rows.map(row => row.date))
-    if (!last || sessions.length === 0 || expectedDates.length === 0 || expectedDates.some(date => !rowDates.has(date)) || sessionsByDate.get(last.date)?.isWeekFinal !== true) continue
+    if (
+      !last ||
+      sessions.length === 0 ||
+      expectedDates.length === 0 ||
+      expectedDates.some(date => !rowDates.has(date)) ||
+      sessionsByDate.get(last.date)?.isWeekFinal !== true
+    )
+      continue
     const volumes = rows.map(row => row.volume)
     const allOpen = rows.every(row => finitePositive(row.open))
     const allHigh = rows.every(row => finitePositive(row.high))
@@ -824,11 +1181,13 @@ function completedWeekBars(bars: readonly ResearchBar[], sessions: readonly Rese
       week,
       startDate: rows[0]?.date ?? last.date,
       endDate: last.date,
-      open: allOpen ? rows[0]?.open ?? null : null,
+      open: allOpen ? (rows[0]?.open ?? null) : null,
       high: allHigh ? maxValid(rows.map(row => row.high).filter((value): value is number => value !== null)) : null,
       low: allLow ? minValid(rows.map(row => row.low).filter((value): value is number => value !== null)) : null,
       close: last.close,
-      volume: volumes.every((volume): volume is number => finiteNonNegative(volume)) ? volumes.reduce((sum, volume) => sum + volume, 0) : null,
+      volume: volumes.every((volume): volume is number => finiteNonNegative(volume))
+        ? volumes.reduce((sum, volume) => sum + volume, 0)
+        : null,
       isWeekFinal: true,
     })
   }
@@ -842,7 +1201,8 @@ function makeIndicatorBars(bars: readonly ResearchBar[], mode: AdjustmentMode): 
 function buildTr(bars: readonly ResearchBar[]): NullableNumber[] {
   return bars.map((bar, index) => {
     const previous = bars[index - 1]
-    if (!previous || !finitePositive(bar.high) || !finitePositive(bar.low) || !finitePositive(previous.close)) return null
+    if (!previous || !finitePositive(bar.high) || !finitePositive(bar.low) || !finitePositive(previous.close))
+      return null
     return Math.max(bar.high - bar.low, Math.abs(bar.high - previous.close), Math.abs(bar.low - previous.close))
   })
 }
@@ -853,7 +1213,15 @@ function buildDmi(bars: readonly ResearchBar[], tr: readonly NullableNumber[]) {
   for (let index = 1; index < bars.length; index += 1) {
     const current = bars[index]
     const previous = bars[index - 1]
-    if (!current || !previous || !finitePositive(current.high) || !finitePositive(current.low) || !finitePositive(previous.high) || !finitePositive(previous.low)) continue
+    if (
+      !current ||
+      !previous ||
+      !finitePositive(current.high) ||
+      !finitePositive(current.low) ||
+      !finitePositive(previous.high) ||
+      !finitePositive(previous.low)
+    )
+      continue
     const up = current.high - previous.high
     const down = previous.low - current.low
     plusDm[index] = up > down && up > 0 ? up : 0
@@ -864,17 +1232,17 @@ function buildDmi(bars: readonly ResearchBar[], tr: readonly NullableNumber[]) {
   const smoothedTr = rmaSeries(tr, 14)
   const plusDi = plusSmoothed.map((value, index) => {
     const denominator = smoothedTr[index] ?? null
-    return valid(value) && valid(denominator) ? denominator === 0 ? 0 : 100 * value / denominator : null
+    return valid(value) && valid(denominator) ? (denominator === 0 ? 0 : (100 * value) / denominator) : null
   })
   const minusDi = minusSmoothed.map((value, index) => {
     const denominator = smoothedTr[index] ?? null
-    return valid(value) && valid(denominator) ? denominator === 0 ? 0 : 100 * value / denominator : null
+    return valid(value) && valid(denominator) ? (denominator === 0 ? 0 : (100 * value) / denominator) : null
   })
   const dx = plusDi.map((plus, index) => {
     const minus = minusDi[index] ?? null
     if (!valid(plus) || !valid(minus)) return null
     const sum = plus + minus
-    return sum === 0 ? 0 : 100 * Math.abs(plus - minus) / sum
+    return sum === 0 ? 0 : (100 * Math.abs(plus - minus)) / sum
   })
   return { plusDm, minusDm, plusDi, minusDi, dx, adx: rmaSeries(dx, 14) }
 }
@@ -889,7 +1257,13 @@ export function findConfirmedPivots(
     const center = bars[index]
     const left = bars.slice(index - 2, index)
     const right = bars.slice(index + 1, index + 3)
-    if (!center || left.length !== 2 || right.length !== 2 || ![center, ...left, ...right].every(bar => finitePositive(bar.high) && finitePositive(bar.low))) continue
+    if (
+      !center ||
+      left.length !== 2 ||
+      right.length !== 2 ||
+      ![center, ...left, ...right].every(bar => finitePositive(bar.high) && finitePositive(bar.low))
+    )
+      continue
     const centerHigh = center.high!
     const centerLow = center.low!
     const leftHigh = left.map(bar => bar.high!).filter(Number.isFinite)
@@ -898,8 +1272,26 @@ export function findConfirmedPivots(
     const rightLow = right.map(bar => bar.low!).filter(Number.isFinite)
     const pivotHigh = centerHigh >= Math.max(...leftHigh) && centerHigh > Math.max(...rightHigh)
     const pivotLow = centerLow <= Math.min(...leftLow) && centerLow < Math.min(...rightLow)
-    if (pivotHigh) pivots.push({ type: 'high', date: center.date, confirmedOn: bars[index + 2]?.date ?? center.date, price: centerHigh, index, rsi14: rsi14[index] ?? null, macd: macd[index] ?? null })
-    if (pivotLow) pivots.push({ type: 'low', date: center.date, confirmedOn: bars[index + 2]?.date ?? center.date, price: centerLow, index, rsi14: rsi14[index] ?? null, macd: macd[index] ?? null })
+    if (pivotHigh)
+      pivots.push({
+        type: 'high',
+        date: center.date,
+        confirmedOn: bars[index + 2]?.date ?? center.date,
+        price: centerHigh,
+        index,
+        rsi14: rsi14[index] ?? null,
+        macd: macd[index] ?? null,
+      })
+    if (pivotLow)
+      pivots.push({
+        type: 'low',
+        date: center.date,
+        confirmedOn: bars[index + 2]?.date ?? center.date,
+        price: centerLow,
+        index,
+        rsi14: rsi14[index] ?? null,
+        macd: macd[index] ?? null,
+      })
   }
   return pivots
 }
@@ -910,7 +1302,15 @@ export function findGaps(bars: readonly ResearchBar[], limit = 120): PriceGap[] 
   for (let index = start; index < bars.length; index += 1) {
     const previous = bars[index - 1]
     const current = bars[index]
-    if (!previous || !current || !finitePositive(previous.high) || !finitePositive(previous.low) || !finitePositive(current.high) || !finitePositive(current.low)) continue
+    if (
+      !previous ||
+      !current ||
+      !finitePositive(previous.high) ||
+      !finitePositive(previous.low) ||
+      !finitePositive(current.high) ||
+      !finitePositive(current.low)
+    )
+      continue
     let type: 'up' | 'down' | null = null
     let lower = 0
     let upper = 0
@@ -939,7 +1339,16 @@ export function findGaps(bars: readonly ResearchBar[], limit = 120): PriceGap[] 
   return gaps
 }
 
-export function calculateResearchMetrics(input: ResearchCalculationInput | { bars: readonly ResearchBar[]; referenceSession?: string; adjustmentMode?: AdjustmentMode; sessions?: readonly ResearchSession[] }): ResearchMetrics {
+export function calculateResearchMetrics(
+  input:
+    | ResearchCalculationInput
+    | {
+        bars: readonly ResearchBar[]
+        referenceSession?: string
+        adjustmentMode?: AdjustmentMode
+        sessions?: readonly ResearchSession[]
+      },
+): ResearchMetrics {
   const bars = sortBars(input.bars)
   if (bars.length === 0) throw new ResearchNormalizationError('NO_BARS', 'At least one canonical bar is required.')
   const mode = input.adjustmentMode ?? 'split_only'
@@ -953,9 +1362,13 @@ export function calculateResearchMetrics(input: ResearchCalculationInput | { bar
   const ema12 = emaSeries(closes, 12)
   const ema26 = emaSeries(closes, 26)
   const rsi14 = calculateRsi14(closes)
-  const macd = ema12.map((value, index) => valid(value) && valid(ema26[index] ?? null) ? value - (ema26[index] as number) : null)
+  const macd = ema12.map((value, index) =>
+    valid(value) && valid(ema26[index] ?? null) ? value - (ema26[index] as number) : null,
+  )
   const macdSignal = emaSeries(macd, 9)
-  const macdHistogram = macd.map((value, index) => valid(value) && valid(macdSignal[index] ?? null) ? value - (macdSignal[index] as number) : null)
+  const macdHistogram = macd.map((value, index) =>
+    valid(value) && valid(macdSignal[index] ?? null) ? value - (macdSignal[index] as number) : null,
+  )
   const tr = buildTr(indicatorBars)
   const smoothedTr = rmaSeries(tr, 14)
   const atr14 = smoothedTr
@@ -971,7 +1384,7 @@ export function calculateResearchMetrics(input: ResearchCalculationInput | { bar
     const std = Math.sqrt(window.reduce((sum, value) => sum + (value - mid) ** 2, 0) / 20)
     bollingerUpper[index] = mid + 2 * std
     bollingerLower[index] = mid - 2 * std
-    bollingerWidthPct[index] = mid === 0 ? null : 100 * (2 * 2 * std) / mid
+    bollingerWidthPct[index] = mid === 0 ? null : (100 * (2 * 2 * std)) / mid
   }
   const priorVolumeMean20: NullableNumber[] = Array.from({ length: indicatorBars.length }, () => null)
   const rvol20: NullableNumber[] = Array.from({ length: indicatorBars.length }, () => null)
@@ -980,21 +1393,39 @@ export function calculateResearchMetrics(input: ResearchCalculationInput | { bar
     const prior = priorBars.map(bar => bar.volume)
     const firstSource = priorBars[0]?.volumeSourceId ?? null
     const firstBasis = priorBars[0]?.volumeBasis ?? null
-    const sameVolumeBasis = firstSource !== null && firstBasis !== null && priorBars.every(bar => bar.volumeSourceId === firstSource && bar.volumeBasis === firstBasis)
-    if (prior.length === 20 && sameVolumeBasis && prior.every((volume): volume is number => finiteNonNegative(volume))) {
+    const sameVolumeBasis =
+      firstSource !== null &&
+      firstBasis !== null &&
+      priorBars.every(bar => bar.volumeSourceId === firstSource && bar.volumeBasis === firstBasis)
+    if (
+      prior.length === 20 &&
+      sameVolumeBasis &&
+      prior.every((volume): volume is number => finiteNonNegative(volume))
+    ) {
       const mean = prior.reduce((sum, volume) => sum + volume, 0) / 20
       priorVolumeMean20[index] = mean
       const currentVolume = indicatorBars[index]?.volume
-      rvol20[index] = mean === 0 || currentVolume === null || currentVolume === undefined || indicatorBars[index]?.volumeSourceId !== firstSource || indicatorBars[index]?.volumeBasis !== firstBasis ? null : currentVolume / mean
+      rvol20[index] =
+        mean === 0 ||
+        currentVolume === null ||
+        currentVolume === undefined ||
+        indicatorBars[index]?.volumeSourceId !== firstSource ||
+        indicatorBars[index]?.volumeBasis !== firstBasis
+          ? null
+          : currentVolume / mean
     }
   }
   const highLowMean5: NullableNumber[] = Array.from({ length: indicatorBars.length }, () => null)
   const highLowMean20: NullableNumber[] = Array.from({ length: indicatorBars.length }, () => null)
   for (let index = 0; index < indicatorBars.length; index += 1) {
-    for (const [period, result] of [[5, highLowMean5], [20, highLowMean20]] as const) {
+    for (const [period, result] of [
+      [5, highLowMean5],
+      [20, highLowMean20],
+    ] as const) {
       if (index < period - 1) continue
       const window = indicatorBars.slice(index - period + 1, index + 1)
-      if (window.every(bar => finitePositive(bar.high) && finitePositive(bar.low))) result[index] = window.reduce((sum, bar) => sum + bar.high! - bar.low!, 0) / period
+      if (window.every(bar => finitePositive(bar.high) && finitePositive(bar.low)))
+        result[index] = window.reduce((sum, bar) => sum + bar.high! - bar.low!, 0) / period
     }
   }
   const weeks = completedWeekBars(indicatorBars, input.sessions ?? [])
@@ -1020,7 +1451,10 @@ export function calculateResearchMetrics(input: ResearchCalculationInput | { bar
     macdSignal: latestValue(macdSignal),
     macdHistogram: latestValue(macdHistogram),
     atr14: latestValue(atr14),
-    atrPct: valid(latestValue(atr14)) && (closes[lastIndex] ?? 0) !== 0 ? 100 * (latestValue(atr14) as number) / (closes[lastIndex] ?? 0) : null,
+    atrPct:
+      valid(latestValue(atr14)) && (closes[lastIndex] ?? 0) !== 0
+        ? (100 * (latestValue(atr14) as number)) / (closes[lastIndex] ?? 0)
+        : null,
     plusDi14: latestValue(dmi.plusDi),
     minusDi14: latestValue(dmi.minusDi),
     adx14: latestValue(dmi.adx),
@@ -1085,17 +1519,50 @@ export function deriveStructuralLevels(metrics: ResearchMetrics, maxPerSide = 3)
   for (const pivot of metrics.pivots) {
     const range = zoneAround(pivot.price, metrics.latest.atr14, close)
     if (!range) continue
-    anchors.push({ anchorId: `pivot-${pivot.type}-${pivot.date}`, type: pivot.type === 'high' ? 'pivot_high' : 'pivot_low', date: pivot.date, ...range, center: pivot.price, basis: 'indicator_ohlc', metricPath: `pivots.${pivot.type}.${pivot.date}`, confirmed: pivot.confirmedOn <= metrics.referenceSession })
+    anchors.push({
+      anchorId: `pivot-${pivot.type}-${pivot.date}`,
+      type: pivot.type === 'high' ? 'pivot_high' : 'pivot_low',
+      date: pivot.date,
+      ...range,
+      center: pivot.price,
+      basis: 'indicator_ohlc',
+      metricPath: `pivots.${pivot.type}.${pivot.date}`,
+      confirmed: pivot.confirmedOn <= metrics.referenceSession,
+    })
   }
   for (const gap of metrics.gaps.filter(gap => gap.status !== 'filled')) {
-    anchors.push({ anchorId: `gap-${gap.type}-${gap.date}`, type: 'gap', date: gap.date, lower: gap.lower, upper: gap.upper, center: (gap.lower + gap.upper) / 2, basis: 'indicator_ohlc', metricPath: `gaps.${gap.date}`, confirmed: true })
+    anchors.push({
+      anchorId: `gap-${gap.type}-${gap.date}`,
+      type: 'gap',
+      date: gap.date,
+      lower: gap.lower,
+      upper: gap.upper,
+      center: (gap.lower + gap.upper) / 2,
+      basis: 'indicator_ohlc',
+      metricPath: `gaps.${gap.date}`,
+      confirmed: true,
+    })
   }
-  const movingAverages: Array<[string, number | null]> = [['ema10', metrics.latest.ema10], ['ema20', metrics.latest.ema20], ['sma50', metrics.latest.sma50], ['sma200', metrics.latest.sma200]]
+  const movingAverages: Array<[string, number | null]> = [
+    ['ema10', metrics.latest.ema10],
+    ['ema20', metrics.latest.ema20],
+    ['sma50', metrics.latest.sma50],
+    ['sma200', metrics.latest.sma200],
+  ]
   for (const [name, value] of movingAverages) {
     if (!valid(value)) continue
     const range = zoneAround(value, metrics.latest.atr14, close)
     if (!range) continue
-    anchors.push({ anchorId: `ma-${name}-${metrics.referenceSession}`, type: 'moving_average', date: metrics.referenceSession, ...range, center: value, basis: 'indicator_close', metricPath: `latest.${name}`, confirmed: true })
+    anchors.push({
+      anchorId: `ma-${name}-${metrics.referenceSession}`,
+      type: 'moving_average',
+      date: metrics.referenceSession,
+      ...range,
+      center: value,
+      basis: 'indicator_close',
+      metricPath: `latest.${name}`,
+      confirmed: true,
+    })
   }
   const sides: Array<['support' | 'resistance', StructuralAnchor[]]> = [
     ['support', anchors.filter(anchor => anchor.center <= close).sort((a, b) => b.center - a.center)],
@@ -1117,7 +1584,14 @@ export function deriveStructuralLevels(metrics: ResearchMetrics, maxPerSide = 3)
         const lower = Math.min(first.lower, second.lower)
         const upper = Math.max(first.upper, second.upper)
         if (valid(metrics.latest.atr14) && upper - lower <= metrics.latest.atr14 * 1.5) {
-          merged = { ...first, lower, upper, center: (lower + upper) / 2, anchorId: `${first.anchorId}+${second.anchorId}`, metricPath: `${first.metricPath},${second.metricPath}` }
+          merged = {
+            ...first,
+            lower,
+            upper,
+            center: (lower + upper) / 2,
+            anchorId: `${first.anchorId}+${second.anchorId}`,
+            metricPath: `${first.metricPath},${second.metricPath}`,
+          }
           index += 1
         }
       }
@@ -1130,7 +1604,10 @@ export function deriveStructuralLevels(metrics: ResearchMetrics, maxPerSide = 3)
         anchors: merged.anchorId.split('+'),
         basis: merged.basis,
         confirmedAsOf: metrics.referenceSession,
-        impact: side === 'support' ? 'A close below the lower edge weakens the support thesis.' : 'A close above the upper edge confirms only with the method volume and close rules.',
+        impact:
+          side === 'support'
+            ? 'A close below the lower edge weakens the support thesis.'
+            : 'A close above the upper edge confirms only with the method volume and close rules.',
       })
       if (output.filter(level => level.side === side).length >= maxPerSide) break
     }
@@ -1143,9 +1620,22 @@ export function calculateRewardRisk(
   stop: { lower: number; upper: number },
   target: { lower: number; upper: number },
 ): RewardRiskResult {
-  const validZones = [entry, stop, target].every(zone => finitePositive(zone.lower) && finitePositive(zone.upper) && zone.lower <= zone.upper)
+  const validZones = [entry, stop, target].every(
+    zone => finitePositive(zone.lower) && finitePositive(zone.upper) && zone.lower <= zone.upper,
+  )
   const ordered = validZones && stop.upper < entry.lower && entry.upper < target.lower
-  if (!ordered) return { valid: false, reason: 'Long zones must satisfy stop < entry < target.', entryMid: null, stopMid: null, targetMid: null, riskMid: null, rewardMid: null, mid: null, conservative: null }
+  if (!ordered)
+    return {
+      valid: false,
+      reason: 'Long zones must satisfy stop < entry < target.',
+      entryMid: null,
+      stopMid: null,
+      targetMid: null,
+      riskMid: null,
+      rewardMid: null,
+      mid: null,
+      conservative: null,
+    }
   const entryMid = (entry.lower + entry.upper) / 2
   const stopMid = (stop.lower + stop.upper) / 2
   const targetMid = (target.lower + target.upper) / 2
@@ -1155,20 +1645,56 @@ export function calculateRewardRisk(
   const conservativeRisk = entry.upper - stop.lower
   const conservativeReward = target.lower - entry.upper
   const conservative = conservativeRisk > 0 ? conservativeReward / conservativeRisk : null
-  return { valid: mid !== null && conservative !== null, reason: mid !== null && conservative !== null ? null : 'Entry and stop zones do not produce positive risk.', entryMid, stopMid, targetMid, riskMid, rewardMid, mid, conservative }
+  return {
+    valid: mid !== null && conservative !== null,
+    reason: mid !== null && conservative !== null ? null : 'Entry and stop zones do not produce positive risk.',
+    entryMid,
+    stopMid,
+    targetMid,
+    riskMid,
+    rewardMid,
+    mid,
+    conservative,
+  }
 }
 
 function planZone(level: StructuralLevel): ResearchPlanZone {
-  return { zoneId: level.zoneId, lower: level.lower, upper: level.upper, anchors: [...level.anchors], basis: level.basis }
+  return {
+    zoneId: level.zoneId,
+    lower: level.lower,
+    upper: level.upper,
+    anchors: [...level.anchors],
+    basis: level.basis,
+  }
 }
 
-function candidateUnavailable(setupType: ResearchTradePlanCandidate['setupType'], reason: string, availableZoneIds: readonly string[], validUntilSession: string | null): ResearchTradePlanCandidate {
+function candidateUnavailable(
+  setupType: ResearchTradePlanCandidate['setupType'],
+  reason: string,
+  availableZoneIds: readonly string[],
+  validUntilSession: string | null,
+): ResearchTradePlanCandidate {
   return {
-    planId: setupType, setupType, status: 'N_A', trigger: null, triggerPrice: null, confirmation: null,
-    entry: null, structuralStop: null, target1: null, target2: null,
-    midRewardRisk: { target1: null, target2: null }, conservativeRewardRisk: { target1: null, target2: null },
-    eventStatus: 'UNVERIFIED', invalidation: null, validUntilSession, positionSize: null, selectedZoneIds: [],
-    requiresHumanReview: true, reason, availableZoneIds,
+    planId: setupType,
+    setupType,
+    status: 'N_A',
+    trigger: null,
+    triggerPrice: null,
+    confirmation: null,
+    entry: null,
+    structuralStop: null,
+    target1: null,
+    target2: null,
+    midRewardRisk: { target1: null, target2: null },
+    conservativeRewardRisk: { target1: null, target2: null },
+    eventStatus: 'UNVERIFIED',
+    invalidation: null,
+    validUntilSession,
+    positionSize: null,
+    selectedZoneIds: [],
+    requiresHumanReview: true,
+    reason,
+    availableZoneIds,
   }
 }
 
@@ -1180,36 +1706,73 @@ function deriveOneTradePlan(
 ): ResearchTradePlanCandidate {
   const supports = levels.filter(level => level.side === 'support').sort((a, b) => b.center - a.center)
   const resistances = levels.filter(level => level.side === 'resistance').sort((a, b) => a.lower - b.lower)
-  const eligiblePullbackSupports = supports.filter(level => level.anchors.some(anchor => anchor.startsWith('gap-') || anchor.startsWith('pivot-low-')))
-  const entry = setupType === 'breakout'
-    ? resistances[0]
-    : eligiblePullbackSupports.find(level => context.currentClose !== null && level.center < context.currentClose)
+  const eligiblePullbackSupports = supports.filter(level =>
+    level.anchors.some(anchor => anchor.startsWith('gap-') || anchor.startsWith('pivot-low-')),
+  )
+  const entry =
+    setupType === 'breakout'
+      ? resistances[0]
+      : eligiblePullbackSupports.find(level => context.currentClose !== null && level.center < context.currentClose)
   const availableZoneIds = [...supports, ...resistances].map(level => level.zoneId)
-  if (!entry) return candidateUnavailable(setupType, setupType === 'breakout' ? 'No resistance zone is available for a conditional breakout retest.' : 'No eligible gap or confirmed-pivot support zone is below the reference close.', availableZoneIds, validUntilSession)
-  if (setupType === 'breakout' && !finitePositive(context.atr14)) return candidateUnavailable(setupType, 'ATR(14) is unavailable, so the required 0.10 ATR breakout buffer cannot be calculated.', availableZoneIds, validUntilSession)
+  if (!entry)
+    return candidateUnavailable(
+      setupType,
+      setupType === 'breakout'
+        ? 'No resistance zone is available for a conditional breakout retest.'
+        : 'No eligible gap or confirmed-pivot support zone is below the reference close.',
+      availableZoneIds,
+      validUntilSession,
+    )
+  if (setupType === 'breakout' && !finitePositive(context.atr14))
+    return candidateUnavailable(
+      setupType,
+      'ATR(14) is unavailable, so the required 0.10 ATR breakout buffer cannot be calculated.',
+      availableZoneIds,
+      validUntilSession,
+    )
 
   const stop = supports.find(level => level.upper < entry.lower)
-  if (!stop) return candidateUnavailable(setupType, 'No real support zone lies strictly below the selected entry zone.', availableZoneIds, validUntilSession)
+  if (!stop)
+    return candidateUnavailable(
+      setupType,
+      'No real support zone lies strictly below the selected entry zone.',
+      availableZoneIds,
+      validUntilSession,
+    )
   const targets = resistances.filter(level => level.zoneId !== entry.zoneId && level.center > entry.center)
   const target1Level = targets[0]
-  if (!target1Level) return candidateUnavailable(setupType, 'No real resistance zone lies above the selected entry zone for target 1.', availableZoneIds, validUntilSession)
+  if (!target1Level)
+    return candidateUnavailable(
+      setupType,
+      'No real resistance zone lies above the selected entry zone for target 1.',
+      availableZoneIds,
+      validUntilSession,
+    )
   const target2Level = targets[1] ?? null
   const entryZone = planZone(entry)
   const stopZone = planZone(stop)
   const target1 = planZone(target1Level)
   const target1Rr = calculateRewardRisk(entryZone, stopZone, target1)
-  if (!target1Rr.valid) return candidateUnavailable(setupType, target1Rr.reason ?? 'Selected entry, stop and first target do not form ordered long zones.', availableZoneIds, validUntilSession)
+  if (!target1Rr.valid)
+    return candidateUnavailable(
+      setupType,
+      target1Rr.reason ?? 'Selected entry, stop and first target do not form ordered long zones.',
+      availableZoneIds,
+      validUntilSession,
+    )
   const target2Ordered = target2Level !== null && target2Level.lower > target1Level.upper
   const target2Candidate = target2Ordered && target2Level ? planZone(target2Level) : null
   const target2Rr = target2Candidate ? calculateRewardRisk(entryZone, stopZone, target2Candidate) : null
   const target2 = target2Rr?.valid ? target2Candidate : null
   const triggerPrice = setupType === 'breakout' ? entry.upper + context.atr14! * 0.1 : entry.upper
-  const trigger = setupType === 'breakout'
-    ? `Wait for a completed regular-session close above ${entry.zoneId} plus 0.10 ATR(14). The calculated threshold is ${triggerPrice}. This candidate assumes a later retest of the resistance zone; it is not an entry order.`
-    : `Wait for price to test ${entry.zoneId}, then require a completed regular-session close back above the support zone's upper edge (${entry.upper}). This candidate is not a confirmed entry.`
-  const confirmation = setupType === 'breakout'
-    ? 'At the breakout close require RVOL20 >= 1.3 and the close in the upper half of that session range; then review a retest, event risk, benchmark confirmation and execution policy.'
-    : 'Require the completed close to reclaim the support-zone upper edge; review contraction, event risk, benchmark confirmation and execution policy.'
+  const trigger =
+    setupType === 'breakout'
+      ? `Wait for a completed regular-session close above ${entry.zoneId} plus 0.10 ATR(14). The calculated threshold is ${triggerPrice}. This candidate assumes a later retest of the resistance zone; it is not an entry order.`
+      : `Wait for price to test ${entry.zoneId}, then require a completed regular-session close back above the support zone's upper edge (${entry.upper}). This candidate is not a confirmed entry.`
+  const confirmation =
+    setupType === 'breakout'
+      ? 'At the breakout close require RVOL20 >= 1.3 and the close in the upper half of that session range; then review a retest, event risk, benchmark confirmation and execution policy.'
+      : 'Require the completed close to reclaim the support-zone upper edge; review contraction, event risk, benchmark confirmation and execution policy.'
   const reason = target2
     ? 'Deterministic zones produce both target reward/risk pairs. This remains WATCH because retest/confirmation, event status, benchmark context and execution policy require human review.'
     : target2Level
@@ -1227,7 +1790,10 @@ function deriveOneTradePlan(
     target1,
     target2,
     midRewardRisk: { target1: target1Rr.mid, target2: target2Rr?.valid ? target2Rr.mid : null },
-    conservativeRewardRisk: { target1: target1Rr.conservative, target2: target2Rr?.valid ? target2Rr.conservative : null },
+    conservativeRewardRisk: {
+      target1: target1Rr.conservative,
+      target2: target2Rr?.valid ? target2Rr.conservative : null,
+    },
     eventStatus: 'UNVERIFIED',
     invalidation: `A completed close below ${stop.zoneId} weakens the structural thesis. An execution stop price is not set until execution policy is reviewed.`,
     validUntilSession,
@@ -1240,15 +1806,36 @@ function deriveOneTradePlan(
 }
 
 /** Derive conditional WATCH candidates only from existing, confirmed structural zones. */
-export function deriveTradePlanCandidates(levels: readonly StructuralLevel[], context?: ResearchTradePlanContext): readonly ResearchTradePlanCandidate[] {
+export function deriveTradePlanCandidates(
+  levels: readonly StructuralLevel[],
+  context?: ResearchTradePlanContext,
+): readonly ResearchTradePlanCandidate[] {
   if (!context || !isIsoDate(context.referenceSession) || !finitePositive(context.currentClose)) {
     return [
-      candidateUnavailable('breakout', 'Reference close, ATR(14), or session context is unavailable.', levels.filter(level => level.side === 'resistance').map(level => level.zoneId), null),
-      candidateUnavailable('pullback', 'Reference close or session context is unavailable.', levels.filter(level => level.side === 'support').map(level => level.zoneId), null),
+      candidateUnavailable(
+        'breakout',
+        'Reference close, ATR(14), or session context is unavailable.',
+        levels.filter(level => level.side === 'resistance').map(level => level.zoneId),
+        null,
+      ),
+      candidateUnavailable(
+        'pullback',
+        'Reference close or session context is unavailable.',
+        levels.filter(level => level.side === 'support').map(level => level.zoneId),
+        null,
+      ),
     ]
   }
-  const validUntilSession = context.validUntilSession && isIsoDate(context.validUntilSession) && context.validUntilSession > context.referenceSession ? context.validUntilSession : null
-  return [deriveOneTradePlan('breakout', levels, context, validUntilSession), deriveOneTradePlan('pullback', levels, context, validUntilSession)]
+  const validUntilSession =
+    context.validUntilSession &&
+    isIsoDate(context.validUntilSession) &&
+    context.validUntilSession > context.referenceSession
+      ? context.validUntilSession
+      : null
+  return [
+    deriveOneTradePlan('breakout', levels, context, validUntilSession),
+    deriveOneTradePlan('pullback', levels, context, validUntilSession),
+  ]
 }
 
 function scoreLabel(score: number | null): DirectionScore['label'] {
@@ -1260,7 +1847,11 @@ function scoreLabel(score: number | null): DirectionScore['label'] {
   return 'strong_bearish'
 }
 
-export function calculateDirectionScore(metrics: ResearchMetrics, relativeStrength: readonly RelativeReturnWindow[] = [], options: DirectionScoreOptions = {}): DirectionScore {
+export function calculateDirectionScore(
+  metrics: ResearchMetrics,
+  relativeStrength: readonly RelativeReturnWindow[] = [],
+  options: DirectionScoreOptions = {},
+): DirectionScore {
   const latest = metrics.latest
   const evidence: Record<string, boolean | null> = {}
   const missing: string[] = []
@@ -1270,47 +1861,95 @@ export function calculateDirectionScore(metrics: ResearchMetrics, relativeStreng
   }
   add('closeAboveSma200', valid(latest.sma200) ? latest.close > latest.sma200 : null)
   add('sma200SlopePositive', valid(latest.sma200Slope20Pct) ? latest.sma200Slope20Pct > 0 : null)
-  const weekCloseAboveSma30 = valid(latest.sma30Week) && metrics.completedWeeks.length > 0 ? metrics.completedWeeks.at(-1)!.close > latest.sma30Week : null
-  const weekSlopePct = metrics.weekSma30.length >= 5 ? percentChange(metrics.weekSma30.at(-1) ?? null, metrics.weekSma30.at(-5) ?? null) : null
+  const weekCloseAboveSma30 =
+    valid(latest.sma30Week) && metrics.completedWeeks.length > 0
+      ? metrics.completedWeeks.at(-1)!.close > latest.sma30Week
+      : null
+  const weekSlopePct =
+    metrics.weekSma30.length >= 5
+      ? percentChange(metrics.weekSma30.at(-1) ?? null, metrics.weekSma30.at(-5) ?? null)
+      : null
   const weekSlopePositive = weekSlopePct === null ? null : weekSlopePct > 0
   add('weekCloseAboveSma30', weekCloseAboveSma30)
   add('weekSlopePositive', weekSlopePositive)
-  add('weeklyTrendConfirmed', weekCloseAboveSma30 === null || weekSlopePositive === null ? null : weekCloseAboveSma30 && weekSlopePositive)
+  add(
+    'weeklyTrendConfirmed',
+    weekCloseAboveSma30 === null || weekSlopePositive === null ? null : weekCloseAboveSma30 && weekSlopePositive,
+  )
   add('closeAboveSma50', valid(latest.sma50) ? latest.close > latest.sma50 : null)
   add('sma50SlopePositive', valid(latest.sma50Slope5Pct) ? latest.sma50Slope5Pct > 0.1 : null)
-  add('emaStack', valid(latest.ema10) && valid(latest.ema20) && valid(latest.sma50) ? latest.ema10 > latest.ema20 && latest.ema20 > latest.sma50 : null)
+  add(
+    'emaStack',
+    valid(latest.ema10) && valid(latest.ema20) && valid(latest.sma50)
+      ? latest.ema10 > latest.ema20 && latest.ema20 > latest.sma50
+      : null,
+  )
   add('rsiAtLeast50', valid(latest.rsi14) ? latest.rsi14 >= 50 : null)
   add('macdAboveSignal', valid(latest.macd) && valid(latest.macdSignal) ? latest.macd > latest.macdSignal : null)
-  add('plusDiAboveMinusDi', valid(latest.plusDi14) && valid(latest.minusDi14) ? latest.plusDi14 > latest.minusDi14 : null)
+  add(
+    'plusDiAboveMinusDi',
+    valid(latest.plusDi14) && valid(latest.minusDi14) ? latest.plusDi14 > latest.minusDi14 : null,
+  )
   const windows = relativeStrength ?? []
-  const relativeBenchmarks = options.relativeBenchmarks === undefined && metrics.symbol === 'SOXX'
-    ? ['SPY', 'QQQ', 'SMH']
-    : options.relativeBenchmarks?.length === 3
-      ? [...options.relativeBenchmarks]
-      : ['configuredBenchmark1', 'configuredBenchmark2', 'configuredBenchmark3']
+  const relativeBenchmarks =
+    options.relativeBenchmarks === undefined && metrics.symbol === 'SOXX'
+      ? ['SPY', 'QQQ', 'SMH']
+      : options.relativeBenchmarks?.length === 3
+        ? [...options.relativeBenchmarks]
+        : ['configuredBenchmark1', 'configuredBenchmark2', 'configuredBenchmark3']
   for (const benchmark of relativeBenchmarks) {
     if (metrics.symbol === benchmark) {
       add(`20dOutperforms${benchmark}`, null)
       continue
     }
-    const window = windows.find(item => item.window === '20_session' && item.benchmark === benchmark && item.benchmarkReturnPct !== null && item.outperformancePp !== null && item.endDate !== null && item.startDate !== null)
-    add(`20dOutperforms${benchmark}`, window?.outperformancePp === null || window === undefined ? null : window.outperformancePp > 0)
+    const window = windows.find(
+      item =>
+        item.window === '20_session' &&
+        item.benchmark === benchmark &&
+        item.benchmarkReturnPct !== null &&
+        item.outperformancePp !== null &&
+        item.endDate !== null &&
+        item.startDate !== null,
+    )
+    add(
+      `20dOutperforms${benchmark}`,
+      window?.outperformancePp === null || window === undefined ? null : window.outperformancePp > 0,
+    )
   }
   const threeMonthBenchmark = options.threeMonthBenchmark ?? (metrics.symbol === 'SOXX' ? 'SPY' : null)
-  const threeMonth = threeMonthBenchmark ? windows.find(item => item.window === '3_calendar_month' && item.benchmark === threeMonthBenchmark) : undefined
-  add(`3mOutperforms${threeMonthBenchmark ?? 'configuredBenchmark'}`, threeMonth?.outperformancePp === null || threeMonth === undefined ? null : threeMonth.outperformancePp > 0)
+  const threeMonth = threeMonthBenchmark
+    ? windows.find(item => item.window === '3_calendar_month' && item.benchmark === threeMonthBenchmark)
+    : undefined
+  add(
+    `3mOutperforms${threeMonthBenchmark ?? 'configuredBenchmark'}`,
+    threeMonth?.outperformancePp === null || threeMonth === undefined ? null : threeMonth.outperformancePp > 0,
+  )
   const highs = metrics.pivots.filter(pivot => pivot.type === 'high').slice(-2)
   const lows = metrics.pivots.filter(pivot => pivot.type === 'low').slice(-2)
-  add('higherHighs', highs.length === 2 && valid(latest.atr14) ? highs[1]!.price - highs[0]!.price >= 0.25 * latest.atr14 : null)
-  add('higherLows', lows.length === 2 && valid(latest.atr14) ? lows[1]!.price - lows[0]!.price >= 0.25 * latest.atr14 : null)
+  add(
+    'higherHighs',
+    highs.length === 2 && valid(latest.atr14) ? highs[1]!.price - highs[0]!.price >= 0.25 * latest.atr14 : null,
+  )
+  add(
+    'higherLows',
+    lows.length === 2 && valid(latest.atr14) ? lows[1]!.price - lows[0]!.price >= 0.25 * latest.atr14 : null,
+  )
   add('adxCapVerified', latest.adx14 === null ? null : true)
   if (missing.length > 0) return { rawScore: null, caps: [], finalScore: null, label: 'N/A', evidence, missing }
   const weights: Array<[string, number]> = [
-    ['closeAboveSma200', 10], ['sma200SlopePositive', 10], ['weeklyTrendConfirmed', 10],
-    ['closeAboveSma50', 10], ['sma50SlopePositive', 10], ['emaStack', 5],
-    ['rsiAtLeast50', 5], ['macdAboveSignal', 5], ['plusDiAboveMinusDi', 5],
+    ['closeAboveSma200', 10],
+    ['sma200SlopePositive', 10],
+    ['weeklyTrendConfirmed', 10],
+    ['closeAboveSma50', 10],
+    ['sma50SlopePositive', 10],
+    ['emaStack', 5],
+    ['rsiAtLeast50', 5],
+    ['macdAboveSignal', 5],
+    ['plusDiAboveMinusDi', 5],
     ...relativeBenchmarks.map(benchmark => [`20dOutperforms${benchmark}`, 5] as [string, number]),
-    [`3mOutperforms${threeMonthBenchmark ?? 'configuredBenchmark'}`, 5], ['higherHighs', 5], ['higherLows', 5],
+    [`3mOutperforms${threeMonthBenchmark ?? 'configuredBenchmark'}`, 5],
+    ['higherHighs', 5],
+    ['higherLows', 5],
   ]
   const rawScore = weights.reduce((sum, [key, weight]) => sum + (evidence[key] === true ? weight : 0), 0)
   const caps: string[] = []
@@ -1319,7 +1958,12 @@ export function calculateDirectionScore(metrics: ResearchMetrics, relativeStreng
     finalScore = Math.min(finalScore, 79)
     caps.push('adx_below_20')
   }
-  if (latest.sma200 !== null && latest.sma200Slope20Pct !== null && latest.close < latest.sma200 && latest.sma200Slope20Pct < 0) {
+  if (
+    latest.sma200 !== null &&
+    latest.sma200Slope20Pct !== null &&
+    latest.close < latest.sma200 &&
+    latest.sma200Slope20Pct < 0
+  ) {
     finalScore = Math.min(finalScore, 49)
     caps.push('below_declining_sma200')
   }
@@ -1334,8 +1978,14 @@ export function calculateDirectionScore(metrics: ResearchMetrics, relativeStreng
 export function calculateRsi14(closes: readonly number[]): NullableNumber[] {
   const change = (close: number, index: number, direction: 1 | -1) =>
     index === 0 ? null : Math.max((close - (closes[index - 1] ?? close)) * direction, 0)
-  const avgGain = rmaSeries(closes.map((close, index) => change(close, index, 1)), 14)
-  const avgLoss = rmaSeries(closes.map((close, index) => change(close, index, -1)), 14)
+  const avgGain = rmaSeries(
+    closes.map((close, index) => change(close, index, 1)),
+    14,
+  )
+  const avgLoss = rmaSeries(
+    closes.map((close, index) => change(close, index, -1)),
+    14,
+  )
   return avgGain.map((gain, index) => {
     const loss = avgLoss[index] ?? null
     if (!valid(gain) || !valid(loss)) return null
@@ -1360,13 +2010,54 @@ export function calculateRelativeStrength(
   const benchmarkByDate = new Map(benchmarkBars.map(bar => [bar.date, bar.close]))
   const dates = [...target.keys()].sort()
   const endDate = referenceSession ?? dates.at(-1) ?? null
-  if (!endDate || !target.has(endDate)) return (['5_session', '20_session', '3_calendar_month'] as const).map(window => ({ window, benchmark, startDate: null, endDate, targetReturnPct: null, benchmarkReturnPct: null, outperformancePp: null, relativeRatioReturnPct: null }))
+  if (!endDate || !target.has(endDate))
+    return (['5_session', '20_session', '3_calendar_month'] as const).map(window => ({
+      window,
+      benchmark,
+      startDate: null,
+      endDate,
+      targetReturnPct: null,
+      benchmarkReturnPct: null,
+      outperformancePp: null,
+      relativeRatioReturnPct: null,
+    }))
   const endIndex = dates.indexOf(endDate)
   const build = (window: RelativeReturnWindow['window'], startDate: string | null): RelativeReturnWindow => {
-    if (!startDate || !target.has(startDate) || !benchmarkByDate.has(startDate) || !benchmarkByDate.has(endDate)) return { window, startDate, endDate, targetReturnPct: null, benchmarkReturnPct: null, outperformancePp: null, relativeRatioReturnPct: null }
+    if (!startDate || !target.has(startDate) || !benchmarkByDate.has(startDate) || !benchmarkByDate.has(endDate))
+      return {
+        window,
+        startDate,
+        endDate,
+        targetReturnPct: null,
+        benchmarkReturnPct: null,
+        outperformancePp: null,
+        relativeRatioReturnPct: null,
+      }
     const targetReturnPct = percentChange(target.get(endDate) ?? null, target.get(startDate) ?? null)
-    const benchmarkReturnPct = percentChange(benchmarkByDate.get(endDate) ?? null, benchmarkByDate.get(startDate) ?? null)
-    return { window, startDate, endDate, targetReturnPct, benchmarkReturnPct, outperformancePp: targetReturnPct !== null && benchmarkReturnPct !== null ? targetReturnPct - benchmarkReturnPct : null, relativeRatioReturnPct: targetReturnPct !== null && benchmarkReturnPct !== null && benchmarkByDate.get(startDate) && target.get(startDate) ? 100 * (((target.get(endDate)! / target.get(startDate)!) / (benchmarkByDate.get(endDate)! / benchmarkByDate.get(startDate)!)) - 1) : null }
+    const benchmarkReturnPct = percentChange(
+      benchmarkByDate.get(endDate) ?? null,
+      benchmarkByDate.get(startDate) ?? null,
+    )
+    return {
+      window,
+      startDate,
+      endDate,
+      targetReturnPct,
+      benchmarkReturnPct,
+      outperformancePp:
+        targetReturnPct !== null && benchmarkReturnPct !== null ? targetReturnPct - benchmarkReturnPct : null,
+      relativeRatioReturnPct:
+        targetReturnPct !== null &&
+        benchmarkReturnPct !== null &&
+        benchmarkByDate.get(startDate) &&
+        target.get(startDate)
+          ? 100 *
+            (target.get(endDate)! /
+              target.get(startDate)! /
+              (benchmarkByDate.get(endDate)! / benchmarkByDate.get(startDate)!) -
+              1)
+          : null,
+    }
   }
   const threeMonthDate = subtractCalendarMonths(endDate, 3)
   const threeMonthStart = dates.filter(date => date <= threeMonthDate).at(-1) ?? null

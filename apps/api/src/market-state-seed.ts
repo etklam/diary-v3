@@ -14,17 +14,21 @@ export interface MarketStateSeedResult {
 }
 
 function record(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' ? value as Record<string, unknown> : {}
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
 
-export async function runMarketStateSeed(
-  dependencies: { db: Database; pool?: Pick<Pool, 'connect'>; market: MarketQuoteProvider },
-): Promise<MarketStateSeedResult> {
+export async function runMarketStateSeed(dependencies: {
+  db: Database
+  pool?: Pick<Pool, 'connect'>
+  market: MarketQuoteProvider
+}): Promise<MarketStateSeedResult> {
   const lock = dependencies.pool ? await dependencies.pool.connect() : null
   const lockKey = `diary:market-state:${MARKET_STATE_UNIVERSE_KEY}`
   let acquired = false
   if (lock) {
-    acquired = (await lock.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired', [lockKey])).rows[0]?.acquired === true
+    acquired =
+      (await lock.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS acquired', [lockKey])).rows[0]
+        ?.acquired === true
     if (!acquired) {
       lock.release()
       throw new Error('This market state universe is already updating')
@@ -47,10 +51,18 @@ export async function runMarketStateSeed(
       // the configured basket remains explicit and gets safe fallback labels.
       await upsertMarketUniverseItem(dependencies.db, {
         symbol,
-        name: typeof raw.longName === 'string' && raw.longName.trim() ? raw.longName.trim()
-          : typeof raw.shortName === 'string' && raw.shortName.trim() ? raw.shortName.trim() : symbol,
-        exchange: typeof raw.fullExchangeName === 'string' && raw.fullExchangeName.trim() ? raw.fullExchangeName.trim()
-          : typeof raw.exchange === 'string' && raw.exchange.trim() ? raw.exchange.trim() : 'UNKNOWN',
+        name:
+          typeof raw.longName === 'string' && raw.longName.trim()
+            ? raw.longName.trim()
+            : typeof raw.shortName === 'string' && raw.shortName.trim()
+              ? raw.shortName.trim()
+              : symbol,
+        exchange:
+          typeof raw.fullExchangeName === 'string' && raw.fullExchangeName.trim()
+            ? raw.fullExchangeName.trim()
+            : typeof raw.exchange === 'string' && raw.exchange.trim()
+              ? raw.exchange.trim()
+              : 'UNKNOWN',
       })
       successCount += 1
     }
@@ -59,7 +71,11 @@ export async function runMarketStateSeed(
       let discard = false
       try {
         if (acquired) await lock.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [lockKey])
-      } catch { discard = true } finally { lock.release(discard) }
+      } catch {
+        discard = true
+      } finally {
+        lock.release(discard)
+      }
     }
   }
   return { universeKey: MARKET_STATE_UNIVERSE_KEY, symbolCount: MARKET_STATE_SYMBOLS.length, successCount, failedCount }

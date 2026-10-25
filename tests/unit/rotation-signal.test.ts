@@ -12,73 +12,87 @@ describe('isNearHigh', () => {
 
 describe('getRotationSignal', () => {
   it('returns insufficient data instead of neutral when required comparison fields are missing', () => {
-    expect(getRotationSignal({
-      maStatus: 'bullish_stack',
-      rsi: 72,
-      percentFromHigh: -2,
-      rankDelta2W: null,
-      rsiDelta2W: 4,
-      twoWeekPerformancePct: 3,
-    })).toEqual({
+    expect(
+      getRotationSignal({
+        maStatus: 'bullish_stack',
+        rsi: 72,
+        percentFromHigh: -2,
+        rankDelta2W: null,
+        rsiDelta2W: 4,
+        twoWeekPerformancePct: 3,
+      }),
+    ).toEqual({
       signal: null,
       signalStatus: 'insufficient_data',
     })
   })
 
   it('applies canonical signal priority before neutral fallback', () => {
-    expect(getRotationSignal({
-      maStatus: 'breakdown',
-      rsi: 41,
-      percentFromHigh: -12,
-      rankDelta2W: -3,
-      rsiDelta2W: 2,
-      twoWeekPerformancePct: 1,
-    }).signal).toBe('breaking_down')
+    expect(
+      getRotationSignal({
+        maStatus: 'breakdown',
+        rsi: 41,
+        percentFromHigh: -12,
+        rankDelta2W: -3,
+        rsiDelta2W: 2,
+        twoWeekPerformancePct: 1,
+      }).signal,
+    ).toBe('breaking_down')
 
-    expect(getRotationSignal({
-      maStatus: 'bullish_stack',
-      rsi: 70,
-      percentFromHigh: -3,
-      rankDelta2W: 3,
-      rsiDelta2W: 6,
-      twoWeekPerformancePct: 5,
-    }).signal).toBe('strong_but_extended')
+    expect(
+      getRotationSignal({
+        maStatus: 'bullish_stack',
+        rsi: 70,
+        percentFromHigh: -3,
+        rankDelta2W: 3,
+        rsiDelta2W: 6,
+        twoWeekPerformancePct: 5,
+      }).signal,
+    ).toBe('strong_but_extended')
 
-    expect(getRotationSignal({
-      maStatus: 'healthy_pullback',
-      rsi: 61,
-      percentFromHigh: -8,
-      rankDelta2W: 2,
-      rsiDelta2W: 5,
-      twoWeekPerformancePct: 2,
-    }).signal).toBe('turning_strong')
+    expect(
+      getRotationSignal({
+        maStatus: 'healthy_pullback',
+        rsi: 61,
+        percentFromHigh: -8,
+        rankDelta2W: 2,
+        rsiDelta2W: 5,
+        twoWeekPerformancePct: 2,
+      }).signal,
+    ).toBe('turning_strong')
 
-    expect(getRotationSignal({
-      maStatus: 'recovering',
-      rsi: 40,
-      percentFromHigh: -14,
-      rankDelta2W: 1,
-      rsiDelta2W: 0,
-      twoWeekPerformancePct: -1,
-    }).signal).toBe('early_recovery')
+    expect(
+      getRotationSignal({
+        maStatus: 'recovering',
+        rsi: 40,
+        percentFromHigh: -14,
+        rankDelta2W: 1,
+        rsiDelta2W: 0,
+        twoWeekPerformancePct: -1,
+      }).signal,
+    ).toBe('early_recovery')
 
-    expect(getRotationSignal({
-      maStatus: 'short_term_weakness',
-      rsi: 51,
-      percentFromHigh: -9,
-      rankDelta2W: -2,
-      rsiDelta2W: -1,
-      twoWeekPerformancePct: 1,
-    }).signal).toBe('losing_momentum')
+    expect(
+      getRotationSignal({
+        maStatus: 'short_term_weakness',
+        rsi: 51,
+        percentFromHigh: -9,
+        rankDelta2W: -2,
+        rsiDelta2W: -1,
+        twoWeekPerformancePct: 1,
+      }).signal,
+    ).toBe('losing_momentum')
 
-    expect(getRotationSignal({
-      maStatus: 'healthy_pullback',
-      rsi: 53,
-      percentFromHigh: -5,
-      rankDelta2W: 0,
-      rsiDelta2W: 0,
-      twoWeekPerformancePct: 0,
-    }).signal).toBe('neutral')
+    expect(
+      getRotationSignal({
+        maStatus: 'healthy_pullback',
+        rsi: 53,
+        percentFromHigh: -5,
+        rankDelta2W: 0,
+        rsiDelta2W: 0,
+        twoWeekPerformancePct: 0,
+      }).signal,
+    ).toBe('neutral')
   })
 
   // --- Boundary: strong_but_extended edge cases ---
@@ -142,14 +156,16 @@ describe('getRotationSignal', () => {
   // --- Boundary: all zero/neutral data ---
 
   it('returns neutral when all data is zero or does not match any signal pattern', () => {
-    expect(getRotationSignal({
-      maStatus: 'healthy_pullback',
-      rsi: 50,
-      percentFromHigh: -5,
-      rankDelta2W: 0,
-      rsiDelta2W: 0,
-      twoWeekPerformancePct: 0,
-    })).toEqual({
+    expect(
+      getRotationSignal({
+        maStatus: 'healthy_pullback',
+        rsi: 50,
+        percentFromHigh: -5,
+        rankDelta2W: 0,
+        rsiDelta2W: 0,
+        twoWeekPerformancePct: 0,
+      }),
+    ).toEqual({
       signal: 'neutral',
       signalStatus: 'complete',
     })

@@ -29,22 +29,37 @@ export interface Parsed13fDocument {
 }
 
 function decodeXml(value: string): string {
-  return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
     .replace(/&#x([0-9a-f]+);/gi, (match, code: string) => decodeCodePoint(match, Number.parseInt(code, 16)))
     .replace(/&#(\d+);/g, (match, code: string) => decodeCodePoint(match, Number.parseInt(code, 10)))
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;|&#39;/g, "'").replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;|&#39;/g, "'")
+    .replace(/&amp;/g, '&')
 }
 
 function decodeCodePoint(original: string, codePoint: number): string {
-  return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff && !(codePoint >= 0xd800 && codePoint <= 0xdfff)
+  return Number.isInteger(codePoint) &&
+    codePoint >= 0 &&
+    codePoint <= 0x10ffff &&
+    !(codePoint >= 0xd800 && codePoint <= 0xdfff)
     ? String.fromCodePoint(codePoint)
     : original
 }
 
 function values(xml: string, name: string): string[] {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const pattern = new RegExp(`<(?:(?:[\\w.-]+):)?${escaped}\\b[^>]*>([\\s\\S]*?)<\\/(?:(?:[\\w.-]+):)?${escaped}\\s*>`, 'gi')
-  return [...xml.matchAll(pattern)].map(match => decodeXml(match[1] ?? '').replace(/<[^>]*>/g, '').trim())
+  const pattern = new RegExp(
+    `<(?:(?:[\\w.-]+):)?${escaped}\\b[^>]*>([\\s\\S]*?)<\\/(?:(?:[\\w.-]+):)?${escaped}\\s*>`,
+    'gi',
+  )
+  return [...xml.matchAll(pattern)].map(match =>
+    decodeXml(match[1] ?? '')
+      .replace(/<[^>]*>/g, '')
+      .trim(),
+  )
 }
 
 function field(xml: string, name: string): string | null {
@@ -60,10 +75,7 @@ export function reportedValueUnitForFiledDate(filedDate: string): ReportedValueU
   return filedDate < FORM_13F_DOLLAR_VALUE_CUTOFF ? 'THOUSANDS_USD' : 'USD'
 }
 
-export function parse13fInformationTable(
-  xml: string,
-  options: { filedDate: string },
-): Parsed13fDocument {
+export function parse13fInformationTable(xml: string, options: { filedDate: string }): Parsed13fDocument {
   const rows = xml.split(/(?=<(?:[\w.-]+:)?infoTable\b)/i).slice(1)
   const holdings: Parsed13fHolding[] = []
   let rejectedRows = 0
@@ -83,7 +95,13 @@ export function parse13fInformationTable(
     const reportedValue = field(rawRow, 'value')
     const quantity = field(rawRow, 'sshPrnamt')
     const quantityType = field(rawRow, 'sshPrnamtType')?.toUpperCase()
-    if (!issuer || !titleOfClass || !validDecimal(reportedValue) || !validDecimal(quantity) || (quantityType !== 'SH' && quantityType !== 'PRN')) {
+    if (
+      !issuer ||
+      !titleOfClass ||
+      !validDecimal(reportedValue) ||
+      !validDecimal(quantity) ||
+      (quantityType !== 'SH' && quantityType !== 'PRN')
+    ) {
       rejectedRows++
       continue
     }
@@ -118,10 +136,17 @@ export function parse13fInformationTable(
     })
   }
 
-  return { holdings, rejectedRows, isInformationTable: /<(?:[\w.-]+:)?informationTable\b/i.test(xml) || rows.length > 0 }
+  return {
+    holdings,
+    rejectedRows,
+    isInformationTable: /<(?:[\w.-]+:)?informationTable\b/i.test(xml) || rows.length > 0,
+  }
 }
 
-export function parse13fAmendmentMetadata(xml: string): { amendmentNumber: number | null; amendmentType: string | null } {
+export function parse13fAmendmentMetadata(xml: string): {
+  amendmentNumber: number | null
+  amendmentType: string | null
+} {
   const number = field(xml, 'amendmentNo')
   const type = field(xml, 'amendmentType')?.toUpperCase() ?? null
   return {

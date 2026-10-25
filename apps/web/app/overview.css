@@ -185,7 +185,6 @@
   font-size: 0.875rem;
 }
 
-
 .overview-recent-list > li {
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr);

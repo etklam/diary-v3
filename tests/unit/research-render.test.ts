@@ -1,15 +1,36 @@
 import { describe, expect, it } from 'vitest'
-import { researchEvidenceManifestSchema, researchSourceRecordSchema, type ResearchDraft, type ResearchSourceRecord } from '@diary/contracts'
-import { escapeResearchMarkdownCell, formatResearchDecimal, renderResearchReport, researchReportCitationSources } from '../../apps/api/src/research-studio/render.js'
+import {
+  researchEvidenceManifestSchema,
+  researchSourceRecordSchema,
+  type ResearchDraft,
+  type ResearchSourceRecord,
+} from '@diary/contracts'
+import {
+  escapeResearchMarkdownCell,
+  formatResearchDecimal,
+  renderResearchReport,
+  researchReportCitationSources,
+} from '../../apps/api/src/research-studio/render.js'
 
-function permission(status: 'allowed' | 'restricted' | 'unknown', basis: string | null = 'https://policy.example.test/terms', checkedAt: string | null = '2026-09-25T12:00:00.000Z') {
+function permission(
+  status: 'allowed' | 'restricted' | 'unknown',
+  basis: string | null = 'https://policy.example.test/terms',
+  checkedAt: string | null = '2026-09-25T12:00:00.000Z',
+) {
   return { status, conditions: [], basis, checkedAt }
 }
 
-function source(input: Partial<Pick<ResearchSourceRecord, 'sourceId' | 'purpose' | 'requestedUrl' | 'resolvedUrl' | 'publisher' | 'title' | 'retrievedAt'>> & {
-  publication?: ReturnType<typeof permission>
-  evidenceLocator?: string | null
-} = {}): ResearchSourceRecord {
+function source(
+  input: Partial<
+    Pick<
+      ResearchSourceRecord,
+      'sourceId' | 'purpose' | 'requestedUrl' | 'resolvedUrl' | 'publisher' | 'title' | 'retrievedAt'
+    >
+  > & {
+    publication?: ReturnType<typeof permission>
+    evidenceLocator?: string | null
+  } = {},
+): ResearchSourceRecord {
   const allowed = permission('allowed')
   return researchSourceRecordSchema.parse({
     sourceId: input.sourceId ?? 'OFFICIAL_REPORT',
@@ -34,7 +55,10 @@ function source(input: Partial<Pick<ResearchSourceRecord, 'sourceId' | 'purpose'
   })
 }
 
-function plan(planId: 'breakout' | 'pullback', input: { status?: 'WATCH' | 'N_A'; mid?: unknown; conservative?: unknown } = {}) {
+function plan(
+  planId: 'breakout' | 'pullback',
+  input: { status?: 'WATCH' | 'N_A'; mid?: unknown; conservative?: unknown } = {},
+) {
   return {
     planId,
     setupType: planId,
@@ -42,9 +66,29 @@ function plan(planId: 'breakout' | 'pullback', input: { status?: 'WATCH' | 'N_A'
     trigger: 'Wait for a completed close.',
     triggerPrice: 104.5,
     confirmation: 'Review event risk before any action.',
-    entry: { zoneId: `${planId}-entry`, lower: 100, upper: 102, anchors: ['pivot-high-2026-09-01'], basis: 'confirmed pivot' },
-    structuralStop: { zoneId: `${planId}-stop`, lower: 90, upper: 92, anchors: ['pivot-low-2026-08-21'], basis: 'confirmed pivot', rule: 'next_lower_support_zone', stopPrice: null },
-    target1: { zoneId: `${planId}-target-1`, lower: 110, upper: 112, anchors: ['pivot-high-2026-09-10'], basis: 'confirmed resistance' },
+    entry: {
+      zoneId: `${planId}-entry`,
+      lower: 100,
+      upper: 102,
+      anchors: ['pivot-high-2026-09-01'],
+      basis: 'confirmed pivot',
+    },
+    structuralStop: {
+      zoneId: `${planId}-stop`,
+      lower: 90,
+      upper: 92,
+      anchors: ['pivot-low-2026-08-21'],
+      basis: 'confirmed pivot',
+      rule: 'next_lower_support_zone',
+      stopPrice: null,
+    },
+    target1: {
+      zoneId: `${planId}-target-1`,
+      lower: 110,
+      upper: 112,
+      anchors: ['pivot-high-2026-09-10'],
+      basis: 'confirmed resistance',
+    },
     target2: null,
     midRewardRisk: { target1: input.mid ?? 1.005, target2: null },
     conservativeRewardRisk: { target1: input.conservative ?? 0.995, target2: null },
@@ -55,7 +99,10 @@ function plan(planId: 'breakout' | 'pullback', input: { status?: 'WATCH' | 'N_A'
     selectedZoneIds: [`${planId}-entry`, `${planId}-stop`, `${planId}-target-1`],
     availableZoneIds: [],
     requiresHumanReview: true,
-    reason: input.status === 'N_A' ? 'No support zone is present in the frozen snapshot.' : 'Retest and event review remain outstanding.',
+    reason:
+      input.status === 'N_A'
+        ? 'No support zone is present in the frozen snapshot.'
+        : 'Retest and event review remain outstanding.',
   }
 }
 
@@ -70,20 +117,26 @@ function draft(overrides: Partial<ResearchDraft> = {}): ResearchDraft {
       claimIds: [],
     })),
     claims: [],
-    finalAnswers: Array.from({ length: 8 }, (_, index) => ({ question: `Question ${index + 1}?`, answer: `Answer ${index + 1}.`, claimIds: [] })),
+    finalAnswers: Array.from({ length: 8 }, (_, index) => ({
+      question: `Question ${index + 1}?`,
+      answer: `Answer ${index + 1}.`,
+      claimIds: [],
+    })),
     limitations: ['Offline fixture only.'],
     ...overrides,
   }
 }
 
-function evidence(input: {
-  synthetic?: boolean
-  sources?: ResearchSourceRecord[]
-  metrics?: Record<string, unknown>
-  candidates?: Record<string, unknown>
-  missingSessions?: string[]
-  warnings?: string[]
-} = {}) {
+function evidence(
+  input: {
+    synthetic?: boolean
+    sources?: ResearchSourceRecord[]
+    metrics?: Record<string, unknown>
+    candidates?: Record<string, unknown>
+    missingSessions?: string[]
+    warnings?: string[]
+  } = {},
+) {
   return {
     manifest: researchEvidenceManifestSchema.parse({
       referenceSession: '2026-09-24',
@@ -111,25 +164,47 @@ function evidence(input: {
 
 describe('Research Studio report rendering', () => {
   it('renders the exact frozen header, whitelisted metrics and both conditional plans', () => {
-    const rendered = renderResearchReport(draft({ sections: Array.from({ length: 10 }, (_, index) => ({
-      section: index + 1,
-      title: `Section ${index + 1}`,
-      content: index === 0 ? 'The model omits the latest close.' : `Narrative ${index + 1}.`,
-      claimIds: [],
-    })) }), evidence({
-      metrics: {
-        symbol: 'SOXX',
-        calculatorVersion: 'ts-research-calculator-1.0.0',
-        latest: { close: 123.456, ema10: null, macdHistogram: -0.12345, rsi14: 58.25, atrPct: 2.345, secret: 'PRIVATE_SETTINGS_SENTINEL' },
-        settings: { apiKey: 'PRIVATE_API_KEY_SENTINEL' },
-        bars: [{ close: 'RAW_BAR_SENTINEL' }],
-        relativeStrength: [{ benchmark: 'SPY', window: '20_session', startDate: '2026-08-26', endDate: '2026-09-24', targetReturnPct: 3.456, benchmarkReturnPct: 1.2, outperformancePp: 2.256 }],
-      },
-      candidates: {
-        tradePlans: [plan('breakout'), plan('pullback', { status: 'N_A', mid: -1.005, conservative: null })],
-        search: { results: [{ snippet: 'DO_NOT_RENDER_SNIPPET_SENTINEL' }] },
-      },
-    }))
+    const rendered = renderResearchReport(
+      draft({
+        sections: Array.from({ length: 10 }, (_, index) => ({
+          section: index + 1,
+          title: `Section ${index + 1}`,
+          content: index === 0 ? 'The model omits the latest close.' : `Narrative ${index + 1}.`,
+          claimIds: [],
+        })),
+      }),
+      evidence({
+        metrics: {
+          symbol: 'SOXX',
+          calculatorVersion: 'ts-research-calculator-1.0.0',
+          latest: {
+            close: 123.456,
+            ema10: null,
+            macdHistogram: -0.12345,
+            rsi14: 58.25,
+            atrPct: 2.345,
+            secret: 'PRIVATE_SETTINGS_SENTINEL',
+          },
+          settings: { apiKey: 'PRIVATE_API_KEY_SENTINEL' },
+          bars: [{ close: 'RAW_BAR_SENTINEL' }],
+          relativeStrength: [
+            {
+              benchmark: 'SPY',
+              window: '20_session',
+              startDate: '2026-08-26',
+              endDate: '2026-09-24',
+              targetReturnPct: 3.456,
+              benchmarkReturnPct: 1.2,
+              outperformancePp: 2.256,
+            },
+          ],
+        },
+        candidates: {
+          tradePlans: [plan('breakout'), plan('pullback', { status: 'N_A', mid: -1.005, conservative: null })],
+          search: { results: [{ snippet: 'DO_NOT_RENDER_SNIPPET_SENTINEL' }] },
+        },
+      }),
+    )
 
     expect(rendered).toContain('**Reference session：** 2026-09-24 · **As of (UTC)：** 2026-09-25T12:00:00.000Z')
     expect(rendered).toContain('**資料口徑：** split\\_only')
@@ -143,7 +218,9 @@ describe('Research Studio report rendering', () => {
     expect(rendered).toContain('| EMA10 | `latest.ema10` | N/A |')
     expect(rendered).toContain('| MACD Histogram | `latest.macdHistogram` | -0.1235 |')
     expect(rendered).toContain('| ATR% | `latest.atrPct` | 2.35% |')
-    expect(rendered).toContain('| SPY | 20\\_session | 2026-08-26 | 2026-09-24 | 3.46% | 1.20% | 2.26 pp | `relativeStrength[0]` |')
+    expect(rendered).toContain(
+      '| SPY | 20\\_session | 2026-08-26 | 2026-09-24 | 3.46% | 1.20% | 2.26 pp | `relativeStrength[0]` |',
+    )
     expect(rendered).toContain('#### breakout')
     expect(rendered).toContain('#### pullback')
     expect(rendered).toContain('| Mid R/R (T1 / T2) | 1.01 R / N/A |')
@@ -163,10 +240,13 @@ describe('Research Studio report rendering', () => {
     expect(rendered).not.toContain('RAW_BAR_SENTINEL')
     expect(rendered).not.toContain('DO_NOT_RENDER_SNIPPET_SENTINEL')
 
-    const bounded = renderResearchReport(draft(), evidence({
-      missingSessions: Array.from({ length: 12 }, (_, index) => `2026-09-${String(index + 1).padStart(2, '0')}`),
-      warnings: Array.from({ length: 6 }, (_, index) => `Warning ${index + 1}`),
-    }))
+    const bounded = renderResearchReport(
+      draft(),
+      evidence({
+        missingSessions: Array.from({ length: 12 }, (_, index) => `2026-09-${String(index + 1).padStart(2, '0')}`),
+        warnings: Array.from({ length: 6 }, (_, index) => `Warning ${index + 1}`),
+      }),
+    )
     expect(bounded).toContain('2026-09-10')
     expect(bounded).not.toContain('2026-09-11')
     expect(bounded).toContain('additional warnings omitted')
@@ -191,19 +271,59 @@ describe('Research Studio report rendering', () => {
     })
     const unknownRights = source({ sourceId: 'UNKNOWN_RIGHTS', publication: permission('unknown') })
     const missingBasis = source({ sourceId: 'MISSING_BASIS', publication: permission('allowed', null) })
-    const textBasis = source({ sourceId: 'TEXT_BASIS', publication: permission('allowed', 'license allows publication') })
-    const missingCheck = source({ sourceId: 'MISSING_CHECK', publication: permission('allowed', 'https://policy.example.test/terms', null) })
-    const httpOnly = source({ sourceId: 'HTTP_ONLY', requestedUrl: 'http://source.example.test/report', resolvedUrl: 'http://source.example.test/report' })
-    const credentialUrl = source({ sourceId: 'CREDENTIAL_URL', requestedUrl: 'https://user:secret@source.example.test/report', resolvedUrl: 'https://user:secret@source.example.test/report' })
-    const tavily = source({ sourceId: 'TAVILY_SEARCH', requestedUrl: 'https://api.tavily.com/search', resolvedUrl: 'https://api.tavily.com/search' })
-    const discoveryOnly = source({ sourceId: 'DISCOVERY_LEAD', purpose: 'discovery', evidenceLocator: 'discovery_only' })
-    const bls = source({ sourceId: 'BLS_SERIES', requestedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data', resolvedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data' })
+    const textBasis = source({
+      sourceId: 'TEXT_BASIS',
+      publication: permission('allowed', 'license allows publication'),
+    })
+    const missingCheck = source({
+      sourceId: 'MISSING_CHECK',
+      publication: permission('allowed', 'https://policy.example.test/terms', null),
+    })
+    const httpOnly = source({
+      sourceId: 'HTTP_ONLY',
+      requestedUrl: 'http://source.example.test/report',
+      resolvedUrl: 'http://source.example.test/report',
+    })
+    const credentialUrl = source({
+      sourceId: 'CREDENTIAL_URL',
+      requestedUrl: 'https://user:secret@source.example.test/report',
+      resolvedUrl: 'https://user:secret@source.example.test/report',
+    })
+    const tavily = source({
+      sourceId: 'TAVILY_SEARCH',
+      requestedUrl: 'https://api.tavily.com/search',
+      resolvedUrl: 'https://api.tavily.com/search',
+    })
+    const discoveryOnly = source({
+      sourceId: 'DISCOVERY_LEAD',
+      purpose: 'discovery',
+      evidenceLocator: 'discovery_only',
+    })
+    const bls = source({
+      sourceId: 'BLS_SERIES',
+      requestedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data',
+      resolvedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data',
+    })
     const missingRetrieval = source({ sourceId: 'MISSING_RETRIEVAL', retrievedAt: null })
-    const inputs = [allowed, unknownRights, missingBasis, textBasis, missingCheck, httpOnly, credentialUrl, tavily, discoveryOnly, bls, missingRetrieval]
+    const inputs = [
+      allowed,
+      unknownRights,
+      missingBasis,
+      textBasis,
+      missingCheck,
+      httpOnly,
+      credentialUrl,
+      tavily,
+      discoveryOnly,
+      bls,
+      missingRetrieval,
+    ]
     const rendered = renderResearchReport(draft(), evidence({ sources: inputs }))
     const projected = researchReportCitationSources(inputs)
 
-    expect(rendered).toContain('[Issuer \\| Group — &lt;script&gt;alert\\(1\\)&lt;/script&gt; \\[Injected\\]\\(https://evil.example.test\\)](<https://source.example.test/final?q=a%26b>)')
+    expect(rendered).toContain(
+      '[Issuer \\| Group — &lt;script&gt;alert\\(1\\)&lt;/script&gt; \\[Injected\\]\\(https://evil.example.test\\)](<https://source.example.test/final?q=a%26b>)',
+    )
     expect(rendered).toContain('UNKNOWN\\_RIGHTS | N/A — public link withheld')
     expect(rendered).toContain('MISSING\\_BASIS | N/A — public link withheld')
     expect(rendered).toContain('TEXT\\_BASIS | N/A — public link withheld')
@@ -213,16 +333,33 @@ describe('Research Studio report rendering', () => {
     expect(rendered).toContain('TAVILY\\_SEARCH | N/A — discovery metadata is not a reviewed evidence citation.')
     expect(rendered).toContain('DISCOVERY\\_LEAD | N/A — discovery metadata is not a reviewed evidence citation.')
     expect(rendered).toContain('MISSING\\_RETRIEVAL | N/A — public link withheld')
-    expect(rendered).toContain('retrieved 2026-09-25T12:00:00.000Z; publication-use policy checked 2026-09-25T12:00:00.000Z')
-    expect(rendered).toContain('BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov.')
+    expect(rendered).toContain(
+      'retrieved 2026-09-25T12:00:00.000Z; publication-use policy checked 2026-09-25T12:00:00.000Z',
+    )
+    expect(rendered).toContain(
+      'BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov.',
+    )
     expect(rendered).not.toContain('](<http://')
     expect(rendered).not.toContain('](<https://api.tavily.com')
     expect(projected.map(item => item.requestedUrl)).toEqual([
-      'https://source.example.test/final?q=a%26b', null, null, null, null, null, null, null, null,
+      'https://source.example.test/final?q=a%26b',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
       'https://api.bls.gov/publicAPI/v2/timeseries/data',
       null,
     ])
-    const failedBls = source({ sourceId: 'BLS_FAILED', requestedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data', resolvedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data', retrievedAt: null })
+    const failedBls = source({
+      sourceId: 'BLS_FAILED',
+      requestedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data',
+      resolvedUrl: 'https://api.bls.gov/publicAPI/v2/timeseries/data',
+      retrievedAt: null,
+    })
     const failedBlsReport = renderResearchReport(draft(), evidence({ sources: [failedBls] }))
     expect(failedBlsReport).toContain('BLS\\_FAILED | N/A — public link withheld')
     expect(failedBlsReport).not.toContain('BLS.gov cannot vouch')

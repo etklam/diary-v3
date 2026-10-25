@@ -58,8 +58,7 @@ export function calculateMonthCoverage(input: {
   activeDays: ReadonlySet<string>
   excludedDays: ReadonlySet<string>
 }) {
-  const eligible = calendarMonthKeys(input.year, input.month)
-    .filter(date => !input.excludedDays.has(date))
+  const eligible = calendarMonthKeys(input.year, input.month).filter(date => !input.excludedDays.has(date))
   const activeCount = eligible.filter(date => input.activeDays.has(date)).length
   const eligibleDays = eligible.length
   return {
@@ -86,7 +85,7 @@ export function buildHeatmapWeeks(input: {
     const dateKey = shiftCivilDate(input.endDate, index - 370)
     return {
       dateKey,
-      level: input.activeDays.has(dateKey) ? 1 as const : 0 as const,
+      level: input.activeDays.has(dateKey) ? (1 as const) : (0 as const),
       excluded: input.excludeHolidays && input.excludedDays.has(dateKey),
     }
   })

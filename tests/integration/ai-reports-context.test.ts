@@ -51,7 +51,9 @@ beforeAll(async () => {
   )
 })
 
-afterAll(async () => { await database?.dispose() })
+afterAll(async () => {
+  await database?.dispose()
+})
 
 const contextInput = (userId: bigint) => ({
   userId,
@@ -68,13 +70,19 @@ describe('AI report context with disposable PostgreSQL', () => {
 
     expect(result.dataRevision).toBe(9)
     expect(result.context.diaries.map(row => row.title)).toEqual(['Owner period'])
-    expect(result.context.transactions).toEqual([expect.objectContaining({ sourceId: 'T1', symbol: 'AAPL', diaryId: 'D1' })])
-    expect(result.context.holdings).toEqual([expect.objectContaining({ symbol: 'AAPL', quantity: '6', totalCost: '600' })])
+    expect(result.context.transactions).toEqual([
+      expect.objectContaining({ sourceId: 'T1', symbol: 'AAPL', diaryId: 'D1' }),
+    ])
+    expect(result.context.holdings).toEqual([
+      expect.objectContaining({ symbol: 'AAPL', quantity: '6', totalCost: '600' }),
+    ])
     expect(result.context.closedTrades).toEqual([expect.objectContaining({ sourceId: 'T1', realizedPnL: '80' })])
-    expect(result.sourceManifest).toEqual(expect.arrayContaining([
-      expect.objectContaining({ ownerId: ownerId.toString(), alias: 'TD1', sourceId: '1', dependency: true }),
-      expect.objectContaining({ ownerId: ownerId.toString(), alias: 'T1', sourceId: '2', dependency: false }),
-    ]))
+    expect(result.sourceManifest).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ownerId: ownerId.toString(), alias: 'TD1', sourceId: '1', dependency: true }),
+        expect.objectContaining({ ownerId: ownerId.toString(), alias: 'T1', sourceId: '2', dependency: false }),
+      ]),
+    )
     expect(result.sourceManifest.every(source => source.ownerId === ownerId.toString())).toBe(true)
     expect(JSON.stringify(result.context)).not.toContain('Other owner record')
     expect(result.context).not.toHaveProperty('userId')
@@ -91,7 +99,8 @@ describe('AI report context with disposable PostgreSQL', () => {
   })
 
   it('bounds SQL reads with a sentinel row and returns the same typed limit error', async () => {
-    await expect(buildReportContext(database.db, { ...contextInput(ownerId), limits: { maxRows: 1 } }))
-      .rejects.toMatchObject({ code: 'AI_REPORT_CONTEXT_TOO_LARGE', limit: 'maxRows' })
+    await expect(
+      buildReportContext(database.db, { ...contextInput(ownerId), limits: { maxRows: 1 } }),
+    ).rejects.toMatchObject({ code: 'AI_REPORT_CONTEXT_TOO_LARGE', limit: 'maxRows' })
   })
 })

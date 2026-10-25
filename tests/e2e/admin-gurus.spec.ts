@@ -6,7 +6,9 @@ const adminEmail = 'etf-admin@example.test'
 const adminPassword = 'synthetic-etf-admin-password'
 
 async function signInAdmin(page: Page) {
-  expect((await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status()).toBe(200)
+  expect(
+    (await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 }
 
@@ -19,7 +21,9 @@ async function gotoWithPreferences(page: Page, path: string) {
   await preferences
 }
 
-test('admin creates, edits, filters, and inspects a synthetic Guru profile at desktop and mobile widths', async ({ page }) => {
+test('admin creates, edits, filters, and inspects a synthetic Guru profile at desktop and mobile widths', async ({
+  page,
+}) => {
   const token = randomUUID().replaceAll('-', '')
   const slug = `synthetic-guru-${token.slice(0, 12)}`
   const cik = `9${token.replace(/\D/g, '').slice(0, 9).padEnd(9, '1')}`

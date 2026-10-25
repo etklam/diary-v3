@@ -160,12 +160,19 @@ function ratioPercent(numerator: number, denominator: number): string {
 }
 
 function mean(values: readonly bigint[]): string | null {
-  return values.length ? scaledToDecimal(roundRatio(values.reduce((sum, value) => sum + value, 0n), BigInt(values.length))) : null
+  return values.length
+    ? scaledToDecimal(
+        roundRatio(
+          values.reduce((sum, value) => sum + value, 0n),
+          BigInt(values.length),
+        ),
+      )
+    : null
 }
 
 function median(values: readonly bigint[]): string | null {
   if (!values.length) return null
-  const sorted = [...values].sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
+  const sorted = [...values].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
   const middle = Math.floor(sorted.length / 2)
   return scaledToDecimal(sorted.length % 2 ? sorted[middle]! : roundRatio(sorted[middle - 1]! + sorted[middle]!, 2n))
 }
@@ -185,7 +192,10 @@ interface AggregatedPosition {
   themes: GuruConsensusTheme[]
 }
 
-function aggregatePositions(holdings: readonly GuruConsensusHolding[], portfolioValue: string | null): Map<string, AggregatedPosition> {
+function aggregatePositions(
+  holdings: readonly GuruConsensusHolding[],
+  portfolioValue: string | null,
+): Map<string, AggregatedPosition> {
   const values = new Map<string, AggregatedPosition>()
   const denominator = portfolioValue === null ? 0n : decimalToScaled(portfolioValue)
   for (const holding of holdings) {
@@ -208,10 +218,13 @@ function aggregatePositions(holdings: readonly GuruConsensusHolding[], portfolio
       industry: holding.industry?.trim() || null,
       valueUsd: value,
       weightPercent: denominator > 0n ? percentage(value, denominator) : 0n,
-      themes: [...new Map(holding.themes.map(theme => [theme.key, theme])).values()].sort((a, b) => a.key.localeCompare(b.key)),
+      themes: [...new Map(holding.themes.map(theme => [theme.key, theme])).values()].sort((a, b) =>
+        a.key.localeCompare(b.key),
+      ),
     })
   }
-  if (denominator > 0n) for (const position of values.values()) position.weightPercent = percentage(position.valueUsd, denominator)
+  if (denominator > 0n)
+    for (const position of values.values()) position.weightPercent = percentage(position.valueUsd, denominator)
   return values
 }
 
@@ -232,7 +245,17 @@ interface ActionAggregate {
 }
 
 function emptyActionAggregate(): ActionAggregate {
-  return { newBuyerCount: 0, addCount: 0, unchangedCount: 0, reduceCount: 0, exitCount: 0, managerIds: new Set(), buyerManagerIds: new Set(), sellerManagerIds: new Set(), percentages: [] }
+  return {
+    newBuyerCount: 0,
+    addCount: 0,
+    unchangedCount: 0,
+    reduceCount: 0,
+    exitCount: 0,
+    managerIds: new Set(),
+    buyerManagerIds: new Set(),
+    sellerManagerIds: new Set(),
+    percentages: [],
+  }
 }
 
 export function calculateGuruConsensusSnapshot(input: {
@@ -246,7 +269,10 @@ export function calculateGuruConsensusSnapshot(input: {
   if (managerIds.size !== input.managers.length) throw new Error('GURU_CONSENSUS_DUPLICATE_MANAGER')
   const managers = [...input.managers].sort((a, b) => a.managerId.localeCompare(b.managerId))
   const ready = managers.filter(manager => manager.status === 'READY')
-  const comparable = ready.filter(manager => manager.previousReady && manager.comparisonStatus !== null && COMPARABLE_STATUSES.has(manager.comparisonStatus))
+  const comparable = ready.filter(
+    manager =>
+      manager.previousReady && manager.comparisonStatus !== null && COMPARABLE_STATUSES.has(manager.comparisonStatus),
+  )
   const totalSourceRows = ready.reduce((sum, manager) => sum + manager.sourceRowCount, 0)
   const totalMappedRows = ready.reduce((sum, manager) => sum + manager.mappedRowCount, 0)
 
@@ -257,7 +283,11 @@ export function calculateGuruConsensusSnapshot(input: {
   for (const manager of ready) {
     const current = aggregatePositions(manager.holdings, manager.reportedPortfolioValueUsd)
     currentByManager.set(manager.managerId, current)
-    if (manager.previousReady) previousByManager.set(manager.managerId, aggregatePositions(manager.previousHoldings, manager.previousReportedPortfolioValueUsd))
+    if (manager.previousReady)
+      previousByManager.set(
+        manager.managerId,
+        aggregatePositions(manager.previousHoldings, manager.previousReportedPortfolioValueUsd),
+      )
     for (const [securityId, position] of current) {
       stockKeys.add(securityId)
       stockMeta.set(securityId, stockMeta.get(securityId) ?? position)
@@ -267,29 +297,48 @@ export function calculateGuruConsensusSnapshot(input: {
   const stockActions = new Map<string, ActionAggregate>()
   const groupedActions = new Map<string, Map<string, GuruConsensusChange>>()
   const sectorActions = new Map<string, Map<string, ActionAggregate>>()
-  const groups = new Map<string, {
-    dimension: GuruConsensusDimension
-    key: string
-    name: string
-    holderIds: Set<string>
-    buyerIds: Set<string>
-    sellerIds: Set<string>
-    currentWeight: bigint
-    comparableCurrentWeight: bigint
-    previousWeight: bigint
-    hasPrevious: boolean
-    allocationManagerIds: Set<string>
-    newPositionCount: number
-    exitCount: number
-    addCount: number
-    reduceCount: number
-  }>()
+  const groups = new Map<
+    string,
+    {
+      dimension: GuruConsensusDimension
+      key: string
+      name: string
+      holderIds: Set<string>
+      buyerIds: Set<string>
+      sellerIds: Set<string>
+      currentWeight: bigint
+      comparableCurrentWeight: bigint
+      previousWeight: bigint
+      hasPrevious: boolean
+      allocationManagerIds: Set<string>
+      newPositionCount: number
+      exitCount: number
+      addCount: number
+      reduceCount: number
+    }
+  >()
 
   const ensureGroup = (dimension: GuruConsensusDimension, key: string, name: string) => {
     const id = `${dimension}:${key}`
     let group = groups.get(id)
     if (!group) {
-      group = { dimension, key, name, holderIds: new Set(), buyerIds: new Set(), sellerIds: new Set(), currentWeight: 0n, comparableCurrentWeight: 0n, previousWeight: 0n, hasPrevious: false, allocationManagerIds: new Set(), newPositionCount: 0, exitCount: 0, addCount: 0, reduceCount: 0 }
+      group = {
+        dimension,
+        key,
+        name,
+        holderIds: new Set(),
+        buyerIds: new Set(),
+        sellerIds: new Set(),
+        currentWeight: 0n,
+        comparableCurrentWeight: 0n,
+        previousWeight: 0n,
+        hasPrevious: false,
+        allocationManagerIds: new Set(),
+        newPositionCount: 0,
+        exitCount: 0,
+        addCount: 0,
+        reduceCount: 0,
+      }
       groups.set(id, group)
     }
     return group
@@ -320,12 +369,13 @@ export function calculateGuruConsensusSnapshot(input: {
       }
     }
     if (previous && manager.comparisonStatus !== null && COMPARABLE_STATUSES.has(manager.comparisonStatus)) {
-      for (const position of previous.values()) for (const entry of categoryKeys(position)) {
-        const group = ensureGroup(entry.dimension, entry.key, entry.name)
-        group.previousWeight += position.weightPercent
-        group.allocationManagerIds.add(manager.managerId)
-        group.hasPrevious = true
-      }
+      for (const position of previous.values())
+        for (const entry of categoryKeys(position)) {
+          const group = ensureGroup(entry.dimension, entry.key, entry.name)
+          group.previousWeight += position.weightPercent
+          group.allocationManagerIds.add(manager.managerId)
+          group.hasPrevious = true
+        }
     }
     const perSecurity = new Map<string, GuruConsensusChange>()
     for (const change of manager.changes) {
@@ -339,7 +389,8 @@ export function calculateGuruConsensusSnapshot(input: {
       stockKeys.add(securityId)
       const actionAggregate = stockActions.get(securityId) ?? emptyActionAggregate()
       actionAggregate.managerIds.add(manager.managerId)
-      if (change.quantityChangePercent !== null) actionAggregate.percentages.push(decimalToScaled(change.quantityChangePercent))
+      if (change.quantityChangePercent !== null)
+        actionAggregate.percentages.push(decimalToScaled(change.quantityChangePercent))
       if (change.action === 'NEW') actionAggregate.newBuyerCount += 1
       else if (change.action === 'ADD' || change.action === 'STRONG_ADD') actionAggregate.addCount += 1
       else if (change.action === 'UNCHANGED') actionAggregate.unchangedCount += 1
@@ -351,98 +402,153 @@ export function calculateGuruConsensusSnapshot(input: {
 
       const meta = stockMeta.get(securityId)
       const positionForGroup: AggregatedPosition = meta ?? {
-        securityId, ticker: null, company: securityId, sector: change.sector?.trim() || null,
-        industry: change.industry?.trim() || null, valueUsd: 0n, weightPercent: 0n,
+        securityId,
+        ticker: null,
+        company: securityId,
+        sector: change.sector?.trim() || null,
+        industry: change.industry?.trim() || null,
+        valueUsd: 0n,
+        weightPercent: 0n,
         themes: [...change.themes].sort((a, b) => a.key.localeCompare(b.key)),
       }
       stockMeta.set(securityId, positionForGroup)
       for (const entry of categoryKeys(positionForGroup)) {
         const group = ensureGroup(entry.dimension, entry.key, entry.name)
-        const actionByManager = sectorActions.get(`${entry.dimension}:${entry.key}`) ?? new Map<string, ActionAggregate>()
+        const actionByManager =
+          sectorActions.get(`${entry.dimension}:${entry.key}`) ?? new Map<string, ActionAggregate>()
         const aggregate = actionByManager.get(manager.managerId) ?? emptyActionAggregate()
         if (BUY_ACTIONS.has(change.action)) aggregate.buyerManagerIds.add(manager.managerId)
         if (SELL_ACTIONS.has(change.action)) aggregate.sellerManagerIds.add(manager.managerId)
-        if (change.action === 'NEW') { aggregate.newBuyerCount += 1; group.newPositionCount += 1 }
-        else if (change.action === 'ADD' || change.action === 'STRONG_ADD') { aggregate.addCount += 1; group.addCount += 1 }
-        else if (change.action === 'REDUCE' || change.action === 'STRONG_REDUCE') { aggregate.reduceCount += 1; group.reduceCount += 1 }
-        else if (change.action === 'EXIT') { aggregate.exitCount += 1; group.exitCount += 1 }
+        if (change.action === 'NEW') {
+          aggregate.newBuyerCount += 1
+          group.newPositionCount += 1
+        } else if (change.action === 'ADD' || change.action === 'STRONG_ADD') {
+          aggregate.addCount += 1
+          group.addCount += 1
+        } else if (change.action === 'REDUCE' || change.action === 'STRONG_REDUCE') {
+          aggregate.reduceCount += 1
+          group.reduceCount += 1
+        } else if (change.action === 'EXIT') {
+          aggregate.exitCount += 1
+          group.exitCount += 1
+        }
         actionByManager.set(manager.managerId, aggregate)
         sectorActions.set(`${entry.dimension}:${entry.key}`, actionByManager)
       }
     }
   }
 
-  const stockRows = [...stockKeys].map(securityId => {
-    const meta = stockMeta.get(securityId)!
-    const actions = stockActions.get(securityId) ?? emptyActionAggregate()
-    const currentHolderCount = ready.filter(manager => currentByManager.get(manager.managerId)!.has(securityId)).length
-    const comparableCurrentHolderCount = comparable.filter(manager => currentByManager.get(manager.managerId)!.has(securityId)).length
-    const previousHolderCount = comparable.filter(manager => previousByManager.get(manager.managerId)?.has(securityId) ?? false).length
-    const holderCountChange = comparableCurrentHolderCount - previousHolderCount
-    const weights = ready.flatMap(manager => {
-      const position = currentByManager.get(manager.managerId)!.get(securityId)
-      return position ? [position.weightPercent] : []
+  const stockRows = [...stockKeys]
+    .map(securityId => {
+      const meta = stockMeta.get(securityId)!
+      const actions = stockActions.get(securityId) ?? emptyActionAggregate()
+      const currentHolderCount = ready.filter(manager =>
+        currentByManager.get(manager.managerId)!.has(securityId),
+      ).length
+      const comparableCurrentHolderCount = comparable.filter(manager =>
+        currentByManager.get(manager.managerId)!.has(securityId),
+      ).length
+      const previousHolderCount = comparable.filter(
+        manager => previousByManager.get(manager.managerId)?.has(securityId) ?? false,
+      ).length
+      const holderCountChange = comparableCurrentHolderCount - previousHolderCount
+      const weights = ready.flatMap(manager => {
+        const position = currentByManager.get(manager.managerId)!.get(securityId)
+        return position ? [position.weightPercent] : []
+      })
+      const aggregateWeight = weights.reduce((sum, weight) => sum + weight, 0n)
+      const netBuyerCount = actions.newBuyerCount + actions.addCount - actions.reduceCount - actions.exitCount
+      const classification: GuruConsensusStock['classification'] =
+        actions.managerIds.size === 0
+          ? null
+          : netBuyerCount > 0
+            ? 'ACCUMULATION'
+            : netBuyerCount < 0
+              ? 'DISTRIBUTION'
+              : 'NEUTRAL'
+      const quarterTrend: GuruConsensusStock['quarterTrend'] =
+        comparable.length === 0
+          ? 'UNAVAILABLE'
+          : holderCountChange > 0
+            ? 'RISING'
+            : holderCountChange < 0
+              ? 'FALLING'
+              : 'STABLE'
+      return {
+        securityId,
+        ticker: meta.ticker,
+        company: meta.company,
+        sector: meta.sector,
+        industry: meta.industry,
+        currentHolderCount,
+        comparableCurrentHolderCount,
+        previousHolderCount,
+        holderCountChange,
+        newBuyerCount: actions.newBuyerCount,
+        addCount: actions.addCount,
+        unchangedCount: actions.unchangedCount,
+        reduceCount: actions.reduceCount,
+        exitCount: actions.exitCount,
+        netBuyerCount,
+        actionManagerCount: actions.managerIds.size,
+        quantityChangeSampleCount: actions.percentages.length,
+        averageQuantityChangePercent: mean(actions.percentages),
+        medianQuantityChangePercent: median(actions.percentages),
+        aggregateWeightPercent: scaledToDecimal(aggregateWeight),
+        averagePortfolioWeightPercent: weights.length
+          ? scaledToDecimal(roundRatio(aggregateWeight, BigInt(weights.length)))
+          : null,
+        weightBreadthPercent: ratioPercent(currentHolderCount, ready.length),
+        classification,
+        quarterTrend,
+      }
     })
-    const aggregateWeight = weights.reduce((sum, weight) => sum + weight, 0n)
-    const netBuyerCount = actions.newBuyerCount + actions.addCount - actions.reduceCount - actions.exitCount
-    const classification: GuruConsensusStock['classification'] = actions.managerIds.size === 0 ? null : netBuyerCount > 0 ? 'ACCUMULATION' : netBuyerCount < 0 ? 'DISTRIBUTION' : 'NEUTRAL'
-    const quarterTrend: GuruConsensusStock['quarterTrend'] = comparable.length === 0 ? 'UNAVAILABLE' : holderCountChange > 0 ? 'RISING' : holderCountChange < 0 ? 'FALLING' : 'STABLE'
-    return {
-      securityId,
-      ticker: meta.ticker,
-      company: meta.company,
-      sector: meta.sector,
-      industry: meta.industry,
-      currentHolderCount,
-      comparableCurrentHolderCount,
-      previousHolderCount,
-      holderCountChange,
-      newBuyerCount: actions.newBuyerCount,
-      addCount: actions.addCount,
-      unchangedCount: actions.unchangedCount,
-      reduceCount: actions.reduceCount,
-      exitCount: actions.exitCount,
-      netBuyerCount,
-      actionManagerCount: actions.managerIds.size,
-      quantityChangeSampleCount: actions.percentages.length,
-      averageQuantityChangePercent: mean(actions.percentages),
-      medianQuantityChangePercent: median(actions.percentages),
-      aggregateWeightPercent: scaledToDecimal(aggregateWeight),
-      averagePortfolioWeightPercent: weights.length ? scaledToDecimal(roundRatio(aggregateWeight, BigInt(weights.length))) : null,
-      weightBreadthPercent: ratioPercent(currentHolderCount, ready.length),
-      classification,
-      quarterTrend,
-    }
-  }).sort((a, b) => b.currentHolderCount - a.currentHolderCount || a.securityId.localeCompare(b.securityId))
+    .sort((a, b) => b.currentHolderCount - a.currentHolderCount || a.securityId.localeCompare(b.securityId))
 
-  const groupRows: GuruConsensusGroup[] = [...groups.values()].map(group => {
-    const actionManagers = sectorActions.get(`${group.dimension}:${group.key}`) ?? new Map<string, ActionAggregate>()
-    const buyerIds = new Set([...actionManagers.values()].flatMap(action => [...action.buyerManagerIds]))
-    const sellerIds = new Set([...actionManagers.values()].flatMap(action => [...action.sellerManagerIds]))
-    const previousWeight = comparable.length ? group.previousWeight : 0n
-    const hasComparison = comparable.length > 0
-    const direction: GuruConsensusGroup['direction'] = actionManagers.size === 0 ? null : buyerIds.size > sellerIds.size ? 'INCREASING' : buyerIds.size < sellerIds.size ? 'REDUCING' : 'STABLE'
-    return {
-      dimension: group.dimension,
-      dimensionKey: group.key,
-      name: group.name,
-      currentHolderCount: group.holderIds.size,
-      buyerCount: buyerIds.size,
-      sellerCount: sellerIds.size,
-      newPositionCount: group.newPositionCount,
-      exitCount: group.exitCount,
-      addCount: group.addCount,
-      reduceCount: group.reduceCount,
-      allocationManagerCount: group.allocationManagerIds.size,
-      aggregateWeightPercent: scaledToDecimal(group.currentWeight),
-      comparableCurrentAggregateWeightPercent: scaledToDecimal(group.comparableCurrentWeight),
-      previousAggregateWeightPercent: hasComparison ? scaledToDecimal(previousWeight) : null,
-      aggregateWeightChangePoints: hasComparison ? scaledToDecimal(group.comparableCurrentWeight - previousWeight) : null,
-      holderBreadthPercent: ratioPercent(group.holderIds.size, ready.length),
-      allocationCoveragePercent: ratioPercent(group.allocationManagerIds.size, managers.length),
-      direction,
-    }
-  }).sort((a, b) => a.dimension.localeCompare(b.dimension) || a.name.localeCompare(b.name) || a.dimensionKey.localeCompare(b.dimensionKey))
+  const groupRows: GuruConsensusGroup[] = [...groups.values()]
+    .map(group => {
+      const actionManagers = sectorActions.get(`${group.dimension}:${group.key}`) ?? new Map<string, ActionAggregate>()
+      const buyerIds = new Set([...actionManagers.values()].flatMap(action => [...action.buyerManagerIds]))
+      const sellerIds = new Set([...actionManagers.values()].flatMap(action => [...action.sellerManagerIds]))
+      const previousWeight = comparable.length ? group.previousWeight : 0n
+      const hasComparison = comparable.length > 0
+      const direction: GuruConsensusGroup['direction'] =
+        actionManagers.size === 0
+          ? null
+          : buyerIds.size > sellerIds.size
+            ? 'INCREASING'
+            : buyerIds.size < sellerIds.size
+              ? 'REDUCING'
+              : 'STABLE'
+      return {
+        dimension: group.dimension,
+        dimensionKey: group.key,
+        name: group.name,
+        currentHolderCount: group.holderIds.size,
+        buyerCount: buyerIds.size,
+        sellerCount: sellerIds.size,
+        newPositionCount: group.newPositionCount,
+        exitCount: group.exitCount,
+        addCount: group.addCount,
+        reduceCount: group.reduceCount,
+        allocationManagerCount: group.allocationManagerIds.size,
+        aggregateWeightPercent: scaledToDecimal(group.currentWeight),
+        comparableCurrentAggregateWeightPercent: scaledToDecimal(group.comparableCurrentWeight),
+        previousAggregateWeightPercent: hasComparison ? scaledToDecimal(previousWeight) : null,
+        aggregateWeightChangePoints: hasComparison
+          ? scaledToDecimal(group.comparableCurrentWeight - previousWeight)
+          : null,
+        holderBreadthPercent: ratioPercent(group.holderIds.size, ready.length),
+        allocationCoveragePercent: ratioPercent(group.allocationManagerIds.size, managers.length),
+        direction,
+      }
+    })
+    .sort(
+      (a, b) =>
+        a.dimension.localeCompare(b.dimension) ||
+        a.name.localeCompare(b.name) ||
+        a.dimensionKey.localeCompare(b.dimensionKey),
+    )
 
   const sourceRowCount = totalSourceRows
   const mappedRowCount = totalMappedRows
@@ -461,7 +567,7 @@ export function calculateGuruConsensusSnapshot(input: {
       comparableManagerCount: comparable.length,
       sourceRowCount,
       mappedRowCount,
-    mappingCoveragePercent: sourceRowCount === 0 ? null : ratioPercent(mappedRowCount, sourceRowCount),
+      mappingCoveragePercent: sourceRowCount === 0 ? null : ratioPercent(mappedRowCount, sourceRowCount),
     },
     stocks: stockRows,
     groups: groupRows,

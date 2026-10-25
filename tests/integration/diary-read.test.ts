@@ -8,12 +8,18 @@ import { provisionTestDatabase } from '../support/database'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 
-beforeAll(async () => { database = await provisionTestDatabase('diary_read') })
-afterAll(async () => { await database?.dispose() })
+beforeAll(async () => {
+  database = await provisionTestDatabase('diary_read')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
-  const promise = new Promise<T>(next => { resolve = next })
+  const promise = new Promise<T>(next => {
+    resolve = next
+  })
   return { promise, resolve }
 }
 
@@ -36,13 +42,13 @@ async function createGatedReader() {
     ;(client as unknown as { query: (...args: unknown[]) => Promise<unknown> }).query = async (...args) => {
       const text = queryText(args)
       if (!diaryRead && /from\s+"diaries"/i.test(text) && /limit/i.test(text)) {
-        const result = await query(...args as Parameters<typeof client.query>)
+        const result = await query(...(args as Parameters<typeof client.query>))
         diaryRead = true
         initialDiaryRead.resolve()
         return result
       }
       if (diaryRead) await releaseAssociations.promise
-      return query(...args as Parameters<typeof client.query>)
+      return query(...(args as Parameters<typeof client.query>))
     }
     return client
   }
@@ -55,16 +61,22 @@ async function createGatedReader() {
 }
 
 async function seedDiary(date: string) {
-  const [user] = await database.db.insert(users).values({
-    email: `${date}-${Date.now()}@example.test`,
-    password: 'synthetic-password',
-  }).returning({ id: users.id })
-  const [diary] = await database.db.insert(diaries).values({
-    userId: user!.id,
-    date,
-    title: 'Before',
-    content: 'Before content',
-  }).returning({ id: diaries.id })
+  const [user] = await database.db
+    .insert(users)
+    .values({
+      email: `${date}-${Date.now()}@example.test`,
+      password: 'synthetic-password',
+    })
+    .returning({ id: users.id })
+  const [diary] = await database.db
+    .insert(diaries)
+    .values({
+      userId: user!.id,
+      date,
+      title: 'Before',
+      content: 'Before content',
+    })
+    .returning({ id: diaries.id })
   await database.db.insert(transactions).values({
     diaryId: diary!.id,
     userId: user!.id,
@@ -79,9 +91,10 @@ async function seedDiary(date: string) {
 
 async function writeConcurrentUpdate(diaryId: bigint, userId: bigint, date: string) {
   await database.db.transaction(async tx => {
-    await tx.update(diaries).set({ title: 'After', content: 'After content', updatedAt: new Date() }).where(and(
-      eq(diaries.id, diaryId), eq(diaries.userId, userId),
-    ))
+    await tx
+      .update(diaries)
+      .set({ title: 'After', content: 'After content', updatedAt: new Date() })
+      .where(and(eq(diaries.id, diaryId), eq(diaries.userId, userId)))
     await tx.insert(transactions).values({
       diaryId,
       userId,
@@ -102,9 +115,7 @@ describe('Diary read snapshots through real PostgreSQL', () => {
     const date = _name === 'detail' ? '2026-12-01' : '2026-12-02'
     const { diaryId, userId } = await seedDiary(date)
     const reader = await createGatedReader()
-    const pending = _name === 'detail'
-      ? read(reader.db, diaryId, userId)
-      : read(reader.db, diaryId, userId, date)
+    const pending = _name === 'detail' ? read(reader.db, diaryId, userId) : read(reader.db, diaryId, userId, date)
     try {
       await reader.initialDiaryRead
       await writeConcurrentUpdate(diaryId, userId, date)
@@ -115,9 +126,10 @@ describe('Diary read snapshots through real PostgreSQL', () => {
       expect(snapshot).toMatchObject({ id: diaryId.toString(), title: 'Before', content: 'Before content' })
       expect(snapshot.transactions.map(row => row.symbol)).toEqual(['OLD'])
 
-      const latest = _name === 'detail'
-        ? await readDiaryDetail(database.db, diaryId, userId)
-        : await readDiaryByDate(database.db, date, userId)
+      const latest =
+        _name === 'detail'
+          ? await readDiaryDetail(database.db, diaryId, userId)
+          : await readDiaryByDate(database.db, date, userId)
       if (!latest) throw new Error('Latest read unexpectedly returned no Diary')
       if (!latest.transactions) throw new Error('Latest read unexpectedly omitted transactions')
       expect(latest).toMatchObject({ id: diaryId.toString(), title: 'After', content: 'After content' })
@@ -131,19 +143,21 @@ describe('Diary read snapshots through real PostgreSQL', () => {
   it('loads multiple representative associations with one bounded query per association', async () => {
     const date = '2026-12-03'
     const { diaryId, userId } = await seedDiary(date)
-    await database.db.insert(transactions).values([1, 2].map(index => ({
-      diaryId,
-      userId,
-      symbol: `OLD${index}`,
-      type: 'BUY' as const,
-      quantity: '1',
-      price: '10',
-      tradeDate: new Date(`${date}T${String(index + 9).padStart(2, '0')}:00:00.000Z`),
-    })))
-    const [firstStock, secondStock] = await database.db.insert(stocks).values([
-      { symbol: `BOUND${Date.now()}A` },
-      { symbol: `BOUND${Date.now()}B` },
-    ]).returning({ id: stocks.id })
+    await database.db.insert(transactions).values(
+      [1, 2].map(index => ({
+        diaryId,
+        userId,
+        symbol: `OLD${index}`,
+        type: 'BUY' as const,
+        quantity: '1',
+        price: '10',
+        tradeDate: new Date(`${date}T${String(index + 9).padStart(2, '0')}:00:00.000Z`),
+      })),
+    )
+    const [firstStock, secondStock] = await database.db
+      .insert(stocks)
+      .values([{ symbol: `BOUND${Date.now()}A` }, { symbol: `BOUND${Date.now()}B` }])
+      .returning({ id: stocks.id })
     await database.db.insert(diaryStocks).values([
       { diaryId, stockId: firstStock!.id },
       { diaryId, stockId: secondStock!.id },
@@ -154,7 +168,14 @@ describe('Diary read snapshots through real PostgreSQL', () => {
     ])
 
     const queries: string[] = []
-    const observed = drizzle(database.pool, { schema, logger: { logQuery(query) { queries.push(query) } } })
+    const observed = drizzle(database.pool, {
+      schema,
+      logger: {
+        logQuery(query) {
+          queries.push(query)
+        },
+      },
+    })
     const result = await readDiaryDetail(observed, diaryId, userId)
     expect(result?.transactions).toHaveLength(3)
     expect(result?.stockSymbols).toHaveLength(2)

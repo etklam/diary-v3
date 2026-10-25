@@ -66,7 +66,7 @@ async function adminSession() {
     password: 'synthetic-rotation-execution-password',
   }
   expect((await browser.post('/api/auth/register', credentials)).status).toBe(200)
-  await database.pool.query('update users set role = \'ADMIN\' where email = $1', [credentials.email])
+  await database.pool.query("update users set role = 'ADMIN' where email = $1", [credentials.email])
   expect((await browser.post('/api/auth/login', credentials)).status).toBe(200)
   await browser.request('/api/auth/me')
   return browser
@@ -89,12 +89,16 @@ describe('all-scope rotation execution through HTTP and PostgreSQL', () => {
     expect(requestedSymbols[sectors.length]).toBe(indexes[0]!.symbol)
     expect(requestedSymbols.slice(sectors.length).every(symbol => symbol === indexes[0]!.symbol)).toBe(true)
 
-    const persistedSectors = await database.db.select().from(marketRotationSnapshots)
+    const persistedSectors = await database.db
+      .select()
+      .from(marketRotationSnapshots)
       .where(eq(marketRotationSnapshots.rankScope, 'sectors'))
     expect(persistedSectors).toHaveLength(sectors.length)
-    expect((await database.db.select().from(marketRotationSnapshots)
-      .where(eq(marketRotationSnapshots.rankScope, 'core')))).toHaveLength(0)
-    const runs = await database.db.select({ rankScope: marketRotationSnapshotRuns.rankScope, status: marketRotationSnapshotRuns.status })
+    expect(
+      await database.db.select().from(marketRotationSnapshots).where(eq(marketRotationSnapshots.rankScope, 'core')),
+    ).toHaveLength(0)
+    const runs = await database.db
+      .select({ rankScope: marketRotationSnapshotRuns.rankScope, status: marketRotationSnapshotRuns.status })
       .from(marketRotationSnapshotRuns)
     expect(runs.find(row => row.rankScope === 'sectors')?.status).toBe('success')
     expect(runs.find(row => row.rankScope === 'indexes')?.status).toBe('failed')

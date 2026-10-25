@@ -112,12 +112,8 @@
           "name": "ai_admin_audit_event_actor_user_id_users_id_fk",
           "tableFrom": "ai_admin_audit_event",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -237,12 +233,8 @@
           "name": "ai_prompt_version_created_by_users_id_fk",
           "tableFrom": "ai_prompt_version",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -252,10 +244,7 @@
         "ai_prompt_version_type_revision_key": {
           "name": "ai_prompt_version_type_revision_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "report_type",
-            "revision"
-          ]
+          "columns": ["report_type", "revision"]
         }
       },
       "policies": {},
@@ -504,12 +493,8 @@
           "name": "ai_provider_config_version_created_by_users_id_fk",
           "tableFrom": "ai_provider_config_version",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -519,9 +504,7 @@
         "ai_provider_config_revision_key": {
           "name": "ai_provider_config_revision_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "revision"
-          ]
+          "columns": ["revision"]
         }
       },
       "policies": {},
@@ -796,12 +779,8 @@
           "name": "ai_report_attempt_user_id_users_id_fk",
           "tableFrom": "ai_report_attempt",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -809,12 +788,8 @@
           "name": "ai_report_attempt_provider_config_version_id_ai_provider_config_version_id_fk",
           "tableFrom": "ai_report_attempt",
           "tableTo": "ai_provider_config_version",
-          "columnsFrom": [
-            "provider_config_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["provider_config_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -822,12 +797,8 @@
           "name": "ai_report_attempt_report_fkey",
           "tableFrom": "ai_report_attempt",
           "tableTo": "ai_report",
-          "columnsFrom": [
-            "report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["report_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -941,12 +912,8 @@
           "name": "ai_report_request_user_id_users_id_fk",
           "tableFrom": "ai_report_request",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -954,12 +921,8 @@
           "name": "ai_report_request_report_id_ai_report_id_fk",
           "tableFrom": "ai_report_request",
           "tableTo": "ai_report",
-          "columnsFrom": [
-            "report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["report_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -969,10 +932,7 @@
         "ai_report_request_owner_key": {
           "name": "ai_report_request_owner_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "idempotency_key_hash"
-          ]
+          "columns": ["user_id", "idempotency_key_hash"]
         }
       },
       "policies": {},
@@ -1101,12 +1061,8 @@
           "name": "ai_report_source_user_id_users_id_fk",
           "tableFrom": "ai_report_source",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1114,14 +1070,8 @@
           "name": "ai_report_sources_report_owner_fkey",
           "tableFrom": "ai_report_source",
           "tableTo": "ai_report",
-          "columnsFrom": [
-            "report_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "id",
-            "user_id"
-          ],
+          "columnsFrom": ["report_id", "user_id"],
+          "columnsTo": ["id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1131,19 +1081,12 @@
         "ai_report_sources_report_alias_key": {
           "name": "ai_report_sources_report_alias_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "report_id",
-            "alias"
-          ]
+          "columns": ["report_id", "alias"]
         },
         "ai_report_sources_report_source_key": {
           "name": "ai_report_sources_report_source_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "report_id",
-            "source_type",
-            "source_id"
-          ]
+          "columns": ["report_id", "source_type", "source_id"]
         }
       },
       "policies": {},
@@ -1547,12 +1490,8 @@
           "name": "ai_report_user_id_users_id_fk",
           "tableFrom": "ai_report",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1560,12 +1499,8 @@
           "name": "ai_report_provider_config_version_id_ai_provider_config_version_id_fk",
           "tableFrom": "ai_report",
           "tableTo": "ai_provider_config_version",
-          "columnsFrom": [
-            "provider_config_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["provider_config_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1573,12 +1508,8 @@
           "name": "ai_report_prompt_version_id_ai_prompt_version_id_fk",
           "tableFrom": "ai_report",
           "tableTo": "ai_prompt_version",
-          "columnsFrom": [
-            "prompt_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["prompt_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1586,12 +1517,8 @@
           "name": "ai_report_regenerated_from_report_id_ai_report_id_fk",
           "tableFrom": "ai_report",
           "tableTo": "ai_report",
-          "columnsFrom": [
-            "regenerated_from_report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["regenerated_from_report_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1601,30 +1528,17 @@
         "ai_reports_id_user_key": {
           "name": "ai_reports_id_user_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "user_id"
-          ]
+          "columns": ["id", "user_id"]
         },
         "ai_reports_user_idempotency_key": {
           "name": "ai_reports_user_idempotency_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "idempotency_key_hash"
-          ]
+          "columns": ["user_id", "idempotency_key_hash"]
         },
         "ai_reports_period_revision_key": {
           "name": "ai_reports_period_revision_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "report_type",
-            "period_start",
-            "timezone",
-            "locale",
-            "revision"
-          ]
+          "columns": ["user_id", "report_type", "period_start", "timezone", "locale", "revision"]
         }
       },
       "policies": {},
@@ -1736,12 +1650,8 @@
           "name": "ai_runtime_state_active_provider_config_id_ai_provider_config_version_id_fk",
           "tableFrom": "ai_runtime_state",
           "tableTo": "ai_provider_config_version",
-          "columnsFrom": [
-            "active_provider_config_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["active_provider_config_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1749,12 +1659,8 @@
           "name": "ai_runtime_state_active_weekly_prompt_id_ai_prompt_version_id_fk",
           "tableFrom": "ai_runtime_state",
           "tableTo": "ai_prompt_version",
-          "columnsFrom": [
-            "active_weekly_prompt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["active_weekly_prompt_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1762,12 +1668,8 @@
           "name": "ai_runtime_state_active_monthly_prompt_id_ai_prompt_version_id_fk",
           "tableFrom": "ai_runtime_state",
           "tableTo": "ai_prompt_version",
-          "columnsFrom": [
-            "active_monthly_prompt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["active_monthly_prompt_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1902,12 +1804,8 @@
           "name": "ai_usage_bucket_user_id_users_id_fk",
           "tableFrom": "ai_usage_bucket",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1917,11 +1815,7 @@
         "ai_usage_bucket_scope_month_key": {
           "name": "ai_usage_bucket_scope_month_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "scope",
-            "user_id",
-            "bucket_month"
-          ]
+          "columns": ["scope", "user_id", "bucket_month"]
         }
       },
       "policies": {},
@@ -2026,12 +1920,8 @@
           "name": "ai_user_access_user_id_users_id_fk",
           "tableFrom": "ai_user_access",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2039,12 +1929,8 @@
           "name": "ai_user_access_granted_by_users_id_fk",
           "tableFrom": "ai_user_access",
           "tableTo": "users",
-          "columnsFrom": [
-            "granted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["granted_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2108,12 +1994,8 @@
           "name": "ai_user_consent_user_id_users_id_fk",
           "tableFrom": "ai_user_consent",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2275,12 +2157,8 @@
           "name": "alerts_diary_id_diaries_id_fk",
           "tableFrom": "alerts",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2288,14 +2166,8 @@
           "name": "alerts_parent_same_diary_fk",
           "tableFrom": "alerts",
           "tableTo": "alerts",
-          "columnsFrom": [
-            "parent_id",
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id",
-            "diary_id"
-          ],
+          "columnsFrom": ["parent_id", "diary_id"],
+          "columnsTo": ["id", "diary_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2305,18 +2177,12 @@
         "alerts_id_diary_unique": {
           "name": "alerts_id_diary_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "diary_id"
-          ]
+          "columns": ["id", "diary_id"]
         },
         "alerts_parent_instance_unique": {
           "name": "alerts_parent_instance_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "parent_id",
-            "instance_number"
-          ]
+          "columns": ["parent_id", "instance_number"]
         }
       },
       "policies": {},
@@ -2443,12 +2309,8 @@
           "name": "api_key_credentials_user_id_users_id_fk",
           "tableFrom": "api_key_credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2458,9 +2320,7 @@
         "api_key_credentials_hash_key": {
           "name": "api_key_credentials_hash_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "key_hash"
-          ]
+          "columns": ["key_hash"]
         }
       },
       "policies": {},
@@ -2597,12 +2457,8 @@
           "name": "article_translation_ai_config_updated_by_users_id_fk",
           "tableFrom": "article_translation_ai_config",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2902,12 +2758,8 @@
           "name": "article_translation_job_post_id_posts_id_fk",
           "tableFrom": "article_translation_job",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2915,12 +2767,8 @@
           "name": "article_translation_job_requested_by_users_id_fk",
           "tableFrom": "article_translation_job",
           "tableTo": "users",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2930,10 +2778,7 @@
         "article_translation_job_post_request_key": {
           "name": "article_translation_job_post_request_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "post_id",
-            "request_key"
-          ]
+          "columns": ["post_id", "request_key"]
         }
       },
       "policies": {},
@@ -3053,12 +2898,8 @@
           "name": "article_translation_runtime_active_job_id_article_translation_job_id_fk",
           "tableFrom": "article_translation_runtime",
           "tableTo": "article_translation_job",
-          "columnsFrom": [
-            "active_job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["active_job_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3277,12 +3118,8 @@
           "name": "diaries_user_id_users_id_fk",
           "tableFrom": "diaries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3292,18 +3129,12 @@
         "diaries_user_date_key": {
           "name": "diaries_user_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "date"
-          ]
+          "columns": ["user_id", "date"]
         },
         "diaries_id_user_id_key": {
           "name": "diaries_id_user_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "user_id"
-          ]
+          "columns": ["id", "user_id"]
         }
       },
       "policies": {},
@@ -3362,12 +3193,8 @@
           "name": "diary_stocks_diary_id_diaries_id_fk",
           "tableFrom": "diary_stocks",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3375,12 +3202,8 @@
           "name": "diary_stocks_stock_id_stocks_id_fk",
           "tableFrom": "diary_stocks",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3388,10 +3211,7 @@
       "compositePrimaryKeys": {
         "diary_stocks_diary_id_stock_id_pk": {
           "name": "diary_stocks_diary_id_stock_id_pk",
-          "columns": [
-            "diary_id",
-            "stock_id"
-          ]
+          "columns": ["diary_id", "stock_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3481,12 +3301,8 @@
           "name": "disciplines_user_id_users_id_fk",
           "tableFrom": "disciplines",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3607,12 +3423,8 @@
           "name": "etf_prices_etf_id_etfs_id_fk",
           "tableFrom": "etf_prices",
           "tableTo": "etfs",
-          "columnsFrom": [
-            "etf_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["etf_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3622,10 +3434,7 @@
         "etf_prices_etf_date_key": {
           "name": "etf_prices_etf_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "etf_id",
-            "date"
-          ]
+          "columns": ["etf_id", "date"]
         }
       },
       "policies": {},
@@ -3719,12 +3528,8 @@
           "name": "etf_watchlists_user_id_users_id_fk",
           "tableFrom": "etf_watchlists",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3732,12 +3537,8 @@
           "name": "etf_watchlists_etf_id_etfs_id_fk",
           "tableFrom": "etf_watchlists",
           "tableTo": "etfs",
-          "columnsFrom": [
-            "etf_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["etf_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3747,10 +3548,7 @@
         "etf_watchlists_user_etf_key": {
           "name": "etf_watchlists_user_etf_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "etf_id"
-          ]
+          "columns": ["user_id", "etf_id"]
         }
       },
       "policies": {},
@@ -3812,9 +3610,7 @@
         "etfs_symbol_key": {
           "name": "etfs_symbol_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "symbol"
-          ]
+          "columns": ["symbol"]
         }
       },
       "policies": {},
@@ -3983,12 +3779,8 @@
           "name": "investment_theses_user_id_users_id_fk",
           "tableFrom": "investment_theses",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3996,12 +3788,8 @@
           "name": "investment_theses_stock_id_stocks_id_fk",
           "tableFrom": "investment_theses",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4011,18 +3799,12 @@
         "investment_theses_user_stock_key": {
           "name": "investment_theses_user_stock_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "stock_id"
-          ]
+          "columns": ["user_id", "stock_id"]
         },
         "investment_theses_id_user_id_key": {
           "name": "investment_theses_id_user_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "user_id"
-          ]
+          "columns": ["id", "user_id"]
         }
       },
       "policies": {},
@@ -4190,10 +3972,7 @@
         "market_breadth_daily_universe_date_key": {
           "name": "market_breadth_daily_universe_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "universe_key",
-            "date"
-          ]
+          "columns": ["universe_key", "date"]
         }
       },
       "policies": {},
@@ -4334,10 +4113,7 @@
         "market_daily_price_symbol_date_key": {
           "name": "market_daily_price_symbol_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "symbol",
-            "date"
-          ]
+          "columns": ["symbol", "date"]
         }
       },
       "policies": {},
@@ -4786,11 +4562,7 @@
         "market_rotation_snapshot_scope_symbol_date_key": {
           "name": "market_rotation_snapshot_scope_symbol_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "rank_scope",
-            "symbol",
-            "date"
-          ]
+          "columns": ["rank_scope", "symbol", "date"]
         }
       },
       "policies": {},
@@ -4928,9 +4700,7 @@
         "market_universe_symbol_key": {
           "name": "market_universe_symbol_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "symbol"
-          ]
+          "columns": ["symbol"]
         }
       },
       "policies": {},
@@ -5067,12 +4837,8 @@
           "name": "partner_links_user_a_id_users_id_fk",
           "tableFrom": "partner_links",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_a_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_a_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5080,12 +4846,8 @@
           "name": "partner_links_user_b_id_users_id_fk",
           "tableFrom": "partner_links",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_b_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_b_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5093,12 +4855,8 @@
           "name": "partner_links_initiated_by_user_id_users_id_fk",
           "tableFrom": "partner_links",
           "tableTo": "users",
-          "columnsFrom": [
-            "initiated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initiated_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5108,10 +4866,7 @@
         "partner_links_user_pair_key": {
           "name": "partner_links_user_pair_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_a_id",
-            "user_b_id"
-          ]
+          "columns": ["user_a_id", "user_b_id"]
         }
       },
       "policies": {},
@@ -5219,12 +4974,8 @@
           "name": "personal_achievements_user_id_users_id_fk",
           "tableFrom": "personal_achievements",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5464,12 +5215,8 @@
           "name": "post_translation_post_id_posts_id_fk",
           "tableFrom": "post_translation",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5477,12 +5224,8 @@
           "name": "post_translation_reviewed_by_users_id_fk",
           "tableFrom": "post_translation",
           "tableTo": "users",
-          "columnsFrom": [
-            "reviewed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reviewed_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5492,10 +5235,7 @@
         "post_translation_post_locale_key": {
           "name": "post_translation_post_locale_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "post_id",
-            "locale"
-          ]
+          "columns": ["post_id", "locale"]
         }
       },
       "policies": {},
@@ -5784,12 +5524,8 @@
           "name": "posts_author_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5799,9 +5535,7 @@
         "posts_slug_key": {
           "name": "posts_slug_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -5975,12 +5709,8 @@
           "name": "price_alerts_user_id_users_id_fk",
           "tableFrom": "price_alerts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6183,12 +5913,8 @@
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6196,12 +5922,8 @@
           "name": "refresh_tokens_parent_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -6209,12 +5931,8 @@
           "name": "refresh_tokens_replacement_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "replacement_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["replacement_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -6224,16 +5942,12 @@
         "refresh_tokens_token_key": {
           "name": "refresh_tokens_token_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         },
         "refresh_tokens_replacement_id_key": {
           "name": "refresh_tokens_replacement_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "replacement_id"
-          ]
+          "columns": ["replacement_id"]
         }
       },
       "policies": {},
@@ -6300,12 +6014,8 @@
           "name": "research_article_link_post_id_posts_id_fk",
           "tableFrom": "research_article_link",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6313,12 +6023,8 @@
           "name": "research_article_link_run_id_research_run_id_fk",
           "tableFrom": "research_article_link",
           "tableTo": "research_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -6326,14 +6032,8 @@
           "name": "research_article_link_revision_run_fk",
           "tableFrom": "research_article_link",
           "tableTo": "research_revision",
-          "columnsFrom": [
-            "revision_id",
-            "run_id"
-          ],
-          "columnsTo": [
-            "id",
-            "run_id"
-          ],
+          "columnsFrom": ["revision_id", "run_id"],
+          "columnsTo": ["id", "run_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6341,14 +6041,8 @@
           "name": "research_article_link_evidence_run_fk",
           "tableFrom": "research_article_link",
           "tableTo": "research_evidence_snapshot",
-          "columnsFrom": [
-            "run_id",
-            "evidence_hash"
-          ],
-          "columnsTo": [
-            "run_id",
-            "content_hash"
-          ],
+          "columnsFrom": ["run_id", "evidence_hash"],
+          "columnsTo": ["run_id", "content_hash"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6358,16 +6052,12 @@
         "research_article_link_run_key": {
           "name": "research_article_link_run_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id"
-          ]
+          "columns": ["run_id"]
         },
         "research_article_link_revision_key": {
           "name": "research_article_link_revision_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "revision_id"
-          ]
+          "columns": ["revision_id"]
         }
       },
       "policies": {},
@@ -6595,12 +6285,8 @@
           "name": "research_attempt_run_id_research_run_id_fk",
           "tableFrom": "research_attempt",
           "tableTo": "research_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6610,10 +6296,7 @@
         "research_attempt_run_idempotency_key": {
           "name": "research_attempt_run_idempotency_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id",
-            "idempotency_key_hash"
-          ]
+          "columns": ["run_id", "idempotency_key_hash"]
         }
       },
       "policies": {},
@@ -6704,9 +6387,7 @@
         "research_budget_session_key": {
           "name": "research_budget_session_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "budget_key"
-          ]
+          "columns": ["budget_key"]
         }
       },
       "policies": {},
@@ -6852,12 +6533,8 @@
           "name": "research_evidence_snapshot_run_id_research_run_id_fk",
           "tableFrom": "research_evidence_snapshot",
           "tableTo": "research_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6867,18 +6544,12 @@
         "research_evidence_snapshot_run_version_key": {
           "name": "research_evidence_snapshot_run_version_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id",
-            "version"
-          ]
+          "columns": ["run_id", "version"]
         },
         "research_evidence_snapshot_run_hash_key": {
           "name": "research_evidence_snapshot_run_hash_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id",
-            "content_hash"
-          ]
+          "columns": ["run_id", "content_hash"]
         }
       },
       "policies": {},
@@ -7021,12 +6692,8 @@
           "name": "research_instrument_profile_method_profile_id_research_method_profile_id_fk",
           "tableFrom": "research_instrument_profile",
           "tableTo": "research_method_profile",
-          "columnsFrom": [
-            "method_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["method_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -7036,10 +6703,7 @@
         "research_instrument_profile_method_symbol_key": {
           "name": "research_instrument_profile_method_symbol_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "method_profile_id",
-            "symbol"
-          ]
+          "columns": ["method_profile_id", "symbol"]
         }
       },
       "policies": {},
@@ -7151,10 +6815,7 @@
         "research_method_profile_key": {
           "name": "research_method_profile_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "method_key",
-            "version"
-          ]
+          "columns": ["method_key", "version"]
         }
       },
       "policies": {},
@@ -7313,12 +6974,8 @@
           "name": "research_provider_config_created_by_users_id_fk",
           "tableFrom": "research_provider_config",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -7328,9 +6985,7 @@
         "research_provider_config_revision_key": {
           "name": "research_provider_config_revision_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "revision"
-          ]
+          "columns": ["revision"]
         }
       },
       "policies": {},
@@ -7503,12 +7158,8 @@
           "name": "research_revision_run_id_research_run_id_fk",
           "tableFrom": "research_revision",
           "tableTo": "research_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7516,12 +7167,8 @@
           "name": "research_revision_approved_by_users_id_fk",
           "tableFrom": "research_revision",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -7529,12 +7176,8 @@
           "name": "research_revision_created_by_users_id_fk",
           "tableFrom": "research_revision",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -7542,14 +7185,8 @@
           "name": "research_revision_parent_run_fk",
           "tableFrom": "research_revision",
           "tableTo": "research_revision",
-          "columnsFrom": [
-            "run_id",
-            "parent_revision"
-          ],
-          "columnsTo": [
-            "run_id",
-            "revision"
-          ],
+          "columnsFrom": ["run_id", "parent_revision"],
+          "columnsTo": ["run_id", "revision"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7559,18 +7196,12 @@
         "research_revision_run_number_key": {
           "name": "research_revision_run_number_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id",
-            "revision"
-          ]
+          "columns": ["run_id", "revision"]
         },
         "research_revision_id_run_key": {
           "name": "research_revision_id_run_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "run_id"
-          ]
+          "columns": ["id", "run_id"]
         }
       },
       "policies": {},
@@ -7810,12 +7441,8 @@
           "name": "research_run_requester_id_users_id_fk",
           "tableFrom": "research_run",
           "tableTo": "users",
-          "columnsFrom": [
-            "requester_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -7823,12 +7450,8 @@
           "name": "research_run_method_profile_id_research_method_profile_id_fk",
           "tableFrom": "research_run",
           "tableTo": "research_method_profile",
-          "columnsFrom": [
-            "method_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["method_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -7836,12 +7459,8 @@
           "name": "research_run_instrument_profile_id_research_instrument_profile_id_fk",
           "tableFrom": "research_run",
           "tableTo": "research_instrument_profile",
-          "columnsFrom": [
-            "instrument_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instrument_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -7849,12 +7468,8 @@
           "name": "research_run_linked_post_id_posts_id_fk",
           "tableFrom": "research_run",
           "tableTo": "posts",
-          "columnsFrom": [
-            "linked_post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["linked_post_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -7864,9 +7479,7 @@
         "research_run_linked_post_key": {
           "name": "research_run_linked_post_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "linked_post_id"
-          ]
+          "columns": ["linked_post_id"]
         }
       },
       "policies": {},
@@ -7962,12 +7575,8 @@
           "name": "research_runtime_state_active_attempt_id_research_attempt_id_fk",
           "tableFrom": "research_runtime_state",
           "tableTo": "research_attempt",
-          "columnsFrom": [
-            "active_attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["active_attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -8298,12 +7907,8 @@
           "name": "stock_notes_user_id_users_id_fk",
           "tableFrom": "stock_notes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8311,12 +7916,8 @@
           "name": "stock_notes_stock_id_stocks_id_fk",
           "tableFrom": "stock_notes",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8559,12 +8160,8 @@
           "name": "stock_timeline_records_user_id_users_id_fk",
           "tableFrom": "stock_timeline_records",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8572,12 +8169,8 @@
           "name": "stock_timeline_records_stock_id_stocks_id_fk",
           "tableFrom": "stock_timeline_records",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8585,12 +8178,8 @@
           "name": "stock_timeline_records_source_diary_id_diaries_id_fk",
           "tableFrom": "stock_timeline_records",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "source_diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -8600,11 +8189,7 @@
         "stock_timeline_records_user_stock_idempotency_key": {
           "name": "stock_timeline_records_user_stock_idempotency_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "stock_id",
-            "idempotency_key"
-          ]
+          "columns": ["user_id", "stock_id", "idempotency_key"]
         }
       },
       "policies": {},
@@ -8719,12 +8304,8 @@
           "name": "stock_watchlists_user_id_users_id_fk",
           "tableFrom": "stock_watchlists",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8732,12 +8313,8 @@
           "name": "stock_watchlists_stock_id_stocks_id_fk",
           "tableFrom": "stock_watchlists",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8747,10 +8324,7 @@
         "stock_watchlists_user_stock_key": {
           "name": "stock_watchlists_user_stock_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "stock_id"
-          ]
+          "columns": ["user_id", "stock_id"]
         }
       },
       "policies": {},
@@ -8835,9 +8409,7 @@
         "stocks_symbol_unique": {
           "name": "stocks_symbol_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "symbol"
-          ]
+          "columns": ["symbol"]
         }
       },
       "policies": {},
@@ -9041,12 +8613,8 @@
           "name": "thesis_reviews_user_id_users_id_fk",
           "tableFrom": "thesis_reviews",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -9054,14 +8622,8 @@
           "name": "thesis_reviews_thesis_owner_fkey",
           "tableFrom": "thesis_reviews",
           "tableTo": "investment_theses",
-          "columnsFrom": [
-            "thesis_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "id",
-            "user_id"
-          ],
+          "columnsFrom": ["thesis_id", "user_id"],
+          "columnsTo": ["id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -9257,12 +8819,8 @@
           "name": "trade_plans_user_id_users_id_fk",
           "tableFrom": "trade_plans",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -9270,12 +8828,8 @@
           "name": "trade_plans_diary_id_diaries_id_fk",
           "tableFrom": "trade_plans",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -9490,14 +9044,8 @@
           "name": "transactions_diary_owner_fkey",
           "tableFrom": "transactions",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "id",
-            "user_id"
-          ],
+          "columnsFrom": ["diary_id", "user_id"],
+          "columnsTo": ["id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -9683,319 +9231,172 @@
     "public.ai_attempt_status": {
       "name": "ai_attempt_status",
       "schema": "public",
-      "values": [
-        "reserved",
-        "dispatched",
-        "succeeded",
-        "failed",
-        "cancelled",
-        "unknown"
-      ]
+      "values": ["reserved", "dispatched", "succeeded", "failed", "cancelled", "unknown"]
     },
     "public.ai_config_status": {
       "name": "ai_config_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     },
     "public.ai_provider_protocol": {
       "name": "ai_provider_protocol",
       "schema": "public",
-      "values": [
-        "chat_completions"
-      ]
+      "values": ["chat_completions"]
     },
     "public.ai_provider_type": {
       "name": "ai_provider_type",
       "schema": "public",
-      "values": [
-        "deepseek"
-      ]
+      "values": ["deepseek"]
     },
     "public.ai_report_source_state": {
       "name": "ai_report_source_state",
       "schema": "public",
-      "values": [
-        "current",
-        "changed",
-        "invalidated"
-      ]
+      "values": ["current", "changed", "invalidated"]
     },
     "public.ai_report_source_type": {
       "name": "ai_report_source_type",
       "schema": "public",
-      "values": [
-        "diary",
-        "transaction",
-        "discipline",
-        "holding"
-      ]
+      "values": ["diary", "transaction", "discipline", "holding"]
     },
     "public.ai_report_status": {
       "name": "ai_report_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "cancelled"
-      ]
+      "values": ["queued", "running", "succeeded", "failed", "cancelled"]
     },
     "public.ai_report_type": {
       "name": "ai_report_type",
       "schema": "public",
-      "values": [
-        "weekly",
-        "monthly"
-      ]
+      "values": ["weekly", "monthly"]
     },
     "public.ai_thinking": {
       "name": "ai_thinking",
       "schema": "public",
-      "values": [
-        "enabled",
-        "disabled"
-      ]
+      "values": ["enabled", "disabled"]
     },
     "public.ai_usage_scope": {
       "name": "ai_usage_scope",
       "schema": "public",
-      "values": [
-        "user",
-        "global"
-      ]
+      "values": ["user", "global"]
     },
     "public.alert_recurring_mode": {
       "name": "alert_recurring_mode",
       "schema": "public",
-      "values": [
-        "WEEK",
-        "MONTH"
-      ]
+      "values": ["WEEK", "MONTH"]
     },
     "public.api_key_scope": {
       "name": "api_key_scope",
       "schema": "public",
-      "values": [
-        "DIARY_CREATE",
-        "AGENT_WRITE"
-      ]
+      "values": ["DIARY_CREATE", "AGENT_WRITE"]
     },
     "public.article_translation_job_status": {
       "name": "article_translation_job_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "stale",
-        "cancelled"
-      ]
+      "values": ["queued", "running", "succeeded", "failed", "stale", "cancelled"]
     },
     "public.article_translation_provider": {
       "name": "article_translation_provider",
       "schema": "public",
-      "values": [
-        "edge",
-        "ai",
-        "manual"
-      ]
+      "values": ["edge", "ai", "manual"]
     },
     "public.article_translation_status": {
       "name": "article_translation_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "pending_review",
-        "published",
-        "unpublished",
-        "stale"
-      ]
+      "values": ["draft", "pending_review", "published", "unpublished", "stale"]
     },
     "public.diary_created_via": {
       "name": "diary_created_via",
       "schema": "public",
-      "values": [
-        "WEB",
-        "API_KEY",
-        "TELEGRAM_BOT"
-      ]
+      "values": ["WEB", "API_KEY", "TELEGRAM_BOT"]
     },
     "public.diary_review_status": {
       "name": "diary_review_status",
       "schema": "public",
-      "values": [
-        "none",
-        "pending",
-        "reviewed"
-      ]
+      "values": ["none", "pending", "reviewed"]
     },
     "public.investment_thesis_status": {
       "name": "investment_thesis_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "ACTIVE",
-        "ARCHIVED"
-      ]
+      "values": ["DRAFT", "ACTIVE", "ARCHIVED"]
     },
     "public.post_access": {
       "name": "post_access",
       "schema": "public",
-      "values": [
-        "PUBLIC",
-        "MEMBER"
-      ]
+      "values": ["PUBLIC", "MEMBER"]
     },
     "public.post_status": {
       "name": "post_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "PUBLISHED",
-        "ARCHIVED"
-      ]
+      "values": ["DRAFT", "PUBLISHED", "ARCHIVED"]
     },
     "public.price_alert_moving_average_direction": {
       "name": "price_alert_moving_average_direction",
       "schema": "public",
-      "values": [
-        "above",
-        "below"
-      ]
+      "values": ["above", "below"]
     },
     "public.price_alert_type": {
       "name": "price_alert_type",
       "schema": "public",
-      "values": [
-        "PRICE_ABOVE",
-        "PRICE_BELOW",
-        "CHANGE_PERCENT",
-        "MOVING_AVG"
-      ]
+      "values": ["PRICE_ABOVE", "PRICE_BELOW", "CHANGE_PERCENT", "MOVING_AVG"]
     },
     "public.refresh_token_client_type": {
       "name": "refresh_token_client_type",
       "schema": "public",
-      "values": [
-        "WEB",
-        "NATIVE"
-      ]
+      "values": ["WEB", "NATIVE"]
     },
     "public.refresh_token_revocation_reason": {
       "name": "refresh_token_revocation_reason",
       "schema": "public",
-      "values": [
-        "ROTATED",
-        "LOGOUT",
-        "LOGOUT_ALL",
-        "REUSE_DETECTED",
-        "EXPIRED"
-      ]
+      "values": ["ROTATED", "LOGOUT", "LOGOUT_ALL", "REUSE_DETECTED", "EXPIRED"]
     },
     "public.research_dispatch_status": {
       "name": "research_dispatch_status",
       "schema": "public",
-      "values": [
-        "NOT_SENT",
-        "DISPATCH_INTENT",
-        "SENT",
-        "SUCCEEDED",
-        "FAILED",
-        "OUTCOME_UNKNOWN"
-      ]
+      "values": ["NOT_SENT", "DISPATCH_INTENT", "SENT", "SUCCEEDED", "FAILED", "OUTCOME_UNKNOWN"]
     },
     "public.research_execution_status": {
       "name": "research_execution_status",
       "schema": "public",
-      "values": [
-        "CREATED",
-        "COLLECTING",
-        "DATA_READY",
-        "GENERATING",
-        "DRAFT_READY",
-        "BLOCKED",
-        "FAILED",
-        "CANCELLED"
-      ]
+      "values": ["CREATED", "COLLECTING", "DATA_READY", "GENERATING", "DRAFT_READY", "BLOCKED", "FAILED", "CANCELLED"]
     },
     "public.research_method_status": {
       "name": "research_method_status",
       "schema": "public",
-      "values": [
-        "COMPLETE",
-        "INCOMPLETE",
-        "RETIRED"
-      ]
+      "values": ["COMPLETE", "INCOMPLETE", "RETIRED"]
     },
     "public.research_provider_status": {
       "name": "research_provider_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "ACTIVE",
-        "RETIRED"
-      ]
+      "values": ["DRAFT", "ACTIVE", "RETIRED"]
     },
     "public.research_qa_status": {
       "name": "research_qa_status",
       "schema": "public",
-      "values": [
-        "NOT_CHECKED",
-        "PASS",
-        "WARN",
-        "FAIL",
-        "N_A"
-      ]
+      "values": ["NOT_CHECKED", "PASS", "WARN", "FAIL", "N_A"]
     },
     "public.research_quality": {
       "name": "research_quality",
       "schema": "public",
-      "values": [
-        "FULL",
-        "LIMITED",
-        "STALE",
-        "FAILED"
-      ]
+      "values": ["FULL", "LIMITED", "STALE", "FAILED"]
     },
     "public.research_review_status": {
       "name": "research_review_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "CHANGES_REQUIRED",
-        "APPROVED"
-      ]
+      "values": ["DRAFT", "CHANGES_REQUIRED", "APPROVED"]
     },
     "public.research_search_reservation_status": {
       "name": "research_search_reservation_status",
       "schema": "public",
-      "values": [
-        "RESERVED",
-        "CONSUMED",
-        "UNKNOWN"
-      ]
+      "values": ["RESERVED", "CONSUMED", "UNKNOWN"]
     },
     "public.stock_note_created_via": {
       "name": "stock_note_created_via",
       "schema": "public",
-      "values": [
-        "USER",
-        "AGENT"
-      ]
+      "values": ["USER", "AGENT"]
     },
     "public.stock_timeline_created_via": {
       "name": "stock_timeline_created_via",
       "schema": "public",
-      "values": [
-        "API_KEY",
-        "WEB",
-        "SYSTEM"
-      ]
+      "values": ["API_KEY", "WEB", "SYSTEM"]
     },
     "public.stock_timeline_source_type": {
       "name": "stock_timeline_source_type",
@@ -10016,57 +9417,32 @@
     "public.stock_watch_status": {
       "name": "stock_watch_status",
       "schema": "public",
-      "values": [
-        "WATCHING",
-        "ARCHIVED"
-      ]
+      "values": ["WATCHING", "ARCHIVED"]
     },
     "public.thesis_portfolio_decision": {
       "name": "thesis_portfolio_decision",
       "schema": "public",
-      "values": [
-        "HOLD",
-        "ADD",
-        "REDUCE",
-        "EXIT",
-        "CONTINUE_WATCHING"
-      ]
+      "values": ["HOLD", "ADD", "REDUCE", "EXIT", "CONTINUE_WATCHING"]
     },
     "public.thesis_review_outcome": {
       "name": "thesis_review_outcome",
       "schema": "public",
-      "values": [
-        "INTACT",
-        "PARTIAL",
-        "INVALIDATED",
-        "UNCLEAR"
-      ]
+      "values": ["INTACT", "PARTIAL", "INVALIDATED", "UNCLEAR"]
     },
     "public.trade_plan_status": {
       "name": "trade_plan_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "active",
-        "closed",
-        "cancelled"
-      ]
+      "values": ["draft", "active", "closed", "cancelled"]
     },
     "public.transaction_type": {
       "name": "transaction_type",
       "schema": "public",
-      "values": [
-        "BUY",
-        "SELL"
-      ]
+      "values": ["BUY", "SELL"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "USER",
-        "ADMIN"
-      ]
+      "values": ["USER", "ADMIN"]
     }
   },
   "schemas": {},

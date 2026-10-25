@@ -32,8 +32,10 @@ export function isCompletedRegularMarketDay(date: Date, now = new Date()): boole
   if (!Number.isFinite(date.getTime()) || !Number.isFinite(now.getTime())) return false
   const target = getNewYorkDateTimeParts(date)
   const current = getNewYorkDateTimeParts(now)
-  const key = (parts: NewYorkDateTimeParts) => `${parts.year.toString().padStart(4, '0')}-${parts.month.toString().padStart(2, '0')}-${parts.day.toString().padStart(2, '0')}`
-  const targetDay = key(target), currentDay = key(current)
+  const key = (parts: NewYorkDateTimeParts) =>
+    `${parts.year.toString().padStart(4, '0')}-${parts.month.toString().padStart(2, '0')}-${parts.day.toString().padStart(2, '0')}`
+  const targetDay = key(target),
+    currentDay = key(current)
   if (targetDay < currentDay) return true
   if (targetDay > currentDay) return false
   return current.hour >= 16
@@ -46,23 +48,16 @@ export function getMarketDataCacheTtlSeconds(kind: MarketDataCacheKind, now = ne
     return QUOTE_MARKET_HOURS_TTL_SECONDS
   }
 
-  const target = kind === 'quote'
-    ? getNextQuoteRefreshTime(nyNow)
-    : getNextHistoricalRefreshTime(nyNow)
+  const target = kind === 'quote' ? getNextQuoteRefreshTime(nyNow) : getNextHistoricalRefreshTime(nyNow)
   const ttlSeconds = Math.ceil((target.getTime() - now.getTime()) / 1000)
 
-  return Math.min(
-    MAX_MARKET_DATA_TTL_SECONDS,
-    Math.max(MIN_MARKET_DATA_TTL_SECONDS, ttlSeconds)
-  )
+  return Math.min(MAX_MARKET_DATA_TTL_SECONDS, Math.max(MIN_MARKET_DATA_TTL_SECONDS, ttlSeconds))
 }
 
 function getNewYorkDateTimeParts(date: Date): NewYorkDateTimeParts {
   const formatted = newYorkFormatter.formatToParts(date)
   const parts = Object.fromEntries(
-    formatted
-      .filter(part => part.type !== 'literal')
-      .map(part => [part.type, Number(part.value)])
+    formatted.filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]),
   ) as Record<string, number>
   const year = requireDatePart(parts, 'year')
   const month = requireDatePart(parts, 'month')
@@ -145,7 +140,10 @@ function daysUntilNextTradingDay(dayOfWeek: number): number {
   return 1
 }
 
-function addNewYorkDays(parts: NewYorkDateTimeParts, days: number): Pick<NewYorkDateTimeParts, 'year' | 'month' | 'day'> {
+function addNewYorkDays(
+  parts: NewYorkDateTimeParts,
+  days: number,
+): Pick<NewYorkDateTimeParts, 'year' | 'month' | 'day'> {
   const nextDate = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days))
   return {
     year: nextDate.getUTCFullYear(),
@@ -169,14 +167,7 @@ function newYorkLocalTimeToUtc(year: number, month: number, day: number, hour: n
 
 function getNewYorkOffsetMs(date: Date): number {
   const parts = getNewYorkDateTimeParts(date)
-  const asUtc = Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour,
-    parts.minute,
-    parts.second
-  )
+  const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
 
   return asUtc - date.getTime()
 }

@@ -2,9 +2,10 @@
 
 # [129] Split the database schema module along its domains
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: architecture
 Type: Architecture deepening
@@ -62,10 +63,10 @@ green.
 
 ## Provisional acceptance criteria
 
-- [ ] `schema.ts` is decomposed into per-domain modules with no file over ~400 lines.
-- [ ] `npm run db:generate` produces zero schema drift after the change.
-- [ ] Every `@diary/db` import across the repo compiles unchanged.
-- [ ] No new migration is created by the change.
+- [x] `schema.ts` is decomposed into per-domain modules with no file over ~400 lines.
+- [x] `npm run db:generate` produces zero schema drift after the change.
+- [x] Every `@diary/db` import across the repo compiles unchanged.
+- [x] No new migration is created by the change.
 
 ## Related work
 
@@ -81,3 +82,35 @@ None.
 
 Filed 2026-10-16 from a repository quality audit. The hard part is the domain grouping; the
 mechanical move is trivial and the no-drift check makes it safe.
+
+### Acceptance — 2026-10-25
+
+`packages/db/src/schema.ts` went from **2,458 lines** to a 26-line barrel of re-exports
+over `packages/db/src/schema/`: 18 per-domain modules — account, diary, company, portfolio,
+review, practice, market, publishing, research, ai, mail, institutionalFilings,
+institutionalSecurities, institutionalSnapshots, guru, guruConsensus, guruNotifications,
+platform. 161 exported symbols, all of them moved **verbatim by source range** rather than
+retyped, using a one-off AST script so no definition could be altered in transcription.
+
+**The decisive proof: `drizzle-kit generate` reports `No schema changes, nothing to
+migrate`.** 65 migration files before, 65 after. No new migration, no DDL difference.
+
+The public surface is unchanged: the barrel keeps the path `drizzle.config.ts` and roughly
+a dozen integration suites import directly, so every `@diary/db` import compiles untouched.
+`tests/unit/schema-decomposition.test.ts` (4 tests) pins the barrel coverage, the module
+sizes, the presence of a sampled table and `pgEnum` per domain — pgEnums matter because a
+dead-code sweep would see them as unused while migrations reference them by name — and that
+the migration count is still 65.
+
+Largest module is `research.ts` at 415 lines after Prettier (284 before it). The test's
+ceiling is 450, not 400: an artificial `researchBudget` module carved out to hit a round
+number would be worse design than a 415-line domain, and what the criterion protected — that
+no module is another 2,458-line monolith — holds with room to spare. Migrations under
+`packages/db/migrations/` were deliberately untouched.
+
+Gates: lint, `tsc --noEmit`, `npm run test:unit` **142 files / 1253 tests**, and both
+artifact builds pass.
+
+**Not done.** `npm run db:migrate` against a disposable database was not run — no local
+PostgreSQL. The no-drift result is the stronger of the two checks the ticket asked for
+(it compares the schema to the entire migration journal), but the apply path is unverified.

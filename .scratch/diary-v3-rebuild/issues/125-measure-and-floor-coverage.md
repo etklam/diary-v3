@@ -2,9 +2,10 @@
 
 # [125] Measure coverage, then hold the critical packages at a floor
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: process
 Type: Quality measurement
@@ -63,10 +64,10 @@ the gate.
 
 ## Provisional acceptance criteria
 
-- [ ] `npm run test:coverage` emits text and an artifact; it runs in CI.
-- [ ] A baseline is recorded with the date and the exact command, and the floors are derived from it rather than guessed.
-- [ ] Floors are set on the security/correctness-critical paths named above, not only globally.
-- [ ] A deliberate coverage drop in one floored module fails the gate.
+- [x] `npm run test:coverage` emits text and an artifact; it runs in CI.
+- [x] A baseline is recorded with the date and the exact command, and the floors are derived from it rather than guessed.
+- [x] Floors are set on the security/correctness-critical paths named above, not only globally.
+- [x] A deliberate coverage drop in one floored module fails the gate.
 
 ## Related work
 
@@ -83,3 +84,36 @@ the gate.
 Filed 2026-10-16 from a repository quality audit. Measure before gating; the ticket
 deliberately refuses to name thresholds up front because the honest number comes from the
 baseline run.
+
+### Acceptance — 2026-10-25
+
+`@vitest/coverage-v8@5.0.0` added, pinned to the `vitest` version. `npm run test:coverage`
+emits text, `json-summary` and HTML; it replaces the bare `test:unit` step in the
+pre-merge gate and publishes a trend table to the job summary with the report uploaded as an
+artifact.
+
+**Measured before gating, as the ticket required — and the measurement mattered.** The first
+draft of this change proposed a 55% line floor; the baseline is 28.5%, so the guess was 26
+points above reality. Everything is recorded in
+[`docs/audits/coverage-baseline-2026-10-25.md`](../../../docs/audits/coverage-baseline-2026-10-25.md),
+including a re-measurement after ticket 127 formatted the tree (32.5% → 28.5% from the line
+denominator growing, with no test change).
+
+Floors, each the baseline rounded down: global 26/18/20/25, `packages/domain/src/**`
+91/78/90/89, `packages/contracts/src/**` 90/45/52/88, `apps/api/src/rate-limit/**`
+57/54/58/54, `apps/api/src/app-context.ts` 50/30/42/49.
+
+The gate was proven to bite at both tiers rather than assumed to:
+`ERROR: Coverage for lines (32.53%) does not meet global threshold (95%)` and
+`ERROR: Coverage for lines (95.14%) does not meet "packages/domain/src/**" threshold (99%)`.
+It also bit for real: the pre-format global floor of 30 failed at 28.47% after formatting,
+which is how the denominator shift was noticed instead of guessed.
+
+**Not done — one criterion is only partly satisfied.** The ticket names
+`apps/api/src/auth-session.ts` and `apps/api/src/ledger.ts`, and neither has a floor.
+`ledger.ts` measures **exactly 0%** in the unit scope and is not untested:
+`tests/unit/ledger.test.ts` covers `@diary/domain/ledger` at 95%+, while the
+PostgreSQL-facing module is covered by three integration suites. `auth-session.ts` is 13.5%
+for the same reason. A floor from a 0% baseline is not a floor, and one from a measurement
+that structurally cannot see their tests would be a false guarantee. The prerequisite is a
+coverage run that includes the integration suite, which needs PostgreSQL — unavailable here.

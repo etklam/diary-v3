@@ -1,9 +1,42 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
-import { articleLocaleSchema, articleTranslationActionResponseSchema, articleTranslationAdminResponseSchema, articleTranslationBatchRequestSchema, articleTranslationBatchResponseSchema, articleTranslationStatesQuerySchema, articleTranslationStatesResponseSchema, ARTICLE_TRANSLATION_BATCH_LIMIT, articleTranslationAiDefaultUpdateSchema, articleTranslationAiProviderSaveSchema, articleTranslationAiProviderSchema, articleTranslationAiProvidersResponseSchema, articleTranslationAiProviderUpdateSchema, articleTranslationJobRequestSchema, articleTranslationJobResponseSchema, articleTranslationEditRequestSchema, serializedIdSchema, type ArticleLocale, type ErrorCode } from '@diary/contracts'
-import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationJobs, articleTranslationRuntime, postTranslations, posts, users, type Database } from '@diary/db'
+import {
+  articleLocaleSchema,
+  articleTranslationActionResponseSchema,
+  articleTranslationAdminResponseSchema,
+  articleTranslationBatchRequestSchema,
+  articleTranslationBatchResponseSchema,
+  articleTranslationStatesQuerySchema,
+  articleTranslationStatesResponseSchema,
+  ARTICLE_TRANSLATION_BATCH_LIMIT,
+  articleTranslationAiDefaultUpdateSchema,
+  articleTranslationAiProviderSaveSchema,
+  articleTranslationAiProviderSchema,
+  articleTranslationAiProvidersResponseSchema,
+  articleTranslationAiProviderUpdateSchema,
+  articleTranslationJobRequestSchema,
+  articleTranslationJobResponseSchema,
+  articleTranslationEditRequestSchema,
+  serializedIdSchema,
+  type ArticleLocale,
+  type ErrorCode,
+} from '@diary/contracts'
+import {
+  articleTranslationAiProfiles,
+  articleTranslationAiSettings,
+  articleTranslationJobs,
+  articleTranslationRuntime,
+  postTranslations,
+  posts,
+  users,
+  type Database,
+} from '@diary/db'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from '../research-studio/publication.js'
+import {
+  lockResearchMutation,
+  researchPublicationIssue,
+  type ResearchTransaction,
+} from '../research-studio/publication.js'
 import type { ResearchLatestCompletedSession } from '../research-studio/service.js'
 import { encryptAiSecret } from '../ai-reports/secrets.js'
 import { AiProviderError, validateHttpsAiBaseUrl } from '../ai-reports/outbound-policy.js'
@@ -15,7 +48,12 @@ import type { AppEnv } from '../app.js'
 import { RATE_LIMIT_POLICIES } from '../rate-limit/policies.js'
 import type { RateLimitPolicy } from '../rate-limit/types.js'
 
-type PostFail = (status: number, code: ErrorCode, message: string, details?: { field?: string; message?: string }[] | null) => never
+type PostFail = (
+  status: number,
+  code: ErrorCode,
+  message: string,
+  details?: { field?: string; message?: string }[] | null,
+) => never
 
 function postId(value: string | undefined, validationError: (error: z.ZodError) => never): bigint {
   const result = serializedIdSchema.safeParse(value)
@@ -35,37 +73,62 @@ function locale(value: string | undefined, validationError: (error: z.ZodError) 
   return result.data
 }
 
-function instant(value: Date | null): string | null { return value?.toISOString() ?? null }
-function publicTranslationIsCurrent(post: typeof posts.$inferSelect, translation: typeof postTranslations.$inferSelect | undefined): boolean {
+function instant(value: Date | null): string | null {
+  return value?.toISOString() ?? null
+}
+function publicTranslationIsCurrent(
+  post: typeof posts.$inferSelect,
+  translation: typeof postTranslations.$inferSelect | undefined,
+): boolean {
   return currentPublishedTranslation(post, translation)
 }
 
-function jobStatus(value: typeof articleTranslationJobs.$inferSelect['status']) {
+function jobStatus(value: (typeof articleTranslationJobs.$inferSelect)['status']) {
   return value.toUpperCase() as 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'STALE' | 'CANCELLED'
 }
 
-function adminTranslationStatus(post: typeof posts.$inferSelect, translation: typeof postTranslations.$inferSelect | undefined, latestJob: typeof articleTranslationJobs.$inferSelect | undefined) {
+function adminTranslationStatus(
+  post: typeof posts.$inferSelect,
+  translation: typeof postTranslations.$inferSelect | undefined,
+  latestJob: typeof articleTranslationJobs.$inferSelect | undefined,
+) {
   if (translation?.status === 'unpublished') return 'UNPUBLISHED' as const
   if (latestJob?.status === 'queued') return 'QUEUED' as const
   if (latestJob?.status === 'running') return 'TRANSLATING' as const
-  const draftIsCurrent = Boolean(translation
-    && translation.draftVersion > 0
-    && translation.draftSourceRevision === post.sourceRevision
-    && translation.draftSourceHash === post.sourceHash)
+  const draftIsCurrent = Boolean(
+    translation &&
+    translation.draftVersion > 0 &&
+    translation.draftSourceRevision === post.sourceRevision &&
+    translation.draftSourceHash === post.sourceHash,
+  )
   if (draftIsCurrent && translation) {
     if (translation.reviewedDraftVersion !== translation.draftVersion) return 'NEEDS_REVIEW' as const
     if (publicTranslationIsCurrent(post, translation)) return 'PUBLISHED' as const
     return 'READY' as const
   }
-  if (latestJob?.status === 'failed' && latestJob.sourceRevision === post.sourceRevision && latestJob.sourceHash === post.sourceHash) return 'FAILED' as const
+  if (
+    latestJob?.status === 'failed' &&
+    latestJob.sourceRevision === post.sourceRevision &&
+    latestJob.sourceHash === post.sourceHash
+  )
+    return 'FAILED' as const
   if (!translation) return 'MISSING' as const
   if (translation.status === 'stale') return 'STALE' as const
   if (publicTranslationIsCurrent(post, translation)) return 'PUBLISHED' as const
-  if (translation.publishedVersion > 0 && (translation.publishedSourceRevision !== post.sourceRevision || translation.publishedSourceHash !== post.sourceHash)) return 'STALE' as const
+  if (
+    translation.publishedVersion > 0 &&
+    (translation.publishedSourceRevision !== post.sourceRevision || translation.publishedSourceHash !== post.sourceHash)
+  )
+    return 'STALE' as const
   return 'MISSING' as const
 }
 
-function adminTranslationRow(post: typeof posts.$inferSelect, targetLocale: ArticleLocale, translation: typeof postTranslations.$inferSelect | undefined, latestJob: typeof articleTranslationJobs.$inferSelect | undefined) {
+function adminTranslationRow(
+  post: typeof posts.$inferSelect,
+  targetLocale: ArticleLocale,
+  translation: typeof postTranslations.$inferSelect | undefined,
+  latestJob: typeof articleTranslationJobs.$inferSelect | undefined,
+) {
   const current = publicTranslationIsCurrent(post, translation)
   return {
     locale: targetLocale,
@@ -87,17 +150,24 @@ function adminTranslationRow(post: typeof posts.$inferSelect, targetLocale: Arti
     reviewedBy: translation?.reviewedBy?.toString() ?? null,
     reviewedAt: instant(translation?.reviewedAt ?? null),
     publishedAt: instant(translation?.publishedAt ?? null),
-    draftIsCurrent: Boolean(translation && translation.draftVersion > 0 && translation.draftSourceRevision === post.sourceRevision && translation.draftSourceHash === post.sourceHash),
+    draftIsCurrent: Boolean(
+      translation &&
+      translation.draftVersion > 0 &&
+      translation.draftSourceRevision === post.sourceRevision &&
+      translation.draftSourceHash === post.sourceHash,
+    ),
     isCurrent: current,
-    latestJob: latestJob ? {
-      id: latestJob.id.toString(),
-      provider: latestJob.provider as 'edge' | 'ai',
-      providerProfileName: latestJob.providerProfileName,
-      status: jobStatus(latestJob.status),
-      progress: latestJob.progress,
-      error: latestJob.error,
-      retryCount: latestJob.retryCount,
-    } : null,
+    latestJob: latestJob
+      ? {
+          id: latestJob.id.toString(),
+          provider: latestJob.provider as 'edge' | 'ai',
+          providerProfileName: latestJob.providerProfileName,
+          status: jobStatus(latestJob.status),
+          progress: latestJob.progress,
+          error: latestJob.error,
+          retryCount: latestJob.retryCount,
+        }
+      : null,
   }
 }
 
@@ -120,15 +190,18 @@ function safeAiProfile(profile: typeof articleTranslationAiProfiles.$inferSelect
   })
 }
 
-export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies: {
-  db: Database
-  now: () => Date
-  latestCompletedSession?: ResearchLatestCompletedSession
-  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
-  fail: PostFail
-  validationError: (error: z.ZodError) => never
-  parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
-}) {
+export function registerArticleTranslationRoutes(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    now: () => Date
+    latestCompletedSession?: ResearchLatestCompletedSession
+    consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
+    fail: PostFail
+    validationError: (error: z.ZodError) => never
+    parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
+  },
+) {
   const { db, now, fail, validationError, parseJson, consume } = dependencies
   const admin = (c: Context<AppEnv>) => {
     c.header('Cache-Control', 'no-store')
@@ -142,18 +215,31 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     return post
   }
   const readTranslation = async (postIdValue: bigint, targetLocale: ArticleLocale) => {
-    const [translation] = await db.select().from(postTranslations).where(and(eq(postTranslations.postId, postIdValue), eq(postTranslations.locale, targetLocale))).limit(1)
+    const [translation] = await db
+      .select()
+      .from(postTranslations)
+      .where(and(eq(postTranslations.postId, postIdValue), eq(postTranslations.locale, targetLocale)))
+      .limit(1)
     return translation
   }
-  const validateDraft = (post: typeof posts.$inferSelect, draft: { title: string; excerpt: string | null; content: string }) => {
+  const validateDraft = (
+    post: typeof posts.$inferSelect,
+    draft: { title: string; excerpt: string | null; content: string },
+  ) => {
     try {
       assertMarkdownTranslationPreservesSource(post.title, draft.title)
       assertMarkdownTranslationPreservesSource(post.content, draft.content)
-      if (post.excerpt === null && draft.excerpt !== null) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
-      if (post.excerpt !== null && draft.excerpt !== null) assertMarkdownTranslationPreservesSource(post.excerpt, draft.excerpt)
+      if (post.excerpt === null && draft.excerpt !== null)
+        throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+      if (post.excerpt !== null && draft.excerpt !== null)
+        assertMarkdownTranslationPreservesSource(post.excerpt, draft.excerpt)
     } catch (error) {
       if (error instanceof TranslationProviderError && error.code === 'TRANSLATION_OUTPUT_INVALID') {
-        return fail(400, 'SYS_VALIDATION_ERROR', 'Translation must preserve the source Markdown structure and immutable values')
+        return fail(
+          400,
+          'SYS_VALIDATION_ERROR',
+          'Translation must preserve the source Markdown structure and immutable values',
+        )
       }
       throw error
     }
@@ -165,57 +251,107 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
   }
   const readAdminTranslation = async (post: typeof posts.$inferSelect, targetLocale: ArticleLocale) => {
     const translation = await readTranslation(post.id, targetLocale)
-    const [latestJob] = await db.select().from(articleTranslationJobs)
+    const [latestJob] = await db
+      .select()
+      .from(articleTranslationJobs)
       .where(and(eq(articleTranslationJobs.postId, post.id), eq(articleTranslationJobs.targetLocale, targetLocale)))
-      .orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)).limit(1)
+      .orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id))
+      .limit(1)
     return adminTranslationRow(post, targetLocale, translation, latestJob)
   }
-  type QueueRefusal = { outcome: 'SKIPPED_SOURCE_LOCALE' | 'NOT_FOUND' | 'PRIVACY_RESTRICTED' | 'PROVIDER_DISABLED'; message: string }
+  type QueueRefusal = {
+    outcome: 'SKIPPED_SOURCE_LOCALE' | 'NOT_FOUND' | 'PRIVACY_RESTRICTED' | 'PROVIDER_DISABLED'
+    message: string
+  }
   /**
    * The queue policy, resolved without throwing: the single-article route maps a
    * refusal to the HTTP failure it has always returned, and the batch route maps
    * the same refusal to that item's own outcome.
    */
-  const resolveQueue = async (options: { postId: bigint; targetLocale: ArticleLocale; provider: 'edge' | 'ai'; actorId: bigint | null }): Promise<{ job: Awaited<ReturnType<typeof enqueueArticleTranslationJob>> } | QueueRefusal> => {
+  const resolveQueue = async (options: {
+    postId: bigint
+    targetLocale: ArticleLocale
+    provider: 'edge' | 'ai'
+    actorId: bigint | null
+  }): Promise<{ job: Awaited<ReturnType<typeof enqueueArticleTranslationJob>> } | QueueRefusal> => {
     const post = await readPost(options.postId)
     if (!post) return { outcome: 'NOT_FOUND', message: 'Post not found' }
-    if (post.sourceLocale === options.targetLocale) return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
-    if (options.provider === 'edge' && post.access !== 'PUBLIC') return { outcome: 'PRIVACY_RESTRICTED', message: 'Microsoft Edge Translate can only process PUBLIC articles' }
+    if (post.sourceLocale === options.targetLocale)
+      return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
+    if (options.provider === 'edge' && post.access !== 'PUBLIC')
+      return { outcome: 'PRIVACY_RESTRICTED', message: 'Microsoft Edge Translate can only process PUBLIC articles' }
     let aiProfileIdValue: bigint | null = null
     let aiProfileName: string | null = null
     let configRevision: number | null = null
     if (options.provider === 'ai') {
-      const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
-      if (!settings?.defaultProfileId) return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
-      const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
-      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return { outcome: 'PROVIDER_DISABLED', message: 'The selected AI provider is not configured or enabled' }
-      if (post.access === 'MEMBER' && !profile.allowMemberArticles) return { outcome: 'PRIVACY_RESTRICTED', message: 'AI translation is not permitted for MEMBER articles by the current translation policy' }
+      const [settings] = await db
+        .select()
+        .from(articleTranslationAiSettings)
+        .where(eq(articleTranslationAiSettings.singleton, 'default'))
+        .limit(1)
+      if (!settings?.defaultProfileId)
+        return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
+      const [profile] = await db
+        .select()
+        .from(articleTranslationAiProfiles)
+        .where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId))
+        .limit(1)
+      if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey)
+        return { outcome: 'PROVIDER_DISABLED', message: 'The selected AI provider is not configured or enabled' }
+      if (post.access === 'MEMBER' && !profile.allowMemberArticles)
+        return {
+          outcome: 'PRIVACY_RESTRICTED',
+          message: 'AI translation is not permitted for MEMBER articles by the current translation policy',
+        }
       aiProfileIdValue = profile.id
       aiProfileName = profile.name
       configRevision = profile.revision
     }
-    const [runtime] = await db.select().from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1)
-    if (options.provider === 'edge' && runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now()) return { outcome: 'PROVIDER_DISABLED', message: 'Microsoft Edge Translate is temporarily disabled after repeated provider failures' }
+    const [runtime] = await db
+      .select()
+      .from(articleTranslationRuntime)
+      .where(eq(articleTranslationRuntime.singleton, 'default'))
+      .limit(1)
+    if (options.provider === 'edge' && runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now())
+      return {
+        outcome: 'PROVIDER_DISABLED',
+        message: 'Microsoft Edge Translate is temporarily disabled after repeated provider failures',
+      }
     try {
-      return { job: await enqueueArticleTranslationJob(db, {
-        postId: options.postId,
-        targetLocale: options.targetLocale,
-        provider: options.provider,
-        requestedBy: options.actorId,
-        aiProfileId: aiProfileIdValue,
-        aiProfileName,
-        configRevision,
-        now: now(),
-      }) }
+      return {
+        job: await enqueueArticleTranslationJob(db, {
+          postId: options.postId,
+          targetLocale: options.targetLocale,
+          provider: options.provider,
+          requestedBy: options.actorId,
+          aiProfileId: aiProfileIdValue,
+          aiProfileName,
+          configRevision,
+          now: now(),
+        }),
+      }
     } catch (error) {
-      if (error instanceof Error && error.message === 'BLOG_NOT_FOUND') return { outcome: 'NOT_FOUND', message: 'Post not found' }
-      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_TARGET_IS_SOURCE') return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
-      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_PROVIDER_DISABLED') return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
+      if (error instanceof Error && error.message === 'BLOG_NOT_FOUND')
+        return { outcome: 'NOT_FOUND', message: 'Post not found' }
+      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_TARGET_IS_SOURCE')
+        return { outcome: 'SKIPPED_SOURCE_LOCALE', message: 'The source locale cannot be a translation target' }
+      if (error instanceof Error && error.message === 'ARTICLE_TRANSLATION_PROVIDER_DISABLED')
+        return { outcome: 'PROVIDER_DISABLED', message: 'Select an enabled AI provider before translating' }
       throw error
     }
   }
-  const refusalStatus = { NOT_FOUND: [404, 'BLOG_NOT_FOUND'], SKIPPED_SOURCE_LOCALE: [400, 'SYS_VALIDATION_ERROR'], PRIVACY_RESTRICTED: [409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED'], PROVIDER_DISABLED: [409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED'] } as const
-  const queueOne = async (options: { postId: bigint; targetLocale: ArticleLocale; provider: 'edge' | 'ai'; actorId: bigint | null }) => {
+  const refusalStatus = {
+    NOT_FOUND: [404, 'BLOG_NOT_FOUND'],
+    SKIPPED_SOURCE_LOCALE: [400, 'SYS_VALIDATION_ERROR'],
+    PRIVACY_RESTRICTED: [409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED'],
+    PROVIDER_DISABLED: [409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED'],
+  } as const
+  const queueOne = async (options: {
+    postId: bigint
+    targetLocale: ArticleLocale
+    provider: 'edge' | 'ai'
+    actorId: bigint | null
+  }) => {
     const resolved = await resolveQueue(options)
     if ('job' in resolved) return resolved.job
     const [status, code] = refusalStatus[resolved.outcome]
@@ -228,24 +364,32 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const [translations, jobs, runtime] = await Promise.all([
       db.select().from(postTranslations).where(eq(postTranslations.postId, id)),
-      db.select().from(articleTranslationJobs).where(eq(articleTranslationJobs.postId, id)).orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)),
+      db
+        .select()
+        .from(articleTranslationJobs)
+        .where(eq(articleTranslationJobs.postId, id))
+        .orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)),
       db.select().from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1),
     ])
-    const rows = (['zh-TW', 'zh-CN', 'en'] as const).filter(item => item !== post.sourceLocale).map(targetLocale => {
-      const translation = translations.find(item => item.locale === targetLocale)
-      const latestJob = jobs.find(item => item.targetLocale === targetLocale)
-      return adminTranslationRow(post, targetLocale, translation, latestJob)
-    })
-    return c.json(articleTranslationAdminResponseSchema.parse({
-      articleId: id.toString(),
-      sourceLocale: post.sourceLocale,
-      sourceRevision: post.sourceRevision,
-      sourceHash: post.sourceHash,
-      edgeEnabled: !runtime[0]?.edgeDisabledUntil || runtime[0].edgeDisabledUntil <= now(),
-      edgeDisabledUntil: runtime[0]?.edgeDisabledUntil?.toISOString() ?? null,
-      warning: 'Article text will be sent to a third-party translation service.',
-      translations: rows,
-    }))
+    const rows = (['zh-TW', 'zh-CN', 'en'] as const)
+      .filter(item => item !== post.sourceLocale)
+      .map(targetLocale => {
+        const translation = translations.find(item => item.locale === targetLocale)
+        const latestJob = jobs.find(item => item.targetLocale === targetLocale)
+        return adminTranslationRow(post, targetLocale, translation, latestJob)
+      })
+    return c.json(
+      articleTranslationAdminResponseSchema.parse({
+        articleId: id.toString(),
+        sourceLocale: post.sourceLocale,
+        sourceRevision: post.sourceRevision,
+        sourceHash: post.sourceHash,
+        edgeEnabled: !runtime[0]?.edgeDisabledUntil || runtime[0].edgeDisabledUntil <= now(),
+        edgeDisabledUntil: runtime[0]?.edgeDisabledUntil?.toISOString() ?? null,
+        warning: 'Article text will be sent to a third-party translation service.',
+        translations: rows,
+      }),
+    )
   })
 
   app.post('/api/blog/admin/:id/translations/jobs', async c => {
@@ -272,9 +416,14 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
       await lockActor(tx, actorId)
       const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
       if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-      if (targetLocale === post.sourceLocale) return fail(400, 'SYS_VALIDATION_ERROR', 'The original article cannot be edited as a translation')
+      if (targetLocale === post.sourceLocale)
+        return fail(400, 'SYS_VALIDATION_ERROR', 'The original article cannot be edited as a translation')
       validateDraft(post, input)
-      const [existing] = await tx.select().from(postTranslations).where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale))).for('update')
+      const [existing] = await tx
+        .select()
+        .from(postTranslations)
+        .where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale)))
+        .for('update')
       const timestamp = now()
       const keepUnpublished = existing?.status === 'unpublished'
       const values = {
@@ -290,7 +439,7 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
         reviewedBy: null,
         reviewedAt: null,
         reviewedDraftVersion: null,
-        status: keepUnpublished ? 'unpublished' as const : 'pending_review' as const,
+        status: keepUnpublished ? ('unpublished' as const) : ('pending_review' as const),
         updatedAt: timestamp,
       }
       if (existing) {
@@ -303,7 +452,9 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     if (!result) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
     const post = await readPost(id)
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }))
+    return c.json(
+      articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }),
+    )
   })
 
   app.post('/api/blog/admin/:id/translations/:locale/review', async c => {
@@ -314,24 +465,45 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
       await lockActor(tx, actorId)
       const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
       if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-      const [translation] = await tx.select().from(postTranslations).where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale))).for('update')
-      if (!translation || translation.draftVersion === 0 || !translation.draftTitle || !translation.draftContent) return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Translation draft not found')
+      const [translation] = await tx
+        .select()
+        .from(postTranslations)
+        .where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale)))
+        .for('update')
+      if (!translation || translation.draftVersion === 0 || !translation.draftTitle || !translation.draftContent)
+        return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Translation draft not found')
       if (translation.draftSourceRevision !== post.sourceRevision || translation.draftSourceHash !== post.sourceHash) {
-        await tx.update(postTranslations).set({ status: 'stale', updatedAt: now() }).where(eq(postTranslations.id, translation.id))
-        return fail(409, 'ARTICLE_TRANSLATION_SOURCE_STALE', 'The original article changed. Create a new translation draft before reviewing.')
+        await tx
+          .update(postTranslations)
+          .set({ status: 'stale', updatedAt: now() })
+          .where(eq(postTranslations.id, translation.id))
+        return fail(
+          409,
+          'ARTICLE_TRANSLATION_SOURCE_STALE',
+          'The original article changed. Create a new translation draft before reviewing.',
+        )
       }
-      validateDraft(post, { title: translation.draftTitle, excerpt: translation.draftExcerpt, content: translation.draftContent })
-      await tx.update(postTranslations).set({
-        status: translation.status === 'unpublished' ? 'unpublished' : 'draft',
-        reviewedBy: actorId,
-        reviewedAt: now(),
-        reviewedDraftVersion: translation.draftVersion,
-        updatedAt: now(),
-      }).where(eq(postTranslations.id, translation.id))
+      validateDraft(post, {
+        title: translation.draftTitle,
+        excerpt: translation.draftExcerpt,
+        content: translation.draftContent,
+      })
+      await tx
+        .update(postTranslations)
+        .set({
+          status: translation.status === 'unpublished' ? 'unpublished' : 'draft',
+          reviewedBy: actorId,
+          reviewedAt: now(),
+          reviewedDraftVersion: translation.draftVersion,
+          updatedAt: now(),
+        })
+        .where(eq(postTranslations.id, translation.id))
     })
     const post = await readPost(id)
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }))
+    return c.json(
+      articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }),
+    )
   })
 
   app.post('/api/blog/admin/:id/translations/:locale/publish', async c => {
@@ -342,36 +514,72 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
       await lockActor(tx, actorId)
       const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
       if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-      if (post.status !== 'PUBLISHED' || !post.publishedAt) return fail(409, 'ARTICLE_TRANSLATION_NOT_PUBLISHED', 'Publish the original article before publishing its translation')
-      const [translation] = await tx.select().from(postTranslations).where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale))).for('update')
-      if (!translation || translation.draftVersion === 0 || !translation.draftTitle || !translation.draftContent) return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Translation draft not found')
+      if (post.status !== 'PUBLISHED' || !post.publishedAt)
+        return fail(
+          409,
+          'ARTICLE_TRANSLATION_NOT_PUBLISHED',
+          'Publish the original article before publishing its translation',
+        )
+      const [translation] = await tx
+        .select()
+        .from(postTranslations)
+        .where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale)))
+        .for('update')
+      if (!translation || translation.draftVersion === 0 || !translation.draftTitle || !translation.draftContent)
+        return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Translation draft not found')
       if (translation.draftSourceRevision !== post.sourceRevision || translation.draftSourceHash !== post.sourceHash) {
-        await tx.update(postTranslations).set({ status: 'stale', updatedAt: now() }).where(eq(postTranslations.id, translation.id))
-        return fail(409, 'ARTICLE_TRANSLATION_SOURCE_STALE', 'The original article changed. Create a new translation draft before publishing.')
+        await tx
+          .update(postTranslations)
+          .set({ status: 'stale', updatedAt: now() })
+          .where(eq(postTranslations.id, translation.id))
+        return fail(
+          409,
+          'ARTICLE_TRANSLATION_SOURCE_STALE',
+          'The original article changed. Create a new translation draft before publishing.',
+        )
       }
-      validateDraft(post, { title: translation.draftTitle, excerpt: translation.draftExcerpt, content: translation.draftContent })
-      if (translation.reviewedDraftVersion !== translation.draftVersion || !translation.reviewedAt) return fail(409, 'ARTICLE_TRANSLATION_REVIEW_REQUIRED', 'Review and approve this translation draft before publishing')
-      const issue = await researchPublicationIssue({ db: tx, postId: id, now: now(), latestCompletedSession: dependencies.latestCompletedSession })
+      validateDraft(post, {
+        title: translation.draftTitle,
+        excerpt: translation.draftExcerpt,
+        content: translation.draftContent,
+      })
+      if (translation.reviewedDraftVersion !== translation.draftVersion || !translation.reviewedAt)
+        return fail(
+          409,
+          'ARTICLE_TRANSLATION_REVIEW_REQUIRED',
+          'Review and approve this translation draft before publishing',
+        )
+      const issue = await researchPublicationIssue({
+        db: tx,
+        postId: id,
+        now: now(),
+        latestCompletedSession: dependencies.latestCompletedSession,
+      })
       if (issue) return fail(409, issue.code, issue.message)
       const timestamp = now()
-      await tx.update(postTranslations).set({
-        status: 'published',
-        publishedTitle: translation.draftTitle,
-        publishedExcerpt: translation.draftExcerpt,
-        publishedContent: translation.draftContent,
-        publishedVersion: translation.publishedVersion + 1,
-        publishedSourceRevision: post.sourceRevision,
-        publishedSourceHash: post.sourceHash,
-        publishedProvider: translation.draftProvider,
-        publishedModel: translation.draftModel,
-        publishedPromptVersion: translation.draftPromptVersion,
-        publishedAt: timestamp,
-        updatedAt: timestamp,
-      }).where(eq(postTranslations.id, translation.id))
+      await tx
+        .update(postTranslations)
+        .set({
+          status: 'published',
+          publishedTitle: translation.draftTitle,
+          publishedExcerpt: translation.draftExcerpt,
+          publishedContent: translation.draftContent,
+          publishedVersion: translation.publishedVersion + 1,
+          publishedSourceRevision: post.sourceRevision,
+          publishedSourceHash: post.sourceHash,
+          publishedProvider: translation.draftProvider,
+          publishedModel: translation.draftModel,
+          publishedPromptVersion: translation.draftPromptVersion,
+          publishedAt: timestamp,
+          updatedAt: timestamp,
+        })
+        .where(eq(postTranslations.id, translation.id))
     })
     const post = await readPost(id)
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }))
+    return c.json(
+      articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }),
+    )
   })
 
   app.post('/api/blog/admin/:id/translations/:locale/unpublish', async c => {
@@ -380,13 +588,23 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const targetLocale = locale(c.req.param('locale'), validationError)
     await db.transaction(async tx => {
       await lockActor(tx, actorId)
-      const [translation] = await tx.select().from(postTranslations).where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale))).for('update')
-      if (!translation || translation.publishedVersion === 0) return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Published translation not found')
-      await tx.update(postTranslations).set({ status: 'unpublished', updatedAt: now() }).where(eq(postTranslations.id, translation.id))
+      const [translation] = await tx
+        .select()
+        .from(postTranslations)
+        .where(and(eq(postTranslations.postId, id), eq(postTranslations.locale, targetLocale)))
+        .for('update')
+      if (!translation || translation.publishedVersion === 0)
+        return fail(404, 'ARTICLE_TRANSLATION_NOT_FOUND', 'Published translation not found')
+      await tx
+        .update(postTranslations)
+        .set({ status: 'unpublished', updatedAt: now() })
+        .where(eq(postTranslations.id, translation.id))
     })
     const post = await readPost(id)
     if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    return c.json(articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }))
+    return c.json(
+      articleTranslationActionResponseSchema.parse({ translation: await readAdminTranslation(post, targetLocale) }),
+    )
   })
 
   app.post('/api/blog/admin/:id/translations/:locale/retranslate', async c => {
@@ -396,20 +614,36 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const input = await parseJson(c, articleTranslationJobRequestSchema.pick({ provider: true }))
     await consume(c, RATE_LIMIT_POLICIES.articleTranslationQueue, 'user', actorId.toString())
     const job = await queueOne({ postId: id, targetLocale, provider: input.provider, actorId })
-    return c.json(articleTranslationJobResponseSchema.parse({ jobs: [{ id: job.id.toString(), locale: targetLocale, status: jobStatus(job.status) }] }))
+    return c.json(
+      articleTranslationJobResponseSchema.parse({
+        jobs: [{ id: job.id.toString(), locale: targetLocale, status: jobStatus(job.status) }],
+      }),
+    )
   })
 
   const readAiProviders = async () => {
     const [[settings], providers] = await Promise.all([
-      db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1),
-      db.select().from(articleTranslationAiProfiles).orderBy(asc(articleTranslationAiProfiles.name), asc(articleTranslationAiProfiles.id)),
+      db
+        .select()
+        .from(articleTranslationAiSettings)
+        .where(eq(articleTranslationAiSettings.singleton, 'default'))
+        .limit(1),
+      db
+        .select()
+        .from(articleTranslationAiProfiles)
+        .orderBy(asc(articleTranslationAiProfiles.name), asc(articleTranslationAiProfiles.id)),
     ])
     return articleTranslationAiProvidersResponseSchema.parse({
       providers: providers.map(safeAiProfile),
       defaultProviderId: settings?.defaultProfileId?.toString() ?? null,
     })
   }
-  const profileValues = (input: z.infer<typeof articleTranslationAiProviderSaveSchema>, encryptedApiKey: string | null, actorId: bigint, revision: number) => ({
+  const profileValues = (
+    input: z.infer<typeof articleTranslationAiProviderSaveSchema>,
+    encryptedApiKey: string | null,
+    actorId: bigint,
+    revision: number,
+  ) => ({
     name: input.name,
     enabled: input.enabled,
     baseUrl: validateHttpsAiBaseUrl(input.baseUrl).href.replace(/\/$/, ''),
@@ -436,31 +670,49 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     admin(c)
     const query = articleTranslationStatesQuerySchema.safeParse(c.req.query())
     if (!query.success) validationError(query.error)
-    const ids = [...new Set((query.data?.ids ?? '').split(',').map(value => value.trim()).filter(Boolean))].slice(0, ARTICLE_TRANSLATION_BATCH_LIMIT)
-    const parsedIds = ids.flatMap(value => { const parsed = serializedIdSchema.safeParse(value); return parsed.success ? [BigInt(parsed.data)] : [] })
+    const ids = [
+      ...new Set(
+        (query.data?.ids ?? '')
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, ARTICLE_TRANSLATION_BATCH_LIMIT)
+    const parsedIds = ids.flatMap(value => {
+      const parsed = serializedIdSchema.safeParse(value)
+      return parsed.success ? [BigInt(parsed.data)] : []
+    })
     if (!parsedIds.length) return c.json(articleTranslationStatesResponseSchema.parse({ articles: [] }))
     const [rows, translations, jobs] = await Promise.all([
       db.select().from(posts).where(inArray(posts.id, parsedIds)),
       db.select().from(postTranslations).where(inArray(postTranslations.postId, parsedIds)),
-      db.select().from(articleTranslationJobs).where(inArray(articleTranslationJobs.postId, parsedIds)).orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)),
+      db
+        .select()
+        .from(articleTranslationJobs)
+        .where(inArray(articleTranslationJobs.postId, parsedIds))
+        .orderBy(desc(articleTranslationJobs.createdAt), desc(articleTranslationJobs.id)),
     ])
     const articles = parsedIds.flatMap(id => {
       const post = rows.find(row => row.id === id)
       if (!post) return []
-      return [{
-        articleId: post.id.toString(),
-        title: post.title,
-        access: post.access,
-        sourceLocale: post.sourceLocale,
-        locales: (['zh-TW', 'zh-CN', 'en'] as const).filter(item => item !== post.sourceLocale).map(targetLocale => ({
-          locale: targetLocale,
-          status: adminTranslationStatus(
-            post,
-            translations.find(item => item.postId === id && item.locale === targetLocale),
-            jobs.find(item => item.postId === id && item.targetLocale === targetLocale),
-          ),
-        })),
-      }]
+      return [
+        {
+          articleId: post.id.toString(),
+          title: post.title,
+          access: post.access,
+          sourceLocale: post.sourceLocale,
+          locales: (['zh-TW', 'zh-CN', 'en'] as const)
+            .filter(item => item !== post.sourceLocale)
+            .map(targetLocale => ({
+              locale: targetLocale,
+              status: adminTranslationStatus(
+                post,
+                translations.find(item => item.postId === id && item.locale === targetLocale),
+                jobs.find(item => item.postId === id && item.targetLocale === targetLocale),
+              ),
+            })),
+        },
+      ]
     })
     return c.json(articleTranslationStatesResponseSchema.parse({ articles }))
   })
@@ -479,7 +731,12 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const results = []
     for (const articleId of input.articleIds) {
       for (const targetLocale of input.targetLocales) {
-        const resolved = await resolveQueue({ postId: BigInt(articleId), targetLocale, provider: input.provider, actorId })
+        const resolved = await resolveQueue({
+          postId: BigInt(articleId),
+          targetLocale,
+          provider: input.provider,
+          actorId,
+        })
         if ('job' in resolved) {
           results.push({
             articleId,
@@ -490,7 +747,14 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
             message: null,
           })
         } else {
-          results.push({ articleId, locale: targetLocale, outcome: resolved.outcome, jobId: null, status: null, message: resolved.message })
+          results.push({
+            articleId,
+            locale: targetLocale,
+            outcome: resolved.outcome,
+            jobId: null,
+            status: null,
+            message: resolved.message,
+          })
         }
       }
     }
@@ -505,19 +769,34 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
   app.post('/api/admin/article-translations/ai-providers', async c => {
     const actorId = admin(c)
     const input = await parseJson(c, articleTranslationAiProviderSaveSchema)
-    try { validateHttpsAiBaseUrl(input.baseUrl) }
-    catch (error) { return fail(400, error instanceof AiProviderError ? 'AI_UNSAFE_ENDPOINT' : 'SYS_VALIDATION_ERROR', 'Provider endpoint must be a safe HTTPS base URL') }
+    try {
+      validateHttpsAiBaseUrl(input.baseUrl)
+    } catch (error) {
+      return fail(
+        400,
+        error instanceof AiProviderError ? 'AI_UNSAFE_ENDPOINT' : 'SYS_VALIDATION_ERROR',
+        'Provider endpoint must be a safe HTTPS base URL',
+      )
+    }
     const encryptedApiKey = input.apiKey ? encryptAiSecret(input.apiKey, 'article-translation-api-key') : null
-    if (input.enabled && !encryptedApiKey) return fail(400, 'AI_NOT_CONFIGURED', 'Add an API key before enabling this provider')
-    const [duplicate] = await db.select({ id: articleTranslationAiProfiles.id }).from(articleTranslationAiProfiles)
-      .where(sql`lower(${articleTranslationAiProfiles.name}) = lower(${input.name})`).limit(1)
+    if (input.enabled && !encryptedApiKey)
+      return fail(400, 'AI_NOT_CONFIGURED', 'Add an API key before enabling this provider')
+    const [duplicate] = await db
+      .select({ id: articleTranslationAiProfiles.id })
+      .from(articleTranslationAiProfiles)
+      .where(sql`lower(${articleTranslationAiProfiles.name}) = lower(${input.name})`)
+      .limit(1)
     if (duplicate) return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
     try {
-      const [created] = await db.insert(articleTranslationAiProfiles).values(profileValues(input, encryptedApiKey, actorId, 1)).returning()
+      const [created] = await db
+        .insert(articleTranslationAiProfiles)
+        .values(profileValues(input, encryptedApiKey, actorId, 1))
+        .returning()
       if (!created) return fail(500, 'SYS_INTERNAL_ERROR', 'Provider profile could not be created')
       return c.json(safeAiProfile(created))
     } catch (error) {
-      if ((error as { code?: unknown }).code === '23505') return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
+      if ((error as { code?: unknown }).code === '23505')
+        return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
       throw error
     }
   })
@@ -527,22 +806,40 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const input = await parseJson(c, articleTranslationAiDefaultUpdateSchema)
     const requestedId = input.providerId === null ? null : BigInt(input.providerId)
     await db.transaction(async tx => {
-      await tx.insert(articleTranslationAiSettings).values({ singleton: 'default', updatedAt: now() }).onConflictDoNothing()
+      await tx
+        .insert(articleTranslationAiSettings)
+        .values({ singleton: 'default', updatedAt: now() })
+        .onConflictDoNothing()
       if (requestedId !== null) {
-        const [profile] = await tx.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, requestedId)).for('update')
+        const [profile] = await tx
+          .select()
+          .from(articleTranslationAiProfiles)
+          .where(eq(articleTranslationAiProfiles.id, requestedId))
+          .for('update')
         if (!profile) return fail(404, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'AI provider not found')
         if (!profile.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) {
-          return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'Enable and configure this provider before selecting it')
+          return fail(
+            409,
+            'ARTICLE_TRANSLATION_PROVIDER_DISABLED',
+            'Enable and configure this provider before selecting it',
+          )
         }
       }
-      const [settings] = await tx.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).for('update')
+      const [settings] = await tx
+        .select()
+        .from(articleTranslationAiSettings)
+        .where(eq(articleTranslationAiSettings.singleton, 'default'))
+        .for('update')
       if (!settings) return fail(500, 'SYS_INTERNAL_ERROR', 'AI provider settings are unavailable')
-      await tx.update(articleTranslationAiSettings).set({
-        defaultProfileId: requestedId,
-        revision: settings.revision + 1,
-        updatedBy: actorId,
-        updatedAt: now(),
-      }).where(eq(articleTranslationAiSettings.singleton, 'default'))
+      await tx
+        .update(articleTranslationAiSettings)
+        .set({
+          defaultProfileId: requestedId,
+          revision: settings.revision + 1,
+          updatedBy: actorId,
+          updatedAt: now(),
+        })
+        .where(eq(articleTranslationAiSettings.singleton, 'default'))
     })
     return c.json(await readAiProviders())
   })
@@ -551,30 +848,70 @@ export function registerArticleTranslationRoutes(app: Hono<AppEnv>, dependencies
     const actorId = admin(c)
     const id = aiProfileId(c.req.param('id'), validationError)
     const input = await parseJson(c, articleTranslationAiProviderUpdateSchema)
-    try { validateHttpsAiBaseUrl(input.baseUrl) }
-    catch (error) { return fail(400, error instanceof AiProviderError ? 'AI_UNSAFE_ENDPOINT' : 'SYS_VALIDATION_ERROR', 'Provider endpoint must be a safe HTTPS base URL') }
+    try {
+      validateHttpsAiBaseUrl(input.baseUrl)
+    } catch (error) {
+      return fail(
+        400,
+        error instanceof AiProviderError ? 'AI_UNSAFE_ENDPOINT' : 'SYS_VALIDATION_ERROR',
+        'Provider endpoint must be a safe HTTPS base URL',
+      )
+    }
     const encryptedApiKey = input.apiKey ? encryptAiSecret(input.apiKey, 'article-translation-api-key') : null
     let result: typeof articleTranslationAiProfiles.$inferSelect
     try {
       result = await db.transaction(async tx => {
-        const [existing] = await tx.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, id)).for('update')
+        const [existing] = await tx
+          .select()
+          .from(articleTranslationAiProfiles)
+          .where(eq(articleTranslationAiProfiles.id, id))
+          .for('update')
         if (!existing) return fail(404, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'AI provider not found')
-        if (existing.revision !== input.expectedRevision) return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'Provider settings changed; reload and retry')
-        const [duplicate] = await tx.select({ id: articleTranslationAiProfiles.id }).from(articleTranslationAiProfiles)
-          .where(and(sql`lower(${articleTranslationAiProfiles.name}) = lower(${input.name})`, sql`${articleTranslationAiProfiles.id} <> ${id}`)).limit(1)
+        if (existing.revision !== input.expectedRevision)
+          return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'Provider settings changed; reload and retry')
+        const [duplicate] = await tx
+          .select({ id: articleTranslationAiProfiles.id })
+          .from(articleTranslationAiProfiles)
+          .where(
+            and(
+              sql`lower(${articleTranslationAiProfiles.name}) = lower(${input.name})`,
+              sql`${articleTranslationAiProfiles.id} <> ${id}`,
+            ),
+          )
+          .limit(1)
         if (duplicate) return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
-        const [settings] = await tx.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).for('update')
-        if (settings?.defaultProfileId === id && !input.enabled) return fail(409, 'ARTICLE_TRANSLATION_PROVIDER_DISABLED', 'Select another default provider before disabling this one')
+        const [settings] = await tx
+          .select()
+          .from(articleTranslationAiSettings)
+          .where(eq(articleTranslationAiSettings.singleton, 'default'))
+          .for('update')
+        if (settings?.defaultProfileId === id && !input.enabled)
+          return fail(
+            409,
+            'ARTICLE_TRANSLATION_PROVIDER_DISABLED',
+            'Select another default provider before disabling this one',
+          )
         const nextSecret = encryptedApiKey ?? existing.encryptedApiKey
-        if (input.enabled && !nextSecret) return fail(400, 'AI_NOT_CONFIGURED', 'Add an API key before enabling this provider')
-        const [updated] = await tx.update(articleTranslationAiProfiles).set({
-          ...profileValues(input, nextSecret, actorId, existing.revision + 1),
-        }).where(and(eq(articleTranslationAiProfiles.id, id), eq(articleTranslationAiProfiles.revision, input.expectedRevision))).returning()
+        if (input.enabled && !nextSecret)
+          return fail(400, 'AI_NOT_CONFIGURED', 'Add an API key before enabling this provider')
+        const [updated] = await tx
+          .update(articleTranslationAiProfiles)
+          .set({
+            ...profileValues(input, nextSecret, actorId, existing.revision + 1),
+          })
+          .where(
+            and(
+              eq(articleTranslationAiProfiles.id, id),
+              eq(articleTranslationAiProfiles.revision, input.expectedRevision),
+            ),
+          )
+          .returning()
         if (!updated) return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'Provider settings changed; reload and retry')
         return updated
       })
     } catch (error) {
-      if ((error as { code?: unknown }).code === '23505') return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
+      if ((error as { code?: unknown }).code === '23505')
+        return fail(409, 'AI_ADMIN_REVISION_CONFLICT', 'A provider with this name already exists')
       throw error
     }
     return c.json(safeAiProfile(result))

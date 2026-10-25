@@ -54,7 +54,10 @@ export const DEFAULT_GURU_ACTION_THRESHOLDS: Readonly<GuruActionThresholds> = Ob
 
 export const GURU_PORTFOLIO_ANALYTICS_VERSION = 'guru-portfolio-analytics-v1'
 
-interface Fraction { numerator: bigint; denominator: bigint }
+interface Fraction {
+  numerator: bigint
+  denominator: bigint
+}
 interface Position {
   key: string
   securityId: string | null
@@ -112,7 +115,13 @@ export interface GuruLargestPosition {
 export interface GuruPortfolioAnalytics {
   version: typeof GURU_PORTFOLIO_ANALYTICS_VERSION
   periodEnd: string
-  comparisonStatus: 'BASELINE' | 'PREVIOUS_NOT_READY' | 'NON_ADJACENT_QUARTER' | 'COMPARABLE' | 'MAPPING_INCOMPLETE' | 'CORPORATE_ACTION_INCOMPLETE'
+  comparisonStatus:
+    | 'BASELINE'
+    | 'PREVIOUS_NOT_READY'
+    | 'NON_ADJACENT_QUARTER'
+    | 'COMPARABLE'
+    | 'MAPPING_INCOMPLETE'
+    | 'CORPORATE_ACTION_INCOMPLETE'
   portfolio: {
     reportedValueUsd: string
     holdingCount: number
@@ -136,7 +145,14 @@ export interface GuruPortfolioAnalytics {
   largestReductions: GuruPortfolioChange[]
   disclosedWeightTurnoverPercent: string | null
   turnoverBand: 'LOW' | 'MODERATE' | 'HIGH' | null
-  turnoverUnavailableReason: 'BASELINE' | 'PREVIOUS_NOT_READY' | 'NON_ADJACENT_QUARTER' | 'MAPPING_INCOMPLETE' | 'CORPORATE_ACTION_INCOMPLETE' | 'ZERO_REPORTED_VALUE' | null
+  turnoverUnavailableReason:
+    | 'BASELINE'
+    | 'PREVIOUS_NOT_READY'
+    | 'NON_ADJACENT_QUARTER'
+    | 'MAPPING_INCOMPLETE'
+    | 'CORPORATE_ACTION_INCOMPLETE'
+    | 'ZERO_REPORTED_VALUE'
+    | null
 }
 
 export interface AllocationBucket {
@@ -161,11 +177,14 @@ function fraction(numerator: bigint, denominator = 1n): Fraction {
   if (denominator === 0n) throw new Error('Division by zero')
   const sign = denominator < 0n ? -1n : 1n
   const divisor = gcd(numerator, denominator)
-  return { numerator: numerator / divisor * sign, denominator: denominator / divisor * sign }
+  return { numerator: (numerator / divisor) * sign, denominator: (denominator / divisor) * sign }
 }
 
 function addFraction(left: Fraction, right: Fraction): Fraction {
-  return fraction(left.numerator * right.denominator + right.numerator * left.denominator, left.denominator * right.denominator)
+  return fraction(
+    left.numerator * right.denominator + right.numerator * left.denominator,
+    left.denominator * right.denominator,
+  )
 }
 
 function subtractFraction(left: Fraction, right: Fraction): Fraction {
@@ -183,7 +202,7 @@ function divideFraction(left: Fraction, right: Fraction): Fraction {
 function parseDecimal(value: string, scale = VALUE_SCALE): bigint {
   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
   if (!match || (match[3]?.length ?? 0) > scale) throw new Error(`Invalid decimal value: ${value}`)
-  const magnitude = BigInt(match[2]!) * (10n ** BigInt(scale)) + BigInt((match[3] ?? '').padEnd(scale, '0') || '0')
+  const magnitude = BigInt(match[2]!) * 10n ** BigInt(scale) + BigInt((match[3] ?? '').padEnd(scale, '0') || '0')
   return match[1] ? -magnitude : magnitude
 }
 
@@ -198,8 +217,8 @@ function formatDecimal(value: bigint, scale = VALUE_SCALE): string {
 
 function roundRatio(numerator: bigint, denominator: bigint, scale = VALUE_SCALE): string {
   if (denominator === 0n) throw new Error('Division by zero')
-  const negative = (numerator < 0n) !== (denominator < 0n)
-  const top = (numerator < 0n ? -numerator : numerator) * (10n ** BigInt(scale))
+  const negative = numerator < 0n !== denominator < 0n
+  const top = (numerator < 0n ? -numerator : numerator) * 10n ** BigInt(scale)
   const bottom = denominator < 0n ? -denominator : denominator
   const quotient = top / bottom
   const remainder = top % bottom
@@ -222,22 +241,36 @@ function compareFractions(left: Fraction, right: Fraction): number {
 function validatePeriodEnd(value: string): { year: number; quarter: number } {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) throw new Error(`Invalid Guru portfolio period: ${value}`)
-  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3])
+  const year = Number(match[1]),
+    month = Number(match[2]),
+    day = Number(match[3])
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  if (![3, 6, 9, 12].includes(month) || day !== lastDay) throw new Error(`Guru portfolio period must be a calendar quarter end: ${value}`)
+  if (![3, 6, 9, 12].includes(month) || day !== lastDay)
+    throw new Error(`Guru portfolio period must be a calendar quarter end: ${value}`)
   return { year, quarter: (month - 1) / 3 }
 }
 
 function adjacentQuarter(previous: string, current: string): boolean {
-  const before = validatePeriodEnd(previous), after = validatePeriodEnd(current)
+  const before = validatePeriodEnd(previous),
+    after = validatePeriodEnd(current)
   return after.year * 4 + after.quarter === before.year * 4 + before.quarter + 1
 }
 
-interface IdentityMatch { factor: Fraction; eventIds: string[] }
+interface IdentityMatch {
+  factor: Fraction
+  eventIds: string[]
+}
 
-function activeCorporateEvents(events: readonly GuruSecurityIdentityEvent[], previousPeriod: string, currentPeriod: string) {
-  const superseded = new Set(events.flatMap(event => event.supersedesEventId ? [event.supersedesEventId] : []))
-  return events.filter(event => !superseded.has(event.id) && previousPeriod < event.effectiveOn && event.effectiveOn <= currentPeriod)
+function activeCorporateEvents(
+  events: readonly GuruSecurityIdentityEvent[],
+  previousPeriod: string,
+  currentPeriod: string,
+) {
+  const superseded = new Set(events.flatMap(event => (event.supersedesEventId ? [event.supersedesEventId] : [])))
+  return events
+    .filter(
+      event => !superseded.has(event.id) && previousPeriod < event.effectiveOn && event.effectiveOn <= currentPeriod,
+    )
     .sort((left, right) => left.effectiveOn.localeCompare(right.effectiveOn) || left.id.localeCompare(right.id))
 }
 
@@ -256,33 +289,76 @@ function identityMatch(
 ): IdentityMatch | null {
   const active = activeCorporateEvents(events, previousPeriod, currentPeriod)
   if (fromSecurityId === toSecurityId) {
-    const splits = active.filter(event => event.kind === 'STOCK_SPLIT' && event.fromSecurityId === fromSecurityId && event.comparable && event.newSharesPerOldShare !== null)
-    return { factor: splits.reduce((value, event) => multiplyFraction(value, shareFactor(event.newSharesPerOldShare!)), fraction(1n)), eventIds: splits.map(event => event.id) }
+    const splits = active.filter(
+      event =>
+        event.kind === 'STOCK_SPLIT' &&
+        event.fromSecurityId === fromSecurityId &&
+        event.comparable &&
+        event.newSharesPerOldShare !== null,
+    )
+    return {
+      factor: splits.reduce(
+        (value, event) => multiplyFraction(value, shareFactor(event.newSharesPerOldShare!)),
+        fraction(1n),
+      ),
+      eventIds: splits.map(event => event.id),
+    }
   }
-  const edges = active.filter(event => event.kind === 'SHARE_CLASS_CONTINUITY' && event.comparable && event.toSecurityId && event.newSharesPerOldShare)
-  const queue: Array<{ securityId: string; factor: Fraction; eventIds: string[]; visited: Set<string> }> = [{ securityId: fromSecurityId, factor: fraction(1n), eventIds: [], visited: new Set([fromSecurityId]) }]
+  const edges = active.filter(
+    event =>
+      event.kind === 'SHARE_CLASS_CONTINUITY' && event.comparable && event.toSecurityId && event.newSharesPerOldShare,
+  )
+  const queue: Array<{ securityId: string; factor: Fraction; eventIds: string[]; visited: Set<string> }> = [
+    { securityId: fromSecurityId, factor: fraction(1n), eventIds: [], visited: new Set([fromSecurityId]) },
+  ]
   while (queue.length) {
     const current = queue.shift()!
     for (const event of edges) {
-      if (event.fromSecurityId !== current.securityId || !event.toSecurityId || current.visited.has(event.toSecurityId)) continue
+      if (event.fromSecurityId !== current.securityId || !event.toSecurityId || current.visited.has(event.toSecurityId))
+        continue
       const factor = multiplyFraction(current.factor, shareFactor(event.newSharesPerOldShare!))
       const eventIds = [...current.eventIds, event.id]
       if (event.toSecurityId === toSecurityId) return { factor, eventIds }
-      queue.push({ securityId: event.toSecurityId, factor, eventIds, visited: new Set([...current.visited, event.toSecurityId]) })
+      queue.push({
+        securityId: event.toSecurityId,
+        factor,
+        eventIds,
+        visited: new Set([...current.visited, event.toSecurityId]),
+      })
     }
   }
   return null
 }
 
-function nonComparableTransition(fromSecurityId: string, toSecurityId: string, previousPeriod: string, currentPeriod: string, events: readonly GuruSecurityIdentityEvent[]): boolean {
-  return activeCorporateEvents(events, previousPeriod, currentPeriod).some(event =>
-    (event.kind === 'MERGER' || event.kind === 'SPIN_OFF') && !event.comparable
-    && event.fromSecurityId === fromSecurityId && event.toSecurityId === toSecurityId)
+function nonComparableTransition(
+  fromSecurityId: string,
+  toSecurityId: string,
+  previousPeriod: string,
+  currentPeriod: string,
+  events: readonly GuruSecurityIdentityEvent[],
+): boolean {
+  return activeCorporateEvents(events, previousPeriod, currentPeriod).some(
+    event =>
+      (event.kind === 'MERGER' || event.kind === 'SPIN_OFF') &&
+      !event.comparable &&
+      event.fromSecurityId === fromSecurityId &&
+      event.toSecurityId === toSecurityId,
+  )
 }
 
-function delistedDuring(fromSecurityId: string, previousPeriod: string, currentPeriod: string, events: readonly GuruSecurityIdentityEvent[]): boolean {
-  return activeCorporateEvents(events, previousPeriod, currentPeriod).some(event => event.kind === 'DELISTING'
-    && !event.comparable && event.fromSecurityId === fromSecurityId && event.toSecurityId === null)
+function delistedDuring(
+  fromSecurityId: string,
+  previousPeriod: string,
+  currentPeriod: string,
+  events: readonly GuruSecurityIdentityEvent[],
+): boolean {
+  return activeCorporateEvents(events, previousPeriod, currentPeriod).some(
+    event =>
+      event.kind === 'DELISTING' &&
+      !event.comparable &&
+      event.fromSecurityId === fromSecurityId &&
+      event.toSecurityId === null,
+  )
 }
 
 function positionKey(holding: GuruAnalyticsHolding): string {
@@ -296,32 +372,56 @@ function metadataValue(current: string | null, next: string | null): string | nu
   return current.localeCompare(next) <= 0 ? current : next
 }
 
-function aggregate(snapshot: GuruAnalyticsSnapshot): { positions: Position[]; sourceRowCount: number; mappedRowCount: number; totalValue: bigint } {
+function aggregate(snapshot: GuruAnalyticsSnapshot): {
+  positions: Position[]
+  sourceRowCount: number
+  mappedRowCount: number
+  totalValue: bigint
+} {
   const buckets = new Map<string, Position>()
   const sourceKeys = new Set<string>()
   let mappedRowCount = 0
   for (const holding of snapshot.holdings) {
-    if (!holding.sourceRowKey || sourceKeys.has(holding.sourceRowKey)) throw new Error('Guru portfolio source row keys must be unique and non-empty')
+    if (!holding.sourceRowKey || sourceKeys.has(holding.sourceRowKey))
+      throw new Error('Guru portfolio source row keys must be unique and non-empty')
     sourceKeys.add(holding.sourceRowKey)
-    if (holding.quantityType !== 'SH' && holding.quantityType !== 'PRN') throw new Error(`Invalid quantity type: ${holding.quantityType}`)
-    if (holding.putCall !== null && holding.putCall !== 'PUT' && holding.putCall !== 'CALL') throw new Error(`Invalid Put/Call exposure: ${holding.putCall}`)
+    if (holding.quantityType !== 'SH' && holding.quantityType !== 'PRN')
+      throw new Error(`Invalid quantity type: ${holding.quantityType}`)
+    if (holding.putCall !== null && holding.putCall !== 'PUT' && holding.putCall !== 'CALL')
+      throw new Error(`Invalid Put/Call exposure: ${holding.putCall}`)
     if (holding.mappingStatus === 'MATCHED' || holding.mappingStatus === 'MANUAL_OVERRIDE') {
       if (holding.securityId === null) throw new Error('Resolved Guru portfolio holding must include a security ID')
       mappedRowCount += 1
-    } else if (holding.securityId !== null) throw new Error('Unresolved Guru portfolio holding cannot include a security ID')
+    } else if (holding.securityId !== null)
+      throw new Error('Unresolved Guru portfolio holding cannot include a security ID')
     const quantity = parseDecimal(holding.quantity)
     const rawValue = parseDecimal(holding.reportedValue)
-    if (quantity < 0n || rawValue < 0n) throw new Error('Guru portfolio quantities and reported values cannot be negative')
-    const value = holding.reportedValueUnit === 'USD' ? rawValue
-      : holding.reportedValueUnit === 'THOUSANDS_USD' ? rawValue * 1000n
-        : (() => { throw new Error(`Unsupported reported value unit: ${holding.reportedValueUnit}`) })()
+    if (quantity < 0n || rawValue < 0n)
+      throw new Error('Guru portfolio quantities and reported values cannot be negative')
+    const value =
+      holding.reportedValueUnit === 'USD'
+        ? rawValue
+        : holding.reportedValueUnit === 'THOUSANDS_USD'
+          ? rawValue * 1000n
+          : (() => {
+              throw new Error(`Unsupported reported value unit: ${holding.reportedValueUnit}`)
+            })()
     const key = positionKey(holding)
     const existing = buckets.get(key)
     if (!existing) {
       buckets.set(key, {
-        key, securityId: holding.securityId, ticker: holding.ticker, company: holding.company,
-        sector: holding.sector, industry: holding.industry, quantityType: holding.quantityType,
-        putCall: holding.putCall, quantity, reportedValueUsd: value, sourceRowCount: 1, rank: 0,
+        key,
+        securityId: holding.securityId,
+        ticker: holding.ticker,
+        company: holding.company,
+        sector: holding.sector,
+        industry: holding.industry,
+        quantityType: holding.quantityType,
+        putCall: holding.putCall,
+        quantity,
+        reportedValueUsd: value,
+        sourceRowCount: 1,
+        rank: 0,
       })
     } else {
       existing.quantity += quantity
@@ -337,11 +437,22 @@ function aggregate(snapshot: GuruAnalyticsSnapshot): { positions: Position[]; so
     if (left.reportedValueUsd !== right.reportedValueUsd) return left.reportedValueUsd > right.reportedValueUsd ? -1 : 1
     return left.key.localeCompare(right.key)
   })
-  positions.forEach((position, index) => { position.rank = index + 1 })
-  return { positions, sourceRowCount: snapshot.holdings.length, mappedRowCount, totalValue: positions.reduce((sum, position) => sum + position.reportedValueUsd, 0n) }
+  positions.forEach((position, index) => {
+    position.rank = index + 1
+  })
+  return {
+    positions,
+    sourceRowCount: snapshot.holdings.length,
+    mappedRowCount,
+    totalValue: positions.reduce((sum, position) => sum + position.reportedValueUsd, 0n),
+  }
 }
 
-function allocation(positions: readonly Position[], field: 'sector' | 'industry', total: bigint): { buckets: AllocationBucket[]; residual: AllocationResidual } {
+function allocation(
+  positions: readonly Position[],
+  field: 'sector' | 'industry',
+  total: bigint,
+): { buckets: AllocationBucket[]; residual: AllocationResidual } {
   const values = new Map<string, bigint>()
   let unclassified = 0n
   for (const position of positions) {
@@ -349,12 +460,23 @@ function allocation(positions: readonly Position[], field: 'sector' | 'industry'
     if (!label) unclassified += position.reportedValueUsd
     else values.set(label, (values.get(label) ?? 0n) + position.reportedValueUsd)
   }
-  const buckets = [...values].sort((left, right) => left[0].localeCompare(right[0])).map(([name, value]) => ({ name, value }))
-    .sort((left, right) => left.value === right.value ? left.name.localeCompare(right.name) : left.value > right.value ? -1 : 1)
-    .map(({ name, value }) => ({ name, reportedValueUsd: formatDecimal(value), weightPercent: total > 0n ? percent(fraction(value, total)) : '0' }))
+  const buckets = [...values]
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([name, value]) => ({ name, value }))
+    .sort((left, right) =>
+      left.value === right.value ? left.name.localeCompare(right.name) : left.value > right.value ? -1 : 1,
+    )
+    .map(({ name, value }) => ({
+      name,
+      reportedValueUsd: formatDecimal(value),
+      weightPercent: total > 0n ? percent(fraction(value, total)) : '0',
+    }))
   return {
     buckets,
-    residual: { reportedValueUsd: formatDecimal(unclassified), weightPercent: total > 0n ? percent(fraction(unclassified, total)) : '0' },
+    residual: {
+      reportedValueUsd: formatDecimal(unclassified),
+      weightPercent: total > 0n ? percent(fraction(unclassified, total)) : '0',
+    },
   }
 }
 
@@ -375,32 +497,55 @@ function actionFor(delta: Fraction, previous: Fraction, thresholds: GuruActionTh
 }
 
 function weights(positions: readonly Position[], total: bigint): Map<string, Fraction> {
-  return new Map(positions.map(position => [position.key, total > 0n ? fraction(position.reportedValueUsd, total) : fraction(0n)]))
+  return new Map(
+    positions.map(position => [position.key, total > 0n ? fraction(position.reportedValueUsd, total) : fraction(0n)]),
+  )
 }
 
 function emptyActionCounts(): Record<GuruAction, number> {
   return { NEW: 0, STRONG_ADD: 0, ADD: 0, UNCHANGED: 0, REDUCE: 0, STRONG_REDUCE: 0, EXIT: 0 }
 }
 
-function comparePositions(current: Position, previous: Position | undefined, identity: IdentityMatch | undefined, currentWeight: Fraction, previousWeight: Fraction | undefined, thresholds: GuruActionThresholds): GuruPortfolioChange {
+function comparePositions(
+  current: Position,
+  previous: Position | undefined,
+  identity: IdentityMatch | undefined,
+  currentWeight: Fraction,
+  previousWeight: Fraction | undefined,
+  thresholds: GuruActionThresholds,
+): GuruPortfolioChange {
   const rawPreviousQuantity = previous ? fraction(previous.quantity) : fraction(0n)
-  const comparablePreviousQuantity = previous ? multiplyFraction(rawPreviousQuantity, identity?.factor ?? fraction(1n)) : fraction(0n)
+  const comparablePreviousQuantity = previous
+    ? multiplyFraction(rawPreviousQuantity, identity?.factor ?? fraction(1n))
+    : fraction(0n)
   const delta = subtractFraction(fraction(current.quantity), comparablePreviousQuantity)
   const action = previous ? actionFor(delta, comparablePreviousQuantity, thresholds) : 'NEW'
   return {
-    positionKey: current.key, securityId: current.securityId, ticker: current.ticker, company: current.company,
-    quantityType: current.quantityType, putCall: current.putCall, action,
+    positionKey: current.key,
+    securityId: current.securityId,
+    ticker: current.ticker,
+    company: current.company,
+    quantityType: current.quantityType,
+    putCall: current.putCall,
+    action,
     previousQuantity: previous ? formatDecimal(previous.quantity) : null,
     comparablePreviousQuantity: previous ? scaledFractionDecimal(comparablePreviousQuantity) : null,
-    currentQuantity: formatDecimal(current.quantity), quantityChange: scaledFractionDecimal(delta),
-    quantityChangePercent: previous && comparablePreviousQuantity.numerator !== 0n
-      ? percent(divideFraction(delta, comparablePreviousQuantity)) : null,
-    quantityAdjustmentFactor: previous ? roundRatio((identity?.factor ?? fraction(1n)).numerator, (identity?.factor ?? fraction(1n)).denominator, 12) : null,
+    currentQuantity: formatDecimal(current.quantity),
+    quantityChange: scaledFractionDecimal(delta),
+    quantityChangePercent:
+      previous && comparablePreviousQuantity.numerator !== 0n
+        ? percent(divideFraction(delta, comparablePreviousQuantity))
+        : null,
+    quantityAdjustmentFactor: previous
+      ? roundRatio((identity?.factor ?? fraction(1n)).numerator, (identity?.factor ?? fraction(1n)).denominator, 12)
+      : null,
     corporateActionEventIds: identity?.eventIds ?? [],
     previousWeightPercent: previous && previousWeight ? percent(previousWeight) : null,
     currentWeightPercent: percent(currentWeight),
-    weightChangePercentagePoints: previous && previousWeight ? percent(subtractFraction(currentWeight, previousWeight)) : null,
-    previousRank: previous?.rank ?? null, currentRank: current.rank,
+    weightChangePercentagePoints:
+      previous && previousWeight ? percent(subtractFraction(currentWeight, previousWeight)) : null,
+    previousRank: previous?.rank ?? null,
+    currentRank: current.rank,
     rankChange: previous ? previous.rank - current.rank : null,
     previousReportedValueUsd: previous ? formatDecimal(previous.reportedValueUsd) : null,
     currentReportedValueUsd: formatDecimal(current.reportedValueUsd),
@@ -408,7 +553,9 @@ function comparePositions(current: Position, previous: Position | undefined, ide
   }
 }
 
-function exposureKey(position: Position): string { return `${position.quantityType}:${position.putCall ?? 'NONE'}` }
+function exposureKey(position: Position): string {
+  return `${position.quantityType}:${position.putCall ?? 'NONE'}`
+}
 
 interface PositionPairing {
   pairsByCurrent: Map<string, { previous: Position; identity: IdentityMatch }>
@@ -420,33 +567,66 @@ interface PositionPairing {
   hasNonComparableEvents: boolean
 }
 
-function pairPositions(currentPositions: readonly Position[], previousPositions: readonly Position[], identityEvents: readonly GuruSecurityIdentityEvent[], previousPeriod: string, currentPeriod: string): PositionPairing {
+function pairPositions(
+  currentPositions: readonly Position[],
+  previousPositions: readonly Position[],
+  identityEvents: readonly GuruSecurityIdentityEvent[],
+  previousPeriod: string,
+  currentPeriod: string,
+): PositionPairing {
   const activeEvents = activeCorporateEvents(identityEvents, previousPeriod, currentPeriod)
   const previousByExposure = new Map<string, Position[]>()
   const currentByExposure = new Map<string, Position[]>()
-  for (const position of previousPositions) if (position.securityId) previousByExposure.set(exposureKey(position), [...(previousByExposure.get(exposureKey(position)) ?? []), position])
-  for (const position of currentPositions) if (position.securityId) currentByExposure.set(exposureKey(position), [...(currentByExposure.get(exposureKey(position)) ?? []), position])
+  for (const position of previousPositions)
+    if (position.securityId)
+      previousByExposure.set(exposureKey(position), [
+        ...(previousByExposure.get(exposureKey(position)) ?? []),
+        position,
+      ])
+  for (const position of currentPositions)
+    if (position.securityId)
+      currentByExposure.set(exposureKey(position), [...(currentByExposure.get(exposureKey(position)) ?? []), position])
   const candidatesByCurrent = new Map<string, Array<{ previous: Position; identity: IdentityMatch }>>()
   const candidatesByPrevious = new Map<string, string[]>()
   const currentByExposureId = new Map<string, Position>()
-  for (const [exposure, positions] of currentByExposure) for (const position of positions) currentByExposureId.set(`${exposure}:${position.securityId}`, position)
+  for (const [exposure, positions] of currentByExposure)
+    for (const position of positions) currentByExposureId.set(`${exposure}:${position.securityId}`, position)
 
   for (const [exposure, priorPositions] of previousByExposure) {
     const currentPositionsForExposure = currentByExposure.get(exposure) ?? []
-    const currentIds = new Set(currentPositionsForExposure.flatMap(position => position.securityId ? [position.securityId] : []))
+    const currentIds = new Set(
+      currentPositionsForExposure.flatMap(position => (position.securityId ? [position.securityId] : [])),
+    )
     const eventsBySource = new Map<string, GuruSecurityIdentityEvent[]>()
-    for (const event of activeEvents) if (event.kind === 'SHARE_CLASS_CONTINUITY' && event.comparable && event.toSecurityId && event.newSharesPerOldShare) {
-      eventsBySource.set(event.fromSecurityId, [...(eventsBySource.get(event.fromSecurityId) ?? []), event])
-    }
+    for (const event of activeEvents)
+      if (
+        event.kind === 'SHARE_CLASS_CONTINUITY' &&
+        event.comparable &&
+        event.toSecurityId &&
+        event.newSharesPerOldShare
+      ) {
+        eventsBySource.set(event.fromSecurityId, [...(eventsBySource.get(event.fromSecurityId) ?? []), event])
+      }
     for (const previous of priorPositions) {
       const reachable = new Map<string, IdentityMatch[]>()
       const exact = currentByExposureId.get(`${exposure}:${previous.securityId}`)
       if (exact && previous.securityId) {
-        const identity = identityMatch(previous.securityId, exact.securityId!, previousPeriod, currentPeriod, identityEvents)
+        const identity = identityMatch(
+          previous.securityId,
+          exact.securityId!,
+          previousPeriod,
+          currentPeriod,
+          identityEvents,
+        )
         if (identity) reachable.set(exact.securityId!, [identity])
       }
       const queue: Array<{ securityId: string; factor: Fraction; eventIds: string[]; visited: Set<string> }> = [
-        { securityId: previous.securityId!, factor: fraction(1n), eventIds: [], visited: new Set([previous.securityId!]) },
+        {
+          securityId: previous.securityId!,
+          factor: fraction(1n),
+          eventIds: [],
+          visited: new Set([previous.securityId!]),
+        },
       ]
       while (queue.length) {
         const node = queue.shift()!
@@ -454,15 +634,24 @@ function pairPositions(currentPositions: readonly Position[], previousPositions:
           if (!event.toSecurityId || node.visited.has(event.toSecurityId)) continue
           const factor = multiplyFraction(node.factor, shareFactor(event.newSharesPerOldShare!))
           const eventIds = [...node.eventIds, event.id]
-          if (currentIds.has(event.toSecurityId)) reachable.set(event.toSecurityId, [...(reachable.get(event.toSecurityId) ?? []), { factor, eventIds }])
-          queue.push({ securityId: event.toSecurityId, factor, eventIds, visited: new Set([...node.visited, event.toSecurityId]) })
+          if (currentIds.has(event.toSecurityId))
+            reachable.set(event.toSecurityId, [...(reachable.get(event.toSecurityId) ?? []), { factor, eventIds }])
+          queue.push({
+            securityId: event.toSecurityId,
+            factor,
+            eventIds,
+            visited: new Set([...node.visited, event.toSecurityId]),
+          })
         }
       }
       for (const [securityId, identities] of reachable) {
         const current = currentByExposureId.get(`${exposure}:${securityId}`)
         if (!current) continue
         for (const identity of identities) {
-          candidatesByCurrent.set(current.key, [...(candidatesByCurrent.get(current.key) ?? []), { previous, identity }])
+          candidatesByCurrent.set(current.key, [
+            ...(candidatesByCurrent.get(current.key) ?? []),
+            { previous, identity },
+          ])
           candidatesByPrevious.set(previous.key, [...(candidatesByPrevious.get(previous.key) ?? []), current.key])
         }
       }
@@ -473,13 +662,17 @@ function pairPositions(currentPositions: readonly Position[], previousPositions:
   const blockedPrevious = new Set<string>()
   for (const event of activeEvents) {
     if ((event.kind === 'MERGER' || event.kind === 'SPIN_OFF') && !event.comparable && event.toSecurityId) {
-      for (const previous of previousPositions) for (const current of currentPositions) {
-        if (previous.securityId === event.fromSecurityId && current.securityId === event.toSecurityId
-          && exposureKey(previous) === exposureKey(current)) {
-          blockedPrevious.add(previous.key)
-          blockedCurrent.add(current.key)
+      for (const previous of previousPositions)
+        for (const current of currentPositions) {
+          if (
+            previous.securityId === event.fromSecurityId &&
+            current.securityId === event.toSecurityId &&
+            exposureKey(previous) === exposureKey(current)
+          ) {
+            blockedPrevious.add(previous.key)
+            blockedCurrent.add(current.key)
+          }
         }
-      }
     }
   }
   const pairsByCurrent = new Map<string, { previous: Position; identity: IdentityMatch }>()
@@ -488,9 +681,16 @@ function pairPositions(currentPositions: readonly Position[], previousPositions:
     pairsByCurrent.set(key, candidates[0]!)
   }
   const hasNonComparableEvents = activeEvents.some(event => {
-    if (event.kind === 'DELISTING' && !event.comparable) return previousPositions.some(position => position.securityId === event.fromSecurityId)
-    if ((event.kind === 'MERGER' || event.kind === 'SPIN_OFF') && !event.comparable && event.toSecurityId) return previousPositions.some(previous =>
-      previous.securityId === event.fromSecurityId && currentPositions.some(current => current.securityId === event.toSecurityId && exposureKey(current) === exposureKey(previous)))
+    if (event.kind === 'DELISTING' && !event.comparable)
+      return previousPositions.some(position => position.securityId === event.fromSecurityId)
+    if ((event.kind === 'MERGER' || event.kind === 'SPIN_OFF') && !event.comparable && event.toSecurityId)
+      return previousPositions.some(
+        previous =>
+          previous.securityId === event.fromSecurityId &&
+          currentPositions.some(
+            current => current.securityId === event.toSecurityId && exposureKey(current) === exposureKey(previous),
+          ),
+      )
     return false
   })
   return {
@@ -499,13 +699,24 @@ function pairPositions(currentPositions: readonly Position[], previousPositions:
     candidatePreviousKeys: new Set(candidatesByPrevious.keys()),
     blockedCurrentKeys: blockedCurrent,
     blockedPreviousKeys: blockedPrevious,
-    hasAmbiguousCandidates: [...candidatesByCurrent.values()].some(candidates => candidates.length !== 1)
-      || [...candidatesByPrevious.values()].some(candidates => candidates.length !== 1),
+    hasAmbiguousCandidates:
+      [...candidatesByCurrent.values()].some(candidates => candidates.length !== 1) ||
+      [...candidatesByPrevious.values()].some(candidates => candidates.length !== 1),
     hasNonComparableEvents,
   }
 }
 
-function buildChanges(currentPositions: readonly Position[], previousPositions: readonly Position[], currentTotal: bigint, previousTotal: bigint, completeMappings: boolean, thresholds: GuruActionThresholds, identityEvents: readonly GuruSecurityIdentityEvent[], previousPeriod: string, currentPeriod: string): { changes: GuruPortfolioChange[]; pairing: PositionPairing } {
+function buildChanges(
+  currentPositions: readonly Position[],
+  previousPositions: readonly Position[],
+  currentTotal: bigint,
+  previousTotal: bigint,
+  completeMappings: boolean,
+  thresholds: GuruActionThresholds,
+  identityEvents: readonly GuruSecurityIdentityEvent[],
+  previousPeriod: string,
+  currentPeriod: string,
+): { changes: GuruPortfolioChange[]; pairing: PositionPairing } {
   const currentWeights = weights(currentPositions, currentTotal)
   const previousWeights = weights(previousPositions, previousTotal)
   const changes: GuruPortfolioChange[] = []
@@ -516,42 +727,117 @@ function buildChanges(currentPositions: readonly Position[], previousPositions: 
     const pair = pairing.pairsByCurrent.get(current.key)
     if (pair) {
       pairedPrevious.add(pair.previous.key)
-      changes.push(comparePositions(current, pair.previous, pair.identity, currentWeights.get(current.key) ?? fraction(0n), previousWeights.get(pair.previous.key), thresholds))
+      changes.push(
+        comparePositions(
+          current,
+          pair.previous,
+          pair.identity,
+          currentWeights.get(current.key) ?? fraction(0n),
+          previousWeights.get(pair.previous.key),
+          thresholds,
+        ),
+      )
     }
   }
   for (const current of currentPositions) {
-    if (!current.securityId || pairing.pairsByCurrent.has(current.key) || pairing.candidateCurrentKeys.has(current.key)
-      || pairing.blockedCurrentKeys.has(current.key) || !completeMappings) continue
-    const transformed = previousPositions.some(previous => previous.securityId && exposureKey(previous) === exposureKey(current)
-      && nonComparableTransition(previous.securityId, current.securityId!, previousPeriod, currentPeriod, identityEvents))
-    if (!transformed) changes.push(comparePositions(current, undefined, undefined, currentWeights.get(current.key) ?? fraction(0n), undefined, thresholds))
+    if (
+      !current.securityId ||
+      pairing.pairsByCurrent.has(current.key) ||
+      pairing.candidateCurrentKeys.has(current.key) ||
+      pairing.blockedCurrentKeys.has(current.key) ||
+      !completeMappings
+    )
+      continue
+    const transformed = previousPositions.some(
+      previous =>
+        previous.securityId &&
+        exposureKey(previous) === exposureKey(current) &&
+        nonComparableTransition(
+          previous.securityId,
+          current.securityId!,
+          previousPeriod,
+          currentPeriod,
+          identityEvents,
+        ),
+    )
+    if (!transformed)
+      changes.push(
+        comparePositions(
+          current,
+          undefined,
+          undefined,
+          currentWeights.get(current.key) ?? fraction(0n),
+          undefined,
+          thresholds,
+        ),
+      )
   }
   if (completeMappings) {
     for (const previous of previousPositions) {
-      if (!previous.securityId || pairedPrevious.has(previous.key) || pairing.candidatePreviousKeys.has(previous.key) || pairing.blockedPreviousKeys.has(previous.key)
-        || delistedDuring(previous.securityId, previousPeriod, currentPeriod, identityEvents)) continue
-      const transformed = currentPositions.some(current => current.securityId && exposureKey(current) === exposureKey(previous)
-        && nonComparableTransition(previous.securityId!, current.securityId, previousPeriod, currentPeriod, identityEvents))
+      if (
+        !previous.securityId ||
+        pairedPrevious.has(previous.key) ||
+        pairing.candidatePreviousKeys.has(previous.key) ||
+        pairing.blockedPreviousKeys.has(previous.key) ||
+        delistedDuring(previous.securityId, previousPeriod, currentPeriod, identityEvents)
+      )
+        continue
+      const transformed = currentPositions.some(
+        current =>
+          current.securityId &&
+          exposureKey(current) === exposureKey(previous) &&
+          nonComparableTransition(
+            previous.securityId!,
+            current.securityId,
+            previousPeriod,
+            currentPeriod,
+            identityEvents,
+          ),
+      )
       if (transformed) continue
       changes.push({
-        positionKey: previous.key, securityId: previous.securityId, ticker: previous.ticker, company: previous.company,
-        quantityType: previous.quantityType, putCall: previous.putCall, action: 'EXIT',
-        previousQuantity: formatDecimal(previous.quantity), currentQuantity: null,
+        positionKey: previous.key,
+        securityId: previous.securityId,
+        ticker: previous.ticker,
+        company: previous.company,
+        quantityType: previous.quantityType,
+        putCall: previous.putCall,
+        action: 'EXIT',
+        previousQuantity: formatDecimal(previous.quantity),
+        currentQuantity: null,
         comparablePreviousQuantity: formatDecimal(previous.quantity),
-        quantityChange: formatDecimal(-previous.quantity), quantityChangePercent: previous.quantity > 0n ? '-100' : null,
-        quantityAdjustmentFactor: null, corporateActionEventIds: [],
+        quantityChange: formatDecimal(-previous.quantity),
+        quantityChangePercent: previous.quantity > 0n ? '-100' : null,
+        quantityAdjustmentFactor: null,
+        corporateActionEventIds: [],
         previousWeightPercent: previousTotal > 0n ? percent(fraction(previous.reportedValueUsd, previousTotal)) : '0',
-        currentWeightPercent: null, weightChangePercentagePoints: previousTotal > 0n ? percent(fraction(-previous.reportedValueUsd, previousTotal)) : '0',
-        previousRank: previous.rank, currentRank: null, rankChange: null,
-        previousReportedValueUsd: formatDecimal(previous.reportedValueUsd), currentReportedValueUsd: null,
+        currentWeightPercent: null,
+        weightChangePercentagePoints:
+          previousTotal > 0n ? percent(fraction(-previous.reportedValueUsd, previousTotal)) : '0',
+        previousRank: previous.rank,
+        currentRank: null,
+        rankChange: null,
+        previousReportedValueUsd: formatDecimal(previous.reportedValueUsd),
+        currentReportedValueUsd: null,
         reportedValueChangeUsd: formatDecimal(-previous.reportedValueUsd),
       })
     }
   }
-  return { changes: changes.sort((left, right) => left.action.localeCompare(right.action) || left.positionKey.localeCompare(right.positionKey)), pairing }
+  return {
+    changes: changes.sort(
+      (left, right) => left.action.localeCompare(right.action) || left.positionKey.localeCompare(right.positionKey),
+    ),
+    pairing,
+  }
 }
 
-function disclosedWeightTurnover(current: readonly Position[], previous: readonly Position[], currentTotal: bigint, previousTotal: bigint, pairing: PositionPairing): string | null {
+function disclosedWeightTurnover(
+  current: readonly Position[],
+  previous: readonly Position[],
+  currentTotal: bigint,
+  previousTotal: bigint,
+  pairing: PositionPairing,
+): string | null {
   if (currentTotal === 0n || previousTotal === 0n) return null
   const pairedPrevious = new Set<string>()
   const currentByKey = new Map<string, Position>()
@@ -569,12 +855,15 @@ function disclosedWeightTurnover(current: readonly Position[], previous: readonl
   for (const key of keys) {
     const currentValue = currentByKey.get(key)?.reportedValueUsd ?? 0n
     const previousValue = previousByKey.get(key)?.reportedValueUsd ?? 0n
-    distance = addFraction(distance, fraction(
-      currentValue * previousTotal - previousValue * currentTotal < 0n
-        ? -(currentValue * previousTotal - previousValue * currentTotal)
-        : currentValue * previousTotal - previousValue * currentTotal,
-      currentTotal * previousTotal,
-    ))
+    distance = addFraction(
+      distance,
+      fraction(
+        currentValue * previousTotal - previousValue * currentTotal < 0n
+          ? -(currentValue * previousTotal - previousValue * currentTotal)
+          : currentValue * previousTotal - previousValue * currentTotal,
+        currentTotal * previousTotal,
+      ),
+    )
   }
   return percent(fraction(distance.numerator, distance.denominator * 2n))
 }
@@ -602,32 +891,73 @@ export function calculateGuruPortfolioAnalytics(input: {
   const completeCurrent = currentData.sourceRowCount === currentData.mappedRowCount
   const completePrevious = previousData ? previousData.sourceRowCount === previousData.mappedRowCount : false
   const adjacent = previous?.status === 'READY' && adjacentQuarter(previous.periodEnd, current.periodEnd)
-  const pairing = adjacent && previousData ? pairPositions(currentData.positions, previousData.positions, input.identityEvents ?? [], previous.periodEnd, current.periodEnd) : undefined
-  const comparisonStatus: GuruPortfolioAnalytics['comparisonStatus'] = !previous ? 'BASELINE'
-    : previous.status !== 'READY' ? 'PREVIOUS_NOT_READY'
-      : !adjacentQuarter(previous.periodEnd, current.periodEnd) ? 'NON_ADJACENT_QUARTER'
-        : !completeCurrent || !completePrevious ? 'MAPPING_INCOMPLETE'
-          : pairing?.hasAmbiguousCandidates || pairing?.hasNonComparableEvents ? 'CORPORATE_ACTION_INCOMPLETE' : 'COMPARABLE'
-  const canCompare = comparisonStatus === 'COMPARABLE' || comparisonStatus === 'MAPPING_INCOMPLETE' || comparisonStatus === 'CORPORATE_ACTION_INCOMPLETE'
-  const changeResult = canCompare ? buildChanges(currentData.positions, previousData!.positions, currentData.totalValue, previousData!.totalValue, completeCurrent && completePrevious, thresholds, input.identityEvents ?? [], previous!.periodEnd, current.periodEnd) : undefined
+  const pairing =
+    adjacent && previousData
+      ? pairPositions(
+          currentData.positions,
+          previousData.positions,
+          input.identityEvents ?? [],
+          previous.periodEnd,
+          current.periodEnd,
+        )
+      : undefined
+  const comparisonStatus: GuruPortfolioAnalytics['comparisonStatus'] = !previous
+    ? 'BASELINE'
+    : previous.status !== 'READY'
+      ? 'PREVIOUS_NOT_READY'
+      : !adjacentQuarter(previous.periodEnd, current.periodEnd)
+        ? 'NON_ADJACENT_QUARTER'
+        : !completeCurrent || !completePrevious
+          ? 'MAPPING_INCOMPLETE'
+          : pairing?.hasAmbiguousCandidates || pairing?.hasNonComparableEvents
+            ? 'CORPORATE_ACTION_INCOMPLETE'
+            : 'COMPARABLE'
+  const canCompare =
+    comparisonStatus === 'COMPARABLE' ||
+    comparisonStatus === 'MAPPING_INCOMPLETE' ||
+    comparisonStatus === 'CORPORATE_ACTION_INCOMPLETE'
+  const changeResult = canCompare
+    ? buildChanges(
+        currentData.positions,
+        previousData!.positions,
+        currentData.totalValue,
+        previousData!.totalValue,
+        completeCurrent && completePrevious,
+        thresholds,
+        input.identityEvents ?? [],
+        previous!.periodEnd,
+        current.periodEnd,
+      )
+    : undefined
   const changes = changeResult?.changes ?? []
   const counts = emptyActionCounts()
-  changes.forEach(change => { counts[change.action] += 1 })
+  changes.forEach(change => {
+    counts[change.action] += 1
+  })
   const sectors = allocation(currentData.positions, 'sector', currentData.totalValue)
   const industries = allocation(currentData.positions, 'industry', currentData.totalValue)
   const sortedPositions = currentData.positions
-  const topSum = (count: number) => sortedPositions.slice(0, count).reduce((sum, position) => sum + position.reportedValueUsd, 0n)
-  const concentration = (count: number) => currentData.totalValue > 0n ? percent(fraction(topSum(count), currentData.totalValue)) : '0'
+  const topSum = (count: number) =>
+    sortedPositions.slice(0, count).reduce((sum, position) => sum + position.reportedValueUsd, 0n)
+  const concentration = (count: number) =>
+    currentData.totalValue > 0n ? percent(fraction(topSum(count), currentData.totalValue)) : '0'
   let hhi = fraction(0n)
-  if (currentData.totalValue > 0n) for (const position of sortedPositions) {
-    const weight = fraction(position.reportedValueUsd, currentData.totalValue)
-    hhi = addFraction(hhi, multiplyFraction(weight, weight))
-  }
+  if (currentData.totalValue > 0n)
+    for (const position of sortedPositions) {
+      const weight = fraction(position.reportedValueUsd, currentData.totalValue)
+      hhi = addFraction(hhi, multiplyFraction(weight, weight))
+    }
   const topHoldings = sortedPositions.slice(0, 5).map(position => ({
-    positionKey: position.key, securityId: position.securityId, ticker: position.ticker, company: position.company,
-    quantityType: position.quantityType, putCall: position.putCall, quantity: formatDecimal(position.quantity),
+    positionKey: position.key,
+    securityId: position.securityId,
+    ticker: position.ticker,
+    company: position.company,
+    quantityType: position.quantityType,
+    putCall: position.putCall,
+    quantity: formatDecimal(position.quantity),
     reportedValueUsd: formatDecimal(position.reportedValueUsd),
-    weightPercent: currentData.totalValue > 0n ? percent(fraction(position.reportedValueUsd, currentData.totalValue)) : '0',
+    weightPercent:
+      currentData.totalValue > 0n ? percent(fraction(position.reportedValueUsd, currentData.totalValue)) : '0',
     rank: position.rank,
   }))
   let turnoverReason: GuruPortfolioAnalytics['turnoverUnavailableReason'] = null
@@ -635,20 +965,40 @@ export function calculateGuruPortfolioAnalytics(input: {
   else if (previous.status !== 'READY') turnoverReason = 'PREVIOUS_NOT_READY'
   else if (!adjacentQuarter(previous.periodEnd, current.periodEnd)) turnoverReason = 'NON_ADJACENT_QUARTER'
   else if (!completeCurrent || !completePrevious) turnoverReason = 'MAPPING_INCOMPLETE'
-  else if (changeResult?.pairing.hasAmbiguousCandidates || changeResult?.pairing.hasNonComparableEvents) turnoverReason = 'CORPORATE_ACTION_INCOMPLETE'
+  else if (changeResult?.pairing.hasAmbiguousCandidates || changeResult?.pairing.hasNonComparableEvents)
+    turnoverReason = 'CORPORATE_ACTION_INCOMPLETE'
   else if (currentData.totalValue === 0n || previousData!.totalValue === 0n) turnoverReason = 'ZERO_REPORTED_VALUE'
-  const turnover = turnoverReason === null ? disclosedWeightTurnover(currentData.positions, previousData!.positions, currentData.totalValue, previousData!.totalValue, changeResult!.pairing) : null
-  const addActions = changes.filter(change => change.action === 'NEW' || change.action === 'ADD' || change.action === 'STRONG_ADD')
+  const turnover =
+    turnoverReason === null
+      ? disclosedWeightTurnover(
+          currentData.positions,
+          previousData!.positions,
+          currentData.totalValue,
+          previousData!.totalValue,
+          changeResult!.pairing,
+        )
+      : null
+  const addActions = changes
+    .filter(change => change.action === 'NEW' || change.action === 'ADD' || change.action === 'STRONG_ADD')
     .sort((left, right) => {
       const leftWeight = parseDecimal(left.currentWeightPercent ?? '0')
       const rightWeight = parseDecimal(right.currentWeightPercent ?? '0')
-      return leftWeight === rightWeight ? left.positionKey.localeCompare(right.positionKey) : rightWeight > leftWeight ? 1 : -1
+      return leftWeight === rightWeight
+        ? left.positionKey.localeCompare(right.positionKey)
+        : rightWeight > leftWeight
+          ? 1
+          : -1
     })
-  const reduceActions = changes.filter(change => change.action === 'REDUCE' || change.action === 'STRONG_REDUCE' || change.action === 'EXIT')
+  const reduceActions = changes
+    .filter(change => change.action === 'REDUCE' || change.action === 'STRONG_REDUCE' || change.action === 'EXIT')
     .sort((left, right) => {
       const leftWeight = parseDecimal(left.previousWeightPercent ?? '0')
       const rightWeight = parseDecimal(right.previousWeightPercent ?? '0')
-      return leftWeight === rightWeight ? left.positionKey.localeCompare(right.positionKey) : rightWeight > leftWeight ? 1 : -1
+      return leftWeight === rightWeight
+        ? left.positionKey.localeCompare(right.positionKey)
+        : rightWeight > leftWeight
+          ? 1
+          : -1
     })
   return {
     version: GURU_PORTFOLIO_ANALYTICS_VERSION,
@@ -659,15 +1009,27 @@ export function calculateGuruPortfolioAnalytics(input: {
       holdingCount: currentData.positions.length,
       sourceRowCount: currentData.sourceRowCount,
       mappedRowCount: currentData.mappedRowCount,
-      mappingCoveragePercent: currentData.sourceRowCount === 0 ? '100' : roundRatio(BigInt(currentData.mappedRowCount) * 100n, BigInt(currentData.sourceRowCount)),
-      topOneConcentrationPercent: concentration(1), topFiveConcentrationPercent: concentration(5),
-      topTenConcentrationPercent: concentration(10), hhi: roundRatio(hhi.numerator * 10_000n, hhi.denominator, 4),
+      mappingCoveragePercent:
+        currentData.sourceRowCount === 0
+          ? '100'
+          : roundRatio(BigInt(currentData.mappedRowCount) * 100n, BigInt(currentData.sourceRowCount)),
+      topOneConcentrationPercent: concentration(1),
+      topFiveConcentrationPercent: concentration(5),
+      topTenConcentrationPercent: concentration(10),
+      hhi: roundRatio(hhi.numerator * 10_000n, hhi.denominator, 4),
       largestPosition: topHoldings[0] ?? null,
       topHoldings,
-      sectorAllocation: sectors.buckets, unclassifiedSector: sectors.residual,
-      industryAllocation: industries.buckets, unclassifiedIndustry: industries.residual,
+      sectorAllocation: sectors.buckets,
+      unclassifiedSector: sectors.residual,
+      industryAllocation: industries.buckets,
+      unclassifiedIndustry: industries.residual,
     },
-    changes, actionCounts: counts, largestAdds: addActions.slice(0, 5), largestReductions: reduceActions.slice(0, 5),
-    disclosedWeightTurnoverPercent: turnover, turnoverBand: turnoverBand(turnover), turnoverUnavailableReason: turnoverReason,
+    changes,
+    actionCounts: counts,
+    largestAdds: addActions.slice(0, 5),
+    largestReductions: reduceActions.slice(0, 5),
+    disclosedWeightTurnoverPercent: turnover,
+    turnoverBand: turnoverBand(turnover),
+    turnoverUnavailableReason: turnoverReason,
   }
 }

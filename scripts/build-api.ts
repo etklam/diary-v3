@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises';
-import { build } from 'esbuild';
+import { readFile } from 'node:fs/promises'
+import { build } from 'esbuild'
 
-const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 // Bundle our workspaces so the production server does not resolve TypeScript source files.
 const buildOptions = {
   bundle: true,
@@ -10,7 +10,7 @@ const buildOptions = {
   format: 'esm' as const,
   external: Object.keys(manifest.dependencies),
   sourcemap: true,
-};
+}
 await build({
   entryPoints: {
     server: 'apps/api/src/server.ts',
@@ -28,4 +28,4 @@ await build({
   },
   outdir: 'dist/api',
   ...buildOptions,
-});
+})

@@ -41,4 +41,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   })
 }
 
-export default function Robots() { return null }
+export default function Robots() {
+  return null
+}

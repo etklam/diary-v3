@@ -4,7 +4,8 @@ export function websocketAccessToken(handshake: {
   headers: { authorization?: string | string[]; cookie?: string | string[] }
 }): string | undefined {
   const auth = handshake.auth
-  if (auth !== undefined && (auth === null || typeof auth !== 'object' || Array.isArray(auth))) throw new Error('Invalid authentication input')
+  if (auth !== undefined && (auth === null || typeof auth !== 'object' || Array.isArray(auth)))
+    throw new Error('Invalid authentication input')
   const hasToken = auth !== undefined && Object.hasOwn(auth, 'token')
   const token = hasToken ? Reflect.get(auth as object, 'token') : undefined
   const authorization = handshake.headers.authorization
@@ -22,7 +23,10 @@ export function websocketAccessToken(handshake: {
   const cookie = handshake.headers.cookie
   if (cookie === undefined) return undefined
   if (typeof cookie !== 'string') throw new Error('Invalid cookie header')
-  const values = cookie.split(';').map(part => part.trim()).filter(part => part.startsWith('access-token='))
+  const values = cookie
+    .split(';')
+    .map(part => part.trim())
+    .filter(part => part.startsWith('access-token='))
   if (values.length > 1) throw new Error('Ambiguous access cookies')
   if (!values.length) return undefined
   const value = decodeURIComponent(values[0]!.slice('access-token='.length))
@@ -32,9 +36,19 @@ export function websocketAccessToken(handshake: {
 function originUrl(value: string): URL | undefined {
   try {
     const url = new URL(value)
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) return undefined
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash
+    )
+      return undefined
     return url
-  } catch { return undefined }
+  } catch {
+    return undefined
+  }
 }
 export function allowedSocketOrigin(origin: string | undefined, configured: string, production: boolean) {
   // Native clients may omit Origin; access-token verification is still required.

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { ATTENTION_PRIORITY } from '@diary/domain/portfolio-attention'
-import { attentionBandLabel, bandFromContractPriority, bandFromOverviewPriority, boundAttentionRuns, groupAttentionRuns } from '../../apps/web/app/attention-display'
+import {
+  attentionBandLabel,
+  bandFromContractPriority,
+  bandFromOverviewPriority,
+  boundAttentionRuns,
+  groupAttentionRuns,
+} from '../../apps/web/app/attention-display'
 
 describe('attention bands', () => {
   it('splits the contract priorities into already-wrong, dated and standing', () => {
@@ -52,7 +58,8 @@ describe('grouping runs of one reason', () => {
 })
 
 describe('bounding the region', () => {
-  const runs = (...sizes: number[]) => sizes.map((size, index) => Array.from({ length: size }, (_, item) => `${index}-${item}`))
+  const runs = (...sizes: number[]) =>
+    sizes.map((size, index) => Array.from({ length: size }, (_, item) => `${index}-${item}`))
 
   it('shows everything when it fits', () => {
     expect(boundAttentionRuns(runs(1, 2), 5)).toEqual({ shown: runs(1, 2), remaining: 0 })

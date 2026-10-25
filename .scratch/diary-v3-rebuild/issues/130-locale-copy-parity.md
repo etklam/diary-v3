@@ -2,9 +2,10 @@
 
 # [130] Give the three locales a compile-time parity check
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: maintainability
 Type: i18n safety
@@ -70,10 +71,10 @@ locales render on a spot-checked page in each language.
 
 ## Provisional acceptance criteria
 
-- [ ] A shared copy type or generated check exists and is documented in `AGENTS.md`.
-- [ ] Deleting a key from a non-default locale fails a gate (type error or script).
-- [ ] Adding an extra key to a non-default locale fails a gate.
-- [ ] The highest-traffic surfaces are migrated first, with the rest listed as remaining scope.
+- [x] A shared copy type or generated check exists and is documented in `AGENTS.md`.
+- [x] Deleting a key from a non-default locale fails a gate (type error or script).
+- [x] Adding an extra key to a non-default locale fails a gate.
+- [x] The highest-traffic surfaces are migrated first, with the rest listed as remaining scope.
 
 ## Related work
 
@@ -89,3 +90,45 @@ None.
 
 Filed 2026-10-16 from a repository quality audit. The migration of 105 files is the bulk of
 the work; the type itself is small. Sequencing by traffic keeps the value front-loaded.
+
+### Acceptance — 2026-10-25
+
+Two gates, because the 115 copy objects are not all the same shape.
+
+**Compile-time**, for migrated surfaces: `defineCopy` in `apps/web/app/locale-copy.ts`
+infers the key set from zh-TW — the default locale — and checks the other two arms against
+it as fresh object literals, so a missing key fails as a missing property and an extra key
+fails excess-property checking. Non-string values keep their shape: strings, arrays, nested
+objects and functions all pass through. Proven to fail both ways:
+`TS2741: Property 'moreRegions' is missing` when deleted from `en`, and
+`TS2353: Object literal may only specify known properties, and 'inventedKey' does not exist`
+when added to zh-CN.
+
+**Static**, for everything else: `scripts/check-locale-parity.mjs` parses with the
+TypeScript compiler and compares dotted key paths across the three locales, including nested
+objects and array lengths. It checks **114 objects across 196 files** and runs in
+`npm run design:check`, so it is in both the pre-merge and deploy workflows. Proven to
+fail: removing one key from an unmigrated file's `en` arm reported
+`auth-copy.ts › authAsideCopy:10 [missing-key] en is missing: title`.
+
+**It found a real defect on its first run.** `research-studio-copy.ts` had seven keys —
+`approve`, `approving`, `handoff`, `handingOff`, `nextAction`, `limitations`,
+`noLimitations` — present in `en` and absent from both Chinese locales. Not a blank UI:
+`researchCopy` merges `{ ...copy.en, ...copy[locale] }`, so a Chinese reader was being
+shown English strings inside a Chinese page. All seven are now translated in zh-TW and zh-CN,
+using this file's established vocabulary (`approved: '已批准'`, `handoffComplete: '已建立文章草稿。'`).
+
+Two false-positive classes were eliminated rather than suppressed: objects with an explicit
+type annotation are skipped because the compiler already enforces them — which is what makes
+`Record<string, Record<'zh-TW' | 'zh-CN', string>>` in `market-policy-copy.ts`, where the
+English sentence is the key, a legitimate design rather than a finding — and `as const` is
+*not* treated as enforcement, because it controls widening and says nothing about keys.
+Step 3 is honoured: a value shared between locales is not a finding, since zh-TW and zh-CN
+legitimately share phrases and tickers and units can match English.
+`tests/unit/locale-parity.test.ts` (6 tests) pins all of this, including that the check
+cannot silently stop finding objects.
+
+**Remaining scope.** Two surfaces (`diary-copy.ts`, `quick-copy.ts`) are migrated to
+`defineCopy`; the other ~113 are covered by the script only. The pattern is recorded in
+`AGENTS.md` for new copy. Migrating the rest is mechanical and unblocked — it was
+deliberately not swept here, as the ticket's step 2 asks.

@@ -42,10 +42,18 @@
     gap: var(--space-6) var(--space-8);
   }
 
-  .authoring-two-column .authoring-writing { grid-area: writing; }
-  .authoring-two-column .authoring-fields { grid-area: fields; }
-  .authoring-two-column .authoring-aside { grid-area: aside; }
-  .authoring-two-column .authoring-footer { grid-area: footer; }
+  .authoring-two-column .authoring-writing {
+    grid-area: writing;
+  }
+  .authoring-two-column .authoring-fields {
+    grid-area: fields;
+  }
+  .authoring-two-column .authoring-aside {
+    grid-area: aside;
+  }
+  .authoring-two-column .authoring-footer {
+    grid-area: footer;
+  }
 }
 
 /* Writing tools ride above the field they act on, in the same place on both

@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { AiProviderError, validateHttpsAiBaseUrl, type AiTransport } from '../ai-reports/outbound-policy.js'
-import { TranslationProviderError, type TranslationProvider, type TranslationProviderRequest, type TranslationProviderResult } from './types.js'
+import {
+  TranslationProviderError,
+  type TranslationProvider,
+  type TranslationProviderRequest,
+  type TranslationProviderResult,
+} from './types.js'
 
 const MAX_BLOCKS_PER_REQUEST = 16
 const MAX_REQUEST_BYTES = 64_000
@@ -9,26 +14,48 @@ const MAX_RESPONSE_BYTES = 512_000
 const MAX_BATCHES = 32
 const tokenCount = z.number().int().nonnegative().max(2_147_483_647)
 
-const completionSchema = z.object({
-  id: z.string().max(200).optional(),
-  model: z.string().max(200).optional(),
-  choices: z.array(z.object({
-    finish_reason: z.literal('stop'),
-    message: z.object({
-      content: z.string().min(1).max(MAX_RESPONSE_BYTES),
-      tool_calls: z.never().optional(),
-      refusal: z.null().optional(),
-    }).passthrough(),
-  }).passthrough()).length(1),
-  usage: z.object({
-    prompt_tokens: tokenCount.optional(),
-    completion_tokens: tokenCount.optional(),
-  }).passthrough().optional(),
-}).passthrough()
+const completionSchema = z
+  .object({
+    id: z.string().max(200).optional(),
+    model: z.string().max(200).optional(),
+    choices: z
+      .array(
+        z
+          .object({
+            finish_reason: z.literal('stop'),
+            message: z
+              .object({
+                content: z.string().min(1).max(MAX_RESPONSE_BYTES),
+                tool_calls: z.never().optional(),
+                refusal: z.null().optional(),
+              })
+              .passthrough(),
+          })
+          .passthrough(),
+      )
+      .length(1),
+    usage: z
+      .object({
+        prompt_tokens: tokenCount.optional(),
+        completion_tokens: tokenCount.optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough()
 
-const translationsSchema = z.object({
-  translations: z.array(z.string().min(1).max(MAX_BLOCK_BYTES * 2)).max(MAX_BLOCKS_PER_REQUEST),
-}).strict()
+const translationsSchema = z
+  .object({
+    translations: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(MAX_BLOCK_BYTES * 2),
+      )
+      .max(MAX_BLOCKS_PER_REQUEST),
+  })
+  .strict()
 
 export interface AiTranslationProviderConfig {
   enabled: boolean
@@ -49,19 +76,30 @@ export interface AiTranslationProviderOptions {
 }
 
 function validateConfig(config: AiTranslationProviderConfig): void {
-  if (!config.enabled || !config.apiKey || config.apiKey.length > 8_192) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (!config.model.trim() || config.model.length > 200 || !config.promptVersion.trim() || config.promptVersion.length > 100) {
+  if (!config.enabled || !config.apiKey || config.apiKey.length > 8_192)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (
+    !config.model.trim() ||
+    config.model.length > 200 ||
+    !config.promptVersion.trim() ||
+    config.promptVersion.length > 100
+  ) {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
-  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 250 || config.timeoutMs > 120_000) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (!Number.isInteger(config.maxTokens) || config.maxTokens < 64 || config.maxTokens > 32_000) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (!Number.isInteger(config.maxCallsPerJob) || config.maxCallsPerJob < 1 || config.maxCallsPerJob > 64) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
-  if (!Number.isInteger(config.tokenBudget) || config.tokenBudget < 256 || config.tokenBudget > 1_000_000) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 250 || config.timeoutMs > 120_000)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (!Number.isInteger(config.maxTokens) || config.maxTokens < 64 || config.maxTokens > 32_000)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (!Number.isInteger(config.maxCallsPerJob) || config.maxCallsPerJob < 1 || config.maxCallsPerJob > 64)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+  if (!Number.isInteger(config.tokenBudget) || config.tokenBudget < 256 || config.tokenBudget > 1_000_000)
+    throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   if (config.prompt.length > 20_000) {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
-  try { validateHttpsAiBaseUrl(config.baseUrl) }
-  catch {
+  try {
+    validateHttpsAiBaseUrl(config.baseUrl)
+  } catch {
     throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
   }
 }
@@ -104,22 +142,33 @@ const systemPrompt = [
   'Return one JSON object with exactly this shape: {"translations":["..."]}. Return one translated string for every input block, in order. Do not include Markdown fences or other prose.',
 ].join(' ')
 
-export function createAiTranslationProvider(config: AiTranslationProviderConfig, options: AiTranslationProviderOptions): TranslationProvider {
+export function createAiTranslationProvider(
+  config: AiTranslationProviderConfig,
+  options: AiTranslationProviderOptions,
+): TranslationProvider {
   validateConfig(config)
   const provider: TranslationProvider = {
     id: 'ai',
     name: 'AI Translate',
     async translate(request: TranslationProviderRequest): Promise<TranslationProviderResult> {
-      if (request.articleAccess === 'MEMBER' && !config.allowMemberArticles) throw new TranslationProviderError('TRANSLATION_PRIVACY_RESTRICTED')
-      if (request.sourceLocale === request.targetLocale) throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
+      if (request.articleAccess === 'MEMBER' && !config.allowMemberArticles)
+        throw new TranslationProviderError('TRANSLATION_PRIVACY_RESTRICTED')
+      if (request.sourceLocale === request.targetLocale)
+        throw new TranslationProviderError('TRANSLATION_CONFIGURATION_INVALID')
       const chunks = makeBatches(request.blocks)
       if (chunks.length > config.maxCallsPerJob) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
       const estimatedInputTokens = chunks.reduce((sum, chunk) => {
-        const body = JSON.stringify({ sourceLocale: request.sourceLocale, targetLocale: request.targetLocale, blocks: chunk, prompt: config.prompt })
+        const body = JSON.stringify({
+          sourceLocale: request.sourceLocale,
+          targetLocale: request.targetLocale,
+          blocks: chunk,
+          prompt: config.prompt,
+        })
         return sum + Math.ceil((Buffer.byteLength(body, 'utf8') + Buffer.byteLength(systemPrompt, 'utf8')) / 4)
       }, 0)
       const reservedOutputTokens = chunks.length * config.maxTokens
-      if (estimatedInputTokens + reservedOutputTokens > config.tokenBudget) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
+      if (estimatedInputTokens + reservedOutputTokens > config.tokenBudget)
+        throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
 
       const translated: string[] = []
       let inputTokens = 0
@@ -129,7 +178,8 @@ export function createAiTranslationProvider(config: AiTranslationProviderConfig,
         translated.push(...result.translations)
         inputTokens += result.inputTokens
         outputTokens += result.outputTokens
-        if (inputTokens + outputTokens > config.tokenBudget) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+        if (inputTokens + outputTokens > config.tokenBudget)
+          throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
       }
       if (translated.length !== request.blocks.length) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
       return {
@@ -149,24 +199,30 @@ async function translateBatch(
   request: TranslationProviderRequest,
   blocks: string[],
 ): Promise<{ translations: string[]; inputTokens: number; outputTokens: number }> {
-  const signal = request.signal ? AbortSignal.any([AbortSignal.timeout(config.timeoutMs), request.signal]) : AbortSignal.timeout(config.timeoutMs)
+  const signal = request.signal
+    ? AbortSignal.any([AbortSignal.timeout(config.timeoutMs), request.signal])
+    : AbortSignal.timeout(config.timeoutMs)
   const body = {
     model: config.model,
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: JSON.stringify({
-        sourceLocale: request.sourceLocale,
-        targetLocale: request.targetLocale,
-        administratorGuidance: config.prompt,
-        promptVersion: config.promptVersion,
-        blocks,
-      }) },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          sourceLocale: request.sourceLocale,
+          targetLocale: request.targetLocale,
+          administratorGuidance: config.prompt,
+          promptVersion: config.promptVersion,
+          blocks,
+        }),
+      },
     ],
     max_completion_tokens: config.maxTokens,
     stream: false,
     response_format: { type: 'json_object' },
   }
-  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_REQUEST_BYTES) throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
+  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > MAX_REQUEST_BYTES)
+    throw new TranslationProviderError('TRANSLATION_INPUT_TOO_LARGE')
   let response
   try {
     response = await transport({
@@ -183,20 +239,36 @@ async function translateBatch(
   }
   if (response.status === 429) {
     const seconds = response.retryAfter && /^\d+$/.test(response.retryAfter) ? Number(response.retryAfter) : null
-    throw new TranslationProviderError('TRANSLATION_RATE_LIMITED', seconds === null ? null : Math.min(seconds * 1_000, 86_400_000))
+    throw new TranslationProviderError(
+      'TRANSLATION_RATE_LIMITED',
+      seconds === null ? null : Math.min(seconds * 1_000, 86_400_000),
+    )
   }
-  if (response.status === 401 || response.status === 403 || response.status === 402) throw new TranslationProviderError('TRANSLATION_PROVIDER_REJECTED')
-  if (response.status === 408 || response.status === 504) throw new TranslationProviderError('TRANSLATION_PROVIDER_TIMEOUT')
-  if (response.status < 200 || response.status >= 300) throw new TranslationProviderError('TRANSLATION_PROVIDER_UNAVAILABLE')
-  if (Buffer.byteLength(response.body, 'utf8') > MAX_RESPONSE_BYTES) throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  if (response.status === 401 || response.status === 403 || response.status === 402)
+    throw new TranslationProviderError('TRANSLATION_PROVIDER_REJECTED')
+  if (response.status === 408 || response.status === 504)
+    throw new TranslationProviderError('TRANSLATION_PROVIDER_TIMEOUT')
+  if (response.status < 200 || response.status >= 300)
+    throw new TranslationProviderError('TRANSLATION_PROVIDER_UNAVAILABLE')
+  if (Buffer.byteLength(response.body, 'utf8') > MAX_RESPONSE_BYTES)
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   let parsed: z.infer<typeof completionSchema>
-  try { parsed = completionSchema.parse(JSON.parse(response.body)) }
-  catch { throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID') }
+  try {
+    parsed = completionSchema.parse(JSON.parse(response.body))
+  } catch {
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  }
   const content = parsed.choices[0]!.message.content
   let decoded: z.infer<typeof translationsSchema>
-  try { decoded = translationsSchema.parse(JSON.parse(content)) }
-  catch { throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID') }
-  if (decoded.translations.length !== blocks.length || decoded.translations.some(text => Buffer.byteLength(text, 'utf8') > MAX_BLOCK_BYTES * 2)) {
+  try {
+    decoded = translationsSchema.parse(JSON.parse(content))
+  } catch {
+    throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
+  }
+  if (
+    decoded.translations.length !== blocks.length ||
+    decoded.translations.some(text => Buffer.byteLength(text, 'utf8') > MAX_BLOCK_BYTES * 2)
+  ) {
     throw new TranslationProviderError('TRANSLATION_OUTPUT_INVALID')
   }
   const usage = parsed.usage

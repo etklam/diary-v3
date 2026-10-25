@@ -76,8 +76,7 @@ export function enrichScopes(snapshots: SnapshotData[]): EnrichedSnapshot[] {
     const list = poolMap.get(key)
     if (list) {
       list.push(snap)
-    }
-    else {
+    } else {
       poolMap.set(key, [snap])
     }
   }
@@ -86,24 +85,19 @@ export function enrichScopes(snapshots: SnapshotData[]): EnrichedSnapshot[] {
 
   for (const [key, pool] of poolMap) {
     // Collect non-null values for each metric within the pool
-    const allNonNullRsi14 = pool
-      .map(s => s.rsi14)
-      .filter((v): v is number => v !== null)
+    const allNonNullRsi14 = pool.map(s => s.rsi14).filter((v): v is number => v !== null)
     const allMaScores = pool.map(s => s.maScore)
-    const allNonNullDistScores = pool
-      .map(s => s.distanceFromHighScore)
-      .filter((v): v is number => v !== null)
+    const allNonNullDistScores = pool.map(s => s.distanceFromHighScore).filter((v): v is number => v !== null)
 
     for (const snapshot of pool) {
-      const rsiPercentile = snapshot.rsi14 !== null
-        ? calculatePercentile(allNonNullRsi14, snapshot.rsi14)
-        : null
+      const rsiPercentile = snapshot.rsi14 !== null ? calculatePercentile(allNonNullRsi14, snapshot.rsi14) : null
 
       const maScorePercentile = calculatePercentile(allMaScores, snapshot.maScore)
 
-      const distanceFromHighScorePercentile = snapshot.distanceFromHighScore !== null
-        ? calculatePercentile(allNonNullDistScores, snapshot.distanceFromHighScore)
-        : null
+      const distanceFromHighScorePercentile =
+        snapshot.distanceFromHighScore !== null
+          ? calculatePercentile(allNonNullDistScores, snapshot.distanceFromHighScore)
+          : null
 
       // rotationScore requires all 4 components — twoWeekPerformancePercentile
       // is not available at this stage, so rotationScore is always null.

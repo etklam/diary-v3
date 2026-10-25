@@ -18,7 +18,11 @@ export const SEC_LIMITS = {
 export type SecResourceLimits = Readonly<typeof SEC_LIMITS>
 
 export function safeDownloadName(value: string): string {
-  const safe = value.normalize('NFKD').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^\.+/, '').slice(0, 180)
+  const safe = value
+    .normalize('NFKD')
+    .replace(/[^A-Za-z0-9._-]+/g, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 180)
   return safe || 'sec-document'
 }
 
@@ -75,8 +79,12 @@ function responseNodeStream(response: Response, maxBytes: number, options: Respo
       }
     },
   })
-  const forwardSourceError = (error: Error) => { if (!limiter.destroyed) limiter.destroy(error) }
-  const forwardLimiterError = (error: Error) => { if (!source.destroyed) source.destroy(error) }
+  const forwardSourceError = (error: Error) => {
+    if (!limiter.destroyed) limiter.destroy(error)
+  }
+  const forwardLimiterError = (error: Error) => {
+    if (!source.destroyed) source.destroy(error)
+  }
   // Keep both listeners for the lifetime of the bridge. A cancelled Web
   // response can report a second error after the pipeline has rejected; the
   // forwarding listeners prevent that late provider error becoming uncaught.
@@ -148,7 +156,13 @@ export async function stageDocument(
   const path = join(directory, name)
   let checksum = 0
   try {
-    const source = responseNodeStream(response, maxBytes, { signal: options.signal, onTooLarge: tooLarge, onChunk: chunk => { checksum = crc32(chunk, checksum) } })
+    const source = responseNodeStream(response, maxBytes, {
+      signal: options.signal,
+      onTooLarge: tooLarge,
+      onChunk: chunk => {
+        checksum = crc32(chunk, checksum)
+      },
+    })
     let destination: ReturnType<typeof createWriteStream>
     try {
       destination = createWriteStream(path, { flags: 'wx', mode: 0o600 })
@@ -164,7 +178,8 @@ export async function stageDocument(
   } catch (error) {
     await rm(path, { force: true })
     if (error instanceof SecProviderError) throw error
-    if (options.signal?.aborted) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC document stream cancelled', 503, true)
+    if (options.signal?.aborted)
+      throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC document stream cancelled', 503, true)
     throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC document stream failed', 503, true)
   }
 }
@@ -179,28 +194,46 @@ export interface SecFileResource {
  * Return a bounded-memory response body for a staged file. Cleanup and slot
  * release are tied to stream completion, errors, cancellation, or request abort.
  */
-export function streamStagedFile(resource: SecFileResource, options: { signal?: AbortSignal; onClosed?: () => void; timeoutMs?: number } = {}): ReadableStream<Uint8Array> {
+export function streamStagedFile(
+  resource: SecFileResource,
+  options: { signal?: AbortSignal; onClosed?: () => void; timeoutMs?: number } = {},
+): ReadableStream<Uint8Array> {
   const source = createReadStream(resource.path, { highWaterMark: 64 * 1024 })
   let finalized = false
-  const timeout = setTimeout(() => source.destroy(new Error('SEC staged response timeout')), options.timeoutMs ?? 5 * 60_000)
+  const timeout = setTimeout(
+    () => source.destroy(new Error('SEC staged response timeout')),
+    options.timeoutMs ?? 5 * 60_000,
+  )
   const finalize = () => {
     if (finalized) return
     finalized = true
     clearTimeout(timeout)
-    void resource.cleanup().catch(() => {}).finally(() => {
-      try { options.onClosed?.() } catch { /* cleanup callbacks must not escape the stream */ }
-    })
+    void resource
+      .cleanup()
+      .catch(() => {})
+      .finally(() => {
+        try {
+          options.onClosed?.()
+        } catch {
+          /* cleanup callbacks must not escape the stream */
+        }
+      })
   }
   source.once('end', finalize)
   source.once('error', finalize)
   source.once('close', finalize)
   if (options.signal) {
-    const abort = () => source.destroy(options.signal?.reason instanceof Error ? options.signal.reason : new Error('SEC request cancelled'))
+    const abort = () =>
+      source.destroy(
+        options.signal?.reason instanceof Error ? options.signal.reason : new Error('SEC request cancelled'),
+      )
     if (options.signal.aborted) abort()
     else options.signal.addEventListener('abort', abort, { once: true })
     source.once('close', () => options.signal?.removeEventListener('abort', abort))
   }
-  return Readable.toWeb(source, { strategy: { highWaterMark: 64 * 1024, size: chunk => chunk.byteLength } }) as unknown as ReadableStream<Uint8Array>
+  return Readable.toWeb(source, {
+    strategy: { highWaterMark: 64 * 1024, size: chunk => chunk.byteLength },
+  }) as unknown as ReadableStream<Uint8Array>
 }
 
 export interface SecResourceLease {
@@ -210,7 +243,12 @@ export interface SecResourceLease {
 const RESOURCE_CONCURRENCY = 2
 const RESOURCE_MAX_WAITERS = 32
 let activeResources = 0
-const resourceWaiters: Array<{ resolve: (lease: SecResourceLease) => void; reject: (error: unknown) => void; signal?: AbortSignal; onAbort: () => void }> = []
+const resourceWaiters: Array<{
+  resolve: (lease: SecResourceLease) => void
+  reject: (error: unknown) => void
+  signal?: AbortSignal
+  onAbort: () => void
+}> = []
 
 function cancelledResourceRequest() {
   return new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request was cancelled', 503, true)
@@ -239,7 +277,8 @@ export function acquireSecResourceSlot(signal?: AbortSignal): Promise<SecResourc
     activeResources++
     return Promise.resolve(createLease())
   }
-  if (resourceWaiters.length >= RESOURCE_MAX_WAITERS) return Promise.reject(new SecProviderError('SEC_QUEUE_FULL', 'SEC resource queue is full', 503, true))
+  if (resourceWaiters.length >= RESOURCE_MAX_WAITERS)
+    return Promise.reject(new SecProviderError('SEC_QUEUE_FULL', 'SEC resource queue is full', 503, true))
   return new Promise((resolve, reject) => {
     const onAbort = () => {
       const index = resourceWaiters.findIndex(waiter => waiter.onAbort === onAbort)

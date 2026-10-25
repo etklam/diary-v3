@@ -38,13 +38,19 @@ function normalizeMarketRead(value: PriceAlertMarketRead): PriceAlertMarketData 
   if (!value || typeof value !== 'object') return null
   return {
     currentPrice: finite(value.currentPrice) ? value.currentPrice : null,
-    previousClose: value.previousClose === null || value.previousClose === undefined || finite(value.previousClose) ? value.previousClose ?? null : null,
+    previousClose:
+      value.previousClose === null || value.previousClose === undefined || finite(value.previousClose)
+        ? (value.previousClose ?? null)
+        : null,
     historicalCloses: value.historicalCloses,
   }
 }
 
 /** Keep one close per completed New York trading date and ignore today's partial bar. */
-export function completedHistoricalCloses(history: PriceAlertHistoricalClose[] | null | undefined, now: Date): number[] {
+export function completedHistoricalCloses(
+  history: PriceAlertHistoricalClose[] | null | undefined,
+  now: Date,
+): number[] {
   if (!history) return []
   const byDate = new Map<string, number>()
   for (const row of history) {
@@ -67,15 +73,23 @@ function priceThreshold(type: string, price: number, threshold: string): boolean
 function changePercentCondition(market: PriceAlertMarketData, threshold: string): boolean | undefined {
   const { currentPrice, previousClose } = market
   const target = Number(threshold)
-  if (!finite(currentPrice) || currentPrice < 0 || !finite(previousClose) || previousClose <= 0 || !finite(target)) return undefined
+  if (!finite(currentPrice) || currentPrice < 0 || !finite(previousClose) || previousClose <= 0 || !finite(target))
+    return undefined
   const change = ((currentPrice - previousClose) / previousClose) * 100
   return target >= 0 ? change >= target : change <= target
 }
 
-function movingAverageCondition(market: PriceAlertMarketData, threshold: string, direction: string | null | undefined, now: Date): boolean | undefined {
-  if (!finite(market.currentPrice) || market.currentPrice < 0 || (direction !== 'above' && direction !== 'below')) return undefined
+function movingAverageCondition(
+  market: PriceAlertMarketData,
+  threshold: string,
+  direction: string | null | undefined,
+  now: Date,
+): boolean | undefined {
+  if (!finite(market.currentPrice) || market.currentPrice < 0 || (direction !== 'above' && direction !== 'below'))
+    return undefined
   const period = Number(threshold)
-  if (!finite(period) || !(PRICE_ALERT_MOVING_AVG_PERIODS as readonly string[]).some(value => Number(value) === period)) return undefined
+  if (!finite(period) || !(PRICE_ALERT_MOVING_AVG_PERIODS as readonly string[]).some(value => Number(value) === period))
+    return undefined
   const closes = completedHistoricalCloses(market.historicalCloses, now)
   if (closes.length < period) return undefined
   const average = closes.slice(-period).reduce((sum, close) => sum + close, 0) / period
@@ -84,8 +98,15 @@ function movingAverageCondition(market: PriceAlertMarketData, threshold: string,
 }
 
 /** `undefined` means the provider did not supply enough trustworthy data yet. */
-export function evaluatePriceAlert(type: string, market: PriceAlertMarketData, threshold: string, direction: string | null | undefined, now: Date): boolean | undefined {
-  if (type === 'PRICE_ABOVE' || type === 'PRICE_BELOW') return priceThreshold(type, market.currentPrice ?? NaN, threshold)
+export function evaluatePriceAlert(
+  type: string,
+  market: PriceAlertMarketData,
+  threshold: string,
+  direction: string | null | undefined,
+  now: Date,
+): boolean | undefined {
+  if (type === 'PRICE_ABOVE' || type === 'PRICE_BELOW')
+    return priceThreshold(type, market.currentPrice ?? NaN, threshold)
   if (type === 'CHANGE_PERCENT') return changePercentCondition(market, threshold)
   if (type === 'MOVING_AVG') return movingAverageCondition(market, threshold, direction, now)
   return undefined
@@ -93,7 +114,15 @@ export function evaluatePriceAlert(type: string, market: PriceAlertMarketData, t
 
 /** Backward-compatible pure helper for the original price-only conditions. */
 export function priceCondition(type: string, price: number, threshold: string) {
-  return evaluatePriceAlert(type, { currentPrice: price, previousClose: null, historicalCloses: null }, threshold, null, new Date()) === true
+  return (
+    evaluatePriceAlert(
+      type,
+      { currentPrice: price, previousClose: null, historicalCloses: null },
+      threshold,
+      null,
+      new Date(),
+    ) === true
+  )
 }
 
 function thresholdUnit(type: string): PriceAlertThresholdUnit {
@@ -117,17 +146,27 @@ export function createPriceAlertChecker(dependencies: {
   log: (context: { operation: string; jobId: string; alertId?: string; symbol?: string }, error: unknown) => void
   now?: () => Date
 }) {
-  let running: Promise<void> | undefined, timer: ReturnType<typeof setInterval> | undefined, stopped = false
+  let running: Promise<void> | undefined,
+    timer: ReturnType<typeof setInterval> | undefined,
+    stopped = false
   async function check() {
     const jobId = randomUUID()
     try {
-      const pending = await dependencies.db.select({ id: priceAlerts.id, symbol: priceAlerts.symbol, type: priceAlerts.type }).from(priceAlerts).where(eq(priceAlerts.isTriggered, false)).orderBy(asc(priceAlerts.id))
+      const pending = await dependencies.db
+        .select({ id: priceAlerts.id, symbol: priceAlerts.symbol, type: priceAlerts.type })
+        .from(priceAlerts)
+        .where(eq(priceAlerts.isTriggered, false))
+        .orderBy(asc(priceAlerts.id))
       const needsHistory = groupPriceAlertHistoryNeeds(pending)
       const market = new Map<string, PriceAlertMarketData | null>()
       for (const [symbol, requiresHistory] of needsHistory) {
         if (stopped) return
-        try { market.set(symbol, normalizeMarketRead(await dependencies.quote(symbol, requiresHistory))) }
-        catch (error) { market.set(symbol, null); dependencies.log({ operation: 'price_alert_quote', jobId, symbol }, error) }
+        try {
+          market.set(symbol, normalizeMarketRead(await dependencies.quote(symbol, requiresHistory)))
+        } catch (error) {
+          market.set(symbol, null)
+          dependencies.log({ operation: 'price_alert_quote', jobId, symbol }, error)
+        }
       }
       for (const candidate of pending) {
         if (stopped) return
@@ -141,7 +180,10 @@ export function createPriceAlertChecker(dependencies: {
               ? evaluatePriceAlert(row.type, snapshot, row.threshold, row.movingAverageDirection, timestamp) === true
               : false
             if (stopped || !row || row.isTriggered || !matches) return undefined
-            await tx.update(priceAlerts).set({ isTriggered: true, triggeredAt: timestamp, updatedAt: timestamp }).where(eq(priceAlerts.id, row.id))
+            await tx
+              .update(priceAlerts)
+              .set({ isTriggered: true, triggeredAt: timestamp, updatedAt: timestamp })
+              .where(eq(priceAlerts.id, row.id))
             return {
               userId: String(row.userId),
               payload: {
@@ -159,20 +201,38 @@ export function createPriceAlertChecker(dependencies: {
           })
           // A notification error must never undo the committed trigger state.
           if (triggered && !stopped) dependencies.emit(triggered.userId, triggered.payload)
-        } catch (error) { dependencies.log({ operation: 'price_alert_process', jobId, alertId: String(candidate.id), symbol: candidate.symbol }, error) }
+        } catch (error) {
+          dependencies.log(
+            { operation: 'price_alert_process', jobId, alertId: String(candidate.id), symbol: candidate.symbol },
+            error,
+          )
+        }
       }
-    } catch (error) { dependencies.log({ operation: 'price_alert_tick', jobId }, error) }
+    } catch (error) {
+      dependencies.log({ operation: 'price_alert_tick', jobId }, error)
+    }
   }
   function checkPriceAlerts() {
-    if (!running) running = check().finally(() => { running = undefined })
+    if (!running)
+      running = check().finally(() => {
+        running = undefined
+      })
     return running
   }
   function start() {
     if (timer !== undefined) return
     stopped = false
-    timer = setInterval(() => { void checkPriceAlerts() }, PRICE_CHECK_INTERVAL); timer.unref?.()
+    timer = setInterval(() => {
+      void checkPriceAlerts()
+    }, PRICE_CHECK_INTERVAL)
+    timer.unref?.()
     void checkPriceAlerts()
   }
-  async function stop() { stopped = true; if (timer !== undefined) clearInterval(timer); timer = undefined; await running }
+  async function stop() {
+    stopped = true
+    if (timer !== undefined) clearInterval(timer)
+    timer = undefined
+    await running
+  }
   return { checkPriceAlerts, start, stop }
 }

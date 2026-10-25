@@ -1,73 +1,180 @@
-import { randomUUID } from 'node:crypto';
-import { test, expect, selectAccountLocale, selectLocale, selectTheme, signOut } from '../support/e2e';
-for (const width of [1440, 390]) test(`Portfolio attention prioritizes and clears review reminders at ${width}px`, async ({ page, context }) => {
-  await page.setViewportSize({ width, height: 900 }); const email = `attention-${randomUUID()}@example.test`, password = 'synthetic-attention-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en'); await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectAccountLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  const openDetails = async () => { await expect(page.getByTestId('sign-out')).toBeAttached(); const details = page.locator('details.holdings-details'); if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await details.locator(':scope > summary').click(); await expect(details).toHaveJSProperty('open', true); };
-  const created = await page.request.post('/api/diaries', { headers, data: { date: '2026-01-01', title: 'Original attention diary', content: 'Private diary', reviewDueAt: '2020-01-01T00:00:00Z', transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' }] } }); expect(created.status()).toBe(201); const diary = await created.json();
-  expect((await page.request.put('/api/stocks/AAPL/thesis', { headers, data: { status: 'ACTIVE', summary: 'Current thesis', whyIOwnIt: 'Reason', reviewDueAt: '2020-01-01T00:00:00Z' } })).status()).toBe(200);
-  await page.goto('/stocks'); await openDetails(); const panel = page.getByRole('region', { name: 'Needs your attention', exact: true }); await expect(panel.getByTestId('attention-item')).toHaveCount(3); await expect(panel.getByTestId('attention-item').first()).toContainText('Thesis review overdue');
-  await panel.getByTestId('attention-item').first().getByRole('link').first().click(); await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/); const form = page.getByRole('form', { name: 'Complete thesis review', exact: true }); await form.getByRole('textbox', { name: 'What changed', exact: true }).fill('Private completed reflection'); await form.getByRole('button', { name: 'Complete thesis review', exact: true }).click(); await expect(page.getByTestId('thesis-review')).toHaveCount(1);
-  await page.goto('/stocks'); await openDetails(); await expect(panel.getByTestId('attention-item')).toHaveCount(2); await expect(panel).not.toContainText('Private completed reflection'); await expect(panel.getByTestId('attention-item').first()).toContainText('Diary review overdue');
-  await panel.getByTestId('attention-item').first().getByRole('link').first().click(); await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}/review$`)); await page.getByRole('radio', { name: 'Partly confirmed', exact: true }).check(); await page.getByRole('textbox', { name: 'What happened', exact: true }).fill('Private diary reflection'); await page.getByRole('button', { name: 'Complete review', exact: true }).click(); await expect(page.getByTestId('review-status')).toHaveText('Reviewed');
-  await page.goto('/stocks'); await openDetails(); await expect(panel.getByTestId('attention-item')).toHaveCount(1); await expect(panel).toContainText('Position concentration');
-  if (width === 390) await selectTheme(page, 'dark'); await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }); await panel.screenshot({ path: `docs/design/evidence/portfolio-attention/${width}.png` }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.route('**/api/portfolio/overview', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'attention-retry' } }) })); await page.reload(); await openDetails(); await expect(panel.getByTestId('request-id')).toHaveText('attention-retry'); await page.unroute('**/api/portfolio/overview'); await panel.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(panel.getByTestId('attention-item')).toHaveCount(1);
-  for (const [locale, name] of [['zh-TW', '需要留意'], ['zh-CN', '需要留意'], ['en', 'Needs your attention']] as const) { await selectLocale(page, locale); await expect(page.getByRole('region', { name, exact: true })).toBeVisible(); }
-  await signOut(page); await expect(page.getByTestId('attention-item')).toHaveCount(0);
-});
+import { randomUUID } from 'node:crypto'
+import { test, expect, selectAccountLocale, selectLocale, selectTheme, signOut } from '../support/e2e'
+for (const width of [1440, 390])
+  test(`Portfolio attention prioritizes and clears review reminders at ${width}px`, async ({ page, context }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const email = `attention-${randomUUID()}@example.test`,
+      password = 'synthetic-attention-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectAccountLocale(page, 'en')
+    const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+    const openDetails = async () => {
+      await expect(page.getByTestId('sign-out')).toBeAttached()
+      const details = page.locator('details.holdings-details')
+      if (!(await details.evaluate(element => (element as HTMLDetailsElement).open)))
+        await details.locator(':scope > summary').click()
+      await expect(details).toHaveJSProperty('open', true)
+    }
+    const created = await page.request.post('/api/diaries', {
+      headers,
+      data: {
+        date: '2026-01-01',
+        title: 'Original attention diary',
+        content: 'Private diary',
+        reviewDueAt: '2020-01-01T00:00:00Z',
+        transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' }],
+      },
+    })
+    expect(created.status()).toBe(201)
+    const diary = await created.json()
+    expect(
+      (
+        await page.request.put('/api/stocks/AAPL/thesis', {
+          headers,
+          data: {
+            status: 'ACTIVE',
+            summary: 'Current thesis',
+            whyIOwnIt: 'Reason',
+            reviewDueAt: '2020-01-01T00:00:00Z',
+          },
+        })
+      ).status(),
+    ).toBe(200)
+    await page.goto('/stocks')
+    await openDetails()
+    const panel = page.getByRole('region', { name: 'Needs your attention', exact: true })
+    await expect(panel.getByTestId('attention-item')).toHaveCount(3)
+    await expect(panel.getByTestId('attention-item').first()).toContainText('Thesis review overdue')
+    await panel.getByTestId('attention-item').first().getByRole('link').first().click()
+    await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/)
+    const form = page.getByRole('form', { name: 'Complete thesis review', exact: true })
+    await form.getByRole('textbox', { name: 'What changed', exact: true }).fill('Private completed reflection')
+    await form.getByRole('button', { name: 'Complete thesis review', exact: true }).click()
+    await expect(page.getByTestId('thesis-review')).toHaveCount(1)
+    await page.goto('/stocks')
+    await openDetails()
+    await expect(panel.getByTestId('attention-item')).toHaveCount(2)
+    await expect(panel).not.toContainText('Private completed reflection')
+    await expect(panel.getByTestId('attention-item').first()).toContainText('Diary review overdue')
+    await panel.getByTestId('attention-item').first().getByRole('link').first().click()
+    await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}/review$`))
+    await page.getByRole('radio', { name: 'Partly confirmed', exact: true }).check()
+    await page.getByRole('textbox', { name: 'What happened', exact: true }).fill('Private diary reflection')
+    await page.getByRole('button', { name: 'Complete review', exact: true }).click()
+    await expect(page.getByTestId('review-status')).toHaveText('Reviewed')
+    await page.goto('/stocks')
+    await openDetails()
+    await expect(panel.getByTestId('attention-item')).toHaveCount(1)
+    await expect(panel).toContainText('Position concentration')
+    if (width === 390) await selectTheme(page, 'dark')
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    })
+    await panel.screenshot({ path: `docs/design/evidence/portfolio-attention/${width}.png` })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.route('**/api/portfolio/overview', route =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'attention-retry' } }),
+      }),
+    )
+    await page.reload()
+    await openDetails()
+    await expect(panel.getByTestId('request-id')).toHaveText('attention-retry')
+    await page.unroute('**/api/portfolio/overview')
+    await panel.getByRole('button', { name: 'Try again', exact: true }).click()
+    await expect(panel.getByTestId('attention-item')).toHaveCount(1)
+    for (const [locale, name] of [
+      ['zh-TW', '需要留意'],
+      ['zh-CN', '需要留意'],
+      ['en', 'Needs your attention'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByRole('region', { name, exact: true })).toBeVisible()
+    }
+    await signOut(page)
+    await expect(page.getByTestId('attention-item')).toHaveCount(0)
+  })
 
 test('one overdue review outranks three same-kind items, which share a row', async ({ page, context }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `attention-bands-${randomUUID()}@example.test`, password = 'synthetic-attention-password';
-  await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectAccountLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `attention-bands-${randomUUID()}@example.test`,
+    password = 'synthetic-attention-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectAccountLocale(page, 'en')
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
 
   // One overdue diary review, and three held positions with no thesis.
-  expect((await page.request.post('/api/diaries', { headers, data: {
-    date: '2026-01-01', title: 'Opened a starter position in SYN', content: 'Private diary', reviewDueAt: '2020-01-01T00:00:00Z',
-    transactions: [
-      { symbol: 'SYN', type: 'BUY', quantity: '30', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
-      { symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
-      { symbol: 'MSFT', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
-    ],
-  } })).status()).toBe(201);
+  expect(
+    (
+      await page.request.post('/api/diaries', {
+        headers,
+        data: {
+          date: '2026-01-01',
+          title: 'Opened a starter position in SYN',
+          content: 'Private diary',
+          reviewDueAt: '2020-01-01T00:00:00Z',
+          transactions: [
+            { symbol: 'SYN', type: 'BUY', quantity: '30', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
+            { symbol: 'AAPL', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
+            { symbol: 'MSFT', type: 'BUY', quantity: '1', price: '100', tradeDate: '2026-01-01T00:00:00Z' },
+          ],
+        },
+      })
+    ).status(),
+  ).toBe(201)
 
-  await page.goto('/stocks');
-  const details = page.locator('details.holdings-details');
-  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await details.locator(':scope > summary').click();
-  const panel = page.getByRole('region', { name: 'Needs your attention', exact: true });
-  const rows = panel.getByTestId('attention-item');
+  await page.goto('/stocks')
+  const details = page.locator('details.holdings-details')
+  if (!(await details.evaluate(element => (element as HTMLDetailsElement).open)))
+    await details.locator(':scope > summary').click()
+  const panel = page.getByRole('region', { name: 'Needs your attention', exact: true })
+  const rows = panel.getByTestId('attention-item')
 
   // The most urgent item is first and carries the stronger treatment, and the
   // treatment is structural — a heavier leading rule, never a colour.
-  await expect(rows.first()).toContainText('Diary review overdue');
-  await expect(rows.first()).toHaveAttribute('data-attention-band', 'medium');
-  const leadingRule = (row: number) => rows.nth(row).locator('.attention-row').evaluate(element => getComputedStyle(element).borderInlineStartWidth);
-  const grouped = rows.filter({ hasText: 'Add an active thesis' });
-  await expect(grouped).toHaveCount(1);
-  expect(Number.parseFloat(await leadingRule(0))).toBeGreaterThan(Number.parseFloat(await grouped.locator('.attention-row').evaluate(element => getComputedStyle(element).borderInlineStartWidth)));
+  await expect(rows.first()).toContainText('Diary review overdue')
+  await expect(rows.first()).toHaveAttribute('data-attention-band', 'medium')
+  const leadingRule = (row: number) =>
+    rows
+      .nth(row)
+      .locator('.attention-row')
+      .evaluate(element => getComputedStyle(element).borderInlineStartWidth)
+  const grouped = rows.filter({ hasText: 'Add an active thesis' })
+  await expect(grouped).toHaveCount(1)
+  expect(Number.parseFloat(await leadingRule(0))).toBeGreaterThan(
+    Number.parseFloat(
+      await grouped.locator('.attention-row').evaluate(element => getComputedStyle(element).borderInlineStartWidth),
+    ),
+  )
 
   // Three same-kind items are one row with a count and three named targets.
-  await expect(grouped).toHaveAttribute('data-attention-group', '3');
-  await expect(grouped).toContainText('3 companies');
+  await expect(grouped).toHaveAttribute('data-attention-group', '3')
+  await expect(grouped).toContainText('3 companies')
   for (const symbol of ['AAPL', 'MSFT', 'SYN']) {
-    await expect(grouped.getByRole('link', { name: `Add an active thesis — ${symbol}`, exact: true })).toHaveCount(1);
+    await expect(grouped.getByRole('link', { name: `Add an active thesis — ${symbol}`, exact: true })).toHaveCount(1)
   }
 
   // Nothing in the region is called "Open", and every target names its subject.
-  await expect(panel.getByRole('link', { name: 'Open', exact: true })).toHaveCount(0);
+  await expect(panel.getByRole('link', { name: 'Open', exact: true })).toHaveCount(0)
   for (const link of await panel.locator('.attention-list a').all()) {
-    const name = await link.getAttribute('aria-label') ?? await link.innerText();
-    expect(name.replace(/\s+/gu, ' ').trim().length).toBeGreaterThan('Open'.length);
+    const name = (await link.getAttribute('aria-label')) ?? (await link.innerText())
+    expect(name.replace(/\s+/gu, ' ').trim().length).toBeGreaterThan('Open'.length)
   }
 
   // The band is in the reading order too, not only in the rule weight.
-  await expect(rows.first().locator('.sr-only').first()).toHaveText('Time-bound');
-});
+  await expect(rows.first().locator('.sr-only').first()).toHaveText('Time-bound')
+})

@@ -15,7 +15,11 @@ export class SmtpSecretError extends Error {
   readonly code: SmtpSecretErrorCode
 
   constructor(code: SmtpSecretErrorCode) {
-    super(code === 'SMTP_ENCRYPTION_UNAVAILABLE' ? 'SMTP encryption is unavailable.' : 'Encrypted SMTP data is unavailable.')
+    super(
+      code === 'SMTP_ENCRYPTION_UNAVAILABLE'
+        ? 'SMTP encryption is unavailable.'
+        : 'Encrypted SMTP data is unavailable.',
+    )
     this.name = 'SmtpSecretError'
     this.code = code
   }
@@ -55,9 +59,12 @@ function keyFor(keyring: SmtpKeyring, version: string): Buffer {
   const encoded = keyring.keys[version]
   if (!encoded) return unavailable()
 
-  const key = typeof encoded === 'string'
-    ? !BASE64_PATTERN.test(encoded) ? null : Buffer.from(encoded, 'base64')
-    : Buffer.from(encoded)
+  const key =
+    typeof encoded === 'string'
+      ? !BASE64_PATTERN.test(encoded)
+        ? null
+        : Buffer.from(encoded, 'base64')
+      : Buffer.from(encoded)
   if (!key || key.length !== KEY_BYTES) return unavailable()
   return key
 }
@@ -75,13 +82,20 @@ function decodeBase64Url(value: string, expectedLength: number | null): Buffer {
 }
 
 export function encryptSmtpSecret(plaintext: string, purpose: string, keyring = environmentSmtpKeyring()): string {
-  if (typeof plaintext !== 'string' || typeof purpose !== 'string' || !KEY_VERSION_PATTERN.test(keyring.activeVersion)) return unavailable()
+  if (typeof plaintext !== 'string' || typeof purpose !== 'string' || !KEY_VERSION_PATTERN.test(keyring.activeVersion))
+    return unavailable()
 
   const nonce = randomBytes(NONCE_BYTES)
   const cipher = createCipheriv('aes-256-gcm', keyFor(keyring, keyring.activeVersion), nonce)
   cipher.setAAD(aad(keyring.activeVersion, purpose))
   const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
-  return [VERSION, keyring.activeVersion, nonce.toString('base64url'), cipher.getAuthTag().toString('base64url'), ciphertext.toString('base64url')].join('.')
+  return [
+    VERSION,
+    keyring.activeVersion,
+    nonce.toString('base64url'),
+    cipher.getAuthTag().toString('base64url'),
+    ciphertext.toString('base64url'),
+  ].join('.')
 }
 
 export function decryptSmtpSecret(envelope: string, purpose: string, keyring = environmentSmtpKeyring()): string {
@@ -89,7 +103,8 @@ export function decryptSmtpSecret(envelope: string, purpose: string, keyring = e
     if (typeof envelope !== 'string' || typeof purpose !== 'string') throw new Error('invalid input')
     const parts = envelope.split('.')
     const [format, version, encodedNonce, encodedTag, encodedCiphertext] = parts
-    if (parts.length !== 5 || format !== VERSION || !version || encodedCiphertext === undefined) throw new Error('invalid envelope')
+    if (parts.length !== 5 || format !== VERSION || !version || encodedCiphertext === undefined)
+      throw new Error('invalid envelope')
 
     const nonce = decodeBase64Url(encodedNonce ?? '', NONCE_BYTES)
     const authTag = decodeBase64Url(encodedTag ?? '', AUTH_TAG_BYTES)

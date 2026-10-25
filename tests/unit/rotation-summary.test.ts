@@ -181,30 +181,22 @@ describe('generateMarketSummary', () => {
 
   describe('confirmation description', () => {
     it('includes confirmation text for confirming', () => {
-      const summary = generateMarketSummary(
-        makeInput({ breadthConfirmation: 'confirming' }),
-      )
+      const summary = generateMarketSummary(makeInput({ breadthConfirmation: 'confirming' }))
       expect(summary).toContain('confirms')
     })
 
     it('includes mixed text for mixed confirmation', () => {
-      const summary = generateMarketSummary(
-        makeInput({ breadthConfirmation: 'mixed' }),
-      )
+      const summary = generateMarketSummary(makeInput({ breadthConfirmation: 'mixed' }))
       expect(summary).toContain('mixed signals')
     })
 
     it('includes warning text for warning confirmation', () => {
-      const summary = generateMarketSummary(
-        makeInput({ breadthConfirmation: 'warning' }),
-      )
+      const summary = generateMarketSummary(makeInput({ breadthConfirmation: 'warning' }))
       expect(summary).toContain('warns')
     })
 
     it('omits confirmation text for unknown', () => {
-      const summary = generateMarketSummary(
-        makeInput({ breadthConfirmation: 'unknown' }),
-      )
+      const summary = generateMarketSummary(makeInput({ breadthConfirmation: 'unknown' }))
       expect(summary).not.toContain('confirms')
       expect(summary).not.toContain('mixed signals')
       expect(summary).not.toContain('warns')
@@ -232,7 +224,7 @@ describe('generateMarketSummary', () => {
       })
 
       // Should be multiple sentences
-      const sentences = summary.split('. ').filter((s) => s.length > 0)
+      const sentences = summary.split('. ').filter(s => s.length > 0)
       expect(sentences.length).toBeGreaterThanOrEqual(3)
 
       // Should contain all key elements

@@ -31,10 +31,18 @@ export interface DecimalClosedTrade {
   realizedPnLPct: string
 }
 
-interface Fraction { numerator: bigint; denominator: bigint }
+interface Fraction {
+  numerator: bigint
+  denominator: bigint
+}
 
 export class LedgerValidationError extends Error {
-  constructor(readonly symbol: string, message: string) { super(message) }
+  constructor(
+    readonly symbol: string,
+    message: string,
+  ) {
+    super(message)
+  }
 }
 
 function gcd(left: bigint, right: bigint): bigint {
@@ -48,7 +56,7 @@ function fraction(numerator: bigint, denominator = 1n): Fraction {
   if (denominator === 0n) throw new Error('Division by zero')
   const sign = denominator < 0n ? -1n : 1n
   const divisor = gcd(numerator, denominator)
-  return { numerator: numerator / divisor * sign, denominator: denominator / divisor * sign }
+  return { numerator: (numerator / divisor) * sign, denominator: (denominator / divisor) * sign }
 }
 
 function add(left: Fraction, right: Fraction): Fraction {
@@ -85,7 +93,7 @@ function scaled(value: string, scale: number): bigint {
   if (!match) throw new Error(`Invalid decimal string: ${value}`)
   const fraction = match[3] ?? ''
   if (fraction.length > scale) throw new Error(`Decimal has more than ${scale} fraction digits: ${value}`)
-  const magnitude = BigInt(match[2]!) * (10n ** BigInt(scale)) + BigInt(fraction.padEnd(scale, '0') || '0')
+  const magnitude = BigInt(match[2]!) * 10n ** BigInt(scale) + BigInt(fraction.padEnd(scale, '0') || '0')
   return match[1] ? -magnitude : magnitude
 }
 
@@ -126,16 +134,18 @@ export function roundDecimalString(value: string, scale: number): string {
 
 /** Exact chronological average-cost replay. Invalid SELL rows fail the write path. */
 export function replayLedger(entries: readonly LedgerEntry[]) {
-  const ordered = entries.map((entry, index) => ({ entry, index })).sort((left, right) => {
-    const leftTime = left.entry.tradeDate ? new Date(left.entry.tradeDate).getTime() : 0
-    const rightTime = right.entry.tradeDate ? new Date(right.entry.tradeDate).getTime() : 0
-    const dateDifference = leftTime - rightTime
-    if (dateDifference !== 0) return dateDifference
-    if (left.entry.order !== undefined && right.entry.order !== undefined) {
-      return left.entry.order < right.entry.order ? -1 : left.entry.order > right.entry.order ? 1 : 0
-    }
-    return left.index - right.index
-  })
+  const ordered = entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => {
+      const leftTime = left.entry.tradeDate ? new Date(left.entry.tradeDate).getTime() : 0
+      const rightTime = right.entry.tradeDate ? new Date(right.entry.tradeDate).getTime() : 0
+      const dateDifference = leftTime - rightTime
+      if (dateDifference !== 0) return dateDifference
+      if (left.entry.order !== undefined && right.entry.order !== undefined) {
+        return left.entry.order < right.entry.order ? -1 : left.entry.order > right.entry.order ? 1 : 0
+      }
+      return left.index - right.index
+    })
   const positions = new Map<string, { quantity: bigint; totalCost: Fraction }>()
   const closedTrades: DecimalClosedTrade[] = []
 

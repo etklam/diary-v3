@@ -33,17 +33,22 @@ function usePersistedDisclosure(key: string, forcedOpen: boolean) {
   const storageKey = `diary-v3:nav-open:${key}`
   const [remembered, setRemembered] = useState(false)
   useEffect(() => {
-    try { setRemembered(localStorage.getItem(storageKey) === '1') }
-    catch { /* Navigation stays usable when device storage is unavailable. */ }
+    try {
+      setRemembered(localStorage.getItem(storageKey) === '1')
+    } catch {
+      /* Navigation stays usable when device storage is unavailable. */
+    }
   }, [storageKey])
   function remember(open: boolean) {
     setRemembered(open)
-    try { localStorage.setItem(storageKey, open ? '1' : '0') }
-    catch { /* The session keeps the choice even when it cannot be persisted. */ }
+    try {
+      localStorage.setItem(storageKey, open ? '1' : '0')
+    } catch {
+      /* The session keeps the choice even when it cannot be persisted. */
+    }
   }
   return { open: forcedOpen || remembered, remember }
 }
-
 
 function label(locale: keyof typeof sectionCopy, values: { en: string; 'zh-CN': string; 'zh-TW': string }) {
   return values[locale]
@@ -77,7 +82,9 @@ export function useScrollAffordance() {
       const remaining = element.scrollHeight - element.scrollTop - element.clientHeight
       element.dataset.scrollMore = remaining > 1 ? 'true' : 'false'
     }
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure) }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure)
+    }
     measure()
     element.addEventListener('scroll', schedule, { passive: true })
     // The column's own height answers a viewport resize; the list's height
@@ -103,11 +110,41 @@ function usePageScrollLock(locked: boolean) {
     const root = document.documentElement
     const previousOverflow = root.style.overflow
     root.style.overflow = 'hidden'
-    return () => { root.style.overflow = previousOverflow }
+    return () => {
+      root.style.overflow = previousOverflow
+    }
   }, [locked])
 }
 
-export type NavigationOwner = 'overview' | 'diary' | 'timeline' | 'calendar' | 'reviews' | 'aiReports' | 'diaryReminders' | 'partners' | 'holdings' | 'watchlist' | 'tradePlans' | 'priceReminders' | 'discipline' | 'marketResearch' | 'gurus' | 'tools' | 'articles' | 'achievements' | 'settings' | 'adminBlog' | 'adminUsers' | 'adminGurus' | 'adminInstitutional' | 'adminAi' | 'adminResearch' | 'adminEtf' | 'adminEmail' | null
+export type NavigationOwner =
+  | 'overview'
+  | 'diary'
+  | 'timeline'
+  | 'calendar'
+  | 'reviews'
+  | 'aiReports'
+  | 'diaryReminders'
+  | 'partners'
+  | 'holdings'
+  | 'watchlist'
+  | 'tradePlans'
+  | 'priceReminders'
+  | 'discipline'
+  | 'marketResearch'
+  | 'gurus'
+  | 'tools'
+  | 'articles'
+  | 'achievements'
+  | 'settings'
+  | 'adminBlog'
+  | 'adminUsers'
+  | 'adminGurus'
+  | 'adminInstitutional'
+  | 'adminAi'
+  | 'adminResearch'
+  | 'adminEtf'
+  | 'adminEmail'
+  | null
 
 export function navigationOwner(pathname: string): NavigationOwner {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
@@ -155,18 +192,38 @@ function NavToolShortcuts({ onNavigate, forcedOpen }: { onNavigate?: () => void;
   const { locale } = useUi()
   const c = workspaceCopy[locale]
   const disclosure = usePersistedDisclosure('tools', forcedOpen)
-  return <Disclosure className="nav-more" open={disclosure.open}
-    onToggle={event => disclosure.remember(event.currentTarget.open)}>
-    <DisclosureSummary>{c.tools}</DisclosureSummary>
-    <div className="nav-group-links nav-secondary-links">
-      {TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={onNavigate}>
-        <Icon name={tool.icon} />{tool.name[locale]}
-      </Link>)}
-    </div>
-  </Disclosure>
+  return (
+    <Disclosure
+      className="nav-more"
+      open={disclosure.open}
+      onToggle={event => disclosure.remember(event.currentTarget.open)}
+    >
+      <DisclosureSummary>{c.tools}</DisclosureSummary>
+      <div className="nav-group-links nav-secondary-links">
+        {TOOLS.map(tool => (
+          <Link key={tool.href} to={tool.href} onClick={onNavigate}>
+            <Icon name={tool.icon} />
+            {tool.name[locale]}
+          </Link>
+        ))}
+      </div>
+    </Disclosure>
+  )
 }
 
-export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryViews = true, showAccount = true }: { role: Role; onNavigate?: () => void; idPrefix?: string; showDiaryViews?: boolean; showAccount?: boolean }) {
+export function NavigationLinks({
+  role,
+  onNavigate,
+  idPrefix = 'nav',
+  showDiaryViews = true,
+  showAccount = true,
+}: {
+  role: Role
+  onNavigate?: () => void
+  idPrefix?: string
+  showDiaryViews?: boolean
+  showAccount?: boolean
+}) {
   const { locale } = useUi()
   const location = useLocation()
   const sections = sectionCopy[locale]
@@ -181,70 +238,152 @@ export function NavigationLinks({ role, onNavigate, idPrefix = 'nav', showDiaryV
   const pendingPath = usePendingPathname()
   const pendingOwner = pendingPath === null ? null : navigationOwner(pendingPath)
   const waiting = useReviewCount()
-  const diary = usePersistedDisclosure('diary-management', owner === 'aiReports' || owner === 'diaryReminders' || owner === 'partners')
+  const diary = usePersistedDisclosure(
+    'diary-management',
+    owner === 'aiReports' || owner === 'diaryReminders' || owner === 'partners',
+  )
   const trade = usePersistedDisclosure('trade-management', owner === 'priceReminders' || owner === 'discipline')
   const admin = usePersistedDisclosure('administration', location.pathname.startsWith('/admin'))
-  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => <Link key={to} to={to} onClick={onNavigate} className={destination === 'diary' || destination === 'timeline' || destination === 'calendar' ? 'nav-diary-view' : undefined} aria-current={owner === destination ? 'page' : undefined} data-nav-pending={pendingOwner === destination && owner !== destination ? 'true' : undefined} aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}><Icon name={icon} />{text}{badge > 0 && <span className="nav-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}</Link>
-  return <>
-    <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
-    {/* The capture-read-review loop is the product, so those four stay in the
+  const link = (to: string, text: string, icon: IconName, destination: NavigationOwner, badge = 0) => (
+    <Link
+      key={to}
+      to={to}
+      onClick={onNavigate}
+      className={
+        destination === 'diary' || destination === 'timeline' || destination === 'calendar'
+          ? 'nav-diary-view'
+          : undefined
+      }
+      aria-current={owner === destination ? 'page' : undefined}
+      data-nav-pending={pendingOwner === destination && owner !== destination ? 'true' : undefined}
+      aria-label={badge > 0 ? `${text} · ${badge} ${n.waiting}` : undefined}
+    >
+      <Icon name={icon} />
+      {text}
+      {badge > 0 && (
+        <span className="nav-badge" aria-hidden="true">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+    </Link>
+  )
+  return (
+    <>
+      <div className="nav-overview">{link('/', c.overview, 'home', 'overview')}</div>
+      {/* The capture-read-review loop is the product, so those four stay in the
         open list. AI reports, reminders and partner sharing support that loop
         rather than close it, and the earlier arrangement — all seven open —
         pushed them below the fold anyway, where finding them cost a blind
         scroll instead of one labelled click. A disclosure is the cheaper of
         the two, and it opens itself on the routes it owns. */}
-    <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}><h2 id={`${idPrefix}-diary`}>{sections.diary}</h2><div className="nav-group-links">
-      {showDiaryViews && <>
-        {link('/diaries', c.diaryLibrary, 'book', 'diary')}
-        {link('/timeline', c.timeline, 'timeline', 'timeline')}
-        {link('/calendar', c.calendar, 'calendar', 'calendar')}
-      </>}
-      {link('/reviews', c.reviewQueue, 'check', 'reviews', waiting ?? 0)}
-    </div><Disclosure className="nav-more" open={diary.open} onToggle={event => diary.remember(event.currentTarget.open)}>
-      <DisclosureSummary>{c.diaryManagement}</DisclosureSummary>
-      <div className="nav-group-links nav-secondary-links">
-        {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
-        {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
-        {link('/partners', c.partners, 'users', 'partners')}
-      </div>
-    </Disclosure></section>
-    {/* Tools and the public articles join the investing group rather than hold
+      <section className="nav-group" aria-labelledby={`${idPrefix}-diary`}>
+        <h2 id={`${idPrefix}-diary`}>{sections.diary}</h2>
+        <div className="nav-group-links">
+          {showDiaryViews && (
+            <>
+              {link('/diaries', c.diaryLibrary, 'book', 'diary')}
+              {link('/timeline', c.timeline, 'timeline', 'timeline')}
+              {link('/calendar', c.calendar, 'calendar', 'calendar')}
+            </>
+          )}
+          {link('/reviews', c.reviewQueue, 'check', 'reviews', waiting ?? 0)}
+        </div>
+        <Disclosure className="nav-more" open={diary.open} onToggle={event => diary.remember(event.currentTarget.open)}>
+          <DisclosureSummary>{c.diaryManagement}</DisclosureSummary>
+          <div className="nav-group-links nav-secondary-links">
+            {link('/reviews/ai-reports', c.aiReports, 'zap', 'aiReports')}
+            {link('/alerts', c.diaryReminders, 'bell', 'diaryReminders')}
+            {link('/partners', c.partners, 'users', 'partners')}
+          </div>
+        </Disclosure>
+      </section>
+      {/* Tools and the public articles join the investing group rather than hold
         a heading of their own: once the ticker field left, three rows were
         paying for a heading, a rule and the gap around them. */}
-    <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}><h2 id={`${idPrefix}-investing`}>{sections.investing}</h2><div className="nav-group-links">
-      {link('/stocks', c.holdings, 'briefcase', 'holdings')}
-      {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
-      {link('/gurus', label(locale, { en: 'Guru portfolios', 'zh-CN': '投资大师', 'zh-TW': '投資大師' }), 'layers', 'gurus')}
-      {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
-      {link('/tools', c.tools, 'wrench', 'tools')}
-      {link('/articles', c.publicArticles, 'fileText', 'articles')}
-    </div><Disclosure className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
-      <DisclosureSummary>{c.tradeManagement}</DisclosureSummary>
-      <div className="nav-group-links nav-secondary-links">
-        {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
-        {link('/discipline', c.principles, 'shield', 'discipline')}
-      </div>
-    </Disclosure>
-    <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
-    </section>
-    {/* Desktop renders these two in the pinned block at the foot of the column
+      <section className="nav-group" aria-labelledby={`${idPrefix}-investing`}>
+        <h2 id={`${idPrefix}-investing`}>{sections.investing}</h2>
+        <div className="nav-group-links">
+          {link('/stocks', c.holdings, 'briefcase', 'holdings')}
+          {link('/stocks/watchlist', c.watchlist, 'star', 'watchlist')}
+          {link(
+            '/gurus',
+            label(locale, { en: 'Guru portfolios', 'zh-CN': '投资大师', 'zh-TW': '投資大師' }),
+            'layers',
+            'gurus',
+          )}
+          {link('/trade-plans', c.tradePlans, 'clipboard', 'tradePlans')}
+          {link('/tools', c.tools, 'wrench', 'tools')}
+          {link('/articles', c.publicArticles, 'fileText', 'articles')}
+        </div>
+        <Disclosure className="nav-more" open={trade.open} onToggle={event => trade.remember(event.currentTarget.open)}>
+          <DisclosureSummary>{c.tradeManagement}</DisclosureSummary>
+          <div className="nav-group-links nav-secondary-links">
+            {link('/stocks/alerts', c.priceReminders, 'bell', 'priceReminders')}
+            {link('/discipline', c.principles, 'shield', 'discipline')}
+          </div>
+        </Disclosure>
+        <NavToolShortcuts onNavigate={onNavigate} forcedOpen={owner === 'tools' && location.pathname !== '/tools'} />
+      </section>
+      {/* Desktop renders these two in the pinned block at the foot of the column
         instead, where they are always visible; see `AccountLinks`. */}
-    {showAccount && <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}><h2 id={`${idPrefix}-account`}>{sections.account}</h2><div className="nav-group-links">
-      {link('/achievements', c.achievements, 'target', 'achievements')}
-      {link('/settings', c.settings, 'settings', 'settings')}
-    </div></section>}
-    {role === 'ADMIN' && <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}><h2 id={`${idPrefix}-admin`}>{sections.admin}</h2><Disclosure className="nav-more" open={admin.open} onToggle={event => admin.remember(event.currentTarget.open)}>
-      <DisclosureSummary>{sections.admin}</DisclosureSummary><div className="nav-group-links nav-secondary-links">
-      {link('/admin/blog', label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }), 'fileText', 'adminBlog')}
-      {link('/admin/users', label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }), 'users', 'adminUsers')}
-      {link('/admin/gurus', label(locale, { en: 'Guru management', 'zh-CN': '投资大师管理', 'zh-TW': '投資大師管理' }), 'layers', 'adminGurus')}
-      {link('/admin/institutional/mappings', label(locale, { en: 'Institutional mappings', 'zh-CN': '机构持仓映射', 'zh-TW': '機構持倉映射' }), 'layers', 'adminInstitutional')}
-      {link('/admin/ai', c.adminAi, 'compass', 'adminAi')}
-      {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
-      {link('/admin/etf', label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }), 'layers', 'adminEtf')}
-      {link('/admin/email-settings', c.adminEmail, 'settings', 'adminEmail')}
-    </div></Disclosure></section>}
-  </>
+      {showAccount && (
+        <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}>
+          <h2 id={`${idPrefix}-account`}>{sections.account}</h2>
+          <div className="nav-group-links">
+            {link('/achievements', c.achievements, 'target', 'achievements')}
+            {link('/settings', c.settings, 'settings', 'settings')}
+          </div>
+        </section>
+      )}
+      {role === 'ADMIN' && (
+        <section className="nav-group" aria-labelledby={`${idPrefix}-admin`}>
+          <h2 id={`${idPrefix}-admin`}>{sections.admin}</h2>
+          <Disclosure
+            className="nav-more"
+            open={admin.open}
+            onToggle={event => admin.remember(event.currentTarget.open)}
+          >
+            <DisclosureSummary>{sections.admin}</DisclosureSummary>
+            <div className="nav-group-links nav-secondary-links">
+              {link(
+                '/admin/blog',
+                label(locale, { en: 'Article management', 'zh-CN': '文章管理', 'zh-TW': '文章管理' }),
+                'fileText',
+                'adminBlog',
+              )}
+              {link(
+                '/admin/users',
+                label(locale, { en: 'User management', 'zh-CN': '用户管理', 'zh-TW': '用戶管理' }),
+                'users',
+                'adminUsers',
+              )}
+              {link(
+                '/admin/gurus',
+                label(locale, { en: 'Guru management', 'zh-CN': '投资大师管理', 'zh-TW': '投資大師管理' }),
+                'layers',
+                'adminGurus',
+              )}
+              {link(
+                '/admin/institutional/mappings',
+                label(locale, { en: 'Institutional mappings', 'zh-CN': '机构持仓映射', 'zh-TW': '機構持倉映射' }),
+                'layers',
+                'adminInstitutional',
+              )}
+              {link('/admin/ai', c.adminAi, 'compass', 'adminAi')}
+              {link('/admin/research', c.researchStudio, 'chart', 'adminResearch')}
+              {link(
+                '/admin/etf',
+                label(locale, { en: 'ETF catalog', 'zh-CN': 'ETF 目录管理', 'zh-TW': 'ETF 目錄管理' }),
+                'layers',
+                'adminEtf',
+              )}
+              {link('/admin/email-settings', c.adminEmail, 'settings', 'adminEmail')}
+            </div>
+          </Disclosure>
+        </section>
+      )}
+    </>
+  )
 }
 
 /**
@@ -260,14 +399,47 @@ export function AccountLinks({ onNavigate }: { onNavigate?: () => void }) {
   const owner = navigationOwner(location.pathname)
   const pendingPath = usePendingPathname()
   const pendingOwner = pendingPath === null ? null : navigationOwner(pendingPath)
-  const pending = (destination: NavigationOwner) => pendingOwner === destination && owner !== destination ? 'true' : undefined
-  return <>
-    <Link to="/achievements" onClick={onNavigate} aria-current={owner === 'achievements' ? 'page' : undefined} data-nav-pending={pending('achievements')}><Icon name="target" />{c.achievements}</Link>
-    <Link to="/settings" onClick={onNavigate} aria-current={owner === 'settings' ? 'page' : undefined} data-nav-pending={pending('settings')}><Icon name="settings" />{c.settings}</Link>
-  </>
+  const pending = (destination: NavigationOwner) =>
+    pendingOwner === destination && owner !== destination ? 'true' : undefined
+  return (
+    <>
+      <Link
+        to="/achievements"
+        onClick={onNavigate}
+        aria-current={owner === 'achievements' ? 'page' : undefined}
+        data-nav-pending={pending('achievements')}
+      >
+        <Icon name="target" />
+        {c.achievements}
+      </Link>
+      <Link
+        to="/settings"
+        onClick={onNavigate}
+        aria-current={owner === 'settings' ? 'page' : undefined}
+        data-nav-pending={pending('settings')}
+      >
+        <Icon name="settings" />
+        {c.settings}
+      </Link>
+    </>
+  )
 }
 
-export function MobileMenu({ role, authenticated, preferences, onLogout, logoutPending, logoutError }: { role: Role; authenticated: boolean | null; preferences: ReactNode; onLogout: () => void; logoutPending: boolean; logoutError: boolean }) {
+export function MobileMenu({
+  role,
+  authenticated,
+  preferences,
+  onLogout,
+  logoutPending,
+  logoutError,
+}: {
+  role: Role
+  authenticated: boolean | null
+  preferences: ReactNode
+  onLogout: () => void
+  logoutPending: boolean
+  logoutError: boolean
+}) {
   const { locale, t } = useUi()
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -287,34 +459,127 @@ export function MobileMenu({ role, authenticated, preferences, onLogout, logoutP
   useEffect(() => {
     const current = dialog.current
     if (!current) return
-    const onCancel = (event: Event) => { event.preventDefault(); close() }
+    const onCancel = (event: Event) => {
+      event.preventDefault()
+      close()
+    }
     current.addEventListener('cancel', onCancel)
     return () => current.removeEventListener('cancel', onCancel)
   })
-  return <>
-    <div className="mobile-shell-header">
-      <Link className="brand" to="/"><BrandMark size={26} /><div><span className="brand-name mobile-brand-name"><strong>Trade</strong> basic</span><span className="brand-sub">{t('workspace')}</span></div></Link>
-      {/* Search before Menu: on a phone the bottom bar owns the diary loop, so
+  return (
+    <>
+      <div className="mobile-shell-header">
+        <Link className="brand" to="/">
+          <BrandMark size={26} />
+          <div>
+            <span className="brand-name mobile-brand-name">
+              <strong>Trade</strong> basic
+            </span>
+            <span className="brand-sub">{t('workspace')}</span>
+          </div>
+        </Link>
+        {/* Search before Menu: on a phone the bottom bar owns the diary loop, so
           the top bar's job is reaching everything else — by name, or by list. */}
-      <div className="mobile-shell-actions">{authenticated === true && <CommandPaletteTrigger compact/>}<button type="button" className="secondary mobile-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{menu}</button></div>
-    </div>
-    <dialog ref={dialog} className="mobile-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="mobile-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
-      <div className="mobile-menu-panel">
-        <header className="mobile-menu-header"><h2 id="mobile-menu-title" tabIndex={-1}>{menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
-        {authenticated === true && <section className="mobile-menu-capture" aria-labelledby="mobile-capture-title"><h2 id="mobile-capture-title">{label(locale, { en: 'Capture', 'zh-CN': '记录', 'zh-TW': '記錄' })}</h2><div className="quick-entry-controls"><CaptureChoices mobile onNavigate={close}/></div></section>}
-        <nav aria-label={t('navigation')}><NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close} showDiaryViews={false}/></nav>
-        <div className="mobile-menu-preferences">{preferences}{(authenticated || logoutError || logoutPending) && <ActionButton type="button" className="secondary" data-testid="mobile-sign-out" pending={logoutPending} onClick={() => { close(); onLogout() }}>{t('logout')}</ActionButton>}</div>
+        <div className="mobile-shell-actions">
+          {authenticated === true && <CommandPaletteTrigger compact />}
+          <button
+            type="button"
+            className="secondary mobile-menu-trigger"
+            ref={trigger}
+            data-testid="mobile-menu"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={show}
+          >
+            {menu}
+          </button>
+        </div>
       </div>
-    </dialog>
-  </>
+      <dialog
+        ref={dialog}
+        className="mobile-menu-dialog"
+        data-testid="mobile-menu-dialog"
+        aria-labelledby="mobile-menu-title"
+        onClick={event => {
+          if (event.target === event.currentTarget) close()
+        }}
+      >
+        <div className="mobile-menu-panel">
+          <header className="mobile-menu-header">
+            <h2 id="mobile-menu-title" tabIndex={-1}>
+              {menu}
+            </h2>
+            <button type="button" className="secondary" onClick={close}>
+              {t('close')}
+            </button>
+          </header>
+          {authenticated === true && (
+            <section className="mobile-menu-capture" aria-labelledby="mobile-capture-title">
+              <h2 id="mobile-capture-title">{label(locale, { en: 'Capture', 'zh-CN': '记录', 'zh-TW': '記錄' })}</h2>
+              <div className="quick-entry-controls">
+                <CaptureChoices mobile onNavigate={close} />
+              </div>
+            </section>
+          )}
+          <nav aria-label={t('navigation')}>
+            <NavigationLinks role={role} idPrefix="mobile-nav" onNavigate={close} showDiaryViews={false} />
+          </nav>
+          <div className="mobile-menu-preferences">
+            {preferences}
+            {(authenticated || logoutError || logoutPending) && (
+              <ActionButton
+                type="button"
+                className="secondary"
+                data-testid="mobile-sign-out"
+                pending={logoutPending}
+                onClick={() => {
+                  close()
+                  onLogout()
+                }}
+              >
+                {t('logout')}
+              </ActionButton>
+            )}
+          </div>
+        </div>
+      </dialog>
+    </>
+  )
 }
 
 // ---- Public site navigation (single-row header + compact drawer) ----
 
 const publicCopy = {
-  'zh-TW': { tools: '工具', articles: '文章', guide: '使用說明', about: '關於', shortcuts: '工具快捷入口', menu: '選單', workspace: '返回工作區', manageArticles: '管理文章' },
-  'zh-CN': { tools: '工具', articles: '文章', guide: '使用说明', about: '关于', shortcuts: '工具快捷入口', menu: '菜单', workspace: '返回工作区', manageArticles: '管理文章' },
-  en: { tools: 'Tools', articles: 'Articles', guide: 'Guide', about: 'About', shortcuts: 'Tool shortcuts', menu: 'Menu', workspace: 'Workspace', manageArticles: 'Manage articles' },
+  'zh-TW': {
+    tools: '工具',
+    articles: '文章',
+    guide: '使用說明',
+    about: '關於',
+    shortcuts: '工具快捷入口',
+    menu: '選單',
+    workspace: '返回工作區',
+    manageArticles: '管理文章',
+  },
+  'zh-CN': {
+    tools: '工具',
+    articles: '文章',
+    guide: '使用说明',
+    about: '关于',
+    shortcuts: '工具快捷入口',
+    menu: '菜单',
+    workspace: '返回工作区',
+    manageArticles: '管理文章',
+  },
+  en: {
+    tools: 'Tools',
+    articles: 'Articles',
+    guide: 'Guide',
+    about: 'About',
+    shortcuts: 'Tool shortcuts',
+    menu: 'Menu',
+    workspace: 'Workspace',
+    manageArticles: 'Manage articles',
+  },
 } as const
 
 /** Tools text links to /tools; the chevron next to it discloses tool shortcuts from the shared TOOLS registry. */
@@ -326,36 +591,96 @@ function ToolsDisclosure({ onNavigate }: { onNavigate?: () => void }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (!open) return
-    const onPointerDown = (event: PointerEvent) => { if (!wrap.current?.contains(event.target as Node)) setOpen(false) }
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') { setOpen(false); trigger.current?.focus() } }
+    const onPointerDown = (event: PointerEvent) => {
+      if (!wrap.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+        trigger.current?.focus()
+      }
+    }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
-    return () => { document.removeEventListener('pointerdown', onPointerDown); document.removeEventListener('keydown', onKeyDown) }
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
-  return <div className="nav-tools" ref={wrap}>
-    <NavLink to="/tools" onClick={onNavigate}>{c.tools}</NavLink>
-    <button type="button" ref={trigger} className="nav-tools-trigger" aria-label={c.shortcuts} aria-expanded={open} aria-controls="tools-shortcuts" onClick={() => setOpen(v => !v)}><Icon name="chevronDown" size={16} /></button>
-    {open && <div className="tools-menu-panel" id="tools-shortcuts">
-      {TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={() => { setOpen(false); onNavigate?.() }}><Icon name={tool.icon} size={16} />{tool.name[locale]}</Link>)}
-    </div>}
-  </div>
+  return (
+    <div className="nav-tools" ref={wrap}>
+      <NavLink to="/tools" onClick={onNavigate}>
+        {c.tools}
+      </NavLink>
+      <button
+        type="button"
+        ref={trigger}
+        className="nav-tools-trigger"
+        aria-label={c.shortcuts}
+        aria-expanded={open}
+        aria-controls="tools-shortcuts"
+        onClick={() => setOpen(v => !v)}
+      >
+        <Icon name="chevronDown" size={16} />
+      </button>
+      {open && (
+        <div className="tools-menu-panel" id="tools-shortcuts">
+          {TOOLS.map(tool => (
+            <Link
+              key={tool.href}
+              to={tool.href}
+              onClick={() => {
+                setOpen(false)
+                onNavigate?.()
+              }}
+            >
+              <Icon name={tool.icon} size={16} />
+              {tool.name[locale]}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function PublicNavLinks({ onNavigate, disclosure = true }: { onNavigate?: () => void; disclosure?: boolean }) {
   const { locale } = useUi()
   const c = publicCopy[locale]
-  return <>
-    {disclosure ? <ToolsDisclosure onNavigate={onNavigate} /> : <NavLink to="/tools" onClick={onNavigate}>{c.tools}</NavLink>}
-    <NavLink to="/articles" onClick={onNavigate}>{c.articles}</NavLink>
-    <NavLink to="/guide" onClick={onNavigate}>{c.guide}</NavLink>
-    <NavLink to="/about" onClick={onNavigate}>{c.about}</NavLink>
-  </>
+  return (
+    <>
+      {disclosure ? (
+        <ToolsDisclosure onNavigate={onNavigate} />
+      ) : (
+        <NavLink to="/tools" onClick={onNavigate}>
+          {c.tools}
+        </NavLink>
+      )}
+      <NavLink to="/articles" onClick={onNavigate}>
+        {c.articles}
+      </NavLink>
+      <NavLink to="/guide" onClick={onNavigate}>
+        {c.guide}
+      </NavLink>
+      <NavLink to="/about" onClick={onNavigate}>
+        {c.about}
+      </NavLink>
+    </>
+  )
 }
 
 /** Compact public drawer: full navigation, the tool list, preferences and registration. */
 const PUBLIC_MENU_DESKTOP_MEDIA = '(min-width: 1024px)'
 
-export function PublicMenu({ preferences, authenticated, role }: { preferences: ReactNode; authenticated: boolean | null; role: Role }) {
+export function PublicMenu({
+  preferences,
+  authenticated,
+  role,
+}: {
+  preferences: ReactNode
+  authenticated: boolean | null
+  role: Role
+}) {
   const { locale, t } = useUi()
   const c = publicCopy[locale]
   const dialog = useRef<HTMLDialogElement>(null)
@@ -389,25 +714,81 @@ export function PublicMenu({ preferences, authenticated, role }: { preferences: 
   useEffect(() => {
     const current = dialog.current
     if (!current) return
-    const onCancel = (event: Event) => { event.preventDefault(); close() }
+    const onCancel = (event: Event) => {
+      event.preventDefault()
+      close()
+    }
     current.addEventListener('cancel', onCancel)
     return () => current.removeEventListener('cancel', onCancel)
   })
-  return <>
-    <button type="button" className="secondary mobile-menu-trigger public-menu-trigger" ref={trigger} data-testid="mobile-menu" aria-haspopup="dialog" aria-expanded={open} onClick={show}>{c.menu}</button>
-    <dialog ref={dialog} className="public-menu-dialog" data-testid="mobile-menu-dialog" aria-labelledby="public-menu-title" onClick={event => { if (event.target === event.currentTarget) close() }}>
-      <div className="public-menu-panel">
-        <header className="mobile-menu-header"><h2 id="public-menu-title" tabIndex={-1}>{c.menu}</h2><button type="button" className="secondary" onClick={close}>{t('close')}</button></header>
-        <nav aria-label={t('navigation')}><PublicNavLinks onNavigate={close} disclosure={false} /></nav>
-        <section aria-labelledby="public-menu-tools-title">
-          <h2 id="public-menu-tools-title" className="public-menu-tools-title">{c.tools}</h2>
-          <div className="public-menu-tools">{TOOLS.map(tool => <Link key={tool.href} to={tool.href} onClick={close}><Icon name={tool.icon} size={16} />{tool.name[locale]}</Link>)}</div>
-        </section>
-        <div className="public-menu-preferences">{preferences}{authenticated === true ? <>
-          {role === 'ADMIN' && <Link to="/admin/blog" onClick={close}>{c.manageArticles}</Link>}
-          <Link className="button secondary" to="/" onClick={close}>{c.workspace}</Link>
-        </> : <Link className="button" to="/register" onClick={close}>{t('register')}</Link>}</div>
-      </div>
-    </dialog>
-  </>
+  return (
+    <>
+      <button
+        type="button"
+        className="secondary mobile-menu-trigger public-menu-trigger"
+        ref={trigger}
+        data-testid="mobile-menu"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={show}
+      >
+        {c.menu}
+      </button>
+      <dialog
+        ref={dialog}
+        className="public-menu-dialog"
+        data-testid="mobile-menu-dialog"
+        aria-labelledby="public-menu-title"
+        onClick={event => {
+          if (event.target === event.currentTarget) close()
+        }}
+      >
+        <div className="public-menu-panel">
+          <header className="mobile-menu-header">
+            <h2 id="public-menu-title" tabIndex={-1}>
+              {c.menu}
+            </h2>
+            <button type="button" className="secondary" onClick={close}>
+              {t('close')}
+            </button>
+          </header>
+          <nav aria-label={t('navigation')}>
+            <PublicNavLinks onNavigate={close} disclosure={false} />
+          </nav>
+          <section aria-labelledby="public-menu-tools-title">
+            <h2 id="public-menu-tools-title" className="public-menu-tools-title">
+              {c.tools}
+            </h2>
+            <div className="public-menu-tools">
+              {TOOLS.map(tool => (
+                <Link key={tool.href} to={tool.href} onClick={close}>
+                  <Icon name={tool.icon} size={16} />
+                  {tool.name[locale]}
+                </Link>
+              ))}
+            </div>
+          </section>
+          <div className="public-menu-preferences">
+            {preferences}
+            {authenticated === true ? (
+              <>
+                {role === 'ADMIN' && (
+                  <Link to="/admin/blog" onClick={close}>
+                    {c.manageArticles}
+                  </Link>
+                )}
+                <Link className="button secondary" to="/" onClick={close}>
+                  {c.workspace}
+                </Link>
+              </>
+            ) : (
+              <Link className="button" to="/register" onClick={close}>
+                {t('register')}
+              </Link>
+            )}
+          </div>
+        </div>
+      </dialog>
+    </>
+  )
 }

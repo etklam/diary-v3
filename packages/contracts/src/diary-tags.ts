@@ -4,7 +4,9 @@ import { z } from 'zod'
  *  where the authoring surfaces display it rather than where it is stored. */
 export const RECENT_DIARY_TAG_LIMIT = 8
 
-export const recentDiaryTagsResponseSchema = z.object({
-  tags: z.array(z.string().min(1).max(100)).max(RECENT_DIARY_TAG_LIMIT),
-}).strict()
+export const recentDiaryTagsResponseSchema = z
+  .object({
+    tags: z.array(z.string().min(1).max(100)).max(RECENT_DIARY_TAG_LIMIT),
+  })
+  .strict()
 export type RecentDiaryTagsResponse = z.infer<typeof recentDiaryTagsResponseSchema>

@@ -1,14 +1,30 @@
 import { test, expect, selectLocale, selectTheme } from '../support/e2e'
 import { configureSyntheticAi } from '../support/ai-e2e'
 
-test('admin manages immutable defaults, synthetic testing, activation and rollback at desktop and mobile widths', async ({ page, browser }) => {
+test('admin manages immutable defaults, synthetic testing, activation and rollback at desktop and mobile widths', async ({
+  page,
+  browser,
+}) => {
   const provider = await configureSyntheticAi(browser)
   try {
-    expect((await page.request.post('/api/auth/login', { data: { email: 'ai-admin@example.test', password: 'synthetic-ai-admin-password' } })).status()).toBe(200)
+    expect(
+      (
+        await page.request.post('/api/auth/login', {
+          data: { email: 'ai-admin@example.test', password: 'synthetic-ai-admin-password' },
+        })
+      ).status(),
+    ).toBe(200)
     expect((await page.request.get('/api/auth/me')).status()).toBe(200)
     await page.setViewportSize({ width: 1440, height: 900 })
-    const preferences = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.request().method() === 'GET' && response.ok())
-    await page.goto('/admin/ai/prompts'); await preferences; await selectLocale(page, 'en')
+    const preferences = page.waitForResponse(
+      response =>
+        new URL(response.url()).pathname === '/api/user/settings' &&
+        response.request().method() === 'GET' &&
+        response.ok(),
+    )
+    await page.goto('/admin/ai/prompts')
+    await preferences
+    await selectLocale(page, 'en')
     await expect(page.getByRole('heading', { name: 'Prompt registry' })).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'User template', exact: true })).toHaveAttribute('readonly', '')
     await expect(page.getByRole('button', { name: 'Save new version', exact: true })).toHaveCount(0)
@@ -19,7 +35,9 @@ test('admin manages immutable defaults, synthetic testing, activation and rollba
     await page.getByRole('button', { name: 'Create from default', exact: true }).click()
     await expect(page.getByLabel('Version name', { exact: true })).toHaveValue('Custom prompt')
     await page.getByLabel('Version name', { exact: true }).fill('Synthetic weekly guidance')
-    await page.getByRole('textbox', { name: 'User template', exact: true }).fill('Review {{period_label}} in {{locale}}. Ask only evidence-based review questions.')
+    await page
+      .getByRole('textbox', { name: 'User template', exact: true })
+      .fill('Review {{period_label}} in {{locale}}. Ask only evidence-based review questions.')
     await expect(page.getByRole('button', { name: 'Run synthetic test', exact: true })).toBeDisabled()
     await page.getByRole('button', { name: 'Save new version', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Run synthetic test', exact: true })).toBeEnabled()
@@ -45,7 +63,8 @@ test('admin manages immutable defaults, synthetic testing, activation and rollba
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: 'docs/design/evidence/shared-prompts/override-1440.png', fullPage: true })
 
-    await page.setViewportSize({ width: 390, height: 844 }); await page.evaluate(() => scrollTo(0, 0))
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.evaluate(() => scrollTo(0, 0))
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: 'docs/design/evidence/shared-prompts/override-390.png', fullPage: true })
     await selectTheme(page, 'dark')
@@ -65,5 +84,7 @@ test('admin manages immutable defaults, synthetic testing, activation and rollba
     await expect(page.getByRole('heading', { name: '提示詞管理', exact: true })).toBeVisible()
     await selectLocale(page, 'zh-CN')
     await expect(page.getByRole('heading', { name: '提示词管理', exact: true })).toBeVisible()
-  } finally { await provider.close() }
+  } finally {
+    await provider.close()
+  }
 })

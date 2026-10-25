@@ -3,8 +3,12 @@ import { provisionTestDatabase } from '../support/database'
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 
-beforeAll(async () => { database = await provisionTestDatabase('mail_schema') })
-afterAll(async () => { await database?.dispose() })
+beforeAll(async () => {
+  database = await provisionTestDatabase('mail_schema')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 describe('SMTP and account email schema', () => {
   it('seeds one disabled singleton without changing existing users', async () => {
@@ -21,7 +25,9 @@ describe('SMTP and account email schema', () => {
   })
 
   it('allows one active token per purpose and normalized email', async () => {
-    const { rows: [user] } = await database.pool.query(
+    const {
+      rows: [user],
+    } = await database.pool.query(
       "insert into users(email,password) values ('mail-schema@example.test','synthetic') returning id",
     )
     const expiry = '2099-01-01T00:00:00.000Z'
@@ -32,27 +38,31 @@ describe('SMTP and account email schema', () => {
        values ('registration','mail-schema@example.test',$1,$2)`,
       [digestA, expiry],
     )
-    await expect(database.pool.query(
+    await expect(
+      database.pool.query(
+        `insert into account_email_token(purpose,normalized_email,token_digest,expires_at)
+       values ('registration','mail-schema@example.test',$1,$2)`,
+        [digestB, expiry],
+      ),
+    ).rejects.toMatchObject({ code: '23505' })
+
+    await database.pool.query('update account_email_token set consumed_at = $1 where token_digest = $2', [
+      '2026-09-26T00:00:00.000Z',
+      digestA,
+    ])
+    await database.pool.query(
       `insert into account_email_token(purpose,normalized_email,token_digest,expires_at)
        values ('registration','mail-schema@example.test',$1,$2)`,
       [digestB, expiry],
-    )).rejects.toMatchObject({ code: '23505' })
-
-    await database.pool.query(
-      'update account_email_token set consumed_at = $1 where token_digest = $2',
-      ['2026-09-26T00:00:00.000Z', digestA],
-    )
-    await database.pool.query(
-      `insert into account_email_token(purpose,normalized_email,token_digest,expires_at)
-       values ('registration','mail-schema@example.test',$1,$2)`,
-      [digestB, expiry],
     )
 
-    await expect(database.pool.query(
-      `insert into account_email_token(purpose,normalized_email,token_digest,expires_at)
+    await expect(
+      database.pool.query(
+        `insert into account_email_token(purpose,normalized_email,token_digest,expires_at)
        values ('registration','MAIL-SCHEMA@EXAMPLE.TEST',$1,$2)`,
-      ['c'.repeat(64), expiry],
-    )).rejects.toMatchObject({ code: '23514' })
+        ['c'.repeat(64), expiry],
+      ),
+    ).rejects.toMatchObject({ code: '23514' })
 
     await database.pool.query(
       `insert into account_email_token(purpose,normalized_email,user_id,token_digest,expires_at)
@@ -97,9 +107,11 @@ describe('SMTP and account email schema', () => {
     )
     const sent = await database.pool.query('select status, encrypted_payload from mail_outbox where id = $1', [id])
     expect(sent.rows[0]).toEqual({ status: 'sent', encrypted_payload: null })
-    await expect(database.pool.query(
-      `insert into mail_outbox(kind,recipient_email,locale,expires_at)
+    await expect(
+      database.pool.query(
+        `insert into mail_outbox(kind,recipient_email,locale,expires_at)
        values ('admin_test','admin@example.test','en','2099-01-01T00:00:00.000Z')`,
-    )).rejects.toMatchObject({ code: '23514' })
+      ),
+    ).rejects.toMatchObject({ code: '23514' })
   })
 })

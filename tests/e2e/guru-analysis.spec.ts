@@ -4,8 +4,13 @@ import { selectLocale } from '../support/e2e.js'
 
 const slug = 'synthetic-guru'
 const caveatIds = [
-  'DELAYED_QUARTER_END', 'TRADE_DATES_UNKNOWN', 'SHORT_POSITIONS_UNDISCLOSED', 'DERIVATIVES_MAY_BE_ABSENT',
-  'CONFIDENTIAL_TREATMENT', 'VALUE_CHANGE_IS_NOT_A_TRADE', 'NOT_A_COMPLETE_PORTFOLIO',
+  'DELAYED_QUARTER_END',
+  'TRADE_DATES_UNKNOWN',
+  'SHORT_POSITIONS_UNDISCLOSED',
+  'DERIVATIVES_MAY_BE_ABSENT',
+  'CONFIDENTIAL_TREATMENT',
+  'VALUE_CHANGE_IS_NOT_A_TRADE',
+  'NOT_A_COMPLETE_PORTFOLIO',
 ]
 const caveatText: Record<string, string> = {
   DELAYED_QUARTER_END: 'Form 13F is a delayed disclosure and reports holdings as of the quarter end, not today.',
@@ -21,32 +26,79 @@ const facts = [
   { id: 'concentration.topTen', label: 'Top ten concentration (%)', value: '100.00000000' },
   { id: 'turnover.band', label: 'Turnover band', value: 'MODERATE' },
 ]
-const statement = (text: string, kind: 'fact' | 'interpretation', factRefs: string[] = []) => ({ text, kind, factRefs, positionKeys: [] })
+const statement = (text: string, kind: 'fact' | 'interpretation', factRefs: string[] = []) => ({
+  text,
+  kind,
+  factRefs,
+  positionKeys: [],
+})
 const analysis = {
-  executiveSummary: [statement('Reported value held at 1,000,000 USD for the quarter.', 'fact', ['portfolio.reportedValueUsd'])],
+  executiveSummary: [
+    statement('Reported value held at 1,000,000 USD for the quarter.', 'fact', ['portfolio.reportedValueUsd']),
+  ],
   portfolioDirection: [statement('The disclosed book stayed concentrated in its largest names.', 'interpretation')],
-  convictionPositions: [], newPositions: [], increasedPositions: [], reducedPositions: [], exitedPositions: [],
-  sectorAndThemeChange: [], concentrationChange: [statement('Top ten weight remained at 100%.', 'fact', ['concentration.topTen'])],
-  turnoverInterpretation: [], historicalContext: [], consensusContext: [],
+  convictionPositions: [],
+  newPositions: [],
+  increasedPositions: [],
+  reducedPositions: [],
+  exitedPositions: [],
+  sectorAndThemeChange: [],
+  concentrationChange: [statement('Top ten weight remained at 100%.', 'fact', ['concentration.topTen'])],
+  turnoverInterpretation: [],
+  historicalContext: [],
+  consensusContext: [],
   risks: [statement('The quarter cannot show intra-quarter trading.', 'interpretation')],
   takeaways: [statement('Read the holdings table for the exact disclosed positions.', 'interpretation')],
   caveatIds,
 }
 const provenance = {
-  runId: '41', periodEnd: '2026-06-30', status: 'succeeded', sourceState: 'current', reason: 'INITIAL',
-  schemaVersion: 'guru-analysis-v1', contextVersion: 'guru-analysis-context-v1', analyticsVersion: 'guru-portfolio-analytics-v1',
-  consensusVersion: 'guru-consensus-v1', inputHash: 'a'.repeat(64), promptKey: 'guru.analysis', promptSource: 'system-default',
-  promptSystemVersion: 'guru-analysis-system-v1', promptOverrideVersionId: null, provider: 'Synthetic', model: 'fixture-model',
-  inputTokens: 420, outputTokens: 90, latencyMs: 1200, errorCode: null,
-  queuedAt: '2026-08-15T12:00:00.000Z', generatedAt: '2026-08-15T12:00:05.000Z',
+  runId: '41',
+  periodEnd: '2026-06-30',
+  status: 'succeeded',
+  sourceState: 'current',
+  reason: 'INITIAL',
+  schemaVersion: 'guru-analysis-v1',
+  contextVersion: 'guru-analysis-context-v1',
+  analyticsVersion: 'guru-portfolio-analytics-v1',
+  consensusVersion: 'guru-consensus-v1',
+  inputHash: 'a'.repeat(64),
+  promptKey: 'guru.analysis',
+  promptSource: 'system-default',
+  promptSystemVersion: 'guru-analysis-system-v1',
+  promptOverrideVersionId: null,
+  provider: 'Synthetic',
+  model: 'fixture-model',
+  inputTokens: 420,
+  outputTokens: 90,
+  latencyMs: 1200,
+  errorCode: null,
+  queuedAt: '2026-08-15T12:00:00.000Z',
+  generatedAt: '2026-08-15T12:00:05.000Z',
 }
 const payload = (overrides: Record<string, unknown> = {}) => ({
   data: {
     profile: { name: 'Warren Buffett', managerName: 'Berkshire Hathaway', slug },
-    periodEnd: '2026-06-30', state: 'READY',
-    coverage: { quarterStatus: 'READY', mappingCoveragePercent: '100.00000000', comparisonStatus: 'COMPARABLE', consensusAvailable: true, historyQuarterCount: 1, notes: [] },
-    facts, analysis, caveats: caveatIds.map(id => ({ id, text: caveatText[id]! })), provenance, history: [provenance],
-    source: { accession: '0000000001-26-000002', periodEnd: '2026-06-30', filedAt: '2026-08-14T20:00:00.000Z', sourceUrl: 'https://www.sec.gov/Archives/fixture/0000000001-26-000002' },
+    periodEnd: '2026-06-30',
+    state: 'READY',
+    coverage: {
+      quarterStatus: 'READY',
+      mappingCoveragePercent: '100.00000000',
+      comparisonStatus: 'COMPARABLE',
+      consensusAvailable: true,
+      historyQuarterCount: 1,
+      notes: [],
+    },
+    facts,
+    analysis,
+    caveats: caveatIds.map(id => ({ id, text: caveatText[id]! })),
+    provenance,
+    history: [provenance],
+    source: {
+      accession: '0000000001-26-000002',
+      periodEnd: '2026-06-30',
+      filedAt: '2026-08-14T20:00:00.000Z',
+      sourceUrl: 'https://www.sec.gov/Archives/fixture/0000000001-26-000002',
+    },
     ...overrides,
   },
 })
@@ -57,10 +109,21 @@ test('reads the Guru AI analysis with separated facts, disclosures and generatio
   await page.route(`**/api/gurus/${slug}/analysis*`, async route => {
     const overrides: Record<string, unknown> = { state }
     if (state === 'QUEUED') Object.assign(overrides, { analysis: null, provenance: null, history: [] })
-    if (state === 'BLOCKED_BY_COVERAGE') Object.assign(overrides, {
-      analysis: null, provenance: null, history: [], facts: [],
-      coverage: { quarterStatus: 'PARTIAL', mappingCoveragePercent: null, comparisonStatus: null, consensusAvailable: false, historyQuarterCount: 0, notes: ['QUARTER_NOT_READY'] },
-    })
+    if (state === 'BLOCKED_BY_COVERAGE')
+      Object.assign(overrides, {
+        analysis: null,
+        provenance: null,
+        history: [],
+        facts: [],
+        coverage: {
+          quarterStatus: 'PARTIAL',
+          mappingCoveragePercent: null,
+          comparisonStatus: null,
+          consensusAvailable: false,
+          historyQuarterCount: 0,
+          notes: ['QUARTER_NOT_READY'],
+        },
+      })
     if (state === 'STALE') Object.assign(overrides, { provenance: { ...provenance, sourceState: 'invalidated' } })
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload(overrides)) })
   })
@@ -76,8 +139,12 @@ test('reads the Guru AI analysis with separated facts, disclosures and generatio
   await expect(page.locator('.guru-analysis-facts')).toContainText('100.00%')
   await expect(page.locator('.guru-analysis-facts')).not.toContainText('100.00000000')
   await expect(page.getByRole('heading', { name: 'Executive summary' })).toBeVisible()
-  await expect(page.locator('.guru-analysis-statements > li.is-fact').first()).toContainText('Reported value held at 1,000,000 USD')
-  await expect(page.locator('.guru-analysis-statements .guru-analysis-kind.is-fact').first()).toHaveText('Prepared fact')
+  await expect(page.locator('.guru-analysis-statements > li.is-fact').first()).toContainText(
+    'Reported value held at 1,000,000 USD',
+  )
+  await expect(page.locator('.guru-analysis-statements .guru-analysis-kind.is-fact').first()).toHaveText(
+    'Prepared fact',
+  )
   await expect(page.getByText('Cites: portfolio.reportedValueUsd')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'What 13F cannot tell you' })).toBeVisible()
   for (const id of caveatIds) await expect(page.locator('.guru-analysis-caveats')).toContainText(caveatText[id]!)

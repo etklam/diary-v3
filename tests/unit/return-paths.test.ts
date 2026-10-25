@@ -13,13 +13,22 @@ const NON_DESTINATIONS = new Set([
   '/',
   // Authentication and recovery pages: returning to them after signing in
   // would loop.
-  '/login', '/register', '/register/complete', '/forgot-password', '/reset-password',
+  '/login',
+  '/register',
+  '/register/complete',
+  '/forgot-password',
+  '/reset-password',
   // Public marketing and reference pages with nothing to resume.
-  '/about', '/guide',
+  '/about',
+  '/guide',
   // A public share target that is read without an account.
   '/discipline/share',
   // Redirect shims, machine endpoints, and the internal design preview.
-  '/blog', '/blog/:slug', '/sitemap.xml', '/robots.txt', '/design-preview',
+  '/blog',
+  '/blog/:slug',
+  '/sitemap.xml',
+  '/robots.txt',
+  '/design-preview',
 ])
 
 const PARAMETER_SAMPLES: Record<string, string> = {
@@ -38,12 +47,15 @@ function routePaths(): string[] {
 }
 
 function sampleFor(path: string): string {
-  return path.split('/').map(segment => {
-    if (!segment.startsWith(':')) return segment
-    const sample = PARAMETER_SAMPLES[segment]
-    if (!sample) throw new Error(`No sample value for route parameter ${segment}`)
-    return sample
-  }).join('/')
+  return path
+    .split('/')
+    .map(segment => {
+      if (!segment.startsWith(':')) return segment
+      const sample = PARAMETER_SAMPLES[segment]
+      if (!sample) throw new Error(`No sample value for route parameter ${segment}`)
+      return sample
+    })
+    .join('/')
 }
 
 describe('sign-in return destinations', () => {

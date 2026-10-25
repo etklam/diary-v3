@@ -1,107 +1,178 @@
-import { randomUUID } from 'node:crypto';
-import { acceptConfirmation, cancelConfirmation, confirmation, expect, selectLocale, selectTheme, signOut, test } from '../support/e2e';
-for (const width of [1440, 390]) test(`Evidence capture and immutable retry at ${width}px`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 });
-  const email = `evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
-  await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectLocale(page, 'en'); await page.goto('/stocks/UNKNOWN');
-  const evidence = page.getByRole('region', { name: 'Research evidence', exact: true });
-  await expect(evidence.getByText('No evidence captured yet.', { exact: true })).toBeVisible();
-  // Ticket 110: on a company page the recorded timeline stands and the capture
-  // form is deferred, so five empty controls no longer sit open mid-page.
-  await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0);
-  await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click();
-  await evidence.getByLabel('Evidence summary').fill('Synthetic research, even without a quote.');
-  await evidence.getByLabel('Source type').selectOption('ARTICLE');
-  await evidence.getByLabel('Occurred at (UTC)').fill('2026-09-05T10:30');
-  await evidence.getByLabel('Source title').fill('A durable source');
-  await evidence.getByLabel('Source URL').fill('https://example.test/research');
-  let firstKey = '';
-  await page.route('**/api/stocks/UNKNOWN/evidence', async route => {
-    firstKey = route.request().postDataJSON().idempotencyKey;
-    const committed = await route.fetch(); expect(committed.status()).toBe(200);
-    await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'lost-response' } }) });
-  });
-  await evidence.getByRole('button', { name: 'Capture evidence', exact: true }).click();
-  await expect(evidence.getByLabel('Evidence summary')).toBeDisabled(); await expect(evidence.getByTestId('request-id')).toHaveText('lost-response');
-  await page.unroute('**/api/stocks/UNKNOWN/evidence');
-  let retryKey = '';
-  await page.route('**/api/stocks/UNKNOWN/evidence', async route => { retryKey = route.request().postDataJSON().idempotencyKey; await route.continue(); });
-  await evidence.getByRole('button', { name: 'Retry this capture', exact: true }).click();
-  await expect.poll(() => retryKey).toBe(firstKey);
-  await expect(evidence.getByTestId('evidence-record')).toHaveCount(1);
-  await expect(evidence.getByTestId('evidence-record')).toContainText('Synthetic research, even without a quote.');
-  await expect(evidence.getByTestId('evidence-record')).toContainText('6:30 PM · Asia/Taipei');
-  await expect(evidence.getByTestId('evidence-record').getByRole('link', { name: 'Read source', exact: true })).toHaveAttribute('href', 'https://example.test/research');
-  await page.reload(); await expect(evidence.getByTestId('evidence-record')).toHaveCount(1);
-  if (width === 390) await selectTheme(page, 'dark');
-  await evidence.screenshot({ path: `docs/design/evidence/capture/${width}.png` });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  for (const [locale, title] of [['zh-TW', '研究證據'], ['zh-CN', '研究证据'], ['en', 'Research evidence']] as const) { await selectLocale(page, locale); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible(); }
-  await page.goto('/stocks/watchlist'); await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Research records: 1'); await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Synthetic research, even without a quote.');
-  await page.goto('/stocks/UNKNOWN'); await expect(evidence.getByTestId('evidence-record')).toHaveCount(1); await signOut(page); await expect(page.getByTestId('evidence-record')).toHaveCount(0);
-});
+import { randomUUID } from 'node:crypto'
+import {
+  acceptConfirmation,
+  cancelConfirmation,
+  confirmation,
+  expect,
+  selectLocale,
+  selectTheme,
+  signOut,
+  test,
+} from '../support/e2e'
+for (const width of [1440, 390])
+  test(`Evidence capture and immutable retry at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const email = `evidence-${randomUUID()}@example.test`,
+      password = 'synthetic-evidence-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
+    await page.goto('/stocks/UNKNOWN')
+    const evidence = page.getByRole('region', { name: 'Research evidence', exact: true })
+    await expect(evidence.getByText('No evidence captured yet.', { exact: true })).toBeVisible()
+    // Ticket 110: on a company page the recorded timeline stands and the capture
+    // form is deferred, so five empty controls no longer sit open mid-page.
+    await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0)
+    await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click()
+    await evidence.getByLabel('Evidence summary').fill('Synthetic research, even without a quote.')
+    await evidence.getByLabel('Source type').selectOption('ARTICLE')
+    await evidence.getByLabel('Occurred at (UTC)').fill('2026-09-05T10:30')
+    await evidence.getByLabel('Source title').fill('A durable source')
+    await evidence.getByLabel('Source URL').fill('https://example.test/research')
+    let firstKey = ''
+    await page.route('**/api/stocks/UNKNOWN/evidence', async route => {
+      firstKey = route.request().postDataJSON().idempotencyKey
+      const committed = await route.fetch()
+      expect(committed.status()).toBe(200)
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'lost-response' } }),
+      })
+    })
+    await evidence.getByRole('button', { name: 'Capture evidence', exact: true }).click()
+    await expect(evidence.getByLabel('Evidence summary')).toBeDisabled()
+    await expect(evidence.getByTestId('request-id')).toHaveText('lost-response')
+    await page.unroute('**/api/stocks/UNKNOWN/evidence')
+    let retryKey = ''
+    await page.route('**/api/stocks/UNKNOWN/evidence', async route => {
+      retryKey = route.request().postDataJSON().idempotencyKey
+      await route.continue()
+    })
+    await evidence.getByRole('button', { name: 'Retry this capture', exact: true }).click()
+    await expect.poll(() => retryKey).toBe(firstKey)
+    await expect(evidence.getByTestId('evidence-record')).toHaveCount(1)
+    await expect(evidence.getByTestId('evidence-record')).toContainText('Synthetic research, even without a quote.')
+    await expect(evidence.getByTestId('evidence-record')).toContainText('6:30 PM · Asia/Taipei')
+    await expect(
+      evidence.getByTestId('evidence-record').getByRole('link', { name: 'Read source', exact: true }),
+    ).toHaveAttribute('href', 'https://example.test/research')
+    await page.reload()
+    await expect(evidence.getByTestId('evidence-record')).toHaveCount(1)
+    if (width === 390) await selectTheme(page, 'dark')
+    await evidence.screenshot({ path: `docs/design/evidence/capture/${width}.png` })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    for (const [locale, title] of [
+      ['zh-TW', '研究證據'],
+      ['zh-CN', '研究证据'],
+      ['en', 'Research evidence'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
+    }
+    await page.goto('/stocks/watchlist')
+    await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Research records: 1')
+    await expect(page.getByTestId('watch-UNKNOWN')).toContainText('Synthetic research, even without a quote.')
+    await page.goto('/stocks/UNKNOWN')
+    await expect(evidence.getByTestId('evidence-record')).toHaveCount(1)
+    await signOut(page)
+    await expect(page.getByTestId('evidence-record')).toHaveCount(0)
+  })
 
-for (const width of [1440, 390]) test(`Diary evidence retains captured summary and opens its original source at ${width}px`, async ({ page, context }) => {
-  await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-  const email = `diary-evidence-${randomUUID()}@example.test`, password = 'synthetic-evidence-password';
-  await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/);
-  await selectLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  const created = await page.request.post('/api/diaries', { headers, data: { title: 'Original source diary', content: 'Original reasoning', date: '2026-09-05' } });
-  expect(created.status()).toBe(201); const diary = await created.json();
-  await page.goto(`/diaries/${diary.id}`);
-  const evidence = page.getByRole('region', { name: 'Research evidence', exact: true });
-  await expect(evidence.getByRole('button', { name: 'Add research evidence', exact: true })).toBeVisible();
-  await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0);
-  await evidence.screenshot({ path: `docs/design/evidence/convenience-follow-up/evidence-${width}-collapsed.png` });
-  await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click();
-  await expect(evidence.getByLabel('Company symbol')).toBeFocused();
-  await expect(evidence.getByLabel('Source title')).toHaveValue('Original source diary');
-  await expect(evidence.getByLabel('Source URL')).toHaveValue(new RegExp(`/diaries/${diary.id}$`));
-  await evidence.getByLabel('Company symbol').fill('AAPL');
-  await evidence.getByLabel('Evidence summary').fill('Frozen evidence before the diary changed.');
-  await evidence.getByRole('button', { name: 'Close capture', exact: true }).click();
-  await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0);
-  await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click();
-  await expect(evidence.getByLabel('Evidence summary')).toHaveValue('Frozen evidence before the diary changed.');
+for (const width of [1440, 390])
+  test(`Diary evidence retains captured summary and opens its original source at ${width}px`, async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 })
+    const email = `diary-evidence-${randomUUID()}@example.test`,
+      password = 'synthetic-evidence-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
+    const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+    const created = await page.request.post('/api/diaries', {
+      headers,
+      data: { title: 'Original source diary', content: 'Original reasoning', date: '2026-09-05' },
+    })
+    expect(created.status()).toBe(201)
+    const diary = await created.json()
+    await page.goto(`/diaries/${diary.id}`)
+    const evidence = page.getByRole('region', { name: 'Research evidence', exact: true })
+    await expect(evidence.getByRole('button', { name: 'Add research evidence', exact: true })).toBeVisible()
+    await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0)
+    await evidence.screenshot({ path: `docs/design/evidence/convenience-follow-up/evidence-${width}-collapsed.png` })
+    await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click()
+    await expect(evidence.getByLabel('Company symbol')).toBeFocused()
+    await expect(evidence.getByLabel('Source title')).toHaveValue('Original source diary')
+    await expect(evidence.getByLabel('Source URL')).toHaveValue(new RegExp(`/diaries/${diary.id}$`))
+    await evidence.getByLabel('Company symbol').fill('AAPL')
+    await evidence.getByLabel('Evidence summary').fill('Frozen evidence before the diary changed.')
+    await evidence.getByRole('button', { name: 'Close capture', exact: true }).click()
+    await expect(evidence.getByLabel('Evidence summary')).toHaveCount(0)
+    await evidence.getByRole('button', { name: 'Add research evidence', exact: true }).click()
+    await expect(evidence.getByLabel('Evidence summary')).toHaveValue('Frozen evidence before the diary changed.')
 
-  // A changed collapsed capture blocks in-app navigation until the user
-  // explicitly chooses whether to discard the unfinished record.
-  const timelineTarget = width < 768
-    ? page.getByTestId('mobile-diary-navigation').getByRole('link', { name: 'Timeline', exact: true })
-    : page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true });
-  await timelineTarget.click({ noWaitAfter: true });
-  await expect(confirmation(page)).toContainText('You have unsaved evidence. Leave this page?');
-  await cancelConfirmation(page);
-  await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`));
-  await expect(evidence.getByLabel('Evidence summary')).toHaveValue('Frozen evidence before the diary changed.');
+    // A changed collapsed capture blocks in-app navigation until the user
+    // explicitly chooses whether to discard the unfinished record.
+    const timelineTarget =
+      width < 768
+        ? page.getByTestId('mobile-diary-navigation').getByRole('link', { name: 'Timeline', exact: true })
+        : page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true })
+    await timelineTarget.click({ noWaitAfter: true })
+    await expect(confirmation(page)).toContainText('You have unsaved evidence. Leave this page?')
+    await cancelConfirmation(page)
+    await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`))
+    await expect(evidence.getByLabel('Evidence summary')).toHaveValue('Frozen evidence before the diary changed.')
 
-  await timelineTarget.click({ noWaitAfter: true });
-  await acceptConfirmation(page);
-  await expect(page).toHaveURL(/\/timeline$/);
-  await page.goto(`/diaries/${diary.id}`);
-  const reopenedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true });
-  await reopenedEvidence.getByRole('button', { name: 'Add research evidence', exact: true }).click();
-  await reopenedEvidence.getByLabel('Company symbol').fill('AAPL');
-  await reopenedEvidence.getByLabel('Evidence summary').fill('Frozen evidence before the diary changed.');
-  await reopenedEvidence.getByRole('button', { name: 'Capture evidence', exact: true }).click();
-  await expect(reopenedEvidence.getByText('Evidence captured.', { exact: true })).toBeVisible();
-  await expect(reopenedEvidence.getByTestId('evidence-destination')).toHaveAttribute('href', new RegExp(`/diaries/${diary.id}$`));
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  await page.screenshot({ path: `docs/design/evidence/convenience-follow-up/evidence-${width}-expanded.png`, fullPage: true });
-  expect((await page.request.put(`/api/diaries/${diary.id}`, { headers, data: { title: 'Updated source diary', content: 'Later reasoning' } })).status()).toBe(200);
-  await page.goto('/stocks/AAPL');
-  const record = page.getByTestId('evidence-record');
-  await expect(record).toContainText('Frozen evidence before the diary changed.'); await expect(record).toContainText('Original source diary');
-  const popup = page.waitForEvent('popup'); await record.getByRole('link', { name: 'Read source', exact: true }).click();
-  const source = await popup; await expect(source).toHaveURL(new RegExp(`/diaries/${diary.id}$`)); await expect(source.getByRole('heading', { name: 'Updated source diary', exact: true })).toBeVisible(); await source.close();
-  expect((await page.request.delete(`/api/diaries/${diary.id}`, { headers })).status()).toBe(200);
-  await page.reload(); await expect(page.getByTestId('evidence-record')).toContainText('Frozen evidence before the diary changed.');
-});
+    await timelineTarget.click({ noWaitAfter: true })
+    await acceptConfirmation(page)
+    await expect(page).toHaveURL(/\/timeline$/)
+    await page.goto(`/diaries/${diary.id}`)
+    const reopenedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true })
+    await reopenedEvidence.getByRole('button', { name: 'Add research evidence', exact: true }).click()
+    await reopenedEvidence.getByLabel('Company symbol').fill('AAPL')
+    await reopenedEvidence.getByLabel('Evidence summary').fill('Frozen evidence before the diary changed.')
+    await reopenedEvidence.getByRole('button', { name: 'Capture evidence', exact: true }).click()
+    await expect(reopenedEvidence.getByText('Evidence captured.', { exact: true })).toBeVisible()
+    await expect(reopenedEvidence.getByTestId('evidence-destination')).toHaveAttribute(
+      'href',
+      new RegExp(`/diaries/${diary.id}$`),
+    )
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+    await page.screenshot({
+      path: `docs/design/evidence/convenience-follow-up/evidence-${width}-expanded.png`,
+      fullPage: true,
+    })
+    expect(
+      (
+        await page.request.put(`/api/diaries/${diary.id}`, {
+          headers,
+          data: { title: 'Updated source diary', content: 'Later reasoning' },
+        })
+      ).status(),
+    ).toBe(200)
+    await page.goto('/stocks/AAPL')
+    const record = page.getByTestId('evidence-record')
+    await expect(record).toContainText('Frozen evidence before the diary changed.')
+    await expect(record).toContainText('Original source diary')
+    const popup = page.waitForEvent('popup')
+    await record.getByRole('link', { name: 'Read source', exact: true }).click()
+    const source = await popup
+    await expect(source).toHaveURL(new RegExp(`/diaries/${diary.id}$`))
+    await expect(source.getByRole('heading', { name: 'Updated source diary', exact: true })).toBeVisible()
+    await source.close()
+    expect((await page.request.delete(`/api/diaries/${diary.id}`, { headers })).status()).toBe(200)
+    await page.reload()
+    await expect(page.getByTestId('evidence-record')).toContainText('Frozen evidence before the diary changed.')
+  })

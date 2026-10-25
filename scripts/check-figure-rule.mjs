@@ -12,14 +12,14 @@
 // `tests/unit/figure-formatting-boundary.test.ts` guards which function formats
 // a figure; this guards what face the figure renders in. Both are needed.
 
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import console from 'node:console';
-import process from 'node:process';
-import { dirname, join, relative } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import console from 'node:console'
+import process from 'node:process'
+import { dirname, join, relative } from 'node:path'
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const appDir = join(root, 'apps/web/app');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const appDir = join(root, 'apps/web/app')
 
 // Blocks that legitimately ask for tabular figures without being a figure
 // surface: containers whose own text is prose, pagination and status lines, and
@@ -54,84 +54,114 @@ const allowed = new Map([
   ['routes/ai-reports.css::.ai-quota', 'sentence'],
   // Table rules that style `th` alongside `td`: the column labels are prose, so
   // the family is set on a `tbody td` rule beside each of these instead.
-  ['market-research.css::.market-scenario-table th, .market-scenario-table td, .market-history-table th, .market-history-table td', 'th are labels; tbody td rule carries the family'],
-  ['market-research.css::.seasonality-table th:nth-child(2), .seasonality-table td:nth-child(2)', 'th is a label; tbody td rule carries the family'],
-  ['position-sizing.css::.position-sizing-table td, .position-sizing-table th', 'th are labels; tbody rule carries the family'],
-  ['routes/sec-filings.css::.sec-filing-table th, .sec-filing-table td', 'th are labels; tbody td rule carries the family'],
-  ['routes/market-rotation.css::.rotation-table-scroll th:nth-child(n+4), .rotation-table-scroll td:nth-child(n+4)', 'th are labels; tbody rule carries the family'],
-  ['routes/market-rotation.css::.rotation-history-scroll th:not(:first-child), .rotation-history-scroll td:not(:first-child)', 'th are labels; tbody rule carries the family'],
+  [
+    'market-research.css::.market-scenario-table th, .market-scenario-table td, .market-history-table th, .market-history-table td',
+    'th are labels; tbody td rule carries the family',
+  ],
+  [
+    'market-research.css::.seasonality-table th:nth-child(2), .seasonality-table td:nth-child(2)',
+    'th is a label; tbody td rule carries the family',
+  ],
+  [
+    'position-sizing.css::.position-sizing-table td, .position-sizing-table th',
+    'th are labels; tbody rule carries the family',
+  ],
+  [
+    'routes/sec-filings.css::.sec-filing-table th, .sec-filing-table td',
+    'th are labels; tbody td rule carries the family',
+  ],
+  [
+    'routes/market-rotation.css::.rotation-table-scroll th:nth-child(n+4), .rotation-table-scroll td:nth-child(n+4)',
+    'th are labels; tbody rule carries the family',
+  ],
+  [
+    'routes/market-rotation.css::.rotation-history-scroll th:not(:first-child), .rotation-history-scroll td:not(:first-child)',
+    'th are labels; tbody rule carries the family',
+  ],
   ['ledger.css::.holdings-table table', 'table-level spacing; tbody rule carries the family'],
-  ['portfolio-exposure.css::.portfolio-exposure-table-scroll table', 'table-level spacing; tbody rule carries the family'],
+  [
+    'portfolio-exposure.css::.portfolio-exposure-table-scroll table',
+    'table-level spacing; tbody rule carries the family',
+  ],
   ['stock-guru-panel.css::.stock-guru-chart-row', 'grid container; figures are in child spans'],
   ['trade-plan.css::.execution-selected-list li', 'grid row container'],
-]);
+])
 
 function cssFiles(dir) {
-  const out = [];
+  const out = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...cssFiles(path));
-    else if (entry.name.endsWith('.css')) out.push(path);
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...cssFiles(path))
+    else if (entry.name.endsWith('.css')) out.push(path)
   }
-  return out;
+  return out
 }
 
-const failures = [];
-let checked = 0;
-let exempt = 0;
-const seen = new Set();
+const failures = []
+let checked = 0
+let exempt = 0
+const seen = new Set()
 
 for (const file of cssFiles(appDir)) {
-  const name = relative(appDir, file);
-  const css = readFileSync(file, 'utf8');
-  let offset = 0;
+  const name = relative(appDir, file)
+  const css = readFileSync(file, 'utf8')
+  let offset = 0
   for (const block of css.split('}')) {
-    const start = offset;
-    offset += block.length + 1;
-    if (!block.includes('tabular-nums')) continue;
-    const brace = block.lastIndexOf('{');
-    if (brace === -1) continue;
+    const start = offset
+    offset += block.length + 1
+    if (!block.includes('tabular-nums')) continue
+    const brace = block.lastIndexOf('{')
+    if (brace === -1) continue
     // Splitting on "}" can start a block mid-comment, so drop everything up to
     // the last comment close, then normalise the selector to single spaces.
-    const head = block.slice(0, brace);
-    const commentEnd = head.lastIndexOf('*/');
+    //
+    // Whitespace inside a functional selector is also normalised away:
+    // `nth-child(n+4)` and `nth-child(n + 4)` are the same selector, and a
+    // formatter is free to choose between them. Keying the exemptions on one
+    // spelling made a reformat look like a Figure Rule violation.
+    const head = block.slice(0, brace)
+    const commentEnd = head.lastIndexOf('*/')
     const selector = head
       .slice(commentEnd === -1 ? 0 : commentEnd + 2)
       .replace(/\/\*[\s\S]*?\*\//g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/\s*,\s*/g, ', ')
-      .trim();
-    const body = block.slice(brace + 1);
-    checked++;
-    if (/font-family/.test(body) && /--font-mono|monospace/.test(body)) continue;
-    const key = `${name}::${selector}`;
-    seen.add(key);
-    if (allowed.has(key)) { exempt++; continue; }
-    failures.push({ key, line: css.slice(0, start).split('\n').length, file: name });
+      .replace(/\(([^)]*)\)/g, (_, inner) => `(${inner.replace(/\s*([+-])\s*/g, '$1').trim()})`)
+      .trim()
+    const body = block.slice(brace + 1)
+    checked++
+    if (/font-family/.test(body) && /--font-mono|monospace/.test(body)) continue
+    const key = `${name}::${selector}`
+    seen.add(key)
+    if (allowed.has(key)) {
+      exempt++
+      continue
+    }
+    failures.push({ key, line: css.slice(0, start).split('\n').length, file: name })
   }
 }
 
-const stale = [...allowed.keys()].filter(key => !seen.has(key));
+const stale = [...allowed.keys()].filter(key => !seen.has(key))
 
 if (failures.length) {
-  console.error(`\nThe Figure Rule is not met by ${failures.length} rule block(s):\n`);
+  console.error(`\nThe Figure Rule is not met by ${failures.length} rule block(s):\n`)
   for (const failure of failures) {
-    console.error(`  ${failure.file}:${failure.line}`);
-    console.error(`      ${failure.key.split('::')[1].replace(/\n/g, ' ')}`);
+    console.error(`  ${failure.file}:${failure.line}`)
+    console.error(`      ${failure.key.split('::')[1].replace(/\n/g, ' ')}`)
   }
-  console.error(`\nEach block asks for tabular figures but does not name the mono family.`);
-  console.error(`Add "font-family: var(--font-mono);" — or, if the block is prose, a`);
-  console.error(`container or already mono through .num/time, add it to \`allowed\` in`);
-  console.error(`scripts/check-figure-rule.mjs with the reason.\n`);
-  process.exit(1);
+  console.error(`\nEach block asks for tabular figures but does not name the mono family.`)
+  console.error(`Add "font-family: var(--font-mono);" — or, if the block is prose, a`)
+  console.error(`container or already mono through .num/time, add it to \`allowed\` in`)
+  console.error(`scripts/check-figure-rule.mjs with the reason.\n`)
+  process.exit(1)
 }
 
 if (stale.length) {
-  console.error(`\n${stale.length} exemption(s) in check-figure-rule.mjs no longer match a rule block:\n`);
-  for (const key of stale) console.error(`  ${key.replace(/\n/g, ' ')}`);
-  console.error(`\nThe selector moved or gained the mono family. Remove the exemption.\n`);
-  process.exit(1);
+  console.error(`\n${stale.length} exemption(s) in check-figure-rule.mjs no longer match a rule block:\n`)
+  for (const key of stale) console.error(`  ${key.replace(/\n/g, ' ')}`)
+  console.error(`\nThe selector moved or gained the mono family. Remove the exemption.\n`)
+  process.exit(1)
 }
 
-console.log(`${checked} tabular-figure blocks checked, ${exempt} exempt with a stated reason.`);
-console.log('Every figure surface names the mono family.');
+console.log(`${checked} tabular-figure blocks checked, ${exempt} exempt with a stated reason.`)
+console.log('Every figure surface names the mono family.')

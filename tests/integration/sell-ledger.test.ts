@@ -24,14 +24,18 @@ function transaction(type: 'BUY' | 'SELL', quantity: string, price: string, trad
   return { symbol, type, quantity, price, tradeDate, notes: null, strategy: 'breakout', emotion: 'calm' }
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('sell_ledger') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('sell_ledger')
+})
 beforeEach(async () => {
   const app = createApp({
     db: database.db,
     now: () => new Date(fixedNow),
     config: {
       jwtSecret: 'test-only-sell-ledger-secret-over-32-characters',
-      nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
     },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
@@ -42,18 +46,28 @@ afterEach(async () => {
   server.close()
   await once(server, 'close')
 })
-afterAll(async () => { await database?.dispose() })
+afterAll(async () => {
+  await database?.dispose()
+})
 
 describe('SELL ledger through real HTTP and PostgreSQL', () => {
   it('returns remaining average-cost holdings and observable exact realized P&L', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
-    expect((await browser.post('/api/diaries', {
-      title: 'Buy basis', content: '10 at 100', date: '2026-08-01',
-      transactions: [transaction('BUY', '10', '100', '2026-08-01T10:00:00.000Z')],
-    })).status).toBe(201)
+    expect(
+      (
+        await browser.post('/api/diaries', {
+          title: 'Buy basis',
+          content: '10 at 100',
+          date: '2026-08-01',
+          transactions: [transaction('BUY', '10', '100', '2026-08-01T10:00:00.000Z')],
+        })
+      ).status,
+    ).toBe(201)
     const sell = await browser.post('/api/diaries', {
-      title: 'Partial sale', content: '4 at 125', date: '2026-08-20',
+      title: 'Partial sale',
+      content: '4 at 125',
+      date: '2026-08-20',
       transactions: [transaction('SELL', '4', '125', '2026-08-20T10:00:00.000Z')],
     })
     expect(sell.status).toBe(201)
@@ -61,17 +75,27 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
     expect(await (await browser.request('/api/stocks/holdings')).json()).toEqual([
       { symbol: 'AAPL', quantity: '6', avgCost: '100', totalCost: '600' },
     ])
-    expect(await (await browser.request('/api/stats/recent-trades')).json()).toEqual({ trades: [{
-      id: expect.any(String), symbol: 'AAPL', sellDate: '2026-08-20T10:00:00.000Z',
-      sellQuantity: '4', realizedPnL: '100', realizedPnLPct: '25',
-    }] })
+    expect(await (await browser.request('/api/stats/recent-trades')).json()).toEqual({
+      trades: [
+        {
+          id: expect.any(String),
+          symbol: 'AAPL',
+          sellDate: '2026-08-20T10:00:00.000Z',
+          sellQuantity: '4',
+          realizedPnL: '100',
+          realizedPnLPct: '25',
+        },
+      ],
+    })
   })
 
   it('removes a fully sold position and orders same-instant rows by persisted input order', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
     const valid = await browser.post('/api/diaries', {
-      title: 'Same instant close', content: 'Ordered aggregate', date: '2026-08-21',
+      title: 'Same instant close',
+      content: 'Ordered aggregate',
+      date: '2026-08-21',
       transactions: [
         transaction('BUY', '3', '100', '2026-08-21T10:00:00.000Z', 'MSFT'),
         transaction('SELL', '3', '110', '2026-08-21T10:00:00.000Z', 'MSFT'),
@@ -81,7 +105,9 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
     expect(await (await browser.request('/api/stocks/holdings')).json()).toEqual([])
 
     const invalid = await browser.post('/api/diaries', {
-      title: 'Reverse same instant', content: 'Must roll back', date: '2026-08-22',
+      title: 'Reverse same instant',
+      content: 'Must roll back',
+      date: '2026-08-22',
       transactions: [
         transaction('SELL', '1', '110', '2026-08-22T10:00:00.000Z', 'TSLA'),
         transaction('BUY', '1', '100', '2026-08-22T10:00:00.000Z', 'TSLA'),
@@ -89,23 +115,32 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
     })
     expect(invalid.status).toBe(400)
     expect((await invalid.json()).data.code).toBe('SYS_VALIDATION_ERROR')
-    expect((await database.pool.query("SELECT count(*)::int AS count FROM diaries WHERE title = 'Reverse same instant'")).rows[0].count).toBe(0)
+    expect(
+      (await database.pool.query("SELECT count(*)::int AS count FROM diaries WHERE title = 'Reverse same instant'"))
+        .rows[0].count,
+    ).toBe(0)
   })
 
   it('serializes concurrent SELL writes so only one can consume the same holding', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
     await browser.post('/api/diaries', {
-      title: 'Concurrent basis', content: '10 available', date: '2026-08-10',
+      title: 'Concurrent basis',
+      content: '10 available',
+      date: '2026-08-10',
       transactions: [transaction('BUY', '10', '100', '2026-08-10T10:00:00.000Z')],
     })
     const responses = await Promise.all([
       browser.post('/api/diaries', {
-        title: 'Sell candidate one', content: '7', date: '2026-08-23',
+        title: 'Sell candidate one',
+        content: '7',
+        date: '2026-08-23',
         transactions: [transaction('SELL', '7', '110', '2026-08-23T10:00:00.000Z')],
       }),
       browser.post('/api/diaries', {
-        title: 'Sell candidate two', content: '7', date: '2026-08-24',
+        title: 'Sell candidate two',
+        content: '7',
+        date: '2026-08-24',
         transactions: [transaction('SELL', '7', '120', '2026-08-24T10:00:00.000Z')],
       }),
     ])
@@ -127,11 +162,15 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
     await registerAndLogin(owner)
     await registerAndLogin(other)
     await owner.post('/api/diaries', {
-      title: 'Private basis', content: 'Owner only', date: '2026-08-11',
+      title: 'Private basis',
+      content: 'Owner only',
+      date: '2026-08-11',
       transactions: [transaction('BUY', '5', '100', '2026-08-11T10:00:00.000Z')],
     })
     const response = await other.post('/api/diaries', {
-      title: 'Cross-owner sell', content: 'Must fail', date: '2026-08-12',
+      title: 'Cross-owner sell',
+      content: 'Must fail',
+      date: '2026-08-12',
       transactions: [transaction('SELL', '1', '110', '2026-08-12T10:00:00.000Z')],
     })
     expect(response.status).toBe(400)
@@ -141,18 +180,28 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
   it('blocks deletion of a BUY required by a later SELL, then allows valid chronological removal', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
-    const buyDiary = await (await browser.post('/api/diaries', {
-      title: 'Delete protected basis', content: 'Basis', date: '2026-08-13',
-      transactions: [transaction('BUY', '5', '100', '2026-08-13T10:00:00.000Z')],
-    })).json()
-    const sellDiary = await (await browser.post('/api/diaries', {
-      title: 'Dependent sale', content: 'Sale', date: '2026-08-14',
-      transactions: [transaction('SELL', '2', '110', '2026-08-14T10:00:00.000Z')],
-    })).json()
+    const buyDiary = await (
+      await browser.post('/api/diaries', {
+        title: 'Delete protected basis',
+        content: 'Basis',
+        date: '2026-08-13',
+        transactions: [transaction('BUY', '5', '100', '2026-08-13T10:00:00.000Z')],
+      })
+    ).json()
+    const sellDiary = await (
+      await browser.post('/api/diaries', {
+        title: 'Dependent sale',
+        content: 'Sale',
+        date: '2026-08-14',
+        transactions: [transaction('SELL', '2', '110', '2026-08-14T10:00:00.000Z')],
+      })
+    ).json()
     const csrf = browser.cookies.get('csrf-token')!
-    const remove = (id: string) => browser.request(`/api/diaries/${id}`, {
-      method: 'DELETE', headers: { 'x-csrf-token': csrf },
-    })
+    const remove = (id: string) =>
+      browser.request(`/api/diaries/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrf },
+      })
     const blocked = await remove(buyDiary.id)
     expect(blocked.status).toBe(400)
     expect((await blocked.json()).data.code).toBe('SYS_VALIDATION_ERROR')
@@ -164,7 +213,9 @@ describe('SELL ledger through real HTTP and PostgreSQL', () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
     await browser.post('/api/diaries', {
-      title: 'Recent query ledger', content: 'Two closes', date: '2026-08-15',
+      title: 'Recent query ledger',
+      content: 'Two closes',
+      date: '2026-08-15',
       transactions: [
         transaction('BUY', '2', '100', '2026-05-01T10:00:00.000Z'),
         transaction('SELL', '1', '110', '2026-08-25T10:00:00.000Z'),

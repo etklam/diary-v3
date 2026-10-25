@@ -1,6 +1,12 @@
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
-import { accountEmailMutationResponseSchema, accountEmailRequestSchema, authCapabilitiesSchema, passwordResetCompleteRequestSchema, registrationCompleteRequestSchema } from '@diary/contracts/account-email'
+import {
+  accountEmailMutationResponseSchema,
+  accountEmailRequestSchema,
+  authCapabilitiesSchema,
+  passwordResetCompleteRequestSchema,
+  registrationCompleteRequestSchema,
+} from '@diary/contracts/account-email'
 import { mailSettings } from '@diary/db'
 import { eq } from 'drizzle-orm'
 import type { Database } from '@diary/db'
@@ -32,13 +38,18 @@ export function registerAccountEmailPublicRoutes(app: Hono<AppEnv>, dependencies
 
   app.get('/api/auth/capabilities', async context => {
     noStore(context)
-    const [settings] = await db.select({ enabled: mailSettings.enabled }).from(mailSettings)
-      .where(eq(mailSettings.singleton, 'default')).limit(1)
+    const [settings] = await db
+      .select({ enabled: mailSettings.enabled })
+      .from(mailSettings)
+      .where(eq(mailSettings.singleton, 'default'))
+      .limit(1)
     const enabled = settings?.enabled ?? false
-    return context.json(authCapabilitiesSchema.parse({
-      registrationMode: enabled ? 'email' : 'direct',
-      passwordRecoveryAvailable: enabled,
-    }))
+    return context.json(
+      authCapabilitiesSchema.parse({
+        registrationMode: enabled ? 'email' : 'direct',
+        passwordRecoveryAvailable: enabled,
+      }),
+    )
   })
 
   app.post('/api/auth/registration/request', async context => {

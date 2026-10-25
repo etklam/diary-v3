@@ -35,12 +35,14 @@ export function isNearHigh(percentFromHigh: number | null): boolean {
 }
 
 function hasCompleteSignalData(input: RotationSignalInput): boolean {
-  return input.maStatus !== 'unknown'
-    && input.rsi != null
-    && input.percentFromHigh != null
-    && input.rankDelta2W != null
-    && input.rsiDelta2W != null
-    && input.twoWeekPerformancePct != null
+  return (
+    input.maStatus !== 'unknown' &&
+    input.rsi != null &&
+    input.percentFromHigh != null &&
+    input.rankDelta2W != null &&
+    input.rsiDelta2W != null &&
+    input.twoWeekPerformancePct != null
+  )
 }
 
 export function getRotationSignal(input: RotationSignalInput): RotationSignalResult {
@@ -58,42 +60,31 @@ export function getRotationSignal(input: RotationSignalInput): RotationSignalRes
   const performanceImproving = input.twoWeekPerformancePct! > 0
   const performanceWeakening = input.twoWeekPerformancePct! < 0
 
-  if (
-    input.maStatus === 'breakdown'
-    && (rankWeakening || rsiWeakening || performanceWeakening)
-  ) {
+  if (input.maStatus === 'breakdown' && (rankWeakening || rsiWeakening || performanceWeakening)) {
     return { signal: 'breaking_down', signalStatus: 'complete' }
   }
 
-  if (
-    input.maStatus === 'bullish_stack'
-    && input.rsi! >= 70
-    && input.percentFromHigh! >= -3
-  ) {
+  if (input.maStatus === 'bullish_stack' && input.rsi! >= 70 && input.percentFromHigh! >= -3) {
     return { signal: 'strong_but_extended', signalStatus: 'complete' }
   }
 
   if (
-    (input.maStatus === 'bullish_stack' || input.maStatus === 'healthy_pullback')
-    && input.rankDelta2W! >= 2
-    && input.rsiDelta2W! >= 5
-    && input.twoWeekPerformancePct! > 0
+    (input.maStatus === 'bullish_stack' || input.maStatus === 'healthy_pullback') &&
+    input.rankDelta2W! >= 2 &&
+    input.rsiDelta2W! >= 5 &&
+    input.twoWeekPerformancePct! > 0
   ) {
     return { signal: 'turning_strong', signalStatus: 'complete' }
   }
 
-  if (
-    input.maStatus === 'recovering'
-    && input.rsi! >= 40
-    && (rankImproving || rsiImproving || performanceImproving)
-  ) {
+  if (input.maStatus === 'recovering' && input.rsi! >= 40 && (rankImproving || rsiImproving || performanceImproving)) {
     return { signal: 'early_recovery', signalStatus: 'complete' }
   }
 
   if (
-    (input.maStatus === 'short_term_weakness' || input.maStatus === 'healthy_pullback')
-    && input.rankDelta2W! <= -2
-    && (rsiWeakening || performanceWeakening)
+    (input.maStatus === 'short_term_weakness' || input.maStatus === 'healthy_pullback') &&
+    input.rankDelta2W! <= -2 &&
+    (rsiWeakening || performanceWeakening)
   ) {
     return { signal: 'losing_momentum', signalStatus: 'complete' }
   }

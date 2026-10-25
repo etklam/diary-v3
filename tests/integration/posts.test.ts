@@ -15,7 +15,9 @@ let server: ReturnType<typeof serve>
 let baseUrl: string
 let clock: Date
 
-beforeAll(async () => { database = await provisionTestDatabase('posts_http') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('posts_http')
+})
 beforeEach(async () => {
   await database.pool.query('delete from posts')
   clock = new Date('2026-09-05T12:00:00.000Z')
@@ -24,15 +26,22 @@ beforeEach(async () => {
     now: () => clock,
     config: {
       jwtSecret: 'synthetic-posts-test-key-with-at-least-32-characters',
-      nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
     },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function login(admin: boolean) {
   const browser = new BrowserSession(baseUrl)
@@ -65,33 +74,47 @@ function mutate(browser: BrowserSession, path: string, body: unknown, method = '
   })
 }
 
-async function publishTranslation(post: PostAdminDetail, locale: 'zh-TW' | 'zh-CN' | 'en', values: { title: string; excerpt?: string | null; content?: string; sourceRevision?: number; sourceHash?: string; status?: 'published' | 'unpublished' }) {
+async function publishTranslation(
+  post: PostAdminDetail,
+  locale: 'zh-TW' | 'zh-CN' | 'en',
+  values: {
+    title: string
+    excerpt?: string | null
+    content?: string
+    sourceRevision?: number
+    sourceHash?: string
+    status?: 'published' | 'unpublished'
+  },
+) {
   const sourceRevision = values.sourceRevision ?? post.sourceRevision
   const sourceHash = values.sourceHash ?? post.sourceHash
-  return database.db.insert(postTranslations).values({
-    postId: BigInt(post.id),
-    locale,
-    status: values.status ?? 'published',
-    draftTitle: values.title,
-    draftExcerpt: values.excerpt ?? null,
-    draftContent: values.content ?? values.title,
-    draftVersion: 1,
-    draftSourceRevision: sourceRevision,
-    draftSourceHash: sourceHash,
-    draftProvider: 'manual',
-    publishedTitle: values.title,
-    publishedExcerpt: values.excerpt ?? null,
-    publishedContent: values.content ?? values.title,
-    publishedVersion: 1,
-    publishedSourceRevision: sourceRevision,
-    publishedSourceHash: sourceHash,
-    publishedProvider: 'manual',
-    reviewedAt: clock,
-    reviewedDraftVersion: 1,
-    publishedAt: clock,
-    createdAt: clock,
-    updatedAt: clock,
-  }).returning()
+  return database.db
+    .insert(postTranslations)
+    .values({
+      postId: BigInt(post.id),
+      locale,
+      status: values.status ?? 'published',
+      draftTitle: values.title,
+      draftExcerpt: values.excerpt ?? null,
+      draftContent: values.content ?? values.title,
+      draftVersion: 1,
+      draftSourceRevision: sourceRevision,
+      draftSourceHash: sourceHash,
+      draftProvider: 'manual',
+      publishedTitle: values.title,
+      publishedExcerpt: values.excerpt ?? null,
+      publishedContent: values.content ?? values.title,
+      publishedVersion: 1,
+      publishedSourceRevision: sourceRevision,
+      publishedSourceHash: sourceHash,
+      publishedProvider: 'manual',
+      reviewedAt: clock,
+      reviewedDraftVersion: 1,
+      publishedAt: clock,
+      createdAt: clock,
+      updatedAt: clock,
+    })
+    .returning()
 }
 
 it('persists an admin draft, reopens long Markdown, and keeps it out of public projections', async () => {
@@ -118,13 +141,21 @@ it('persists an admin draft, reopens long Markdown, and keeps it out of public p
 it('enforces Admin authorization and keeps public author email private', async () => {
   const ordinary = await login(false)
   expect((await ordinary.browser.request('/api/blog/admin')).status).toBe(403)
-  expect((await ordinary.browser.post('/api/blog', { title: 'Nope', content: 'private', category: 'market' })).status).toBe(403)
+  expect(
+    (await ordinary.browser.post('/api/blog', { title: 'Nope', content: 'private', category: 'market' })).status,
+  ).toBe(403)
   const anonymous = new BrowserSession(baseUrl)
   expect((await anonymous.request('/api/blog/admin')).status).toBe(401)
 
   const { browser } = await login(true)
   const post = await create(browser, { title: 'Public author projection', status: 'PUBLISHED', access: 'PUBLIC' })
-  const write = { title: 'Unauthorized edit', content: 'Must remain rejected.', category: 'market', status: 'PUBLISHED', access: 'MEMBER' }
+  const write = {
+    title: 'Unauthorized edit',
+    content: 'Must remain rejected.',
+    category: 'market',
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  }
   expect((await mutate(ordinary.browser, `/api/blog/${post.id}`, write)).status).toBe(403)
   expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/publish`, {})).status).toBe(403)
   expect((await ordinary.browser.post(`/api/blog/admin/${post.id}/archive`, {})).status).toBe(403)
@@ -150,7 +181,12 @@ it('uses the Admin role boundary instead of Diary-style author ownership', async
   const owner = await login(true)
   const post = await create(owner.browser, { title: 'Admin-owned article' })
   const otherAdmin = await login(true)
-  const response = await mutate(otherAdmin.browser, `/api/blog/${post.id}`, { title: 'Edited by another admin', content: 'Updated by an authorized administrator.', category: 'market', status: 'DRAFT' })
+  const response = await mutate(otherAdmin.browser, `/api/blog/${post.id}`, {
+    title: 'Edited by another admin',
+    content: 'Updated by an authorized administrator.',
+    category: 'market',
+    status: 'DRAFT',
+  })
   expect(response.status).toBe(200)
   expect((await response.json()).title).toBe('Edited by another admin')
 })
@@ -164,7 +200,12 @@ it('preserves first publishedAt across archive and republish', async () => {
   expect(published.publishedAt).toBe(clock.toISOString())
 
   clock = new Date('2026-09-02T00:00:00.000Z')
-  const updated = await mutate(browser, `/api/blog/${post.id}`, { title: 'Lifecycle article', content: 'edited', category: 'market', status: 'PUBLISHED' })
+  const updated = await mutate(browser, `/api/blog/${post.id}`, {
+    title: 'Lifecycle article',
+    content: 'edited',
+    category: 'market',
+    status: 'PUBLISHED',
+  })
   expect(updated.status).toBe(200)
   expect((await updated.json()).publishedAt).toBe('2026-09-01T00:00:00.000Z')
 
@@ -174,9 +215,18 @@ it('preserves first publishedAt across archive and republish', async () => {
   expect(archived.publishedAt).toBe('2026-09-01T00:00:00.000Z')
   expect((await browser.request(`/api/blog/${post.slug}`)).status).toBe(404)
 
-  const savedArchived = await mutate(browser, `/api/blog/${post.id}`, { title: 'Lifecycle article', content: 'archived edit', category: 'market', status: 'ARCHIVED' })
+  const savedArchived = await mutate(browser, `/api/blog/${post.id}`, {
+    title: 'Lifecycle article',
+    content: 'archived edit',
+    category: 'market',
+    status: 'ARCHIVED',
+  })
   expect(savedArchived.status).toBe(200)
-  expect(await savedArchived.json()).toMatchObject({ status: 'ARCHIVED', publishedAt: '2026-09-01T00:00:00.000Z', content: 'archived edit' })
+  expect(await savedArchived.json()).toMatchObject({
+    status: 'ARCHIVED',
+    publishedAt: '2026-09-01T00:00:00.000Z',
+    content: 'archived edit',
+  })
 
   clock = new Date('2026-09-04T00:00:00.000Z')
   const republished = await (await browser.post(`/api/blog/admin/${post.id}/publish`, {})).json()
@@ -185,10 +235,21 @@ it('preserves first publishedAt across archive and republish', async () => {
 
 it('matches the measured public full-text boundary and excludes content-only terms', async () => {
   const { browser } = await login(true)
-  await create(browser, { title: 'Investment the AI Alphabet', excerpt: 'Longterm investment evidence', content: 'bodyonly', status: 'PUBLISHED' })
-  await create(browser, { title: 'Rail station notes', excerpt: 'Transport planning', content: 'otherbody', status: 'PUBLISHED' })
+  await create(browser, {
+    title: 'Investment the AI Alphabet',
+    excerpt: 'Longterm investment evidence',
+    content: 'bodyonly',
+    status: 'PUBLISHED',
+  })
+  await create(browser, {
+    title: 'Rail station notes',
+    excerpt: 'Transport planning',
+    content: 'otherbody',
+    status: 'PUBLISHED',
+  })
   await create(browser, { title: '投資策略', excerpt: 'Café notes', content: 'otherbody', status: 'PUBLISHED' })
-  const publicQuery = async (term: string) => (await (await browser.request(`/api/blog?search=${encodeURIComponent(term)}`)).json()).pagination.total
+  const publicQuery = async (term: string) =>
+    (await (await browser.request(`/api/blog?search=${encodeURIComponent(term)}`)).json()).pagination.total
   expect(await publicQuery('investment')).toBe(1)
   expect(await publicQuery('vest')).toBe(0)
   expect(await publicQuery('the')).toBe(0)
@@ -259,19 +320,22 @@ it('searches current published translations without exposing translated body or 
     status: 'PUBLISHED',
     access: 'PUBLIC',
   })
-  const draftTranslation = await database.db.insert(postTranslations).values({
-    postId: BigInt(draftTarget.id),
-    locale: 'zh-CN',
-    status: 'draft',
-    draftTitle: 'DraftOnlyUnique translation search sentinel',
-    draftExcerpt: null,
-    draftContent: 'DRAFT_BODY_PRIVATE_SENTINEL',
-    draftVersion: 1,
-    draftSourceRevision: draftTarget.sourceRevision,
-    draftSourceHash: draftTarget.sourceHash,
-    createdAt: clock,
-    updatedAt: clock,
-  }).returning()
+  const draftTranslation = await database.db
+    .insert(postTranslations)
+    .values({
+      postId: BigInt(draftTarget.id),
+      locale: 'zh-CN',
+      status: 'draft',
+      draftTitle: 'DraftOnlyUnique translation search sentinel',
+      draftExcerpt: null,
+      draftContent: 'DRAFT_BODY_PRIVATE_SENTINEL',
+      draftVersion: 1,
+      draftSourceRevision: draftTarget.sourceRevision,
+      draftSourceHash: draftTarget.sourceHash,
+      createdAt: clock,
+      updatedAt: clock,
+    })
+    .returning()
   expect(draftTranslation).toHaveLength(1)
   const draftSearch = await guest.request('/api/blog?search=DraftOnlyUnique')
   expect((await draftSearch.json()).pagination.total).toBe(0)
@@ -342,18 +406,30 @@ it('deduplicates multilingual matches before count and pagination and prefers th
 
 it('matches every frozen MariaDB boolean probe through the public API', async () => {
   const { browser } = await login(true)
-  const fixture = JSON.parse(readFileSync(new URL('../../docs/parity/post-fulltext-boolean-probe.json', import.meta.url), 'utf8')) as {
+  const fixture = JSON.parse(
+    readFileSync(new URL('../../docs/parity/post-fulltext-boolean-probe.json', import.meta.url), 'utf8'),
+  ) as {
     rows: [string, string, string][]
     phases: { results: { search: string; hits: { title: string }[] }[] }[]
   }
   for (const [index, [title, excerpt, content]] of fixture.rows.entries()) {
-    await create(browser, { title, excerpt: excerpt || null, content: content || 'fixture body', status: 'PUBLISHED', tags: [`probe-${index}`] })
+    await create(browser, {
+      title,
+      excerpt: excerpt || null,
+      content: content || 'fixture body',
+      status: 'PUBLISHED',
+      tags: [`probe-${index}`],
+    })
   }
   for (const expected of fixture.phases[0]!.results) {
-    const response = await browser.request(`/api/blog?search=${encodeURIComponent(expected.search)}&sortBy=title_asc&limit=50`)
+    const response = await browser.request(
+      `/api/blog?search=${encodeURIComponent(expected.search)}&sortBy=title_asc&limit=50`,
+    )
     expect(response.status).toBe(200)
     const payload = await response.json()
-    expect(payload.data.map((row: { title: string }) => row.title).sort()).toEqual(expected.hits.map(hit => hit.title).sort())
+    expect(payload.data.map((row: { title: string }) => row.title).sort()).toEqual(
+      expected.hits.map(hit => hit.title).sort(),
+    )
   }
 })
 
@@ -381,9 +457,18 @@ it('keeps admin search distinct from public full text and enforces CSRF on write
     expect((await result.json()).data.map((row: { id: string }) => row.id)).toContain(post.id)
   }
 
-  const accepted = await mutate(browser, `/api/blog/${post.id}`, { title: 'Admin write', content: 'accepted', category: 'market', status: 'PUBLISHED' }, 'PUT')
+  const accepted = await mutate(
+    browser,
+    `/api/blog/${post.id}`,
+    { title: 'Admin write', content: 'accepted', category: 'market', status: 'PUBLISHED' },
+    'PUT',
+  )
   expect(accepted.status).toBe(200)
-  const missingCsrf = await browser.request(`/api/blog/${post.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'No CSRF', content: 'rejected', category: 'market', status: 'PUBLISHED' }) })
+  const missingCsrf = await browser.request(`/api/blog/${post.id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'No CSRF', content: 'rejected', category: 'market', status: 'PUBLISHED' }),
+  })
   expect(missingCsrf.status).toBe(403)
   expect((await missingCsrf.json()).data.code).toBe('CSRF_FAILED')
 })
@@ -391,18 +476,30 @@ it('keeps admin search distinct from public full text and enforces CSRF on write
 it('enforces PUBLIC and MEMBER reading access without exposing protected body text', async () => {
   const { browser: admin } = await login(true)
   const sentinel = 'QZK9X7M2'
-  const publicPost = await create(admin, { title: 'Access public article', content: 'Public article body', status: 'PUBLISHED', access: 'PUBLIC' })
-  const memberPost = await create(admin, { title: 'Access member article', content: `# Protected\n\n${sentinel}`, status: 'PUBLISHED', access: 'MEMBER' })
+  const publicPost = await create(admin, {
+    title: 'Access public article',
+    content: 'Public article body',
+    status: 'PUBLISHED',
+    access: 'PUBLIC',
+  })
+  const memberPost = await create(admin, {
+    title: 'Access member article',
+    content: `# Protected\n\n${sentinel}`,
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
   const guest = new BrowserSession(baseUrl)
 
   const listResponse = await guest.request('/api/blog?sortBy=title_asc')
   expect(listResponse.status).toBe(200)
   expect(listResponse.headers.get('cache-control')).toBe('no-store')
   const list = await listResponse.json()
-  expect(list.data).toEqual(expect.arrayContaining([
-    expect.objectContaining({ slug: publicPost.slug, access: 'PUBLIC', membersOnly: false }),
-    expect.objectContaining({ slug: memberPost.slug, access: 'MEMBER', membersOnly: true, excerpt: null }),
-  ]))
+  expect(list.data).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ slug: publicPost.slug, access: 'PUBLIC', membersOnly: false }),
+      expect.objectContaining({ slug: memberPost.slug, access: 'MEMBER', membersOnly: true, excerpt: null }),
+    ]),
+  )
   expect(JSON.stringify(list)).not.toContain(sentinel)
 
   const search = await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)
@@ -436,13 +533,18 @@ it('enforces PUBLIC and MEMBER reading access without exposing protected body te
 
   const guestAfterAuthorizedRead = await guest.request(`/api/blog/${memberPost.slug}`)
   expect(guestAfterAuthorizedRead.status).toBe(401)
-  expect((await guestAfterAuthorizedRead.text())).not.toContain(sentinel)
+  expect(await guestAfterAuthorizedRead.text()).not.toContain(sentinel)
 })
 
 it('keeps derived excerpts private across PUBLIC to MEMBER changes and allows authored teasers', async () => {
   const { browser: admin } = await login(true)
   const sentinel = 'R4V8N2K6'
-  const post = await create(admin, { title: 'Visibility transition', content: `Body ${sentinel}`, status: 'PUBLISHED', access: 'PUBLIC' })
+  const post = await create(admin, {
+    title: 'Visibility transition',
+    content: `Body ${sentinel}`,
+    status: 'PUBLISHED',
+    access: 'PUBLIC',
+  })
   const guest = new BrowserSession(baseUrl)
   expect((await guest.request(`/api/blog/${post.slug}`)).status).toBe(200)
 
@@ -455,7 +557,7 @@ it('keeps derived excerpts private across PUBLIC to MEMBER changes and allows au
     access: 'MEMBER',
   })
   expect(updated.status).toBe(200)
-  expect((await updated.json())).toMatchObject({ access: 'MEMBER', excerpt: null, excerptAuthored: false })
+  expect(await updated.json()).toMatchObject({ access: 'MEMBER', excerpt: null, excerptAuthored: false })
 
   const locked = await guest.request(`/api/blog/${post.slug}`)
   expect(locked.status).toBe(401)
@@ -464,7 +566,9 @@ it('keeps derived excerpts private across PUBLIC to MEMBER changes and allows au
   expect(metadata.excerpt).toBeNull()
   expect(JSON.stringify(metadata)).not.toContain(sentinel)
   expect((await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)).status).toBe(200)
-  expect((await (await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)).json()).pagination.total).toBe(0)
+  expect(
+    (await (await guest.request(`/api/blog?search=${encodeURIComponent(sentinel)}`)).json()).pagination.total,
+  ).toBe(0)
 
   const teaser = await create(admin, {
     title: 'Authored teaser member article',
@@ -480,18 +584,22 @@ it('keeps derived excerpts private across PUBLIC to MEMBER changes and allows au
 
 it('keeps drafts unavailable to members while allowing authorized admin preview', async () => {
   const { browser: admin } = await login(true)
-  const post = await create(admin, { title: 'Preview-only member draft', content: 'Draft body sentinel', access: 'MEMBER' })
+  const post = await create(admin, {
+    title: 'Preview-only member draft',
+    content: 'Draft body sentinel',
+    access: 'MEMBER',
+  })
   const guest = new BrowserSession(baseUrl)
   const member = await login(false)
   const guestDetail = await guest.request(`/api/blog/${post.slug}`)
   expect(guestDetail.status).toBe(404)
-  expect((await guestDetail.text())).not.toContain('Draft body sentinel')
+  expect(await guestDetail.text()).not.toContain('Draft body sentinel')
   const memberDetail = await member.browser.request(`/api/blog/${post.slug}`)
   expect(memberDetail.status).toBe(404)
-  expect((await memberDetail.text())).not.toContain('Draft body sentinel')
+  expect(await memberDetail.text()).not.toContain('Draft body sentinel')
   const memberAdminDetail = await member.browser.request(`/api/blog/admin/${post.id}`)
   expect(memberAdminDetail.status).toBe(403)
-  expect((await memberAdminDetail.text())).not.toContain('Draft body sentinel')
+  expect(await memberAdminDetail.text()).not.toContain('Draft body sentinel')
   const preview = await admin.request(`/api/blog/admin/${post.id}`)
   expect(preview.status).toBe(200)
   expect((await preview.json()).content).toContain('Draft body sentinel')
@@ -499,7 +607,12 @@ it('keeps drafts unavailable to members while allowing authorized admin preview'
 
 it('rejects invalid access values at the write boundary', async () => {
   const { browser: admin } = await login(true)
-  const response = await admin.post('/api/blog', { title: 'Invalid access', content: 'body', category: 'market', access: 'PREMIUM' })
+  const response = await admin.post('/api/blog', {
+    title: 'Invalid access',
+    content: 'body',
+    category: 'market',
+    access: 'PREMIUM',
+  })
   expect(response.status).toBe(400)
   expect((await response.json()).data.code).toBe('SYS_VALIDATION_ERROR')
 })
@@ -507,27 +620,40 @@ it('rejects invalid access values at the write boundary', async () => {
 it('rejects invalid, expired, and account-revoked sessions before returning a MEMBER body', async () => {
   const { browser: admin } = await login(true)
   const sentinel = 'AUTHENTICATED_BODY_Q7N4'
-  const post = await create(admin, { title: 'Session protected article', content: sentinel, status: 'PUBLISHED', access: 'MEMBER' })
+  const post = await create(admin, {
+    title: 'Session protected article',
+    content: sentinel,
+    status: 'PUBLISHED',
+    access: 'MEMBER',
+  })
   const guest = new BrowserSession(baseUrl)
 
-  const invalid = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: 'Bearer definitely-invalid' } })
+  const invalid = await guest.request(`/api/blog/${post.slug}`, {
+    headers: { authorization: 'Bearer definitely-invalid' },
+  })
   expect(invalid.status).toBe(401)
-  expect((await invalid.text())).not.toContain(sentinel)
+  expect(await invalid.text()).not.toContain(sentinel)
 
   const expiredMember = await login(false)
-  const explicitEmpty = await expiredMember.browser.request(`/api/blog/${post.slug}`, { headers: { authorization: '' } })
+  const explicitEmpty = await expiredMember.browser.request(`/api/blog/${post.slug}`, {
+    headers: { authorization: '' },
+  })
   expect(explicitEmpty.status).toBe(401)
   expect(await explicitEmpty.text()).not.toContain(sentinel)
   const expiredToken = expiredMember.browser.cookies.get('access-token')!
   clock = new Date(clock.getTime() + 60 * 60 * 1000 + 1_000)
-  const expired = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: `Bearer ${expiredToken}` } })
+  const expired = await guest.request(`/api/blog/${post.slug}`, {
+    headers: { authorization: `Bearer ${expiredToken}` },
+  })
   expect(expired.status).toBe(401)
-  expect((await expired.text())).not.toContain(sentinel)
+  expect(await expired.text()).not.toContain(sentinel)
 
   const revokedMember = await login(false)
   const revokedToken = revokedMember.browser.cookies.get('access-token')!
   expect((await revokedMember.browser.post('/api/auth/logout-all', {})).status).toBe(200)
-  const revoked = await guest.request(`/api/blog/${post.slug}`, { headers: { authorization: `Bearer ${revokedToken}` } })
+  const revoked = await guest.request(`/api/blog/${post.slug}`, {
+    headers: { authorization: `Bearer ${revokedToken}` },
+  })
   expect(revoked.status).toBe(401)
-  expect((await revoked.text())).not.toContain(sentinel)
+  expect(await revoked.text()).not.toContain(sentinel)
 })

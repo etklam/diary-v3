@@ -23,6 +23,40 @@ export function marketClass(value: MarketDisplayValue): '' | `market-${Exclude<M
   return direction === 'unknown' ? '' : `market-${direction}`
 }
 
+// --- Formatter cache --------------------------------------------------------
+// Constructing an `Intl` formatter costs roughly thirty times what formatting
+// through an existing one does, and every function below is called once per
+// table cell: a fifty-row holdings table prints 350 figures, re-paid on each
+// sort, filter and quote tick. Cache instead of constructing, keyed by locale
+// and by which option set is wanted. The key space is small and closed — the
+// supported locales times a fixed set of shapes, plus one entry per IANA zone a
+// reader's own data names, which is the configured zone and the device's.
+
+const numberFormats = new Map<string, Intl.NumberFormat>()
+
+/** `shape` names the option set so two shapes for one locale cannot collide. */
+function numberFormat(locale: string, shape: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = `${locale}|${shape}`
+  let formatter = numberFormats.get(key)
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, options)
+    numberFormats.set(key, formatter)
+  }
+  return formatter
+}
+
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>()
+
+function dateTimeFormat(locale: string, timeZone: string): Intl.DateTimeFormat {
+  const key = `${locale}|${timeZone}`
+  let formatter = dateTimeFormats.get(key)
+  if (formatter === undefined) {
+    formatter = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone })
+    dateTimeFormats.set(key, formatter)
+  }
+  return formatter
+}
+
 /** Format a signed return/change/P&L while retaining exact string decimals from API projections. */
 export function formatMarketValue(locale: string, value: MarketDisplayValue, digits = 2): string {
   const direction = marketDirection(value)
@@ -32,14 +66,19 @@ export function formatMarketValue(locale: string, value: MarketDisplayValue, dig
     if (direction === 'flat') return normalized.replace(/^[+-]/u, '')
     return direction === 'up' ? `+${normalized.replace(/^\+/u, '')}` : normalized
   }
-  return new Intl.NumberFormat(locale, {
+  return numberFormat(locale, `signed:${digits}`, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
     signDisplay: 'exceptZero',
-  }).format(direction === 'flat' ? Math.abs(value as number) : value as number)
+  }).format(direction === 'flat' ? Math.abs(value as number) : (value as number))
 }
 
-export function formatMarketValueWithSuffix(locale: string, value: MarketDisplayValue, suffix: string, digits = 2): string {
+export function formatMarketValueWithSuffix(
+  locale: string,
+  value: MarketDisplayValue,
+  suffix: string,
+  digits = 2,
+): string {
   const formatted = formatMarketValue(locale, value, digits)
   return formatted === '—' ? formatted : `${formatted}${suffix}`
 }
@@ -48,7 +87,7 @@ export function formatNeutralValue(locale: string, value: MarketDisplayValue, di
   if (value === null || value === undefined) return '—'
   if (typeof value === 'string') return stringDirection(value) === 'unknown' ? '—' : value.trim()
   if (!Number.isFinite(value)) return '—'
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)
+  return numberFormat(locale, `neutral:${digits}`, { maximumFractionDigits: digits }).format(value)
 }
 
 // --- Unsigned figure display -------------------------------------------------
@@ -101,7 +140,10 @@ const separatorCache = new Map<string, string>()
 function decimalSeparator(locale: string): string {
   let separator = separatorCache.get(locale)
   if (separator === undefined) {
-    separator = new Intl.NumberFormat(locale).formatToParts(1.1).find(part => part.type === 'decimal')?.value ?? '.'
+    separator =
+      numberFormat(locale, 'parts', {})
+        .formatToParts(1.1)
+        .find(part => part.type === 'decimal')?.value ?? '.'
     separatorCache.set(locale, separator)
   }
   return separator
@@ -109,7 +151,7 @@ function decimalSeparator(locale: string): string {
 
 /** Group the integer digits through Intl on a BigInt, so grouping is locale-correct and exact. */
 function groupInteger(locale: string, digits: string): string {
-  return new Intl.NumberFormat(locale, { useGrouping: true, maximumFractionDigits: 0 }).format(BigInt(digits))
+  return numberFormat(locale, 'group', { useGrouping: true, maximumFractionDigits: 0 }).format(BigInt(digits))
 }
 
 type Rendered = { text: string; zero: boolean }
@@ -189,7 +231,12 @@ export function formatCompactUsd(locale: string, value: MarketDisplayValue): str
   if (value === null || value === undefined) return '—'
   const magnitude = Number(value)
   if (!Number.isFinite(magnitude)) return '—'
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(magnitude)
+  return numberFormat(locale, 'compactUsd', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(magnitude)
 }
 
 /** Percentages: never more than two decimals, and the `%` sign is part of the figure. */
@@ -232,12 +279,16 @@ export function formatInstantIn(locale: string, value: string | null | undefined
   if (!value) return UNKNOWN_INSTANT
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return UNKNOWN_INSTANT
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(date)
+  return dateTimeFormat(locale, timeZone).format(date)
 }
 
 /** The device's IANA zone, which is what trade times and locally-set reminders are stated in. */
 export function deviceTimeZone(): string {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' }
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
 }
 
 /** An instant in the reader's own device zone. */

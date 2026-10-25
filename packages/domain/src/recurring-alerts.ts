@@ -57,7 +57,7 @@ function getStartCalendarDay(startDate: Date, timezone: string): CalendarDay {
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(startDate)
-  const pick = (type: string) => Number(parts.find((p) => p.type === type)?.value)
+  const pick = (type: string) => Number(parts.find(p => p.type === type)?.value)
   return { year: pick('year'), month: pick('month'), day: pick('day') }
 }
 
@@ -130,9 +130,7 @@ export function calculateRecurringAlertDates(config: RecurringAlertConfig): Date
 /**
  * Generate platform-neutral data for batch creating alerts
  */
-export function generateRecurringAlertsData(
-  config: RecurringAlertConfig
-): RecurringAlertRow[] {
+export function generateRecurringAlertsData(config: RecurringAlertConfig): RecurringAlertRow[] {
   const dates = calculateRecurringAlertDates(config)
 
   return dates.map((date, index) => ({
@@ -146,4 +144,11 @@ export function generateRecurringAlertsData(
   }))
 }
 
-export interface RecurringAlertRow { diaryId: bigint; message: string; triggerAt: Date; recurringMode: 'WEEK' | 'MONTH'; instanceNumber: number; parentId?: bigint }
+export interface RecurringAlertRow {
+  diaryId: bigint
+  message: string
+  triggerAt: Date
+  recurringMode: 'WEEK' | 'MONTH'
+  instanceNumber: number
+  parentId?: bigint
+}

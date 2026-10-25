@@ -3,7 +3,11 @@ import { expect, test } from '../support/e2e'
 test('guests can use public Tools and private endpoints stay protected', async ({ page }) => {
   const privateRequests: string[] = []
   page.on('request', request => {
-    if (request.method() !== 'GET' && /\/api\/(diaries|trade-plans|stocks\/watchlist|etf\/watchlist)/.test(request.url())) privateRequests.push(request.url())
+    if (
+      request.method() !== 'GET' &&
+      /\/api\/(diaries|trade-plans|stocks\/watchlist|etf\/watchlist)/.test(request.url())
+    )
+      privateRequests.push(request.url())
   })
 
   await page.goto('/tools')
@@ -11,7 +15,10 @@ test('guests can use public Tools and private endpoints stay protected', async (
   // Tool cards carry name, purpose and CTA in one link, so match the name.
   await expect(page.getByRole('link', { name: /部位計算/ })).toBeVisible()
   // The header and footer both link 工具; the active state belongs to the header.
-  await expect(page.getByRole('banner').getByRole('link', { name: '工具', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('banner').getByRole('link', { name: '工具', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
 
   await page.goto('/tools/position-sizing')
   await page.getByTestId('position-sizing-capital').fill('10000')

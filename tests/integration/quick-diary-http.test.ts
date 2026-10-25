@@ -64,7 +64,9 @@ async function waitForLockWaiters(expected: number) {
   throw new Error(`Expected ${expected} PostgreSQL lock waiters`)
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('quick_diary') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('quick_diary')
+})
 beforeEach(async () => {
   const app = createApp({
     db: database.db,
@@ -83,7 +85,9 @@ afterEach(async () => {
   server.close()
   await once(server, 'close')
 })
-afterAll(async () => { await database?.dispose() })
+afterAll(async () => {
+  await database?.dispose()
+})
 
 describe('Quick Diary append over real HTTP and PostgreSQL', () => {
   it('finds an owner diary by civil date and returns null without leaking another owner', async () => {
@@ -92,7 +96,9 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
     await registerAndLogin(owner)
     await registerAndLogin(other)
     const created = await owner.post('/api/diaries', {
-      title: 'Taipei today', content: 'Civil date stays unchanged.', date: '2026-06-16',
+      title: 'Taipei today',
+      content: 'Civil date stays unchanged.',
+      date: '2026-06-16',
     })
     expect(created.status).toBe(201)
 
@@ -115,16 +121,25 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
     const initial = await browser.post('/api/diaries', {
-      title: 'Original title', content: 'Original body', date: '2026-06-18',
-      tags: ['watch', 'macro,fx'], thesis: 'Old thesis', risk: 'Old risk', execution: 'Keep execution',
+      title: 'Original title',
+      content: 'Original body',
+      date: '2026-06-18',
+      tags: ['watch', 'macro,fx'],
+      thesis: 'Old thesis',
+      risk: 'Old risk',
+      execution: 'Keep execution',
     })
     expect(initial.status).toBe(201)
     const original = await initial.json()
 
     const appended = await browser.post('/api/diaries', {
-      title: 'Ignored for an existing Diary', content: 'New body', date: '2026-06-18',
-      tags: ['watch', 'learning'], appendToToday: true,
-      thesis: 'New thesis', risk: null,
+      title: 'Ignored for an existing Diary',
+      content: 'New body',
+      date: '2026-06-18',
+      tags: ['watch', 'learning'],
+      appendToToday: true,
+      thesis: 'New thesis',
+      risk: null,
     })
     expect(appended.status).toBe(201)
     expect(await appended.json()).toMatchObject({
@@ -132,11 +147,15 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
       title: 'Original title',
       content: 'Original body\n\n---\n\nNew body',
       tags: ['watch', 'macro,fx', 'learning'],
-      thesis: 'New thesis', risk: null, execution: 'Keep execution',
+      thesis: 'New thesis',
+      risk: null,
+      execution: 'Keep execution',
     })
 
     const conflict = await browser.post('/api/diaries', {
-      title: 'Ordinary create', content: 'Must conflict', date: '2026-06-18',
+      title: 'Ordinary create',
+      content: 'Must conflict',
+      date: '2026-06-18',
     })
     expect(conflict.status).toBe(409)
     expect((await conflict.json()).data.code).toBe('DIARY_ALREADY_EXISTS')
@@ -147,18 +166,29 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
     const credentials = await registerAndLogin(browser)
     const token = await nativeAccessToken(credentials.email, credentials.password)
     const created = await bearerPost(token, {
-      title: 'Concurrent log', content: 'base-marker', date: '2026-06-19',
+      title: 'Concurrent log',
+      content: 'base-marker',
+      date: '2026-06-19',
     })
     expect(created.status).toBe(201)
     const id = (await created.json()).id
     const markers = Array.from({ length: 12 }, (_, index) => `append-marker-${index}`)
 
-    const responses = await Promise.all(markers.map((content, index) => bearerPost(token, {
-      title: `Append ${index}`, content, date: '2026-06-19', appendToToday: true,
-      tags: [`tag-${index}`],
-    })))
+    const responses = await Promise.all(
+      markers.map((content, index) =>
+        bearerPost(token, {
+          title: `Append ${index}`,
+          content,
+          date: '2026-06-19',
+          appendToToday: true,
+          tags: [`tag-${index}`],
+        }),
+      ),
+    )
     expect(responses.every(response => response.status === 201)).toBe(true)
-    expect(new Set(await Promise.all(responses.map(async response => (await response.json()).id)))).toEqual(new Set([id]))
+    expect(new Set(await Promise.all(responses.map(async response => (await response.json()).id)))).toEqual(
+      new Set([id]),
+    )
 
     const final = await (await browser.request('/api/diaries/by-date?date=2026-06-19')).json()
     const fragments = final.content.split('\n\n---\n\n')
@@ -173,25 +203,39 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
     const credentials = await registerAndLogin(browser)
     const token = await nativeAccessToken(credentials.email, credentials.password)
     const bodies = ['first-empty-marker', 'second-empty-marker']
-    const responses = await Promise.all(bodies.map((content, index) => bearerPost(token, {
-      title: `First title candidate ${index}`, content, date: '2026-06-20', appendToToday: true,
-    })))
+    const responses = await Promise.all(
+      bodies.map((content, index) =>
+        bearerPost(token, {
+          title: `First title candidate ${index}`,
+          content,
+          date: '2026-06-20',
+          appendToToday: true,
+        }),
+      ),
+    )
     expect(responses.map(response => response.status)).toEqual([201, 201])
     const payloads = await Promise.all(responses.map(response => response.json()))
     expect(new Set(payloads.map(payload => payload.id)).size).toBe(1)
 
     const final = await (await browser.request('/api/diaries/by-date?date=2026-06-20')).json()
     expect(new Set(final.content.split('\n\n---\n\n'))).toEqual(new Set(bodies))
-    const rows = await database.pool.query('SELECT count(*)::int AS count FROM diaries WHERE user_id = $1 AND date = $2', [final.userId, '2026-06-20'])
+    const rows = await database.pool.query(
+      'SELECT count(*)::int AS count FROM diaries WHERE user_id = $1 AND date = $2',
+      [final.userId, '2026-06-20'],
+    )
     expect(rows.rows[0].count).toBe(1)
   })
 
   it('appends onto a full PUT that was already waiting for the same row', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
-    const created = await (await browser.post('/api/diaries', {
-      title: 'Locked update', content: 'Original body', date: '2026-06-22',
-    })).json()
+    const created = await (
+      await browser.post('/api/diaries', {
+        title: 'Locked update',
+        content: 'Original body',
+        date: '2026-06-22',
+      })
+    ).json()
     const blocker = await database.pool.connect()
     let transactionOpen = false
     try {
@@ -200,12 +244,16 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
       await blocker.query('SELECT id FROM diaries WHERE id = $1 FOR UPDATE', [created.id])
 
       const put = cookieMutation(browser, 'PUT', `/api/diaries/${created.id}`, {
-        expectedRevision: created.revision, title: 'Committed PUT title', content: 'Committed PUT body',
+        expectedRevision: created.revision,
+        title: 'Committed PUT title',
+        content: 'Committed PUT body',
       })
       await waitForLockWaiters(1)
       const append = browser.post('/api/diaries', {
-        title: 'Append title is ignored', content: 'Append after PUT',
-        date: '2026-06-22', appendToToday: true,
+        title: 'Append title is ignored',
+        content: 'Append after PUT',
+        date: '2026-06-22',
+        appendToToday: true,
       })
       await waitForLockWaiters(2)
       await blocker.query('COMMIT')
@@ -227,9 +275,13 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
   it('creates cleanly when a queued delete commits before append reads the row', async () => {
     const browser = new BrowserSession(baseUrl)
     await registerAndLogin(browser)
-    const created = await (await browser.post('/api/diaries', {
-      title: 'Delete race', content: 'Deleted body', date: '2026-06-23',
-    })).json()
+    const created = await (
+      await browser.post('/api/diaries', {
+        title: 'Delete race',
+        content: 'Deleted body',
+        date: '2026-06-23',
+      })
+    ).json()
     const blocker = await database.pool.connect()
     let transactionOpen = false
     try {
@@ -240,8 +292,10 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
       const deletion = cookieMutation(browser, 'DELETE', `/api/diaries/${created.id}`)
       await waitForLockWaiters(1)
       const append = browser.post('/api/diaries', {
-        title: 'Replacement after delete', content: 'Body after delete',
-        date: '2026-06-23', appendToToday: true,
+        title: 'Replacement after delete',
+        content: 'Body after delete',
+        date: '2026-06-23',
+        appendToToday: true,
       })
       await waitForLockWaiters(2)
       await blocker.query('COMMIT')
@@ -251,7 +305,9 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
       expect(deleteResponse.status).toBe(200)
       expect(appendResponse.status).toBe(201)
       expect(await appendResponse.json()).toMatchObject({
-        title: 'Replacement after delete', content: 'Body after delete', date: '2026-06-23',
+        title: 'Replacement after delete',
+        content: 'Body after delete',
+        date: '2026-06-23',
       })
     } finally {
       if (transactionOpen) await blocker.query('ROLLBACK')
@@ -264,7 +320,10 @@ describe('Quick Diary append over real HTTP and PostgreSQL', () => {
     const credentials = await registerAndLogin(browser)
     const token = await nativeAccessToken(credentials.email, credentials.password)
     const body = {
-      title: 'Transport parity', content: 'Created by cookie', date: '2026-06-21', appendToToday: true,
+      title: 'Transport parity',
+      content: 'Created by cookie',
+      date: '2026-06-21',
+      appendToToday: true,
     }
     expect((await browser.post('/api/diaries', body, false)).status).toBe(403)
     expect((await browser.post('/api/diaries', body)).status).toBe(201)

@@ -29,8 +29,10 @@ describe('performance chart cardinality', () => {
   })
 
   it('prints both ends when they differ', () => {
-    expect(chartAxisLabels([{ label: '2026-01' }, { label: '2026-02' }, { label: '2026-04' }]))
-      .toEqual(['2026-01', '2026-04'])
+    expect(chartAxisLabels([{ label: '2026-01' }, { label: '2026-02' }, { label: '2026-04' }])).toEqual([
+      '2026-01',
+      '2026-04',
+    ])
   })
 
   it('has no labels to print for an empty series', () => {

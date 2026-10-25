@@ -12,8 +12,12 @@ const fail = (status: number, code: string, message: string): never => {
   throw new Error(`${status}:${code}:${message}`)
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('auth_session_service') })
-afterAll(async () => { await database?.dispose() })
+beforeAll(async () => {
+  database = await provisionTestDatabase('auth_session_service')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 function service() {
   return createAuthSessionService({
@@ -26,12 +30,22 @@ function service() {
 
 async function nativeLogin(auth = service(), existingUser?: typeof users.$inferSelect) {
   const password = 'auth-session-service-password'
-  const [user] = existingUser ? [existingUser] : await database.db.insert(users).values({
-    email: `${randomUUID()}@example.test`,
-    password: await bcrypt.hash(password, 10),
-  }).returning()
+  const [user] = existingUser
+    ? [existingUser]
+    : await database.db
+        .insert(users)
+        .values({
+          email: `${randomUUID()}@example.test`,
+          password: await bcrypt.hash(password, 10),
+        })
+        .returning()
   if (!user) throw new Error('Test user insert returned no row')
-  const result = await auth.createLoginSession({ candidate: user, password, clientType: 'NATIVE', deviceName: 'service test' })
+  const result = await auth.createLoginSession({
+    candidate: user,
+    password,
+    clientType: 'NATIVE',
+    deviceName: 'service test',
+  })
   if (result.clientType !== 'NATIVE') throw new Error('Test login returned a Web session')
   return { auth, user, pair: result.pair }
 }
@@ -84,10 +98,9 @@ describe('auth session service native use cases', () => {
     clock = new Date(clock.getTime() + (REFRESH_SECONDS + 1) * 1000)
 
     expect(await session.auth.refreshNativeSession(session.pair.refreshToken)).toEqual({ ok: false, reason: 'expired' })
-    const row = await database.pool.query(
-      'SELECT revoked_at, revocation_reason FROM refresh_tokens WHERE token = $1',
-      [hashRefreshToken(session.pair.refreshToken)],
-    )
+    const row = await database.pool.query('SELECT revoked_at, revocation_reason FROM refresh_tokens WHERE token = $1', [
+      hashRefreshToken(session.pair.refreshToken),
+    ])
     expect(row.rows[0]).toMatchObject({ revocation_reason: 'EXPIRED' })
     expect(row.rows[0].revoked_at).not.toBeNull()
   })
@@ -123,12 +136,22 @@ describe('auth session service native use cases', () => {
   it('returns protocol-neutral outcomes for malformed, unknown, and Web refresh credentials', async () => {
     const session = await nativeLogin()
     expect(await session.auth.refreshNativeSession('malformed')).toEqual({ ok: false, reason: 'invalid' })
-    const signed = await session.auth.signToken({
-      id: session.user.id.toString(), email: session.user.email, role: session.user.role, tokenVersion: session.user.tokenVersion,
-    }, 'refresh')
+    const signed = await session.auth.signToken(
+      {
+        id: session.user.id.toString(),
+        email: session.user.email,
+        role: session.user.role,
+        tokenVersion: session.user.tokenVersion,
+      },
+      'refresh',
+    )
     expect(await session.auth.refreshNativeSession(signed)).toEqual({ ok: false, reason: 'not-found' })
 
-    const web = await session.auth.createLoginSession({ candidate: session.user, password: 'auth-session-service-password', clientType: 'WEB' })
+    const web = await session.auth.createLoginSession({
+      candidate: session.user,
+      password: 'auth-session-service-password',
+      clientType: 'WEB',
+    })
     if (web.clientType !== 'WEB') throw new Error('Test login returned a Native session')
     expect(await session.auth.refreshNativeSession(web.refreshToken)).toEqual({ ok: false, reason: 'not-found' })
     expect(await session.auth.logoutNativeSession(web.refreshToken)).toEqual({ outcome: 'not-native' })

@@ -50,19 +50,15 @@ function formatBreadth(condition: BreadthCondition, above50dRatio: number | null
   }
 }
 
-function formatLeadership(
-  entries: Array<{ symbol: string; sectorName: string | null }>,
-): string | null {
+function formatLeadership(entries: Array<{ symbol: string; sectorName: string | null }>): string | null {
   if (entries.length === 0) return null
-  const names = entries.map((e) => e.sectorName ?? e.symbol)
+  const names = entries.map(e => e.sectorName ?? e.symbol)
   return `Leaders: ${names.join(', ')}.`
 }
 
-function formatWeakening(
-  entries: Array<{ symbol: string; sectorName: string | null }>,
-): string | null {
+function formatWeakening(entries: Array<{ symbol: string; sectorName: string | null }>): string | null {
   if (entries.length === 0) return null
-  const names = entries.map((e) => e.sectorName ?? e.symbol)
+  const names = entries.map(e => e.sectorName ?? e.symbol)
   return `Weakening groups: ${names.join(', ')}.`
 }
 

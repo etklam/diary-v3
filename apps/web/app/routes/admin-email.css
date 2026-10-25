@@ -160,7 +160,7 @@
   vertical-align: top;
 }
 
-.admin-email-table th[scope="row"] {
+.admin-email-table th[scope='row'] {
   font-weight: 600;
   overflow-wrap: anywhere;
 }

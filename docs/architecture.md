@@ -22,6 +22,8 @@ flowchart LR
 
 The production API uses one replica with a Recreate rollout because scheduling and realtime state are process-local. PostgreSQL job locks address individual batch overlap, not general multi-replica API coordination. Optional Redis shares rate-limit counters only. See [deployment operations](../ops/k8s/README.md) before changing topology.
 
+That single replica is a ruling, not a current setting: [ADR-0020](adr/0020-single-api-replica-boundary.md) makes it authoritative, states what each in-process component does with more than one replica, and lists the five pieces of work that would have to be accepted before scaling. `npm run manifests:check` enforces it by rejecting any `diary-v3-api` Deployment that does not declare `replicas: 1`. `RATE_LIMIT_BACKEND=redis` does not lift the constraint on its own.
+
 Web SSR fetches through the API using an internal origin; browser requests use the public same-origin API boundary. Web does not own a parallel database or authorization layer. Foreground Socket.IO events prompt consumers to refresh authoritative data through REST; they are not durable push or offline synchronization.
 
 ## Source and package boundaries

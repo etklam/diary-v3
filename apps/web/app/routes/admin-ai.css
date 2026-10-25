@@ -21,9 +21,9 @@
 
 /* Global inputs stretch to full width for form fields; choice controls keep
    the global 18px toggle size (audit UI-004/UI-111) instead of stretching. */
-.admin-ai-switch input[type="checkbox"],
-.admin-ai-key-actions input[type="radio"],
-.admin-ai-table-wrap input[type="checkbox"] {
+.admin-ai-switch input[type='checkbox'],
+.admin-ai-key-actions input[type='radio'],
+.admin-ai-table-wrap input[type='checkbox'] {
   width: 18px;
   min-height: 0;
 }
@@ -176,7 +176,7 @@
   vertical-align: middle;
 }
 
-.admin-ai-table-wrap th[scope="row"] {
+.admin-ai-table-wrap th[scope='row'] {
   font-weight: 600;
 }
 
@@ -184,7 +184,7 @@
   overflow-wrap: anywhere;
 }
 
-.admin-ai-table-wrap input[type="number"] {
+.admin-ai-table-wrap input[type='number'] {
   max-width: 120px;
 }
 

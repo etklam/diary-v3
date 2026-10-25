@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  buildNormalizedTrendSeries,
-} from '../../packages/domain/src/market-rotation/trend-series'
+import { buildNormalizedTrendSeries } from '../../packages/domain/src/market-rotation/trend-series'
 
 // ─── buildNormalizedTrendSeries ──────────────────────────────────
 
@@ -209,7 +207,7 @@ describe('buildNormalizedTrendSeries', () => {
     // JS floating point: 231.33 / 210.30 = 1.1000000... → normalized = 110
     const qualifiedDates = ['2026-06-13', '2026-06-15']
     const priceMap = new Map<string, number | null>([
-      ['SYMBOL:2026-06-13', 210.30],
+      ['SYMBOL:2026-06-13', 210.3],
       ['SYMBOL:2026-06-15', 231.33],
     ])
 

@@ -8,11 +8,7 @@ import {
 import type { ErrorCode } from '@diary/contracts'
 import type { Database } from '@diary/db'
 import type { AppEnv } from './app-context.js'
-import {
-  getBreadthHistory,
-  getLatestBreadthSnapshot,
-  getRegimeGuidance,
-} from './market-state-queries.js'
+import { getBreadthHistory, getLatestBreadthSnapshot, getRegimeGuidance } from './market-state-queries.js'
 
 export function registerMarketStateRoutes(
   app: Hono<AppEnv>,
@@ -37,8 +33,19 @@ export function registerMarketStateRoutes(
     const query = marketStateHistoryQuerySchema.safeParse(c.req.query())
     if (!query.success) dependencies.validationError(query.error)
     const history = await getBreadthHistory(dependencies.db, query.data.days)
-    return c.json(marketStateHistoryResponseSchema.parse(history.map(({ date, up4, down4, up4Pct, down4Pct, ratio10d, above40dPct, marketState }) => ({
-      date, up4, down4, up4Pct, down4Pct, ratio10d, above40dPct, marketState,
-    }))))
+    return c.json(
+      marketStateHistoryResponseSchema.parse(
+        history.map(({ date, up4, down4, up4Pct, down4Pct, ratio10d, above40dPct, marketState }) => ({
+          date,
+          up4,
+          down4,
+          up4Pct,
+          down4Pct,
+          ratio10d,
+          above40dPct,
+          marketState,
+        })),
+      ),
+    )
   })
 }

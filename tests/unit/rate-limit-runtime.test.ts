@@ -12,7 +12,9 @@ import type { RateLimitOptions, RateLimitResult, RateLimitStore } from '../../ap
 function memoryStore(): RateLimitStore {
   const store = new MemoryRateLimitStore()
   return {
-    get ready() { return true },
+    get ready() {
+      return true
+    },
     consume: (key, options) => store.consume(key, options),
     close: () => store.close(),
   }
@@ -22,13 +24,18 @@ describe('rate-limit backend selection', () => {
   it('defaults to memory, validates configured modes, and requires a Redis URL only in redis mode', () => {
     expect(parseRateLimitConfig({})).toEqual({ backend: 'memory' })
     expect(parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'auto' })).toEqual({ backend: 'auto' })
-    expect(parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'redis', REDIS_URL: 'redis://localhost:6379' })).toEqual({ backend: 'redis', redisUrl: 'redis://localhost:6379' })
+    expect(parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'redis', REDIS_URL: 'redis://localhost:6379' })).toEqual({
+      backend: 'redis',
+      redisUrl: 'redis://localhost:6379',
+    })
     expect(() => parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'invalid' })).toThrow('RATE_LIMIT_BACKEND')
     expect(() => parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'redis' })).toThrow('REDIS_URL')
   })
 
   it('never contacts Redis in memory mode', async () => {
-    const redisFactory = vi.fn(async () => { throw new Error('must not connect') })
+    const redisFactory = vi.fn(async () => {
+      throw new Error('must not connect')
+    })
     const runtime = await createRateLimitRuntime({ backend: 'memory', redisUrl: 'redis://unused' }, { redisFactory })
     expect(redisFactory).not.toHaveBeenCalled()
     expect(runtime).toMatchObject({ mode: 'memory', backend: 'memory', degraded: false, ready: true })
@@ -36,9 +43,16 @@ describe('rate-limit backend selection', () => {
   })
 
   it('fails closed at startup when redis mode cannot connect', async () => {
-    await expect(createRateLimitRuntime({ backend: 'redis', redisUrl: 'redis://unavailable' }, {
-      redisFactory: async () => { throw new RateLimitStoreUnavailableError() },
-    })).rejects.toThrow('Redis rate-limit backend unavailable')
+    await expect(
+      createRateLimitRuntime(
+        { backend: 'redis', redisUrl: 'redis://unavailable' },
+        {
+          redisFactory: async () => {
+            throw new RateLimitStoreUnavailableError()
+          },
+        },
+      ),
+    ).rejects.toThrow('Redis rate-limit backend unavailable')
   })
 
   it('falls back to bounded memory limits and recovers after a cooldown', async () => {
@@ -49,12 +63,15 @@ describe('rate-limit backend selection', () => {
       if (!redisAvailable) throw new RateLimitStoreUnavailableError()
       return memoryStore()
     })
-    const runtime = await createRateLimitRuntime({ backend: 'auto', redisUrl: 'redis://fixture' }, {
-      now: () => now,
-      recoveryCooldownMs: 10,
-      logger: { info: message => logs.push(message) },
-      redisFactory,
-    })
+    const runtime = await createRateLimitRuntime(
+      { backend: 'auto', redisUrl: 'redis://fixture' },
+      {
+        now: () => now,
+        recoveryCooldownMs: 10,
+        logger: { info: message => logs.push(message) },
+        redisFactory,
+      },
+    )
     expect(runtime).toMatchObject({ backend: 'memory', degraded: true, ready: true })
     const policy = { limit: 1, windowMs: 100 }
     await expect(runtime.consume('same-client', { ...policy, now })).resolves.toMatchObject({ allowed: true })
@@ -75,18 +92,23 @@ describe('rate-limit backend selection', () => {
     let redisAvailable = true
     const remote = new MemoryRateLimitStore()
     const redisFactory = vi.fn(async () => ({
-      get ready() { return redisAvailable },
+      get ready() {
+        return redisAvailable
+      },
       async consume(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
         if (!redisAvailable) throw new RateLimitStoreUnavailableError()
         return remote.consume(key, options)
       },
       async close() {},
     }))
-    const runtime = await createRateLimitRuntime({ backend: 'auto', redisUrl: 'redis://fixture' }, {
-      now: () => now,
-      recoveryCooldownMs: 10,
-      redisFactory,
-    })
+    const runtime = await createRateLimitRuntime(
+      { backend: 'auto', redisUrl: 'redis://fixture' },
+      {
+        now: () => now,
+        recoveryCooldownMs: 10,
+        redisFactory,
+      },
+    )
     const policy = { limit: 1, windowMs: 100 }
     await expect(runtime.consume('redis-client', { ...policy, now })).resolves.toMatchObject({ allowed: true })
     redisAvailable = false

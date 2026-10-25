@@ -3,9 +3,13 @@ import { test, expect, selectLocale } from '../support/e2e'
 
 test('admin can configure and switch translation providers on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  expect((await page.request.post('/api/auth/login', {
-    data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' },
-  })).status()).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/auth/login', {
+        data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' },
+      })
+    ).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
   await page.goto('/admin/article-translations')
   await selectLocale(page, 'en')
@@ -32,12 +36,16 @@ test('admin can configure and switch translation providers on mobile', async ({ 
   await page.getByRole('button', { name: 'Apply provider', exact: true }).click()
   await expect(page.getByText('Default provider updated. No provider call was made.', { exact: true })).toBeVisible()
 
-  const configured = await (await page.request.get('/api/admin/article-translations/ai-providers')).json() as {
+  const configured = (await (await page.request.get('/api/admin/article-translations/ai-providers')).json()) as {
     providers: { id: string; name: string }[]
     defaultProviderId: string | null
   }
-  expect(configured.providers.map(provider => provider.name)).toEqual(expect.arrayContaining(providers.map(provider => provider.name)))
-  expect(configured.providers.find(provider => provider.id === configured.defaultProviderId)?.name).toBe(providers[1]!.name)
+  expect(configured.providers.map(provider => provider.name)).toEqual(
+    expect.arrayContaining(providers.map(provider => provider.name)),
+  )
+  expect(configured.providers.find(provider => provider.id === configured.defaultProviderId)?.name).toBe(
+    providers[1]!.name,
+  )
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
   await page.setViewportSize({ width: 360, height: 720 })
@@ -46,9 +54,13 @@ test('admin can configure and switch translation providers on mobile', async ({ 
 
 test('admin batch-translates selected articles from article management', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  expect((await page.request.post('/api/auth/login', {
-    data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' },
-  })).status()).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/auth/login', {
+        data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' },
+      })
+    ).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
   const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
   const marker = randomUUID().slice(0, 8)
@@ -56,10 +68,16 @@ test('admin batch-translates selected articles from article management', async (
   for (const access of ['PUBLIC', 'MEMBER'] as const) {
     const response = await page.request.post('/api/blog', {
       headers: { 'x-csrf-token': csrf },
-      data: { title: `Batch ${access} ${marker}`, content: '# 標題\n\n內文段落。', category: 'market', status: 'DRAFT', access },
+      data: {
+        title: `Batch ${access} ${marker}`,
+        content: '# 標題\n\n內文段落。',
+        category: 'market',
+        status: 'DRAFT',
+        access,
+      },
     })
     expect(response.status()).toBe(200)
-    articles.push(await response.json() as { id: string; title: string })
+    articles.push((await response.json()) as { id: string; title: string })
   }
 
   await page.goto('/admin/blog')
@@ -74,13 +92,22 @@ test('admin batch-translates selected articles from article management', async (
   // Nothing appears until articles are selected, and selecting never dispatches.
   await expect(batch).toHaveCount(0)
   let dispatches = 0
-  page.on('request', request => { if (request.url().includes('/api/admin/article-translations/jobs')) dispatches += 1 })
-  for (const article of articles) await page.getByRole('row', { name: new RegExp(article.title) }).getByRole('checkbox').check()
+  page.on('request', request => {
+    if (request.url().includes('/api/admin/article-translations/jobs')) dispatches += 1
+  })
+  for (const article of articles)
+    await page
+      .getByRole('row', { name: new RegExp(article.title) })
+      .getByRole('checkbox')
+      .check()
   await expect(batch).toBeVisible()
   await expect(batch.getByRole('cell', { name: 'None' }).first()).toBeVisible()
   expect(dispatches).toBe(0)
 
-  await batch.getByRole('group', { name: 'Target languages', exact: true }).getByRole('checkbox', { name: 'en', exact: true }).check()
+  await batch
+    .getByRole('group', { name: 'Target languages', exact: true })
+    .getByRole('checkbox', { name: 'en', exact: true })
+    .check()
   await batch.getByRole('button', { name: 'Request translation', exact: true }).click()
   const confirm = page.getByRole('dialog', { name: 'Queue translation jobs?', exact: true })
   await expect(confirm).toContainText('Microsoft Edge Translate')
@@ -93,6 +120,8 @@ test('admin batch-translates selected articles from article management', async (
   await page.screenshot({ path: 'docs/design/evidence/article-publishing/translation-batch-1440.png', fullPage: true })
 
   for (const article of articles) {
-    expect((await page.request.delete(`/api/blog/${article.id}`, { headers: { 'x-csrf-token': csrf } })).status()).toBe(200)
+    expect((await page.request.delete(`/api/blog/${article.id}`, { headers: { 'x-csrf-token': csrf } })).status()).toBe(
+      200,
+    )
   }
 })

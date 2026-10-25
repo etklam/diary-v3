@@ -29,16 +29,21 @@ async function fetchCount(revision: number): Promise<number> {
     const work = {
       revision,
       // Decorative: a failure here leaves the badge off, and never signs anyone out.
-      promise: api.GET('/api/reviews', {
-        params: { query: { limit: 1 } },
-        headers: { [DECORATIVE_READ_HEADER]: '1' },
-      }).then(result => {
-        if (!result.response.ok || !result.data) throw new Error('Review count unavailable')
-        const { counts } = reviewGroupsResponseSchema.parse(result.data)
-        const count = counts.overdue + counts.today
-        cache = { revision, expires: Date.now() + TTL_MS, count }
-        return count
-      }).finally(() => { if (pending?.revision === revision) pending = undefined }),
+      promise: api
+        .GET('/api/reviews', {
+          params: { query: { limit: 1 } },
+          headers: { [DECORATIVE_READ_HEADER]: '1' },
+        })
+        .then(result => {
+          if (!result.response.ok || !result.data) throw new Error('Review count unavailable')
+          const { counts } = reviewGroupsResponseSchema.parse(result.data)
+          const count = counts.overdue + counts.today
+          cache = { revision, expires: Date.now() + TTL_MS, count }
+          return count
+        })
+        .finally(() => {
+          if (pending?.revision === revision) pending = undefined
+        }),
     }
     pending = work
   }
@@ -52,14 +57,24 @@ export function useReviewCount(): number | null {
   const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
-    if (session.authenticated !== true) { setCount(null); return }
+    if (session.authenticated !== true) {
+      setCount(null)
+      return
+    }
     let active = true
     const load = () => {
       fetchCount(session.revision)
-        .then(value => { if (active) setCount(value) })
-        .catch(() => { if (active) setCount(null) })
+        .then(value => {
+          if (active) setCount(value)
+        })
+        .catch(() => {
+          if (active) setCount(null)
+        })
     }
-    const refresh = () => { invalidateReviewCount(); load() }
+    const refresh = () => {
+      invalidateReviewCount()
+      load()
+    }
     load()
     // A quick capture can schedule a review, and completing or rescheduling one
     // changes what is still waiting.

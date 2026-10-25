@@ -19,9 +19,23 @@ export function TimelineModeSwitch({ mode }: { mode: TimelineMode }) {
   // Returning to the personal mode restores the reader's most recent filters;
   // SSR renders the plain route and the client refines it after mount.
   const [mineTo, setMineTo] = useState('/timeline')
-  useEffect(() => { if (mode === 'partner') { const search = lastTimelineSearch(); setMineTo(`/timeline${search ? `?${search}` : ''}`) } }, [mode])
-  return <nav className="timeline-modes" data-testid="timeline-modes" aria-label={c.label}>
-    <Link to={mode === 'mine' ? `${location.pathname}${location.search}` : mineTo} aria-current={mode === 'mine' ? 'page' : undefined}>{c.mine}</Link>
-    <Link to="/partners/compare" aria-current={mode === 'partner' ? 'page' : undefined}>{c.partner}</Link>
-  </nav>
+  useEffect(() => {
+    if (mode === 'partner') {
+      const search = lastTimelineSearch()
+      setMineTo(`/timeline${search ? `?${search}` : ''}`)
+    }
+  }, [mode])
+  return (
+    <nav className="timeline-modes" data-testid="timeline-modes" aria-label={c.label}>
+      <Link
+        to={mode === 'mine' ? `${location.pathname}${location.search}` : mineTo}
+        aria-current={mode === 'mine' ? 'page' : undefined}
+      >
+        {c.mine}
+      </Link>
+      <Link to="/partners/compare" aria-current={mode === 'partner' ? 'page' : undefined}>
+        {c.partner}
+      </Link>
+    </nav>
+  )
 }

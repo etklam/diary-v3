@@ -6,7 +6,9 @@ test('installs static shell metadata without caching private API responses', asy
   expect(manifest.ok()).toBe(true)
   expect(manifest.headers()['content-type']).toContain('application/manifest+json')
   expect(await manifest.json()).toMatchObject({
-    start_url: '/', scope: '/', display: 'standalone',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
     // The share sheet sends title, text and url straight into Quick Diary.
     share_target: { action: '/diaries/quick', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
   })
@@ -17,23 +19,35 @@ test('installs static shell metadata without caching private API responses', asy
     expect(response?.status(), path).toBe(200)
   }
   const cdp = await context.newCDPSession(page)
-  const appManifest = await cdp.send('Page.getAppManifest') as { errors?: { critical?: number; message?: string }[]; data?: string }
+  const appManifest = (await cdp.send('Page.getAppManifest')) as {
+    errors?: { critical?: number; message?: string }[]
+    data?: string
+  }
   // Chrome reports advisories alongside real faults — the current build notes
   // that a GET share target does not state an enctype it never uses. Only the
   // critical ones stop an install, and asserting on the whole list makes this
   // case fail on browser updates rather than on the product.
   expect(appManifest.errors?.filter(error => error.critical) ?? []).toEqual([])
   expect(appManifest.data ?? '').toContain('standalone')
-  const installability = await cdp.send('Page.getInstallabilityErrors') as { errors?: unknown[] }
+  const installability = (await cdp.send('Page.getInstallabilityErrors')) as { errors?: unknown[] }
   expect(installability.errors ?? []).toEqual([])
 
   await page.goto('/')
-  await page.evaluate(async () => { await navigator.serviceWorker.ready })
-  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null)).toContain('/sw.js')
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+  })
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null))
+    .toContain('/sw.js')
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys()
     const requests = (await Promise.all(keys.map(async key => (await caches.open(key)).keys()))).flat()
-    return { keys, privateApiRequests: requests.filter(request => new URL(request.url).pathname.startsWith('/api/')).map(request => request.url) }
+    return {
+      keys,
+      privateApiRequests: requests
+        .filter(request => new URL(request.url).pathname.startsWith('/api/'))
+        .map(request => request.url),
+    }
   })
   expect(cacheState.keys).toContain('diary-static-v4')
   expect(cacheState.privateApiRequests).toEqual([])
@@ -43,7 +57,11 @@ test('installs static shell metadata without caching private API responses', asy
     const staticResponse = await fetch('/favicon.svg')
     let apiStatus: number | null = null
     let apiFailed = false
-    try { apiStatus = (await fetch('/api/auth/me')).status } catch { apiFailed = true }
+    try {
+      apiStatus = (await fetch('/api/auth/me')).status
+    } catch {
+      apiFailed = true
+    }
     return { staticStatus: staticResponse.status, apiStatus, apiFailed }
   })
   expect(offline.staticStatus).toBe(200)
@@ -104,7 +122,13 @@ test('public mobile menu closes when the desktop breakpoint is restored @webkit-
   await expect(menu).toBeVisible()
 
   await page.setViewportSize({ width: 1024, height: 844 })
-  await expect.poll(() => page.evaluate(() => document.querySelector<HTMLDialogElement>('[data-testid="mobile-menu-dialog"]')?.open ?? null)).toBe(false)
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.querySelector<HTMLDialogElement>('[data-testid="mobile-menu-dialog"]')?.open ?? null,
+      ),
+    )
+    .toBe(false)
   await expect(menu).toBeHidden()
   await expect(page.locator('.public-nav')).toBeVisible()
   await expect(page.locator('.public-nav a').first()).toBeFocused()
@@ -127,7 +151,10 @@ test('applies a waiting worker update without losing an unsaved editor', async (
   expect(controllerBefore).toContain('/sw.js')
 
   const waiting = await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.register('/sw-update-v2.js', { scope: '/', updateViaCache: 'none' })
+    const registration = await navigator.serviceWorker.register('/sw-update-v2.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    })
     await registration.update()
     const deadline = Date.now() + 8_000
     while (!registration.waiting && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50))
@@ -136,7 +163,9 @@ test('applies a waiting worker update without losing an unsaved editor', async (
   expect(waiting).toBe(true)
   await expect(page.getByTestId('pwa-update')).toBeVisible()
   await page.getByTestId('pwa-update').click()
-  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null)).toContain('/sw-update-v2.js')
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null))
+    .toContain('/sw-update-v2.js')
   await expect(title).toHaveValue('Unsaved title survives update')
   await expect(page.getByText(/Update ready|更新已準備|更新已准备/)).toBeVisible()
   await expect(page.getByTestId('pwa-update')).toHaveCount(0)

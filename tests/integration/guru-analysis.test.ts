@@ -24,8 +24,17 @@ import { guruAnalysisResponseSchema } from '@diary/contracts'
 import { guruAnalysisCaveatKeys } from '@diary/domain/guru-analysis'
 import { runPendingGuruPortfolioAnalyticsOnce } from '../../apps/api/src/institutional/portfolio-analytics.js'
 import { runPendingGuruConsensusRebuildOnce } from '../../apps/api/src/institutional/guru-consensus.js'
-import { requestGuruAnalysis, runPendingGuruAnalysisInvalidationOnce } from '../../apps/api/src/guru-analysis/service.js'
-import { admitGuruAnalysisDispatch, claimNextGuruAnalysisRun, completeGuruAnalysisRun, failGuruAnalysisRun, runGuruAnalysisOnce } from '../../apps/api/src/guru-analysis/worker.js'
+import {
+  requestGuruAnalysis,
+  runPendingGuruAnalysisInvalidationOnce,
+} from '../../apps/api/src/guru-analysis/service.js'
+import {
+  admitGuruAnalysisDispatch,
+  claimNextGuruAnalysisRun,
+  completeGuruAnalysisRun,
+  failGuruAnalysisRun,
+  runGuruAnalysisOnce,
+} from '../../apps/api/src/guru-analysis/worker.js'
 import { registerGuruAnalysisRoutes } from '../../apps/api/src/guru-analysis/routes.js'
 import { lockAiGlobal, reapExpiredCallSlots } from '../../apps/api/src/ai-reports/job-store.js'
 import { encryptAiSecret } from '../../apps/api/src/ai-reports/secrets.js'
@@ -41,20 +50,43 @@ let guru: typeof gurus.$inferSelect
 let filingNumber = 1
 let managerNumber = 940000
 
-const statement = (overrides: Record<string, unknown> = {}) => ({ text: 'Synthetic statement.', kind: 'interpretation', factRefs: [], positionKeys: [], ...overrides })
+const statement = (overrides: Record<string, unknown> = {}) => ({
+  text: 'Synthetic statement.',
+  kind: 'interpretation',
+  factRefs: [],
+  positionKeys: [],
+  ...overrides,
+})
 const analysisPayload = {
   executiveSummary: [statement({ kind: 'fact', factRefs: ['portfolio.reportedValueUsd'] })],
-  portfolioDirection: [], convictionPositions: [], newPositions: [], increasedPositions: [], reducedPositions: [],
-  exitedPositions: [], sectorAndThemeChange: [], concentrationChange: [], turnoverInterpretation: [],
-  historicalContext: [], consensusContext: [], risks: [statement()], takeaways: [statement()],
+  portfolioDirection: [],
+  convictionPositions: [],
+  newPositions: [],
+  increasedPositions: [],
+  reducedPositions: [],
+  exitedPositions: [],
+  sectorAndThemeChange: [],
+  concentrationChange: [],
+  turnoverInterpretation: [],
+  historicalContext: [],
+  consensusContext: [],
+  risks: [statement()],
+  takeaways: [statement()],
   caveatIds: [...guruAnalysisCaveatKeys],
 }
 const response = (content: unknown = analysisPayload) => ({
-  status: 200, retryAfter: null,
-  body: JSON.stringify({ id: 'synthetic-guru-request', choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(content) } }], usage: { prompt_tokens: 420, completion_tokens: 90 } }),
+  status: 200,
+  retryAfter: null,
+  body: JSON.stringify({
+    id: 'synthetic-guru-request',
+    choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(content) } }],
+    usage: { prompt_tokens: 420, completion_tokens: 90 },
+  }),
 })
 
-function digest(value: string) { return createHash('sha256').update(value).digest('hex') }
+function digest(value: string) {
+  return createHash('sha256').update(value).digest('hex')
+}
 
 beforeAll(() => {
   vi.stubEnv('AI_ENCRYPTION_ACTIVE_KEY', 'guru-analysis-fixture')
@@ -65,77 +97,176 @@ afterAll(() => vi.unstubAllEnvs())
 beforeEach(async () => {
   database = await provisionTestDatabase('guru_analysis')
   clock = new Date('2026-08-15T12:00:00Z')
-  const [actor] = await database.db.insert(users).values({ email: `${randomUUID()}@example.test`, password: 'synthetic-test-password', role: 'ADMIN' }).returning()
+  const [actor] = await database.db
+    .insert(users)
+    .values({ email: `${randomUUID()}@example.test`, password: 'synthetic-test-password', role: 'ADMIN' })
+    .returning()
   actorId = actor!.id
-  const [security] = await database.db.insert(institutionalSecurities).values({
-    issuer: 'Synthetic Alpha Issuer', titleOfClass: 'Common Stock', securityType: 'EQUITY', sector: 'Technology', industry: 'Software',
-    sourceUrl: 'https://issuer.example.test/security', sourceVerifiedBy: actorId, sourceVerifiedAt: clock,
-  }).returning()
+  const [security] = await database.db
+    .insert(institutionalSecurities)
+    .values({
+      issuer: 'Synthetic Alpha Issuer',
+      titleOfClass: 'Common Stock',
+      securityType: 'EQUITY',
+      sector: 'Technology',
+      industry: 'Software',
+      sourceUrl: 'https://issuer.example.test/security',
+      sourceVerifiedBy: actorId,
+      sourceVerifiedAt: clock,
+    })
+    .returning()
   securityId = security!.id
   await database.db.insert(institutionalSecurityIdentifiers).values({
-    securityId, type: 'TICKER', value: 'SYN', validFrom: '2020-01-01', validTo: null,
-    sourceUrl: 'https://issuer.example.test/ticker', sourceVerifiedBy: actorId, sourceVerifiedAt: clock, createdAt: clock,
+    securityId,
+    type: 'TICKER',
+    value: 'SYN',
+    validFrom: '2020-01-01',
+    validTo: null,
+    sourceUrl: 'https://issuer.example.test/ticker',
+    sourceVerifiedBy: actorId,
+    sourceVerifiedAt: clock,
+    createdAt: clock,
   })
   const cik = String(managerNumber++).padStart(10, '0')
   const [manager] = await database.db.insert(institutionalManagers).values({ cik }).returning()
-  const [profile] = await database.db.insert(gurus).values({
-    managerId: manager!.id, slug: `analysis-guru-${cik}`, name: 'Synthetic Analysis Capital', managerName: 'Synthetic Analysis Management',
-    styleTags: ['Value'], managerType: 'Hedge fund',
-  }).returning()
+  const [profile] = await database.db
+    .insert(gurus)
+    .values({
+      managerId: manager!.id,
+      slug: `analysis-guru-${cik}`,
+      name: 'Synthetic Analysis Capital',
+      managerName: 'Synthetic Analysis Management',
+      styleTags: ['Value'],
+      managerType: 'Hedge fund',
+    })
+    .returning()
   guru = profile!
   const provider = await database.pool.query(
     "insert into ai_provider_config_version(revision,status,display_name,base_url,model,encrypted_api_key,reservation_cost_cents,monthly_budget_cents,max_input_tokens,pricing_version,input_price_per_million_cents,output_price_per_million_cents) values (1,'published','Synthetic','https://api.deepseek.com','fixture-model',$1,10,1000,2000000,'fixture-price',100,200) returning id",
     [encryptAiSecret('synthetic-key', 'provider-api-key')],
   )
-  await database.pool.query('update ai_runtime_state set generation_enabled=true,active_provider_config_id=$1,worker_heartbeat_at=$2', [provider.rows[0].id, clock])
+  await database.pool.query(
+    'update ai_runtime_state set generation_enabled=true,active_provider_config_id=$1,worker_heartbeat_at=$2',
+    [provider.rows[0].id, clock],
+  )
 })
-afterEach(async () => { await database?.dispose() })
+afterEach(async () => {
+  await database?.dispose()
+})
 
 async function publish(input: { periodEnd: string; quantity: string; reportedValue: string }) {
   const accession = `${String(guru.managerId).padStart(10, '0')}-26-${String(filingNumber++).padStart(6, '0')}`
   const sourceUrl = `https://www.sec.gov/fixture/${accession}`
-  const [filing] = await database.db.insert(institutionalFilings).values({
-    managerId: guru.managerId, accession, form: '13F-HR', isAmendment: false, filingDate: input.periodEnd,
-    filedAt: clock, periodEnd: input.periodEnd, sourceUrl, status: 'READY', parserVersion: 'analysis-fixture-v1',
-    parsedRowCount: 1, rejectedRowCount: 0,
-  }).returning()
-  const [document] = await database.db.insert(institutionalFilingDocuments).values({ filingId: filing!.id, basename: 'information.xml', sourceUrl, isPrimary: true }).returning()
+  const [filing] = await database.db
+    .insert(institutionalFilings)
+    .values({
+      managerId: guru.managerId,
+      accession,
+      form: '13F-HR',
+      isAmendment: false,
+      filingDate: input.periodEnd,
+      filedAt: clock,
+      periodEnd: input.periodEnd,
+      sourceUrl,
+      status: 'READY',
+      parserVersion: 'analysis-fixture-v1',
+      parsedRowCount: 1,
+      rejectedRowCount: 0,
+    })
+    .returning()
+  const [document] = await database.db
+    .insert(institutionalFilingDocuments)
+    .values({ filingId: filing!.id, basename: 'information.xml', sourceUrl, isPrimary: true })
+    .returning()
   const body = `<fixture>${accession}</fixture>`
-  const [artifact] = await database.db.insert(institutionalFilingArtifacts).values({
-    documentId: document!.id, contentSha256: digest(body), artifactRef: `synthetic:${accession}`,
-    rawContent: body, contentLength: BigInt(body.length), fetchedAt: clock,
-  }).returning()
+  const [artifact] = await database.db
+    .insert(institutionalFilingArtifacts)
+    .values({
+      documentId: document!.id,
+      contentSha256: digest(body),
+      artifactRef: `synthetic:${accession}`,
+      rawContent: body,
+      contentLength: BigInt(body.length),
+      fetchedAt: clock,
+    })
+    .returning()
   const snapshotHash = digest(`${securityId}:${input.quantity}:${input.reportedValue}`)
-  const [snapshot] = await database.db.insert(institutionalEffectiveSnapshots).values({
-    managerId: guru.managerId, periodEnd: input.periodEnd, replayKey: digest(`replay:${snapshotHash}:${randomUUID()}`),
-    snapshotHash, sourceManifestHash: digest(`manifest:${accession}`), resolverVersion: 'analysis-fixture-v1', holdingCount: 1, createdAt: clock,
-  }).returning()
+  const [snapshot] = await database.db
+    .insert(institutionalEffectiveSnapshots)
+    .values({
+      managerId: guru.managerId,
+      periodEnd: input.periodEnd,
+      replayKey: digest(`replay:${snapshotHash}:${randomUUID()}`),
+      snapshotHash,
+      sourceManifestHash: digest(`manifest:${accession}`),
+      resolverVersion: 'analysis-fixture-v1',
+      holdingCount: 1,
+      createdAt: clock,
+    })
+    .returning()
   await database.db.insert(institutionalEffectiveHoldings).values({
-    snapshotId: snapshot!.id, ordinal: 0, sourceFilingId: filing!.id, sourceDocumentId: document!.id, sourceArtifactId: artifact!.id,
-    sourceRowKey: digest(`row:${accession}`), sourceRowNumber: 1, securityId,
-    mappingStatus: 'MATCHED', mappingVersion: 'analysis-fixture-v1', issuer: 'Synthetic Alpha Issuer', titleOfClass: 'Common Stock',
-    cusip: null, figi: null, reportedValue: input.reportedValue, reportedValueUnit: 'USD', quantity: input.quantity,
-    quantityType: 'SH', putCall: null, sourceData: { accession, sourceUrl },
+    snapshotId: snapshot!.id,
+    ordinal: 0,
+    sourceFilingId: filing!.id,
+    sourceDocumentId: document!.id,
+    sourceArtifactId: artifact!.id,
+    sourceRowKey: digest(`row:${accession}`),
+    sourceRowNumber: 1,
+    securityId,
+    mappingStatus: 'MATCHED',
+    mappingVersion: 'analysis-fixture-v1',
+    issuer: 'Synthetic Alpha Issuer',
+    titleOfClass: 'Common Stock',
+    cusip: null,
+    figi: null,
+    reportedValue: input.reportedValue,
+    reportedValueUnit: 'USD',
+    quantity: input.quantity,
+    quantityType: 'SH',
+    putCall: null,
+    sourceData: { accession, sourceUrl },
   })
-  await database.db.update(institutionalEffectiveSnapshotPublications)
+  await database.db
+    .update(institutionalEffectiveSnapshotPublications)
     .set({ status: 'SUPERSEDED', active: false, updatedAt: clock })
     .where(eq(institutionalEffectiveSnapshotPublications.periodEnd, input.periodEnd))
   await database.db.insert(institutionalEffectiveSnapshotPublications).values({
-    snapshotId: snapshot!.id, managerId: guru.managerId, periodEnd: input.periodEnd, status: 'READY', active: true, updatedAt: clock,
+    snapshotId: snapshot!.id,
+    managerId: guru.managerId,
+    periodEnd: input.periodEnd,
+    status: 'READY',
+    active: true,
+    updatedAt: clock,
   })
-  await database.db.insert(institutionalEffectivePeriodStates).values({
-    managerId: guru.managerId, periodEnd: input.periodEnd, status: 'READY', reason: null,
-    sourceManifestHash: digest(`manifest-state:${accession}`), checkedAt: clock,
-  }).onConflictDoUpdate({ target: [institutionalEffectivePeriodStates.managerId, institutionalEffectivePeriodStates.periodEnd], set: {
-    status: 'READY', reason: null, sourceManifestHash: digest(`manifest-state:${accession}`), checkedAt: clock,
-  } })
+  await database.db
+    .insert(institutionalEffectivePeriodStates)
+    .values({
+      managerId: guru.managerId,
+      periodEnd: input.periodEnd,
+      status: 'READY',
+      reason: null,
+      sourceManifestHash: digest(`manifest-state:${accession}`),
+      checkedAt: clock,
+    })
+    .onConflictDoUpdate({
+      target: [institutionalEffectivePeriodStates.managerId, institutionalEffectivePeriodStates.periodEnd],
+      set: {
+        status: 'READY',
+        reason: null,
+        sourceManifestHash: digest(`manifest-state:${accession}`),
+        checkedAt: clock,
+      },
+    })
   await database.db.insert(institutionalSnapshotChangeEvents).values({
-    managerId: guru.managerId, periodEnd: input.periodEnd, snapshotId: snapshot!.id, createdAt: clock,
+    managerId: guru.managerId,
+    periodEnd: input.periodEnd,
+    snapshotId: snapshot!.id,
+    createdAt: clock,
   })
 }
 
 async function drain(run: () => Promise<unknown>) {
-  for (let count = 0; count < 20; count += 1) if (!await run()) return
+  for (let count = 0; count < 20; count += 1) if (!(await run())) return
   throw new Error('QUEUE_DID_NOT_DRAIN')
 }
 
@@ -143,18 +274,33 @@ async function preparedQuarters() {
   await publish({ periodEnd: '2026-03-31', quantity: '100', reportedValue: '1000' })
   await publish({ periodEnd: '2026-06-30', quantity: '150', reportedValue: '1500' })
   await drain(() => runPendingGuruPortfolioAnalyticsOnce(database.db, clock))
-  await database.db.insert(guruConsensusRebuildRequests).values(['2026-03-31', '2026-06-30'].map(periodEnd => ({ periodEnd, nextAttemptAt: clock })))
+  await database.db
+    .insert(guruConsensusRebuildRequests)
+    .values(['2026-03-31', '2026-06-30'].map(periodEnd => ({ periodEnd, nextAttemptAt: clock })))
     .onConflictDoUpdate({ target: guruConsensusRebuildRequests.periodEnd, set: { nextAttemptAt: clock } })
   await drain(() => runPendingGuruConsensusRebuildOnce(database.db, new Date(clock.getTime() + 1_000)))
 }
 
 function worker(transport: AiTransport) {
-  return runGuruAnalysisOnce({ db: database.db, now: () => clock, transport, workerId: 'synthetic-guru-analysis-worker' })
+  return runGuruAnalysisOnce({
+    db: database.db,
+    now: () => clock,
+    transport,
+    workerId: 'synthetic-guru-analysis-worker',
+  })
 }
 
 function publicApp() {
   const app = new Hono<AppEnv>()
-  registerGuruAnalysisRoutes(app, { db: database.db, now: () => clock, fail, validationError, parseJson: async () => { throw new Error('unused') } })
+  registerGuruAnalysisRoutes(app, {
+    db: database.db,
+    now: () => clock,
+    fail,
+    validationError,
+    parseJson: async () => {
+      throw new Error('unused')
+    },
+  })
   return app
 }
 
@@ -166,13 +312,26 @@ async function readPublic(period?: string) {
 }
 
 async function globalBudget() {
-  return (await database.pool.query("select reserved,consumed,released,unknown,estimated_cost_cents from ai_usage_bucket where scope='global'")).rows
+  return (
+    await database.pool.query(
+      "select reserved,consumed,released,unknown,estimated_cost_cents from ai_usage_bucket where scope='global'",
+    )
+  ).rows
 }
 
 it('generates one auditable analysis per prepared quarter, reuses an unchanged input, and keeps facts apart from interpretation', async () => {
   await preparedQuarters()
-  const queued = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
-  expect(queued).toMatchObject({ reused: false, run: { status: 'queued', reason: 'INITIAL', promptSource: 'system-default', sourceState: 'current' } })
+  const queued = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
+  expect(queued).toMatchObject({
+    reused: false,
+    run: { status: 'queued', reason: 'INITIAL', promptSource: 'system-default', sourceState: 'current' },
+  })
   expect(queued.run.context).toMatchObject({ contextVersion: 'guru-analysis-context-v1' })
   expect(JSON.stringify(queued.run.context)).not.toContain('<fixture>')
 
@@ -186,38 +345,81 @@ it('generates one auditable analysis per prepared quarter, reuses an unchanged i
 
   const ready = await readPublic()
   expect(ready).toMatchObject({
-    state: 'READY', periodEnd: '2026-06-30',
-    provenance: { status: 'succeeded', promptKey: 'guru.analysis', schemaVersion: 'guru-analysis-v1', inputTokens: 420, outputTokens: 90, model: 'fixture-model', provider: 'Synthetic' },
+    state: 'READY',
+    periodEnd: '2026-06-30',
+    provenance: {
+      status: 'succeeded',
+      promptKey: 'guru.analysis',
+      schemaVersion: 'guru-analysis-v1',
+      inputTokens: 420,
+      outputTokens: 90,
+      model: 'fixture-model',
+      provider: 'Synthetic',
+    },
   })
   expect(ready.analysis?.executiveSummary[0]).toMatchObject({ kind: 'fact', factRefs: ['portfolio.reportedValueUsd'] })
   expect(ready.caveats.map(caveat => caveat.id)).toEqual([...guruAnalysisCaveatKeys])
   expect(ready.facts.some(fact => fact.id === 'portfolio.reportedValueUsd')).toBe(true)
   expect(ready.source).toMatchObject({ periodEnd: '2026-06-30' })
 
-  const reused = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  const reused = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   expect(reused).toMatchObject({ reused: true, run: { id: queued.run.id } })
   expect(await worker(transport)).toEqual({ status: 'idle' })
   expect(transport).toHaveBeenCalledTimes(1)
   expect(await globalBudget()).toMatchObject([{ reserved: 0, consumed: 1, unknown: 0 }])
 
-  await expect(requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'regenerate', actorUserId: actorId, now: clock }))
-    .rejects.toMatchObject({ code: 'AI_REPORT_ALREADY_RUNNING' })
+  await expect(
+    requestGuruAnalysis(database.db, {
+      guru,
+      periodEnd: '2026-06-30',
+      mode: 'regenerate',
+      actorUserId: actorId,
+      now: clock,
+    }),
+  ).rejects.toMatchObject({ code: 'AI_REPORT_ALREADY_RUNNING' })
   const later = new Date(clock.getTime() + 120_000)
-  const regenerated = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'regenerate', actorUserId: actorId, now: later })
+  const regenerated = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'regenerate',
+    actorUserId: actorId,
+    now: later,
+  })
   expect(regenerated).toMatchObject({ reused: false, run: { reason: 'REGENERATION', status: 'queued' } })
   expect(await worker(transport)).toMatchObject({ status: 'succeeded' })
   expect(transport).toHaveBeenCalledTimes(2)
-  expect((await database.db.select().from(guruAnalysisRuns).orderBy(asc(guruAnalysisRuns.id))).map(run => run.status)).toEqual(['succeeded', 'succeeded'])
+  expect(
+    (await database.db.select().from(guruAnalysisRuns).orderBy(asc(guruAnalysisRuns.id))).map(run => run.status),
+  ).toEqual(['succeeded', 'succeeded'])
 })
 
 it('refuses an unprepared quarter, fails malformed output terminally, and never retries a dispatched call', async () => {
   await publish({ periodEnd: '2026-03-31', quantity: '100', reportedValue: '1000' })
-  await expect(requestGuruAnalysis(database.db, { guru, periodEnd: '2026-03-31', mode: 'generate', actorUserId: actorId, now: clock }))
-    .rejects.toMatchObject({ code: 'GURU_ANALYSIS_BLOCKED' })
+  await expect(
+    requestGuruAnalysis(database.db, {
+      guru,
+      periodEnd: '2026-03-31',
+      mode: 'generate',
+      actorUserId: actorId,
+      now: clock,
+    }),
+  ).rejects.toMatchObject({ code: 'GURU_ANALYSIS_BLOCKED' })
   expect(await readPublic('2026-03-31')).toMatchObject({ state: 'BLOCKED_BY_COVERAGE', analysis: null })
 
   await drain(() => runPendingGuruPortfolioAnalyticsOnce(database.db, clock))
-  await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-03-31', mode: 'generate', actorUserId: actorId, now: clock })
+  await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-03-31',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   const malformed = vi.fn(async () => response({ executiveSummary: [statement({ factRefs: ['invented.metric'] })] }))
   expect(await worker(malformed)).toMatchObject({ status: 'failed', errorCode: 'AI_OUTPUT_INVALID' })
   expect(await worker(malformed)).toEqual({ status: 'idle' })
@@ -231,7 +433,13 @@ it('refuses an unprepared quarter, fails malformed output terminally, and never 
 
 it('invalidates a published analysis when the prepared quarter is rebuilt and keeps it readable as an audit record', async () => {
   await preparedQuarters()
-  await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   expect(await worker(vi.fn(async () => response()))).toMatchObject({ status: 'succeeded' })
   await drain(() => runPendingGuruAnalysisInvalidationOnce(database.db, clock))
   expect(await readPublic()).toMatchObject({ state: 'READY' })
@@ -248,48 +456,96 @@ it('invalidates a published analysis when the prepared quarter is rebuilt and ke
   expect(run).toMatchObject({ sourceState: 'invalidated', invalidationReason: 'GURU_ANALYTICS_REBUILT' })
 
   // Invalidation never regenerates; the next generation is an explicit request.
-  const next = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: new Date(clock.getTime() + 120_000) })
+  const next = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: new Date(clock.getTime() + 120_000),
+  })
   expect(next).toMatchObject({ reused: false, run: { status: 'queued', reason: 'INITIAL' } })
 })
 
 it('limits historical context to quarters earlier than the selected quarter', async () => {
   await preparedQuarters()
-  const first = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-03-31', mode: 'generate', actorUserId: actorId, now: clock })
+  const first = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-03-31',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   expect(first.run.context.history).toEqual([])
-  const second = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  const second = await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   expect(second.run.context.history).toMatchObject([{ periodEnd: '2026-03-31' }])
 })
 
-it.each(['profile', 'consensus'] as const)('marks a published analysis stale after its %s input changes', async source => {
-  await preparedQuarters()
-  const original = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
-  expect(await worker(vi.fn(async () => response()))).toMatchObject({ status: 'succeeded' })
-  expect(await readPublic()).toMatchObject({ state: 'READY' })
-  if (source === 'profile') {
-    await database.db.update(gurus).set({ styleTags: ['Growth'] }).where(eq(gurus.id, guru.id))
-    const [updated] = await database.db.select().from(gurus).where(eq(gurus.id, guru.id))
-    guru = updated!
-  } else {
-    // Model another manager entering the prepared consensus, without changing
-    // this manager's portfolio analytics.
-    const changed = await database.pool.query("update guru_consensus_snapshots set active_manager_count = active_manager_count + 1 where period_end = '2026-06-30'")
-    expect(changed.rowCount).toBe(1)
-  }
-  const stale = await readPublic()
-  expect(stale).toMatchObject({ state: 'STALE' })
-  expect(stale.analysis).not.toBeNull()
-  const next = await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
-  expect(next.reused).toBe(false)
-  expect(next.run.analyticsContextHash).toBe(original.run.analyticsContextHash)
-  expect(next.run.inputHash).not.toBe(original.run.inputHash)
-})
+it.each(['profile', 'consensus'] as const)(
+  'marks a published analysis stale after its %s input changes',
+  async source => {
+    await preparedQuarters()
+    const original = await requestGuruAnalysis(database.db, {
+      guru,
+      periodEnd: '2026-06-30',
+      mode: 'generate',
+      actorUserId: actorId,
+      now: clock,
+    })
+    expect(await worker(vi.fn(async () => response()))).toMatchObject({ status: 'succeeded' })
+    expect(await readPublic()).toMatchObject({ state: 'READY' })
+    if (source === 'profile') {
+      await database.db
+        .update(gurus)
+        .set({ styleTags: ['Growth'] })
+        .where(eq(gurus.id, guru.id))
+      const [updated] = await database.db.select().from(gurus).where(eq(gurus.id, guru.id))
+      guru = updated!
+    } else {
+      // Model another manager entering the prepared consensus, without changing
+      // this manager's portfolio analytics.
+      const changed = await database.pool.query(
+        "update guru_consensus_snapshots set active_manager_count = active_manager_count + 1 where period_end = '2026-06-30'",
+      )
+      expect(changed.rowCount).toBe(1)
+    }
+    const stale = await readPublic()
+    expect(stale).toMatchObject({ state: 'STALE' })
+    expect(stale.analysis).not.toBeNull()
+    const next = await requestGuruAnalysis(database.db, {
+      guru,
+      periodEnd: '2026-06-30',
+      mode: 'generate',
+      actorUserId: actorId,
+      now: clock,
+    })
+    expect(next.reused).toBe(false)
+    expect(next.run.analyticsContextHash).toBe(original.run.analyticsContextHash)
+    expect(next.run.inputHash).not.toBe(original.run.inputHash)
+  },
+)
 
 async function dispatchedRun(leaseMs?: number) {
   await preparedQuarters()
-  await requestGuruAnalysis(database.db, { guru, periodEnd: '2026-06-30', mode: 'generate', actorUserId: actorId, now: clock })
+  await requestGuruAnalysis(database.db, {
+    guru,
+    periodEnd: '2026-06-30',
+    mode: 'generate',
+    actorUserId: actorId,
+    now: clock,
+  })
   const claimed = await claimNextGuruAnalysisRun(database.db, 'synthetic-crashing-worker', clock, leaseMs)
   expect(claimed).not.toBeNull()
-  const admitted = await admitGuruAnalysisDispatch(database.db, { run: claimed!, leaseToken: claimed!.leaseToken!, now: clock })
+  const admitted = await admitGuruAnalysisDispatch(database.db, {
+    run: claimed!,
+    leaseToken: claimed!.leaseToken!,
+    now: clock,
+  })
   expect(admitted).toHaveProperty('attemptId')
   const [run] = await database.db.select().from(guruAnalysisRuns).where(eq(guruAnalysisRuns.id, claimed!.id))
   return run!
@@ -314,24 +570,40 @@ it('does not settle again when a late worker fails after the call-slot reaper', 
     await lockAiGlobal(tx)
     await reapExpiredCallSlots(tx, clock)
   })
-  expect(await failGuruAnalysisRun(database.db, { run, leaseToken: run.leaseToken!, now: clock, errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN' })).toBe(true)
+  expect(
+    await failGuruAnalysisRun(database.db, {
+      run,
+      leaseToken: run.leaseToken!,
+      now: clock,
+      errorCode: 'AI_PROVIDER_OUTCOME_UNKNOWN',
+    }),
+  ).toBe(true)
   expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 1, estimated_cost_cents: 10 }])
 })
 
 it('leaves the attempt and accounting unchanged when an obsolete lease tries to complete', async () => {
   const run = await dispatchedRun()
   const completed = await completeGuruAnalysisRun(database.db, {
-    run, leaseToken: 'obsolete-lease-token', now: clock, result: analysisPayload,
+    run,
+    leaseToken: 'obsolete-lease-token',
+    now: clock,
+    result: analysisPayload,
     usage: { inputTokens: 420, outputTokens: 90, estimatedCostCents: 2 },
   })
   expect(completed).toBe(false)
   const [attempt] = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.id, run.attemptId!))
   expect(attempt).toMatchObject({ status: 'dispatched', finishedAt: null, slotReleasedAt: null })
   expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 0, estimated_cost_cents: 10 }])
-  expect(await failGuruAnalysisRun(database.db, { run, leaseToken: run.leaseToken!, now: clock, errorCode: 'AI_PROVIDER_UNAVAILABLE' })).toBe(true)
+  expect(
+    await failGuruAnalysisRun(database.db, {
+      run,
+      leaseToken: run.leaseToken!,
+      now: clock,
+      errorCode: 'AI_PROVIDER_UNAVAILABLE',
+    }),
+  ).toBe(true)
   expect(await globalBudget()).toMatchObject([{ consumed: 1, reserved: 0, unknown: 1 }])
 })
-
 
 it('keeps a lost worker call slot until its provider deadline and settles it only once', async () => {
   const run = await dispatchedRun(1_000)

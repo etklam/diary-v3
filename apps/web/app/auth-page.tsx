@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { authAsideCopy } from './auth-copy';
-import { useUi } from './ui';
+import type { ReactNode } from 'react'
+import { authAsideCopy } from './auth-copy'
+import { useUi } from './ui'
 
 /**
  * The shared composition for every authentication surface: the form in its own
@@ -13,16 +13,23 @@ import { useUi } from './ui';
  * contact are not making the same argument.
  */
 export function AuthPage({ children, lede, className }: { children: ReactNode; lede: string; className?: string }) {
-  const { locale } = useUi();
-  const c = authAsideCopy[locale];
-  return <div className="auth-page">
-    <section className={className ? `form-page ${className}` : 'form-page'}>{children}</section>
-    <aside className="auth-aside" aria-labelledby="auth-aside-title">
-      <p className="auth-aside-lede">{lede}</p>
-      <h2 id="auth-aside-title">{c.title}</h2>
-      <ol className="auth-points">
-        {c.points.map(([name, body]) => <li key={name}><h3>{name}</h3><p>{body}</p></li>)}
-      </ol>
-    </aside>
-  </div>;
+  const { locale } = useUi()
+  const c = authAsideCopy[locale]
+  return (
+    <div className="auth-page">
+      <section className={className ? `form-page ${className}` : 'form-page'}>{children}</section>
+      <aside className="auth-aside" aria-labelledby="auth-aside-title">
+        <p className="auth-aside-lede">{lede}</p>
+        <h2 id="auth-aside-title">{c.title}</h2>
+        <ol className="auth-points">
+          {c.points.map(([name, body]) => (
+            <li key={name}>
+              <h3>{name}</h3>
+              <p>{body}</p>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    </div>
+  )
 }

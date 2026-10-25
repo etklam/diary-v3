@@ -117,7 +117,7 @@
   text-align: right;
 }
 
-.portfolio-exposure-table-scroll th[scope="row"] {
+.portfolio-exposure-table-scroll th[scope='row'] {
   font-weight: 650;
 }
 

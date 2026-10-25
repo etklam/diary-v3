@@ -43,8 +43,8 @@ export function countMove4Pct(prices: Move4PctPrice[]): { up4Count: number; down
 export function calcAboveMaPct(prices: MovingAveragePrice[], universeCount: number): number {
   if (universeCount <= 0 || prices.length === 0) return 0
 
-  const aboveCount = prices.filter(price =>
-    isFiniteNumber(price.close) && isFiniteNumber(price.sma) && price.close > price.sma,
+  const aboveCount = prices.filter(
+    price => isFiniteNumber(price.close) && isFiniteNumber(price.sma) && price.close > price.sma,
   ).length
 
   return clamp((aboveCount / universeCount) * 100, 0, 100)

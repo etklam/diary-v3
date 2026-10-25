@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { parseAllDocuments } from 'yaml';
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { parseAllDocuments } from 'yaml'
 
 export const productionManifestFiles = [
   'ops/k8s/00-namespace.yaml',
@@ -16,47 +16,86 @@ export const productionManifestFiles = [
   'ops/k8s/production/09-research-worker.yaml',
   'ops/k8s/production/10-article-translation-worker.yaml',
   'ops/k8s/production/11-mail-worker.yaml',
-];
+]
 
-type Manifest = { kind?: string; metadata?: { name?: string; namespace?: string }; spec?: unknown };
+type Manifest = { kind?: string; metadata?: { name?: string; namespace?: string }; spec?: unknown }
 
-function collectImages(value: unknown, images: string[] = []): string[] {
-  if (Array.isArray(value)) for (const item of value) collectImages(item, images);
-  else if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) {
-    if (key === 'image' && typeof item === 'string') images.push(item);
-    else collectImages(item, images);
-  }
-  return images;
+/**
+ * Workloads whose correctness depends on there being exactly one process.
+ * ADR-0020 rules this boundary authoritative, and this is where the ruling is
+ * enforced, because nothing else stops a scale-up. Relaxing an entry requires
+ * the separately accepted scaling work that ADR names — a Redis rate-limit
+ * backend alone does not authorize it, because the reminder scheduler and the
+ * Socket.IO registry stay process-local either way.
+ *
+ * The queue workers are deliberately absent: they claim work through Postgres
+ * leases (`pg_advisory_xact_lock` plus `for update skip locked` and a lease
+ * token), which is what makes them safe to run more than once.
+ */
+const SINGLE_PROCESS_WORKLOADS: Record<string, string> = {
+  'diary-v3-api': 'in-process reminder schedulers and the process-local Socket.IO registry (ADR-0020)',
 }
 
-export function validateProductionManifests(files = productionManifestFiles, requireDigests = false, expectedNamespace = 'diary-v3') {
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(expectedNamespace)) throw new Error('Invalid Kubernetes namespace');
-  const errors: string[] = [];
+function collectImages(value: unknown, images: string[] = []): string[] {
+  if (Array.isArray(value)) for (const item of value) collectImages(item, images)
+  else if (value && typeof value === 'object')
+    for (const [key, item] of Object.entries(value)) {
+      if (key === 'image' && typeof item === 'string') images.push(item)
+      else collectImages(item, images)
+    }
+  return images
+}
+
+export function validateProductionManifests(
+  files = productionManifestFiles,
+  requireDigests = false,
+  expectedNamespace = 'diary-v3',
+) {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(expectedNamespace)) throw new Error('Invalid Kubernetes namespace')
+  const errors: string[] = []
   for (const file of files) {
-    if (!existsSync(file)) { errors.push(`${file}: missing`); continue; }
-    const documents = parseAllDocuments(readFileSync(file, 'utf8'));
+    if (!existsSync(file)) {
+      errors.push(`${file}: missing`)
+      continue
+    }
+    const documents = parseAllDocuments(readFileSync(file, 'utf8'))
     for (const document of documents) {
-      if (document.errors.length) { errors.push(`${file}: ${document.errors[0]!.message}`); continue; }
-      const manifest = document.toJS() as Manifest | null;
-      if (!manifest) continue;
+      if (document.errors.length) {
+        errors.push(`${file}: ${document.errors[0]!.message}`)
+        continue
+      }
+      const manifest = document.toJS() as Manifest | null
+      if (!manifest) continue
       if (manifest.kind === 'Namespace') {
-        if (manifest.metadata?.name !== expectedNamespace) errors.push(`${file}: namespace must be ${expectedNamespace}`);
-      } else if (manifest.metadata?.namespace !== expectedNamespace) errors.push(`${file}: metadata.namespace must be ${expectedNamespace}`);
+        if (manifest.metadata?.name !== expectedNamespace)
+          errors.push(`${file}: namespace must be ${expectedNamespace}`)
+      } else if (manifest.metadata?.namespace !== expectedNamespace)
+        errors.push(`${file}: metadata.namespace must be ${expectedNamespace}`)
+      const singleProcessReason =
+        manifest.metadata?.name === undefined ? undefined : SINGLE_PROCESS_WORKLOADS[manifest.metadata.name]
+      if (manifest.kind === 'Deployment' && singleProcessReason !== undefined) {
+        const replicas = (manifest.spec as { replicas?: unknown }).replicas
+        if (replicas !== 1)
+          errors.push(
+            `${file}: ${manifest.metadata!.name} must declare replicas: 1, not ${JSON.stringify(replicas)} — ${singleProcessReason}`,
+          )
+      }
       for (const image of collectImages(manifest.spec)) {
-        if (/:latest(?:$|@)/.test(image)) errors.push(`${file}: latest image is forbidden (${image})`);
-        if (requireDigests && !/@sha256:[a-f0-9]{64}$/.test(image)) errors.push(`${file}: image must use a sha256 digest (${image})`);
+        if (/:latest(?:$|@)/.test(image)) errors.push(`${file}: latest image is forbidden (${image})`)
+        if (requireDigests && !/@sha256:[a-f0-9]{64}$/.test(image))
+          errors.push(`${file}: image must use a sha256 digest (${image})`)
       }
     }
   }
-  if (errors.length) throw new Error(errors.join('\n'));
+  if (errors.length) throw new Error(errors.join('\n'))
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const args = process.argv.slice(2);
-  const requireDigests = args.includes('--require-digests');
-  const namespaceArg = args.find(arg => arg.startsWith('--namespace='));
-  const expectedNamespace = namespaceArg?.slice('--namespace='.length) ?? 'diary-v3';
-  const files = args.filter(arg => arg !== '--require-digests' && !arg.startsWith('--namespace='));
-  validateProductionManifests(files.length ? files : productionManifestFiles, requireDigests, expectedNamespace);
-  console.log(`Validated ${files.length || productionManifestFiles.length} release manifests in ${expectedNamespace}.`);
+  const args = process.argv.slice(2)
+  const requireDigests = args.includes('--require-digests')
+  const namespaceArg = args.find(arg => arg.startsWith('--namespace='))
+  const expectedNamespace = namespaceArg?.slice('--namespace='.length) ?? 'diary-v3'
+  const files = args.filter(arg => arg !== '--require-digests' && !arg.startsWith('--namespace='))
+  validateProductionManifests(files.length ? files : productionManifestFiles, requireDigests, expectedNamespace)
+  console.log(`Validated ${files.length || productionManifestFiles.length} release manifests in ${expectedNamespace}.`)
 }

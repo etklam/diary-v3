@@ -18,19 +18,33 @@ type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 type PortfolioValue = Awaited<ReturnType<typeof valuePortfolio>>
 
 async function readAttentionFacts(tx: DbTransaction, userId: bigint) {
-  const theses = await tx.select({ symbol: stocks.symbol, status: investmentTheses.status, reviewDueAt: investmentTheses.reviewDueAt, lastReviewedAt: investmentTheses.lastReviewedAt, reviewPending: investmentTheses.reviewPending, latestOutcome: investmentTheses.latestReviewOutcome })
-    .from(investmentTheses).innerJoin(stocks, eq(stocks.id, investmentTheses.stockId)).where(eq(investmentTheses.userId, userId))
+  const theses = await tx
+    .select({
+      symbol: stocks.symbol,
+      status: investmentTheses.status,
+      reviewDueAt: investmentTheses.reviewDueAt,
+      lastReviewedAt: investmentTheses.lastReviewedAt,
+      reviewPending: investmentTheses.reviewPending,
+      latestOutcome: investmentTheses.latestReviewOutcome,
+    })
+    .from(investmentTheses)
+    .innerJoin(stocks, eq(stocks.id, investmentTheses.stockId))
+    .where(eq(investmentTheses.userId, userId))
   // Filter completed rows before the source's 100-candidate limit. Explicit
   // stock contexts use a deterministic symbol order rather than join order.
-  const rows = await tx.execute(sql`select d.id::text as id,d.title,d.review_due_at as "reviewDueAt",d.review_status as "reviewStatus",
+  const rows =
+    await tx.execute(sql`select d.id::text as id,d.title,d.review_due_at as "reviewDueAt",d.review_status as "reviewStatus",
     (select s.symbol from diary_stocks ds join stocks s on s.id=ds.stock_id where ds.diary_id=d.id order by s.symbol limit 1) as symbol
     from diaries d where d.user_id=${userId} and d.review_status <> 'reviewed' and d.review_due_at is not null
     order by d.review_due_at asc,d.id asc limit 100`)
   return {
     theses,
     diaryReviews: rows.rows.map(row => ({
-      id: String(row.id), title: String(row.title), reviewDueAt: row.reviewDueAt as Date,
-      reviewStatus: String(row.reviewStatus), symbol: row.symbol === null ? null : String(row.symbol),
+      id: String(row.id),
+      title: String(row.title),
+      reviewDueAt: row.reviewDueAt as Date,
+      reviewStatus: String(row.reviewStatus),
+      symbol: row.symbol === null ? null : String(row.symbol),
     })),
   }
 }
@@ -67,7 +81,12 @@ function failedSection(requestId: string) {
   return { status: 'failed' as const, error: { code: 'SYS_INTERNAL_ERROR' as const, requestId } }
 }
 
-function logSectionFailure(logger: { error(message: string, context: Record<string, unknown>): void }, requestId: string, section: string, error: unknown) {
+function logSectionFailure(
+  logger: { error(message: string, context: Record<string, unknown>): void },
+  requestId: string,
+  section: string,
+  error: unknown,
+) {
   logger.error('Overview portfolio composition failed', {
     operation: 'portfolio_overview',
     stage: section,
@@ -77,20 +96,31 @@ function logSectionFailure(logger: { error(message: string, context: Record<stri
   })
 }
 
-export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies: {
-  db: Database; now: () => Date; market: ReturnType<typeof createMarketData>
-  fail: (status: number, code: ErrorCode, message: string) => never
-  validationError: (error: z.ZodError) => never
-  logger: { error(message: string, context: Record<string, unknown>): void }
-}) {
+export function registerPortfolioAttentionRoutes(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    now: () => Date
+    market: ReturnType<typeof createMarketData>
+    fail: (status: number, code: ErrorCode, message: string) => never
+    validationError: (error: z.ZodError) => never
+    logger: { error(message: string, context: Record<string, unknown>): void }
+  },
+) {
   const { db, now, market, fail, validationError, logger } = dependencies
   const read = async (c: Context<AppEnv>) => {
-    c.header('Cache-Control', 'no-store'); const user = c.get('user')
+    c.header('Cache-Control', 'no-store')
+    const user = c.get('user')
     if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const parsed = portfolioAttentionQuerySchema.safeParse(c.req.query()); if (!parsed.success) return validationError(parsed.error)
-    const userId = BigInt(user.id), asOf = now()
+    const parsed = portfolioAttentionQuerySchema.safeParse(c.req.query())
+    if (!parsed.success) return validationError(parsed.error)
+    const userId = BigInt(user.id),
+      asOf = now()
     const portfolio = await valuePortfolio(db, userId, market, asOf, c.req.raw.signal)
-    const facts = await db.transaction(tx => readAttentionFacts(tx, userId), { isolationLevel: 'repeatable read', accessMode: 'read only' })
+    const facts = await db.transaction(tx => readAttentionFacts(tx, userId), {
+      isolationLevel: 'repeatable read',
+      accessMode: 'read only',
+    })
     return c.json(buildAttentionResponse(asOf, portfolio, facts))
   }
   app.get('/api/portfolio/attention', read)
@@ -100,25 +130,33 @@ export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies
     c.header('Cache-Control', 'no-store')
     const user = c.get('user')
     if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const asOf = now(), requestId = c.get('requestId')
+    const asOf = now(),
+      requestId = c.get('requestId')
     const snapshot = await readLedgerSnapshot(db, BigInt(user.id))
     c.header('X-Portfolio-Ledger-Revision', snapshot.revision)
     let exposure
-    try { exposure = await readPortfolioExposureFromHoldings(db, snapshot.holdings, asOf.toISOString().slice(0, 10)) }
-    catch (error) { logSectionFailure(logger, requestId, 'exposure', error) }
-    return c.json(portfolioLedgerResponseSchema.parse({
-      holdings: snapshot.holdings,
-      recent: recentClosedTradesFromSnapshot(snapshot, { days: 30, limit: 50 }, asOf),
-      exposure: exposure ? { status: 'ready', data: exposure } : failedSection(requestId),
-      asOf: asOf.toISOString(),
-    }))
+    try {
+      exposure = await readPortfolioExposureFromHoldings(db, snapshot.holdings, asOf.toISOString().slice(0, 10))
+    } catch (error) {
+      logSectionFailure(logger, requestId, 'exposure', error)
+    }
+    return c.json(
+      portfolioLedgerResponseSchema.parse({
+        holdings: snapshot.holdings,
+        recent: recentClosedTradesFromSnapshot(snapshot, { days: 30, limit: 50 }, asOf),
+        exposure: exposure ? { status: 'ready', data: exposure } : failedSection(requestId),
+        asOf: asOf.toISOString(),
+      }),
+    )
   })
 
   app.get('/api/portfolio/overview', async c => {
     c.header('Cache-Control', 'no-store')
     const user = c.get('user')
     if (!user) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
-    const userId = BigInt(user.id), asOf = now(), requestId = c.get('requestId')
+    const userId = BigInt(user.id),
+      asOf = now(),
+      requestId = c.get('requestId')
     let inputs: Awaited<ReturnType<typeof loadPortfolioInputs>>
     try {
       inputs = await loadPortfolioInputs(db, userId)
@@ -144,16 +182,21 @@ export function registerPortfolioAttentionRoutes(app: Hono<AppEnv>, dependencies
     } catch (error) {
       logSectionFailure(logger, requestId, 'attention', error)
     }
-    return c.json(portfolioOverviewResponseSchema.parse({
-      valuation: { status: 'ready', data: valuation },
-      attention: attention ? { status: 'ready', data: attention } : failedSection(requestId),
-    }))
+    return c.json(
+      portfolioOverviewResponseSchema.parse({
+        valuation: { status: 'ready', data: valuation },
+        attention: attention ? { status: 'ready', data: attention } : failedSection(requestId),
+      }),
+    )
   })
 }
 
 async function loadPortfolioInputs(db: Database, userId: bigint) {
-  return db.transaction(async tx => {
-    const snapshot = await readLedgerSnapshot(tx, userId)
-    return { holdings: snapshot.holdings, revision: snapshot.revision, facts: await readAttentionFacts(tx, userId) }
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+  return db.transaction(
+    async tx => {
+      const snapshot = await readLedgerSnapshot(tx, userId)
+      return { holdings: snapshot.holdings, revision: snapshot.revision, facts: await readAttentionFacts(tx, userId) }
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }

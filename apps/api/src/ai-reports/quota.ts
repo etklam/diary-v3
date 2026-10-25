@@ -33,7 +33,11 @@ export async function reserveUserQuota(
     returning user_id, bucket_month::text as bucket_month
   `)
   if (result.rows.length === 0) return null
-  return { userId: input.userId, bucketMonth: String((result.rows[0] as { bucket_month: string }).bucket_month), reservationCostCents: 0 }
+  return {
+    userId: input.userId,
+    bucketMonth: String((result.rows[0] as { bucket_month: string }).bucket_month),
+    reservationCostCents: 0,
+  }
 }
 
 export async function releaseUserQuota(tx: SqlExecutor, reservation: QuotaReservation) {
@@ -47,7 +51,12 @@ export async function releaseUserQuota(tx: SqlExecutor, reservation: QuotaReserv
 export async function consumeUserQuota(
   tx: SqlExecutor,
   reservation: QuotaReservation,
-  usage: { inputTokens?: number | null; outputTokens?: number | null; estimatedCostCents?: number | null; unknown?: boolean },
+  usage: {
+    inputTokens?: number | null
+    outputTokens?: number | null
+    estimatedCostCents?: number | null
+    unknown?: boolean
+  },
 ) {
   await tx.execute(sql`
     update ai_usage_bucket
@@ -66,7 +75,12 @@ export async function consumeUserQuota(
 export async function recordUserQuotaUsage(
   tx: SqlExecutor,
   reservation: QuotaReservation,
-  usage: { inputTokens?: number | null; outputTokens?: number | null; estimatedCostCents?: number | null; unknown?: boolean },
+  usage: {
+    inputTokens?: number | null
+    outputTokens?: number | null
+    estimatedCostCents?: number | null
+    unknown?: boolean
+  },
 ) {
   await tx.execute(sql`
     update ai_usage_bucket
@@ -79,7 +93,10 @@ export async function recordUserQuotaUsage(
   `)
 }
 
-export async function readUserQuota(tx: SqlExecutor, input: { userId: bigint; bucketMonth: string; monthlyQuota: number }) {
+export async function readUserQuota(
+  tx: SqlExecutor,
+  input: { userId: bigint; bucketMonth: string; monthlyQuota: number },
+) {
   await ensureBucket(tx, input.userId, input.bucketMonth)
   const result = await tx.execute(sql`
     select reserved, consumed, released, unknown
@@ -89,5 +106,12 @@ export async function readUserQuota(tx: SqlExecutor, input: { userId: bigint; bu
   const row = result.rows[0] as { reserved: number; consumed: number; released: number; unknown: number } | undefined
   const reserved = Number(row?.reserved ?? 0)
   const consumed = Number(row?.consumed ?? 0)
-  return { monthlyQuota: input.monthlyQuota, reserved, consumed, released: Number(row?.released ?? 0), unknown: Number(row?.unknown ?? 0), remaining: Math.max(0, input.monthlyQuota - reserved - consumed) }
+  return {
+    monthlyQuota: input.monthlyQuota,
+    reserved,
+    consumed,
+    released: Number(row?.released ?? 0),
+    unknown: Number(row?.unknown ?? 0),
+    remaining: Math.max(0, input.monthlyQuota - reserved - consumed),
+  }
 }

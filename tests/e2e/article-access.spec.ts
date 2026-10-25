@@ -6,10 +6,19 @@ async function fits(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 }
 
-test('article access protects SSR, login returns, logout, editor transitions, and mobile reading', async ({ page, browser }) => {
+test('article access protects SSR, login returns, logout, editor transitions, and mobile reading', async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(180_000)
   await page.setViewportSize({ width: 1440, height: 1000 })
-  expect((await page.request.post('/api/auth/login', { data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' } })).status()).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/auth/login', {
+        data: { email: 'etf-admin@example.test', password: 'synthetic-etf-admin-password' },
+      })
+    ).status(),
+  ).toBe(200)
   await page.goto('/articles')
   await selectLocale(page, 'en')
   const key = randomUUID()
@@ -20,7 +29,10 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(page.locator('#article-access')).toHaveValue('MEMBER')
     await page.getByLabel('Title', { exact: true }).fill(`${access} synthetic research ${key}`)
     await page.getByLabel('Content', { exact: true }).fill(access === 'MEMBER' ? sentinel : `Public research ${key}`)
-    if (access === 'PUBLIC') await page.getByLabel('Public teaser (optional)', { exact: true }).fill('An intentionally public research introduction.')
+    if (access === 'PUBLIC')
+      await page
+        .getByLabel('Public teaser (optional)', { exact: true })
+        .fill('An intentionally public research introduction.')
     await page.locator('#article-access').selectOption(access)
     await page.getByRole('button', { name: 'Save draft', exact: true }).click()
     await expect(page).toHaveURL(/\/admin\/blog\/\d+\/edit$/)
@@ -42,8 +54,16 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     data: { title: translatedPublicTitle, excerpt: 'English translation teaser.', content: `Public research ${key}` },
   })
   expect(translationEdit.status(), await translationEdit.text()).toBe(200)
-  expect((await page.request.post(`${translationPath}/review`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })).status()).toBe(200)
-  expect((await page.request.post(`${translationPath}/publish`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })).status()).toBe(200)
+  expect(
+    (
+      await page.request.post(`${translationPath}/review`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })
+    ).status(),
+  ).toBe(200)
+  expect(
+    (
+      await page.request.post(`${translationPath}/publish`, { headers: { 'x-csrf-token': adminCsrf }, data: {} })
+    ).status(),
+  ).toBe(200)
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     await fits(page)
@@ -56,7 +76,10 @@ test('article access protects SSR, login returns, logout, editor transitions, an
       await page.screenshot({ path: '.impeccable/review/article-access-editor-mobile-controls.png' })
     }
   }
-  const guestContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })
+  const guestContext = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() },
+  })
   const reader = await guestContext.newPage()
   try {
     expect((await reader.goto('/articles'))?.status()).toBe(200)
@@ -68,7 +91,10 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await selectLocale(reader, 'zh-TW')
     await selectLocale(reader, 'en')
     await expect(reader.getByRole('heading', { name: created.PUBLIC!.title, exact: true })).toBeVisible()
-    await expect(reader.getByRole('link', { name: created.PUBLIC!.title, exact: true }).first()).toHaveAttribute('href', `/articles/${created.PUBLIC!.slug}?lang=zh-TW`)
+    await expect(reader.getByRole('link', { name: created.PUBLIC!.title, exact: true }).first()).toHaveAttribute(
+      'href',
+      `/articles/${created.PUBLIC!.slug}?lang=zh-TW`,
+    )
     await reader.goto('/articles')
     await expect(reader.getByRole('heading', { name: translatedPublicTitle, exact: true })).toBeVisible()
     await expect(reader.getByRole('heading', { name: created.MEMBER!.title, exact: true })).toBeVisible()
@@ -89,13 +115,18 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await reader.reload()
     await expect(reader.locator('.safe-markdown')).toContainText(`Public research ${key}`)
     let releaseRefresh: (() => void) | undefined
-    const refreshGate = new Promise<void>(resolve => { releaseRefresh = resolve })
+    const refreshGate = new Promise<void>(resolve => {
+      releaseRefresh = resolve
+    })
     let refreshStarted = false
     let refreshCompleted = false
     let delayNextRefresh = true
     const publicApiRoute = `**/api/blog/${created.PUBLIC!.slug}`
     await reader.route(publicApiRoute, async route => {
-      if (!delayNextRefresh) { await route.continue(); return }
+      if (!delayNextRefresh) {
+        await route.continue()
+        return
+      }
       delayNextRefresh = false
       refreshStarted = true
       const response = await route.fetch()
@@ -132,11 +163,14 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     }
     await registerLink.click()
     await expect(reader).toHaveURL(`/register?returnTo=${expectedReturnTo}`)
-    const email = `article-reader-${key}@example.test`, password = 'synthetic-reader-password'
+    const email = `article-reader-${key}@example.test`,
+      password = 'synthetic-reader-password'
     await reader.getByLabel('Email', { exact: true }).fill(email)
     await reader.getByLabel('Password', { exact: true }).fill(password)
     await reader.getByLabel('Confirm password', { exact: true }).fill(password)
-    const registrationResponsePromise = reader.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/register')
+    const registrationResponsePromise = reader.waitForResponse(
+      response => new URL(response.url()).pathname === '/api/auth/register',
+    )
     await reader.getByRole('button', { name: 'Create account', exact: true }).click()
     const registrationResponse = await registrationResponsePromise
     expect(registrationResponse.status(), await registrationResponse.text()).toBe(200)
@@ -146,7 +180,9 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(reader).toHaveURL(`/login?returnTo=${expectedReturnTo}`)
     await reader.getByLabel('Email', { exact: true }).fill(email)
     await reader.getByLabel('Password', { exact: true }).fill(password)
-    const loginResponsePromise = reader.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/login')
+    const loginResponsePromise = reader.waitForResponse(
+      response => new URL(response.url()).pathname === '/api/auth/login',
+    )
     await reader.getByRole('button', { name: 'Sign in', exact: true }).click()
     const loginResponse = await loginResponsePromise
     expect(loginResponse.status(), await loginResponse.text()).toBe(200)
@@ -159,7 +195,9 @@ test('article access protects SSR, login returns, logout, editor transitions, an
 
     await expect(reader.locator('header .lede')).toContainText(sentinel.replaceAll('_', ''))
     let releaseMetadata: (() => void) | undefined
-    const metadataGate = new Promise<void>(resolve => { releaseMetadata = resolve })
+    const metadataGate = new Promise<void>(resolve => {
+      releaseMetadata = resolve
+    })
     let metadataRequested = false
     const memberDetailRoute = `**/api/blog/${created.MEMBER!.slug}*`
     const memberMetadataRoute = `**/api/blog/${created.MEMBER!.slug}/metadata*`
@@ -175,7 +213,9 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await expect(reader.locator('header .lede')).toHaveCount(0)
     await expect(reader.getByText(sentinel, { exact: false })).toHaveCount(0)
     releaseMetadata!()
-    await expect(reader.getByRole('alert')).toContainText(/This article is no longer available|這篇文章目前無法使用|这篇文章目前无法使用/)
+    await expect(reader.getByRole('alert')).toContainText(
+      /This article is no longer available|這篇文章目前無法使用|这篇文章目前无法使用/,
+    )
     await reader.unroute(memberDetailRoute)
     await reader.unroute(memberMetadataRoute)
     await reader.getByRole('button', { name: /Refresh|重新整理|刷新/, exact: true }).click()
@@ -190,8 +230,13 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     await otherTab.goto('/timeline')
     await selectLocale(otherTab, 'en')
     let finishLogout: (() => void) | undefined
-    const pendingLogout = new Promise<void>(resolve => { finishLogout = resolve })
-    await otherTab.route('**/api/auth/logout', async route => { await pendingLogout; await route.continue() })
+    const pendingLogout = new Promise<void>(resolve => {
+      finishLogout = resolve
+    })
+    await otherTab.route('**/api/auth/logout', async route => {
+      await pendingLogout
+      await route.continue()
+    })
     await signOut(otherTab)
     await expect(reader.getByRole('heading', { name: /Members only|僅限會員|仅限会员/, exact: true })).toBeVisible()
     await expect(reader.locator('.safe-markdown')).toHaveCount(0)
@@ -229,5 +274,7 @@ test('article access protects SSR, login returns, logout, editor transitions, an
     expect(await (await reader.request.get('/sitemap.xml')).text()).not.toContain(created.PUBLIC!.slug)
     await reader.goto('/articles/nonexistent-synthetic-article')
     await expect(reader.locator('body')).toContainText(/could not be found|找不到|不存在/i)
-  } finally { await guestContext.close() }
+  } finally {
+    await guestContext.close()
+  }
 })

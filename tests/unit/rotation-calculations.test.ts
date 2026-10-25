@@ -64,9 +64,15 @@ describe('market rotation calculations', () => {
       percentFromHigh: 0,
       distanceFromHighScore: 100,
     })
-    expect(calculateDistanceFromHigh({ close: 95, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(75)
-    expect(calculateDistanceFromHigh({ close: 90, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(50)
-    expect(calculateDistanceFromHigh({ close: 80, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(0)
+    expect(calculateDistanceFromHigh({ close: 95, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(
+      75,
+    )
+    expect(calculateDistanceFromHigh({ close: 90, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(
+      50,
+    )
+    expect(calculateDistanceFromHigh({ close: 80, rollingHigh: 100, tradingDayCount: 252 }).distanceFromHighScore).toBe(
+      0,
+    )
     expect(calculateDistanceFromHigh({ close: 99, rollingHigh: 100, tradingDayCount: 59 })).toEqual({
       percentFromHigh: null,
       distanceFromHighScore: null,
@@ -74,19 +80,23 @@ describe('market rotation calculations', () => {
   })
 
   it('returns unknown rotation score when any percentile component is missing', () => {
-    expect(calculateRotationScore({
-      rsiPercentile: 80,
-      twoWeekPerformancePercentile: 70,
-      maScorePercentile: 60,
-      distanceFromHighScorePercentile: 50,
-    })).toBe(67)
+    expect(
+      calculateRotationScore({
+        rsiPercentile: 80,
+        twoWeekPerformancePercentile: 70,
+        maScorePercentile: 60,
+        distanceFromHighScorePercentile: 50,
+      }),
+    ).toBe(67)
 
-    expect(calculateRotationScore({
-      rsiPercentile: 80,
-      twoWeekPerformancePercentile: null,
-      maScorePercentile: 60,
-      distanceFromHighScorePercentile: 50,
-    })).toBeNull()
+    expect(
+      calculateRotationScore({
+        rsiPercentile: 80,
+        twoWeekPerformancePercentile: null,
+        maScorePercentile: 60,
+        distanceFromHighScorePercentile: 50,
+      }),
+    ).toBeNull()
   })
 
   // --- calculateDistanceFromHigh boundary tests ---
@@ -187,9 +197,7 @@ describe('assignRotationRanks', () => {
   it('gives rank 1 to a single row with score', () => {
     const rows = [{ symbol: 'SPY', rotationScore: 50 }]
     const result = assignRotationRanks(rows)
-    expect(result).toEqual([
-      { symbol: 'SPY', rotationScore: 50, rotationRank: 1 },
-    ])
+    expect(result).toEqual([{ symbol: 'SPY', rotationScore: 50, rotationRank: 1 }])
   })
 
   it('does not mutate the input array', () => {

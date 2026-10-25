@@ -8,8 +8,17 @@ const packagePaths = ['packages/api-client', 'packages/contracts', 'packages/dom
 const repositoryRoot = process.cwd()
 const packageRoots = packagePaths.map(path => resolve(repositoryRoot, path))
 const forbiddenPackages = [
-  '@diary/db', '@hono', 'hono', 'drizzle-orm', '@react-router',
-  'react-router', 'react-router-dom', 'react-dom', 'react-native', 'expo', '@expo',
+  '@diary/db',
+  '@hono',
+  'hono',
+  'drizzle-orm',
+  '@react-router',
+  'react-router',
+  'react-router-dom',
+  'react-dom',
+  'react-native',
+  'expo',
+  '@expo',
 ]
 const nodeBuiltins = new Set(builtinModules.flatMap(name => [name, name.replace(/^node:/, '')]))
 
@@ -18,7 +27,9 @@ function sourceFiles(path: string): string[] {
     const child = resolve(path, entry)
     return statSync(child).isDirectory()
       ? sourceFiles(child)
-      : child.endsWith('.ts') || child.endsWith('.tsx') ? [child] : []
+      : child.endsWith('.ts') || child.endsWith('.tsx')
+        ? [child]
+        : []
   })
 }
 
@@ -26,11 +37,18 @@ function imports(source: string, file: string): string[] {
   const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
   const result: string[] = []
   const visit = (node: ts.Node) => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
-      && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    ) {
       result.push(node.moduleSpecifier.text)
-    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword
-      && node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0]!)) {
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteralLike(node.arguments[0]!)
+    ) {
       result.push(node.arguments[0]!.text)
     }
     ts.forEachChild(node, visit)
@@ -55,8 +73,12 @@ describe('native shared package boundaries', () => {
           const packageName = specifier.startsWith('@')
             ? specifier.split('/').slice(0, 2).join('/')
             : specifier.split('/')[0]!
-          if (specifier.startsWith('node:') || nodeBuiltins.has(specifier) || nodeBuiltins.has(packageName)
-            || forbiddenPackages.some(name => packageName === name || packageName.startsWith(`${name}/`))) {
+          if (
+            specifier.startsWith('node:') ||
+            nodeBuiltins.has(specifier) ||
+            nodeBuiltins.has(packageName) ||
+            forbiddenPackages.some(name => packageName === name || packageName.startsWith(`${name}/`))
+          ) {
             violations.push(`${sourcePath} imports forbidden runtime ${specifier}`)
           }
           if (specifier.startsWith('.')) {
@@ -66,7 +88,11 @@ describe('native shared package boundaries', () => {
             }
           }
         }
-        if (/\bwindow\s*\.\s*(?:location|document|navigator|localStorage|sessionStorage|indexedDB|fetch|history|matchMedia|addEventListener|removeEventListener)\b|\b(?:document|navigator)\s*\.|\b(?:localStorage|sessionStorage|indexedDB|File|Blob|Buffer)\b|\bURL\s*\.\s*createObjectURL\b|\bprocess\s*\.\s*env\b/.test(source)) {
+        if (
+          /\bwindow\s*\.\s*(?:location|document|navigator|localStorage|sessionStorage|indexedDB|fetch|history|matchMedia|addEventListener|removeEventListener)\b|\b(?:document|navigator)\s*\.|\b(?:localStorage|sessionStorage|indexedDB|File|Blob|Buffer)\b|\bURL\s*\.\s*createObjectURL\b|\bprocess\s*\.\s*env\b/.test(
+            source,
+          )
+        ) {
           violations.push(`${sourcePath} uses a browser-only or Node-only global`)
         }
       }

@@ -1,13 +1,15 @@
 import { rankScopes, type BatchScope, type RankScope } from '@diary/domain/market-rotation/types'
 
-export type RotationScopeExecution<T> = {
-  ok: true
-  results: T[]
-} | {
-  ok: false
-  results: T[]
-  error: unknown
-}
+export type RotationScopeExecution<T> =
+  | {
+      ok: true
+      results: T[]
+    }
+  | {
+      ok: false
+      results: T[]
+      error: unknown
+    }
 
 /** Execute requested scopes in canonical order and stop at the first failure. */
 export async function executeRotationScopes<T>(

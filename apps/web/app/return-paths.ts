@@ -1,5 +1,5 @@
-import { articleLocaleSchema, serializedIdSchema } from '@diary/contracts';
-import { safeCaptureReturnPath } from './capture-context';
+import { articleLocaleSchema, serializedIdSchema } from '@diary/contracts'
+import { safeCaptureReturnPath } from './capture-context'
 
 /**
  * Where sign-in is allowed to send someone back to.
@@ -10,32 +10,70 @@ import { safeCaptureReturnPath } from './capture-context';
  * is why `tests/unit/return-paths.test.ts` walks `routes.ts` and fails when a
  * private route is neither listed here nor declared as a non-destination.
  */
-export const RETURN_FALLBACK = '/diaries/new';
+export const RETURN_FALLBACK = '/diaries/new'
 
 /** Exact paths with no parameters and no accepted query string. */
 const EXACT_RETURN_PATHS = new Set([
   // Diary, review, and planning surfaces.
-  '/diaries', '/timeline', '/calendar', '/reviews', '/reviews/ai-reports', '/achievements',
-  '/discipline', '/alerts', '/partners', '/partners/compare',
+  '/diaries',
+  '/timeline',
+  '/calendar',
+  '/reviews',
+  '/reviews/ai-reports',
+  '/achievements',
+  '/discipline',
+  '/alerts',
+  '/partners',
+  '/partners/compare',
   // Portfolio and market surfaces. `/stocks/alerts` is listed rather than left
   // to the symbol pattern below, which would accept it only by coincidence.
-  '/stocks', '/stocks/watchlist', '/stocks/alerts', '/etf/watchlist', '/strategy-performance',
+  '/stocks',
+  '/stocks/watchlist',
+  '/stocks/alerts',
+  '/etf/watchlist',
+  '/strategy-performance',
   // Public reading index; the article detail has its own locale-aware rule.
   '/articles',
   // Public tools, which keep their inputs through a sign-in round trip.
-  '/tools', '/tools/etf', '/tools/financial-freedom', '/tools/market-rotation',
-  '/tools/position-sizing', '/tools/relative-value', '/tools/seasonality', '/tools/sec-filings',
+  '/tools',
+  '/tools/etf',
+  '/tools/financial-freedom',
+  '/tools/market-rotation',
+  '/tools/position-sizing',
+  '/tools/relative-value',
+  '/tools/seasonality',
+  '/tools/sec-filings',
   // Account.
-  '/settings', '/settings/api-keys', '/settings/security',
+  '/settings',
+  '/settings/api-keys',
+  '/settings/security',
   // Administration.
-  '/admin/etf', '/admin/users', '/admin/gurus', '/admin/email-settings',
-  '/admin/ai', '/admin/ai/report-prompts', '/admin/ai/access', '/admin/ai/usage', '/admin/ai/prompts',
-  '/admin/institutional', '/admin/institutional/mappings',
-  '/admin/article-translations', '/admin/research', '/admin/research/new',
-  '/admin/research/settings', '/admin/blog', '/admin/blog/new',
+  '/admin/etf',
+  '/admin/users',
+  '/admin/gurus',
+  '/admin/email-settings',
+  '/admin/ai',
+  '/admin/ai/report-prompts',
+  '/admin/ai/access',
+  '/admin/ai/usage',
+  '/admin/ai/prompts',
+  '/admin/institutional',
+  '/admin/institutional/mappings',
+  '/admin/article-translations',
+  '/admin/research',
+  '/admin/research/new',
+  '/admin/research/settings',
+  '/admin/blog',
+  '/admin/blog/new',
   // Guru research surfaces. Each one is a reading destination a member returns to.
-  '/gurus', '/gurus/activity', '/gurus/consensus', '/gurus/stocks', '/gurus/sectors', '/gurus/compare', '/gurus/notifications',
-]);
+  '/gurus',
+  '/gurus/activity',
+  '/gurus/consensus',
+  '/gurus/stocks',
+  '/gurus/sectors',
+  '/gurus/compare',
+  '/gurus/notifications',
+])
 
 /**
  * Parameterized or query-bearing destinations. Each entry owns the exact query
@@ -59,60 +97,62 @@ const PATTERN_RETURN_PATHS: readonly RegExp[] = [
   /^\/gurus\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/(?:portfolio|changes|history|filings|analysis))?$/,
   /^\/stocks\/[A-Za-z0-9.]{1,32}\/gurus$/,
   /^\/diaries\/(?:new|quick|[1-9]\d*(?:\/(?:edit|review))?)$/,
-];
+]
 
 function safeArticleReturnPath(candidate: string | null): string | null {
-  const match = candidate?.match(/^\/articles\/([^/?#]+)(?:\?([^#]*))?$/);
-  if (!candidate || !match) return null;
+  const match = candidate?.match(/^\/articles\/([^/?#]+)(?:\?([^#]*))?$/)
+  if (!candidate || !match) return null
   try {
-    const url = new URL(candidate, 'https://article-return.invalid');
-    if (url.origin !== 'https://article-return.invalid') return null;
-    const slug = decodeURIComponent(match[1]!);
-    if (!/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return null;
-    if ([...url.searchParams.keys()].some(key => key !== 'lang')) return null;
-    const locales = url.searchParams.getAll('lang');
-    if (locales.length > 1) return null;
-    const locale = locales[0] === undefined ? undefined : articleLocaleSchema.safeParse(locales[0]);
-    if (locale && !locale.success) return null;
-    return `/articles/${encodeURIComponent(slug)}${locale?.success ? `?lang=${locale.data}` : ''}`;
+    const url = new URL(candidate, 'https://article-return.invalid')
+    if (url.origin !== 'https://article-return.invalid') return null
+    const slug = decodeURIComponent(match[1]!)
+    if (!/^[\p{Letter}\p{Number}-]+$/u.test(slug)) return null
+    if ([...url.searchParams.keys()].some(key => key !== 'lang')) return null
+    const locales = url.searchParams.getAll('lang')
+    if (locales.length > 1) return null
+    const locale = locales[0] === undefined ? undefined : articleLocaleSchema.safeParse(locales[0])
+    if (locale && !locale.success) return null
+    return `/articles/${encodeURIComponent(slug)}${locale?.success ? `?lang=${locale.data}` : ''}`
   } catch {
-    return null;
+    return null
   }
 }
 
 function adminBlogEditPath(candidate: string | null): string | null {
-  const match = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/);
-  return match && serializedIdSchema.safeParse(match[1]).success ? candidate : null;
+  const match = candidate?.match(/^\/admin\/blog\/([^/]+)\/edit$/)
+  return match && serializedIdSchema.safeParse(match[1]).success ? candidate : null
 }
 
 /** The editor may return to the record it was opened from, and nowhere else. */
 function diaryEditorContinuationPath(candidate: string | null): string | null {
-  const match = candidate?.match(/^\/diaries\/([1-9]\d*)\/edit\?returnTo=([^#]+)(#review-schedule)?$/);
-  if (!match) return null;
+  const match = candidate?.match(/^\/diaries\/([1-9]\d*)\/edit\?returnTo=([^#]+)(#review-schedule)?$/)
+  if (!match) return null
   try {
-    const diaryId = match[1];
-    const target = decodeURIComponent(match[2]!);
-    return target === `/diaries/${diaryId}` || target === `/diaries/${diaryId}/review` ? candidate : null;
+    const diaryId = match[1]
+    const target = decodeURIComponent(match[2]!)
+    return target === `/diaries/${diaryId}` || target === `/diaries/${diaryId}/review` ? candidate : null
   } catch {
     // Keep the safe default for a malformed continuation value.
-    return null;
+    return null
   }
 }
 
 export function safeReturnPath(candidate: string | null): string {
-  if (!candidate) return RETURN_FALLBACK;
-  if (EXACT_RETURN_PATHS.has(candidate)) return candidate;
-  if (PATTERN_RETURN_PATHS.some(pattern => pattern.test(candidate))) return candidate;
-  const capturePath = safeCaptureReturnPath(candidate);
-  if (capturePath) return capturePath;
-  return safeArticleReturnPath(candidate)
-    ?? adminBlogEditPath(candidate)
-    ?? diaryEditorContinuationPath(candidate)
-    ?? RETURN_FALLBACK;
+  if (!candidate) return RETURN_FALLBACK
+  if (EXACT_RETURN_PATHS.has(candidate)) return candidate
+  if (PATTERN_RETURN_PATHS.some(pattern => pattern.test(candidate))) return candidate
+  const capturePath = safeCaptureReturnPath(candidate)
+  if (capturePath) return capturePath
+  return (
+    safeArticleReturnPath(candidate) ??
+    adminBlogEditPath(candidate) ??
+    diaryEditorContinuationPath(candidate) ??
+    RETURN_FALLBACK
+  )
 }
 
 /** A query string of ordinary URL-safe characters, or nothing at all. */
-const PLAIN_QUERY = /^\?[A-Za-z0-9_\-.~%=&+,:]*$/;
+const PLAIN_QUERY = /^\?[A-Za-z0-9_\-.~%=&+,:]*$/
 
 /**
  * The destination rule used when writing and reading a `returnTo` value.
@@ -125,10 +165,10 @@ const PLAIN_QUERY = /^\?[A-Za-z0-9_\-.~%=&+,:]*$/;
  */
 export function safeAuthReturnPath(candidate: string | null): string {
   if (candidate?.startsWith('/admin/')) {
-    const separator = candidate.search(/[?#]/);
-    const pathname = separator === -1 ? candidate : candidate.slice(0, separator);
-    const query = separator === -1 || candidate[separator] === '#' ? '' : candidate.slice(separator);
-    if (safeReturnPath(pathname) === pathname && (query === '' || PLAIN_QUERY.test(query))) return `${pathname}${query}`;
+    const separator = candidate.search(/[?#]/)
+    const pathname = separator === -1 ? candidate : candidate.slice(0, separator)
+    const query = separator === -1 || candidate[separator] === '#' ? '' : candidate.slice(separator)
+    if (safeReturnPath(pathname) === pathname && (query === '' || PLAIN_QUERY.test(query))) return `${pathname}${query}`
   }
-  return safeReturnPath(candidate);
+  return safeReturnPath(candidate)
 }

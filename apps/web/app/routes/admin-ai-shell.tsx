@@ -46,11 +46,17 @@ export function useAdminAiSettings(): AdminAiState {
   const session = useSessionState()
   const { authenticated, viewer } = useOutletContext<ShellOutletContext>()
   const adminReady = authenticated === true && viewer?.role === 'ADMIN'
-  const translate = useRef(t); translate.current = t
+  const translate = useRef(t)
+  translate.current = t
   const mountedRef = useRef(true)
   const sessionRevRef = useRef(session.revision)
   sessionRevRef.current = session.revision
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const [settings, setSettings] = useState<AdminSettings | null>(null)
   const [denied, setDenied] = useState(false)
@@ -61,19 +67,30 @@ export function useAdminAiSettings(): AdminAiState {
   useEffect(() => {
     if (!adminReady) return
     const controller = new AbortController()
-    setSettings(null); setDenied(false); setLoadFailure(null)
-    api.GET('/api/admin/ai/settings', { signal: controller.signal }).then(result => {
-      if (controller.signal.aborted) return
-      const parsed = aiAdminSettingsResponseSchema.safeParse(result.data)
-      if (result.response.ok && parsed.success) setSettings(parsed.data)
-      else if (result.response.status === 403) setDenied(true)
-      else setLoadFailure(apiFailure(result.error, translate.current('failed')))
-    }).catch(() => { if (!controller.signal.aborted) setLoadFailure({ message: translate.current('connection'), fields: [] }) })
+    setSettings(null)
+    setDenied(false)
+    setLoadFailure(null)
+    api
+      .GET('/api/admin/ai/settings', { signal: controller.signal })
+      .then(result => {
+        if (controller.signal.aborted) return
+        const parsed = aiAdminSettingsResponseSchema.safeParse(result.data)
+        if (result.response.ok && parsed.success) setSettings(parsed.data)
+        else if (result.response.status === 403) setDenied(true)
+        else setLoadFailure(apiFailure(result.error, translate.current('failed')))
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadFailure({ message: translate.current('connection'), fields: [] })
+      })
     return () => controller.abort()
   }, [attempt, session.revision, adminReady])
 
   return {
-    settings, setSettings, denied, adminReady, loadFailure,
+    settings,
+    setSettings,
+    denied,
+    adminReady,
+    loadFailure,
     ledger,
     recordLedgerChange: () => setLedger(value => value + 1),
     blocked: authenticated === false || (authenticated === true && viewer !== null && viewer.role !== 'ADMIN'),
@@ -103,7 +120,15 @@ const views: Array<{ view: AdminAiView; to: string }> = [
  * `heading` is optional because the prompt registry owns its own page header;
  * it still gets the navigation and the live state.
  */
-export function AdminAiShell({ view, state, children }: { view: AdminAiView; state: AdminAiState; children: ReactNode }) {
+export function AdminAiShell({
+  view,
+  state,
+  children,
+}: {
+  view: AdminAiView
+  state: AdminAiState
+  children: ReactNode
+}) {
   const { locale, t } = useUi()
   const c = adminAiCopy[locale]
   const registry = promptCopy[locale]
@@ -112,60 +137,116 @@ export function AdminAiShell({ view, state, children }: { view: AdminAiView; sta
   const runtime = state.settings?.runtime ?? null
   const live = runtime?.generationEnabled === true
   const label: Record<AdminAiView, string> = {
-    provider: c.sectionProvider, prompts: c.sectionPrompts, registry: registry.title,
-    access: c.sectionAccess, usage: c.sectionUsage,
+    provider: c.sectionProvider,
+    prompts: c.sectionPrompts,
+    registry: registry.title,
+    access: c.sectionAccess,
+    usage: c.sectionUsage,
   }
   const heading: Record<AdminAiView, string | null> = {
-    provider: c.viewProvider, prompts: c.viewPrompts, registry: null, access: c.viewAccess, usage: c.viewUsage,
+    provider: c.viewProvider,
+    prompts: c.viewPrompts,
+    registry: null,
+    access: c.viewAccess,
+    usage: c.viewUsage,
   }
   const lede: Record<AdminAiView, string> = {
-    provider: c.ledeProvider, prompts: c.ledePrompts, registry: registry.intro, access: c.ledeAccess, usage: c.ledeUsage,
+    provider: c.ledeProvider,
+    prompts: c.ledePrompts,
+    registry: registry.intro,
+    access: c.ledeAccess,
+    usage: c.ledeUsage,
   }
   const fmtDateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
 
   async function toggleRuntime(enabled: boolean) {
-    setPending(true); setFailure(null)
+    setPending(true)
+    setFailure(null)
     const revision = state.sessionRevision()
     try {
       const result = await api.PUT('/api/admin/ai/runtime', { body: { generationEnabled: enabled } })
       if (!state.alive(revision)) return
       const parsed = aiAdminRuntimeStateSchema.safeParse(result.data)
-      if (!result.response.ok || !parsed.success) { setFailure(apiFailure(result.error, t('failed'))); return }
-      state.setSettings(current => current ? { ...current, runtime: parsed.data } : current)
+      if (!result.response.ok || !parsed.success) {
+        setFailure(apiFailure(result.error, t('failed')))
+        return
+      }
+      state.setSettings(current => (current ? { ...current, runtime: parsed.data } : current))
       // Throwing the switch writes an audit row; the view reading that log is
       // one of the views this chrome renders in.
       state.recordLedgerChange()
-    } catch { if (state.alive(revision)) setFailure({ message: t('connection'), fields: [] }) }
-    finally { if (state.alive(revision)) setPending(false) }
+    } catch {
+      if (state.alive(revision)) setFailure({ message: t('connection'), fields: [] })
+    } finally {
+      if (state.alive(revision)) setPending(false)
+    }
   }
 
   const title = heading[view]
-  return <section className="admin-ai-page">
-    {title && <header className="admin-ai-header"><div><h1>{title}</h1><p className="lede">{lede[view]}</p></div></header>}
-    <nav className="admin-ai-views" aria-label={c.title}>
-      {/* NavLink sets `aria-current="page"` on the active view, which is both
+  return (
+    <section className="admin-ai-page">
+      {title && (
+        <header className="admin-ai-header">
+          <div>
+            <h1>{title}</h1>
+            <p className="lede">{lede[view]}</p>
+          </div>
+        </header>
+      )}
+      <nav className="admin-ai-views" aria-label={c.title}>
+        {/* NavLink sets `aria-current="page"` on the active view, which is both
           the accessible state and what the stylesheet selects on. */}
-      {views.map(item => <NavLink key={item.to} to={item.to} end>{label[item.view]}</NavLink>)}
-    </nav>
+        {views.map(item => (
+          <NavLink key={item.to} to={item.to} end>
+            {label[item.view]}
+          </NavLink>
+        ))}
+      </nav>
 
-    <div className="admin-ai-live" data-live={live ? 'on' : 'off'} data-testid="admin-ai-live">
-      <p className="admin-ai-live-state">{live ? c.liveOn : c.liveOff}</p>
-      <label className="admin-ai-switch">
-        <input type="checkbox" data-testid="admin-ai-runtime" checked={live} disabled={pending || !runtime} onChange={event => void toggleRuntime(event.target.checked)} />
-        <span>{c.generationEnabled}</span>
-      </label>
-      <p className="muted">{c.generationEnabledNote}</p>
-      <p className="muted" data-testid="admin-ai-worker">{runtime?.workerAvailable ? c.workerOnline.replace('{time}', runtime.workerHeartbeatAt ? fmtDateTime.format(new Date(runtime.workerHeartbeatAt)) : '—') : c.workerOffline}</p>
-    </div>
+      <div className="admin-ai-live" data-live={live ? 'on' : 'off'} data-testid="admin-ai-live">
+        <p className="admin-ai-live-state">{live ? c.liveOn : c.liveOff}</p>
+        <label className="admin-ai-switch">
+          <input
+            type="checkbox"
+            data-testid="admin-ai-runtime"
+            checked={live}
+            disabled={pending || !runtime}
+            onChange={event => void toggleRuntime(event.target.checked)}
+          />
+          <span>{c.generationEnabled}</span>
+        </label>
+        <p className="muted">{c.generationEnabledNote}</p>
+        <p className="muted" data-testid="admin-ai-worker">
+          {runtime?.workerAvailable
+            ? c.workerOnline.replace(
+                '{time}',
+                runtime.workerHeartbeatAt ? fmtDateTime.format(new Date(runtime.workerHeartbeatAt)) : '—',
+              )
+            : c.workerOffline}
+        </p>
+      </div>
 
-    <FailureNotice failure={failure} />
-    {state.denied && <div className="ai-gate" role="note"><p>{c.denied}</p></div>}
-    <FailureNotice failure={state.loadFailure} />
-    {state.loadFailure && <button type="button" className="secondary" onClick={state.retry}>{t('retry')}</button>}
-    {state.blocked
-      ? <div className="ai-gate" role="note"><p>{c.denied}</p></div>
-      : !state.denied && state.adminReady ? children : null}
-  </section>
+      <FailureNotice failure={failure} />
+      {state.denied && (
+        <div className="ai-gate" role="note">
+          <p>{c.denied}</p>
+        </div>
+      )}
+      <FailureNotice failure={state.loadFailure} />
+      {state.loadFailure && (
+        <button type="button" className="secondary" onClick={state.retry}>
+          {t('retry')}
+        </button>
+      )}
+      {state.blocked ? (
+        <div className="ai-gate" role="note">
+          <p>{c.denied}</p>
+        </div>
+      ) : !state.denied && state.adminReady ? (
+        children
+      ) : null}
+    </section>
+  )
 }
 
 /** Every AI administration view formats the same instants the same way. */
@@ -178,5 +259,9 @@ export function useAdminAiDateTime() {
 export function AdminAiStatusBadge({ status }: { status: 'draft' | 'published' }) {
   const { locale } = useUi()
   const c = adminAiCopy[locale]
-  return <span className={`badge${status === 'published' ? ' badge-info' : ''}`}>{status === 'published' ? c.statusPublished : c.statusDraft}</span>
+  return (
+    <span className={`badge${status === 'published' ? ' badge-info' : ''}`}>
+      {status === 'published' ? c.statusPublished : c.statusDraft}
+    </span>
+  )
 }

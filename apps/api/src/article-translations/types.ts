@@ -1,6 +1,6 @@
 export const ARTICLE_TRANSLATION_LOCALES = ['zh-TW', 'zh-CN', 'en'] as const
 
-export type ArticleTranslationLocale = typeof ARTICLE_TRANSLATION_LOCALES[number]
+export type ArticleTranslationLocale = (typeof ARTICLE_TRANSLATION_LOCALES)[number]
 export type ArticleAccessLevel = 'PUBLIC' | 'MEMBER'
 export type TranslationProviderId = 'edge' | 'ai'
 

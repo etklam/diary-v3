@@ -13,10 +13,7 @@ config.watchFolders = [
   path.join(repositoryRoot, 'packages/contracts'),
   path.join(repositoryRoot, 'packages/domain'),
 ]
-config.resolver.nodeModulesPaths = [
-  path.join(projectRoot, 'node_modules'),
-  path.join(repositoryRoot, 'node_modules'),
-]
+config.resolver.nodeModulesPaths = [path.join(projectRoot, 'node_modules'), path.join(repositoryRoot, 'node_modules')]
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (!moduleName.startsWith('.') || !moduleName.endsWith('.js')) {

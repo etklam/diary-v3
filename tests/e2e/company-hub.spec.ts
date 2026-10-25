@@ -1,89 +1,312 @@
-import { randomUUID } from 'node:crypto';
-import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e';
-for (const width of [1440, 390]) test(`Company Hub connects position, original decision and review at ${width}px`, async ({ page, context }) => {
-  await page.setViewportSize({ width, height: 900 }); const email = `hub-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  const response = await page.request.post('/api/diaries', { headers, data: { title: 'Original company decision', content: 'Original private content', date: '2026-09-01', stockSymbols: ['AAPL'], transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-01T00:00:00Z' }] } }); expect(response.status()).toBe(201); const diary = await response.json();
-  expect((await page.request.put('/api/stocks/AAPL/thesis', { headers, data: { status: 'ACTIVE', summary: 'Current company view', whyIOwnIt: 'Durable demand' } })).status()).toBe(200);
-  expect((await page.request.post('/api/stocks/AAPL/notes', { headers, data: { title: 'Editable company note', content: 'Research observation' } })).status()).toBe(200);
-  expect((await page.request.post('/api/stocks/AAPL/evidence', { headers, data: { sourceType: 'MANUAL', summary: 'Frozen company evidence', occurredAt: '2026-09-01T00:00:00Z' } })).status()).toBe(200);
-  await page.route('**/api/market/historical**', async route => { const response = await route.fetch(); const body = await response.json(); await route.fulfill({ response, json: Array.isArray(body) ? body.slice(0, 5) : body }); });
-  await page.goto('/stocks'); await page.getByRole('table', { name: 'Holdings', exact: true }).getByRole('link', { name: 'AAPL', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL$/);
-  const hub = page.getByRole('region', { name: 'Your company research', exact: true }); await expect(hub.getByTestId('company-quantity')).toHaveText('2'); await expect(hub.getByTestId('company-marketValue')).toHaveText('220.00'); await expect(hub).toContainText('Current company view'); await expect(page.locator('main')).toContainText('Frozen company evidence'); await expect(page.locator('main')).toContainText('Editable company note');
-  await hub.getByRole('link', { name: 'Original company decision', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`)); await page.goBack(); await expect(hub).toContainText('Current company view');
-  await hub.getByRole('link', { name: 'Review diary: Original company decision', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}/review$`)); await page.goBack();
-  await hub.getByRole('link', { name: 'Open thesis and reviews', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/); const form = page.getByRole('form', { name: 'Complete thesis review', exact: true }); await form.getByRole('textbox', { name: 'What changed', exact: true }).fill('Private later reflection'); await form.getByRole('button', { name: 'Complete thesis review', exact: true }).click(); await expect(page.getByTestId('thesis-review')).toHaveCount(1); const reviewAnchor = await page.getByTestId('thesis-review').getAttribute('id'); expect(reviewAnchor).toMatch(/^review-/); await page.getByRole('link', { name: 'Back to company', exact: true }).click();
-  await expect(hub.getByRole('region', { name: 'Later reviews', exact: true })).toContainText('Unclear'); await expect(hub).not.toContainText('Private later reflection'); const laterReview = hub.getByRole('region', { name: 'Later reviews', exact: true }); await laterReview.getByRole('link', { name: 'Open thesis and reviews', exact: true }).click(); await expect(page).toHaveURL(new RegExp(`/stocks/AAPL/thesis#${reviewAnchor}$`)); await expect(page.locator(`#${reviewAnchor}`)).toBeVisible(); await page.getByRole('link', { name: 'Back to company', exact: true }).click();
-  await expect(hub.getByTestId('company-quantity')).toHaveText('2'); await expect(hub.getByTestId('company-marketValue')).toHaveText('220.00'); await expect(hub).toContainText('Current company view'); await expect(page.getByRole('region', { name: 'Company notes', exact: true })).toContainText('Editable company note'); await expect(page.getByRole('region', { name: 'Research evidence', exact: true })).toContainText('Frozen company evidence'); await expect(page.locator('.market-table tbody tr')).toHaveCount(5);
-  await page.unroute('**/api/market/historical**'); if (width === 390) await selectTheme(page, 'dark'); await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); }); await page.screenshot({ path: `docs/design/evidence/company-hub/${width}.png`, fullPage: true }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.route('**/api/stocks/AAPL/hub', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'hub-retry' } }) })); await page.reload(); await expect(hub.getByTestId('request-id')).toHaveText('hub-retry'); await expect(page.getByTestId('market-price')).toHaveText('110.00'); await expect(page.locator('main')).toContainText('Editable company note'); await expect(page.locator('main')).toContainText('Frozen company evidence'); await page.unroute('**/api/stocks/AAPL/hub'); await hub.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(hub).toContainText('Current company view');
-  for (const [locale, name] of [['zh-TW', '你的公司研究'], ['zh-CN', '你的公司研究'], ['en', 'Your company research']] as const) { await selectLocale(page, locale); await expect(page.getByRole('region', { name, exact: true })).toBeVisible(); }
-  await signOut(page); await expect(hub).toHaveCount(0); await expect(page.getByTestId('market-price')).toHaveText('110.00');
-});
+import { randomUUID } from 'node:crypto'
+import { test, expect, selectLocale, selectTheme, signOut } from '../support/e2e'
+for (const width of [1440, 390])
+  test(`Company Hub connects position, original decision and review at ${width}px`, async ({ page, context }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const email = `hub-${randomUUID()}@example.test`,
+      password = 'synthetic-hub-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
+    const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+    const response = await page.request.post('/api/diaries', {
+      headers,
+      data: {
+        title: 'Original company decision',
+        content: 'Original private content',
+        date: '2026-09-01',
+        stockSymbols: ['AAPL'],
+        transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-01T00:00:00Z' }],
+      },
+    })
+    expect(response.status()).toBe(201)
+    const diary = await response.json()
+    expect(
+      (
+        await page.request.put('/api/stocks/AAPL/thesis', {
+          headers,
+          data: { status: 'ACTIVE', summary: 'Current company view', whyIOwnIt: 'Durable demand' },
+        })
+      ).status(),
+    ).toBe(200)
+    expect(
+      (
+        await page.request.post('/api/stocks/AAPL/notes', {
+          headers,
+          data: { title: 'Editable company note', content: 'Research observation' },
+        })
+      ).status(),
+    ).toBe(200)
+    expect(
+      (
+        await page.request.post('/api/stocks/AAPL/evidence', {
+          headers,
+          data: { sourceType: 'MANUAL', summary: 'Frozen company evidence', occurredAt: '2026-09-01T00:00:00Z' },
+        })
+      ).status(),
+    ).toBe(200)
+    await page.route('**/api/market/historical**', async route => {
+      const response = await route.fetch()
+      const body = await response.json()
+      await route.fulfill({ response, json: Array.isArray(body) ? body.slice(0, 5) : body })
+    })
+    await page.goto('/stocks')
+    await page
+      .getByRole('table', { name: 'Holdings', exact: true })
+      .getByRole('link', { name: 'AAPL', exact: true })
+      .click()
+    await expect(page).toHaveURL(/\/stocks\/AAPL$/)
+    const hub = page.getByRole('region', { name: 'Your company research', exact: true })
+    await expect(hub.getByTestId('company-quantity')).toHaveText('2')
+    await expect(hub.getByTestId('company-marketValue')).toHaveText('220.00')
+    await expect(hub).toContainText('Current company view')
+    await expect(page.locator('main')).toContainText('Frozen company evidence')
+    await expect(page.locator('main')).toContainText('Editable company note')
+    await hub.getByRole('link', { name: 'Original company decision', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}$`))
+    await page.goBack()
+    await expect(hub).toContainText('Current company view')
+    await hub.getByRole('link', { name: 'Review diary: Original company decision', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/diaries/${diary.id}/review$`))
+    await page.goBack()
+    await hub.getByRole('link', { name: 'Open thesis and reviews', exact: true }).click()
+    await expect(page).toHaveURL(/\/stocks\/AAPL\/thesis$/)
+    const form = page.getByRole('form', { name: 'Complete thesis review', exact: true })
+    await form.getByRole('textbox', { name: 'What changed', exact: true }).fill('Private later reflection')
+    await form.getByRole('button', { name: 'Complete thesis review', exact: true }).click()
+    await expect(page.getByTestId('thesis-review')).toHaveCount(1)
+    const reviewAnchor = await page.getByTestId('thesis-review').getAttribute('id')
+    expect(reviewAnchor).toMatch(/^review-/)
+    await page.getByRole('link', { name: 'Back to company', exact: true }).click()
+    await expect(hub.getByRole('region', { name: 'Later reviews', exact: true })).toContainText('Unclear')
+    await expect(hub).not.toContainText('Private later reflection')
+    const laterReview = hub.getByRole('region', { name: 'Later reviews', exact: true })
+    await laterReview.getByRole('link', { name: 'Open thesis and reviews', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/stocks/AAPL/thesis#${reviewAnchor}$`))
+    await expect(page.locator(`#${reviewAnchor}`)).toBeVisible()
+    await page.getByRole('link', { name: 'Back to company', exact: true }).click()
+    await expect(hub.getByTestId('company-quantity')).toHaveText('2')
+    await expect(hub.getByTestId('company-marketValue')).toHaveText('220.00')
+    await expect(hub).toContainText('Current company view')
+    await expect(page.getByRole('region', { name: 'Company notes', exact: true })).toContainText(
+      'Editable company note',
+    )
+    await expect(page.getByRole('region', { name: 'Research evidence', exact: true })).toContainText(
+      'Frozen company evidence',
+    )
+    await expect(page.locator('.market-table tbody tr')).toHaveCount(5)
+    await page.unroute('**/api/market/historical**')
+    if (width === 390) await selectTheme(page, 'dark')
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    })
+    await page.screenshot({ path: `docs/design/evidence/company-hub/${width}.png`, fullPage: true })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.route('**/api/stocks/AAPL/hub', route =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'hub-retry' } }),
+      }),
+    )
+    await page.reload()
+    await expect(hub.getByTestId('request-id')).toHaveText('hub-retry')
+    await expect(page.getByTestId('market-price')).toHaveText('110.00')
+    await expect(page.locator('main')).toContainText('Editable company note')
+    await expect(page.locator('main')).toContainText('Frozen company evidence')
+    await page.unroute('**/api/stocks/AAPL/hub')
+    await hub.getByRole('button', { name: 'Try again', exact: true }).click()
+    await expect(hub).toContainText('Current company view')
+    for (const [locale, name] of [
+      ['zh-TW', '你的公司研究'],
+      ['zh-CN', '你的公司研究'],
+      ['en', 'Your company research'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByRole('region', { name, exact: true })).toBeVisible()
+    }
+    await signOut(page)
+    await expect(hub).toHaveCount(0)
+    await expect(page.getByTestId('market-price')).toHaveText('110.00')
+  })
 
-test('Company Hub readers fail and retry independently while other sections remain available', async ({ page, context }) => {
-  await page.setViewportSize({ width: 1440, height: 900 }); const email = `hub-readers-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
-  await page.request.post('/api/auth/register', { data: { email, password } }); await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  const diaryResponse = await page.request.post('/api/diaries', { headers, data: { title: 'Reader source decision', content: 'Reader source body', date: '2026-09-02', stockSymbols: ['AAPL'], transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-02T00:00:00Z' }] } }); expect(diaryResponse.status()).toBe(201);
-  expect((await page.request.put('/api/stocks/AAPL/thesis', { headers, data: { status: 'ACTIVE', summary: 'Reader current view', whyIOwnIt: 'Reader reason' } })).status()).toBe(200);
-  expect((await page.request.post('/api/stocks/AAPL/notes', { headers, data: { title: 'Reader note', content: 'Reader note body' } })).status()).toBe(200);
-  expect((await page.request.post('/api/stocks/AAPL/evidence', { headers, data: { sourceType: 'MANUAL', summary: 'Reader evidence', occurredAt: '2026-09-02T00:00:00Z' } })).status()).toBe(200);
-  await page.goto('/stocks'); await page.getByRole('table', { name: 'Holdings', exact: true }).getByRole('link', { name: 'AAPL', exact: true }).click(); await expect(page).toHaveURL(/\/stocks\/AAPL$/);
-  const hub = page.getByRole('region', { name: 'Your company research', exact: true }); const notes = page.getByRole('region', { name: 'Company notes', exact: true }); const evidence = page.getByRole('region', { name: 'Research evidence', exact: true });
-  await expect(hub).toContainText('Reader current view'); await expect(notes).toContainText('Reader note'); await expect(evidence).toContainText('Reader evidence'); await expect(page.getByTestId('market-price')).toHaveText('110.00');
-  let failNotes = true; await page.route('**/api/stocks/AAPL/notes**', async route => { if (failNotes && route.request().method() === 'GET') { failNotes = false; await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'company-notes-retry' } }) }); } else await route.continue(); });
-  await notes.getByRole('button', { name: 'Refresh notes', exact: true }).click(); await expect(notes.getByTestId('request-id')).toHaveText('company-notes-retry'); await expect(hub).toContainText('Reader current view'); await expect(evidence).toContainText('Reader evidence'); await expect(page.getByTestId('market-price')).toHaveText('110.00'); await notes.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(notes).toContainText('Reader note'); await page.unroute('**/api/stocks/AAPL/notes**');
-  let failEvidence = true; await page.route('**/api/stocks/AAPL/timeline**', async route => { if (failEvidence && route.request().method() === 'GET') { failEvidence = false; await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'company-evidence-retry' } }) }); } else await route.continue(); });
-  await page.reload(); const reloadedHub = page.getByRole('region', { name: 'Your company research', exact: true }); const reloadedNotes = page.getByRole('region', { name: 'Company notes', exact: true }); const reloadedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true }); await expect(reloadedEvidence.getByTestId('request-id')).toHaveText('company-evidence-retry'); await expect(reloadedHub).toContainText('Reader current view'); await expect(reloadedNotes).toContainText('Reader note'); await expect(page.getByTestId('market-price')).toHaveText('110.00'); await reloadedEvidence.getByRole('button', { name: 'Try again', exact: true }).click(); await expect(reloadedEvidence).toContainText('Reader evidence'); await page.unroute('**/api/stocks/AAPL/timeline**');
-});
+test('Company Hub readers fail and retry independently while other sections remain available', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `hub-readers-${randomUUID()}@example.test`,
+    password = 'synthetic-hub-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectLocale(page, 'en')
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+  const diaryResponse = await page.request.post('/api/diaries', {
+    headers,
+    data: {
+      title: 'Reader source decision',
+      content: 'Reader source body',
+      date: '2026-09-02',
+      stockSymbols: ['AAPL'],
+      transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-09-02T00:00:00Z' }],
+    },
+  })
+  expect(diaryResponse.status()).toBe(201)
+  expect(
+    (
+      await page.request.put('/api/stocks/AAPL/thesis', {
+        headers,
+        data: { status: 'ACTIVE', summary: 'Reader current view', whyIOwnIt: 'Reader reason' },
+      })
+    ).status(),
+  ).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/stocks/AAPL/notes', {
+        headers,
+        data: { title: 'Reader note', content: 'Reader note body' },
+      })
+    ).status(),
+  ).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/stocks/AAPL/evidence', {
+        headers,
+        data: { sourceType: 'MANUAL', summary: 'Reader evidence', occurredAt: '2026-09-02T00:00:00Z' },
+      })
+    ).status(),
+  ).toBe(200)
+  await page.goto('/stocks')
+  await page
+    .getByRole('table', { name: 'Holdings', exact: true })
+    .getByRole('link', { name: 'AAPL', exact: true })
+    .click()
+  await expect(page).toHaveURL(/\/stocks\/AAPL$/)
+  const hub = page.getByRole('region', { name: 'Your company research', exact: true })
+  const notes = page.getByRole('region', { name: 'Company notes', exact: true })
+  const evidence = page.getByRole('region', { name: 'Research evidence', exact: true })
+  await expect(hub).toContainText('Reader current view')
+  await expect(notes).toContainText('Reader note')
+  await expect(evidence).toContainText('Reader evidence')
+  await expect(page.getByTestId('market-price')).toHaveText('110.00')
+  let failNotes = true
+  await page.route('**/api/stocks/AAPL/notes**', async route => {
+    if (failNotes && route.request().method() === 'GET') {
+      failNotes = false
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'company-notes-retry' } }),
+      })
+    } else await route.continue()
+  })
+  await notes.getByRole('button', { name: 'Refresh notes', exact: true }).click()
+  await expect(notes.getByTestId('request-id')).toHaveText('company-notes-retry')
+  await expect(hub).toContainText('Reader current view')
+  await expect(evidence).toContainText('Reader evidence')
+  await expect(page.getByTestId('market-price')).toHaveText('110.00')
+  await notes.getByRole('button', { name: 'Try again', exact: true }).click()
+  await expect(notes).toContainText('Reader note')
+  await page.unroute('**/api/stocks/AAPL/notes**')
+  let failEvidence = true
+  await page.route('**/api/stocks/AAPL/timeline**', async route => {
+    if (failEvidence && route.request().method() === 'GET') {
+      failEvidence = false
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'company-evidence-retry' } }),
+      })
+    } else await route.continue()
+  })
+  await page.reload()
+  const reloadedHub = page.getByRole('region', { name: 'Your company research', exact: true })
+  const reloadedNotes = page.getByRole('region', { name: 'Company notes', exact: true })
+  const reloadedEvidence = page.getByRole('region', { name: 'Research evidence', exact: true })
+  await expect(reloadedEvidence.getByTestId('request-id')).toHaveText('company-evidence-retry')
+  await expect(reloadedHub).toContainText('Reader current view')
+  await expect(reloadedNotes).toContainText('Reader note')
+  await expect(page.getByTestId('market-price')).toHaveText('110.00')
+  await reloadedEvidence.getByRole('button', { name: 'Try again', exact: true }).click()
+  await expect(reloadedEvidence).toContainText('Reader evidence')
+  await page.unroute('**/api/stocks/AAPL/timeline**')
+})
 
 // Ticket 110: eight independently useful jobs share this address. They stay on
 // one page — an accepted acceptance above pins that they fail independently
 // there — but the page now says what it carries and offers one standing action.
 test('the company page lists its sections and keeps one filled action at rest', async ({ page, context }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const email = `hub-sections-${randomUUID()}@example.test`, password = 'synthetic-hub-password';
-  await page.request.post('/api/auth/register', { data: { email, password } });
-  await page.goto('/login?returnTo=%2Fdiaries%2Fnew'); await selectLocale(page, 'en');
-  await page.getByLabel('Email', { exact: true }).fill(email); await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await expect(page).toHaveURL(/\/diaries\/new$/); await selectLocale(page, 'en');
-  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value };
-  expect((await page.request.post('/api/stocks/AAPL/notes', { headers, data: { title: 'Sectioned note', content: 'Note body' } })).status()).toBe(200);
-  expect((await page.request.post('/api/stocks/AAPL/evidence', { headers, data: { sourceType: 'MANUAL', summary: 'Sectioned evidence', occurredAt: '2026-09-02T00:00:00Z' } })).status()).toBe(200);
-  await page.goto('/stocks/AAPL');
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `hub-sections-${randomUUID()}@example.test`,
+    password = 'synthetic-hub-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectLocale(page, 'en')
+  const headers = { 'x-csrf-token': (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value }
+  expect(
+    (
+      await page.request.post('/api/stocks/AAPL/notes', {
+        headers,
+        data: { title: 'Sectioned note', content: 'Note body' },
+      })
+    ).status(),
+  ).toBe(200)
+  expect(
+    (
+      await page.request.post('/api/stocks/AAPL/evidence', {
+        headers,
+        data: { sourceType: 'MANUAL', summary: 'Sectioned evidence', occurredAt: '2026-09-02T00:00:00Z' },
+      })
+    ).status(),
+  ).toBe(200)
+  await page.goto('/stocks/AAPL')
 
-  const sections = page.getByRole('navigation', { name: 'Sections for this company', exact: true });
-  const links = sections.getByRole('link');
-  await expect(links).toHaveCount(6);
+  const sections = page.getByRole('navigation', { name: 'Sections for this company', exact: true })
+  const links = sections.getByRole('link')
+  await expect(links).toHaveCount(6)
   // Every listed destination exists on the page, so no entry is a dead jump.
-  const targets = await links.evaluateAll(nodes => nodes.map(node => node.getAttribute('href') ?? ''));
-  expect(targets.every(href => href.startsWith('#'))).toBe(true);
-  for (const href of targets) await expect(page.locator(`.company-market ${href}`)).toHaveCount(1);
+  const targets = await links.evaluateAll(nodes => nodes.map(node => node.getAttribute('href') ?? ''))
+  expect(targets.every(href => href.startsWith('#'))).toBe(true)
+  for (const href of targets) await expect(page.locator(`.company-market ${href}`)).toHaveCount(1)
 
   // One standing filled action, and it is the capture the product ranks first.
-  const filled = page.locator('.company-market button:not(.secondary):not(.quiet-button):not(.danger-button), .company-market a.button:not(.secondary)');
-  await expect(filled).toHaveCount(1);
-  await expect(filled).toHaveText('Record a thought');
+  const filled = page.locator(
+    '.company-market button:not(.secondary):not(.quiet-button):not(.danger-button), .company-market a.button:not(.secondary)',
+  )
+  await expect(filled).toHaveCount(1)
+  await expect(filled).toHaveText('Record a thought')
 
   // The capture form is deferred; the recorded timeline is not.
-  await expect(page.getByLabel('Evidence summary')).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'Research evidence', exact: true })).toContainText('Sectioned evidence');
+  await expect(page.getByLabel('Evidence summary')).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Research evidence', exact: true })).toContainText('Sectioned evidence')
 
   // Note filters label above their controls, and a single page carries no pagination.
-  const notes = page.getByRole('region', { name: 'Company notes', exact: true });
-  await expect(notes.getByLabel('Whose notes')).toBeVisible();
-  await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toHaveCount(0);
+  const notes = page.getByRole('region', { name: 'Company notes', exact: true })
+  await expect(notes.getByLabel('Whose notes')).toBeVisible()
+  await expect(notes.getByRole('button', { name: 'Next notes', exact: true })).toHaveCount(0)
   const labelAbove = await notes.getByLabel('Whose notes').evaluate(select => {
-    const label = select.closest('label')!.getBoundingClientRect(), control = select.getBoundingClientRect();
-    return control.top > label.top;
-  });
-  expect(labelAbove).toBe(true);
+    const label = select.closest('label')!.getBoundingClientRect(),
+      control = select.getBoundingClientRect()
+    return control.top > label.top
+  })
+  expect(labelAbove).toBe(true)
 
-  await sections.getByRole('link', { name: 'Company notes', exact: true }).click();
-  await expect(page.locator('#company-notes')).toBeInViewport();
-  await page.screenshot({ path: 'docs/design/evidence/company-hub/sections-1440.png', fullPage: true });
-});
+  await sections.getByRole('link', { name: 'Company notes', exact: true }).click()
+  await expect(page.locator('#company-notes')).toBeInViewport()
+  await page.screenshot({ path: 'docs/design/evidence/company-hub/sections-1440.png', fullPage: true })
+})

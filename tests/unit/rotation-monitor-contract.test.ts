@@ -7,35 +7,71 @@ import {
 
 const ratio = { count: 0, total: 0, ratio: null }
 const summary = {
-  marketState: 'unknown', breadthCondition: 'unknown', breadthConfirmation: 'unknown',
-  above20d: ratio, above50d: ratio, averageRsi: null,
+  marketState: 'unknown',
+  breadthCondition: 'unknown',
+  breadthConfirmation: 'unknown',
+  above20d: ratio,
+  above50d: ratio,
+  averageRsi: null,
 }
 const fixture = {
-  asOfDate: '2026-09-04', comparisonDate: null, marketStateAsOfDate: null, summaryAsOfDate: '2026-09-04', rankScope: 'sectors',
-  marketState: 'unknown', breadthCondition: 'unknown', breadthConfirmation: 'unknown',
+  asOfDate: '2026-09-04',
+  comparisonDate: null,
+  marketStateAsOfDate: null,
+  summaryAsOfDate: '2026-09-04',
+  rankScope: 'sectors',
+  marketState: 'unknown',
+  breadthCondition: 'unknown',
+  breadthConfirmation: 'unknown',
   summary,
   summaryCards: { above20d: ratio, above50d: ratio, averageRsi: null, marketState: 'unknown' },
   charts: { topImproving: [], bottomWeakening: [] },
-  rows: [], topImproving: [], bottomWeakening: [],
+  rows: [],
+  topImproving: [],
+  bottomWeakening: [],
   betaAllocation: {
-    suggestedMode: 'unknown', suggestedBetaLevel: null, highBetaTargetPct: 0, coreIndexTargetPct: 50, cashTargetPct: 50,
-    explanation: 'Market regime unclear. No high-confidence allocation. Default to balanced cash position.', warnings: [],
+    suggestedMode: 'unknown',
+    suggestedBetaLevel: null,
+    highBetaTargetPct: 0,
+    coreIndexTargetPct: 50,
+    cashTargetPct: 50,
+    explanation: 'Market regime unclear. No high-confidence allocation. Default to balanced cash position.',
+    warnings: [],
   },
   dataQuality: {
-    asOfDate: '2026-09-04', comparisonDate: null, rankScope: 'sectors', rowCount: 0,
-    completeSignalCount: 0, coverageRatio: 0, isQualified: false,
-    expectedSymbolCount: 11, actualSymbolCount: 0, scoreVersion: 'v1',
+    asOfDate: '2026-09-04',
+    comparisonDate: null,
+    rankScope: 'sectors',
+    rowCount: 0,
+    completeSignalCount: 0,
+    coverageRatio: 0,
+    isQualified: false,
+    expectedSymbolCount: 11,
+    actualSymbolCount: 0,
+    scoreVersion: 'v1',
   },
   currentMarketSummary: 'Insufficient data',
 }
 const row = {
-  symbol: 'SPY', name: 'Fixture ETF', groupType: 'core_etf', sectorName: null,
-  lastPrice: 123.456789, rsi14: null, above20d: null, above50d: null,
-  maStatus: 'unknown', percentFromHigh: null, rotationScore: null,
-  rotationScoreDelta2W: null, rotationRank: null, rankDelta2W: null,
-  rsiDelta2W: null, twoWeekPerformancePct: null,
+  symbol: 'SPY',
+  name: 'Fixture ETF',
+  groupType: 'core_etf',
+  sectorName: null,
+  lastPrice: 123.456789,
+  rsi14: null,
+  above20d: null,
+  above50d: null,
+  maStatus: 'unknown',
+  percentFromHigh: null,
+  rotationScore: null,
+  rotationScoreDelta2W: null,
+  rotationRank: null,
+  rankDelta2W: null,
+  rsiDelta2W: null,
+  twoWeekPerformancePct: null,
   twoWeekTrend: [{ date: '2026-09-04', value: null }],
-  signal: null, signalStatus: 'insufficient_data',
+  signal: null,
+  signalStatus: 'insufficient_data',
 }
 
 describe('rotation monitor wire contract', () => {
@@ -51,7 +87,12 @@ describe('rotation monitor wire contract', () => {
 
   it('accepts the complete source response and requires its compatibility fields', () => {
     expect(marketRotationMonitorResponseSchema.parse(fixture)).toEqual(fixture)
-    const populated = { ...fixture, rows: [row], topImproving: [row], charts: { topImproving: [row], bottomWeakening: [] } }
+    const populated = {
+      ...fixture,
+      rows: [row],
+      topImproving: [row],
+      charts: { topImproving: [row], bottomWeakening: [] },
+    }
     expect(marketRotationMonitorResponseSchema.parse(populated)).toEqual(populated)
     expect(marketRotationMonitorResponseSchema.safeParse({ ...fixture, summaryCards: undefined }).success).toBe(false)
     expect(marketRotationMonitorResponseSchema.safeParse({ ...fixture, asOfDate: '2026-02-30' }).success).toBe(false)
@@ -66,6 +107,8 @@ describe('rotation monitor wire contract', () => {
     }
     expect(marketRotationMonitorRowSchema.safeParse({ ...row, rotationRank: -1 }).success).toBe(false)
     expect(marketRotationMonitorRowSchema.safeParse({ ...row, rotationRank: 0 }).success).toBe(false)
-    expect(marketRotationMonitorRowSchema.safeParse({ ...row, twoWeekTrend: [{ date: '2026-02-30', value: 1 }] }).success).toBe(false)
+    expect(
+      marketRotationMonitorRowSchema.safeParse({ ...row, twoWeekTrend: [{ date: '2026-02-30', value: 1 }] }).success,
+    ).toBe(false)
   })
 })

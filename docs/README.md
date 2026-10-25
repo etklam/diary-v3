@@ -21,7 +21,7 @@ Reviewed against repository source on 2026-09-27. The product is **Trade basic**
 - **Dated evidence:** acceptance reports, audit reports, design reviews, smoke logs, and screenshots prove only their recorded revision, environment, and scope. Preserve results and limitations; link newer evidence instead of replacing old counts.
 - **Frozen parity inputs:** the [sanitized source archive and manifest](parity/README.md) are the reference for ordinary parity work. Do not substitute the live diary-vue checkout or silently refresh the baseline.
 
-The original core rebuild and subsequent numbered tickets have local acceptance. This does not authorize a production cutover or resolve every extension's release gate. In particular, AI Reports beta readiness, Research Studio live sources/full-report publication, native device delivery, and hosted deployment evidence remain separately scoped. CI also retains advisory checks; see the [recorded gate policy](operations/ci-cd-notes.md).
+The original core rebuild and subsequent numbered tickets have local acceptance. This does not authorize a production cutover or resolve every extension's release gate. In particular, AI Reports beta readiness, Research Studio live sources/full-report publication, native device delivery, and hosted deployment evidence remain separately scoped. Pull requests are gated on the source checks and the integration suite; the browser suites stay nightly by a recorded decision. See the [gate policy](operations/ci-cd-notes.md).
 
 ## Feature guides
 
@@ -52,7 +52,8 @@ Bundle export and an API consumer proof do not establish a native binary, simula
 ## Operations
 
 - [Environment contract](operations/environment-contract.md) and [example environment](../.env.example).
-- [CI/CD notes](operations/ci-cd-notes.md): triggers, blocking/advisory gates, artifacts, and deployment behavior.
+- [CI/CD notes](operations/ci-cd-notes.md): triggers, the pre-merge gate and tier policy, artifacts, and deployment behavior.
+- [End-to-end flakiness](operations/e2e-flakiness.md): the per-run flake count, the retry policy per suite, and the quarantine rule.
 - [K3s operations](../ops/k8s/README.md): images, seed, migration, scheduled jobs, backup/restore, and local exercises.
 - [Production overlay](../ops/k8s/production/README.md): configuration, release/rollback, access-aware article rollout, and worker boundaries.
 - [Account email](runbooks/account-email.md), [AI Reports](runbooks/ai-reports.md), and [rate limiting](runbooks/rate-limiting.md) runbooks.

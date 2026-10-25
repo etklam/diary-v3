@@ -191,12 +191,8 @@
           "name": "diaries_user_id_users_id_fk",
           "tableFrom": "diaries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -206,18 +202,12 @@
         "diaries_user_date_key": {
           "name": "diaries_user_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "date"
-          ]
+          "columns": ["user_id", "date"]
         },
         "diaries_id_user_id_key": {
           "name": "diaries_id_user_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "user_id"
-          ]
+          "columns": ["id", "user_id"]
         }
       },
       "policies": {},
@@ -276,12 +266,8 @@
           "name": "diary_stocks_diary_id_diaries_id_fk",
           "tableFrom": "diary_stocks",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -289,12 +275,8 @@
           "name": "diary_stocks_stock_id_stocks_id_fk",
           "tableFrom": "diary_stocks",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -302,10 +284,7 @@
       "compositePrimaryKeys": {
         "diary_stocks_diary_id_stock_id_pk": {
           "name": "diary_stocks_diary_id_stock_id_pk",
-          "columns": [
-            "diary_id",
-            "stock_id"
-          ]
+          "columns": ["diary_id", "stock_id"]
         }
       },
       "uniqueConstraints": {},
@@ -484,12 +463,8 @@
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -497,12 +472,8 @@
           "name": "refresh_tokens_parent_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -510,12 +481,8 @@
           "name": "refresh_tokens_replacement_id_refresh_tokens_id_fk",
           "tableFrom": "refresh_tokens",
           "tableTo": "refresh_tokens",
-          "columnsFrom": [
-            "replacement_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["replacement_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -525,16 +492,12 @@
         "refresh_tokens_token_key": {
           "name": "refresh_tokens_token_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         },
         "refresh_tokens_replacement_id_key": {
           "name": "refresh_tokens_replacement_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "replacement_id"
-          ]
+          "columns": ["replacement_id"]
         }
       },
       "policies": {},
@@ -644,12 +607,8 @@
           "name": "stock_watchlists_user_id_users_id_fk",
           "tableFrom": "stock_watchlists",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -657,12 +616,8 @@
           "name": "stock_watchlists_stock_id_stocks_id_fk",
           "tableFrom": "stock_watchlists",
           "tableTo": "stocks",
-          "columnsFrom": [
-            "stock_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stock_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -672,10 +627,7 @@
         "stock_watchlists_user_stock_key": {
           "name": "stock_watchlists_user_stock_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "stock_id"
-          ]
+          "columns": ["user_id", "stock_id"]
         }
       },
       "policies": {},
@@ -760,9 +712,7 @@
         "stocks_symbol_unique": {
           "name": "stocks_symbol_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "symbol"
-          ]
+          "columns": ["symbol"]
         }
       },
       "policies": {},
@@ -949,12 +899,8 @@
           "name": "trade_plans_user_id_users_id_fk",
           "tableFrom": "trade_plans",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -962,12 +908,8 @@
           "name": "trade_plans_diary_id_diaries_id_fk",
           "tableFrom": "trade_plans",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["diary_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1182,14 +1124,8 @@
           "name": "transactions_diary_owner_fkey",
           "tableFrom": "transactions",
           "tableTo": "diaries",
-          "columnsFrom": [
-            "diary_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "id",
-            "user_id"
-          ],
+          "columnsFrom": ["diary_id", "user_id"],
+          "columnsTo": ["id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1364,83 +1300,47 @@
     "public.diary_created_via": {
       "name": "diary_created_via",
       "schema": "public",
-      "values": [
-        "WEB",
-        "API_KEY",
-        "TELEGRAM_BOT"
-      ]
+      "values": ["WEB", "API_KEY", "TELEGRAM_BOT"]
     },
     "public.diary_review_status": {
       "name": "diary_review_status",
       "schema": "public",
-      "values": [
-        "none",
-        "pending",
-        "reviewed"
-      ]
+      "values": ["none", "pending", "reviewed"]
     },
     "public.refresh_token_client_type": {
       "name": "refresh_token_client_type",
       "schema": "public",
-      "values": [
-        "WEB",
-        "NATIVE"
-      ]
+      "values": ["WEB", "NATIVE"]
     },
     "public.refresh_token_revocation_reason": {
       "name": "refresh_token_revocation_reason",
       "schema": "public",
-      "values": [
-        "ROTATED",
-        "LOGOUT",
-        "LOGOUT_ALL",
-        "REUSE_DETECTED",
-        "EXPIRED"
-      ]
+      "values": ["ROTATED", "LOGOUT", "LOGOUT_ALL", "REUSE_DETECTED", "EXPIRED"]
     },
     "public.stock_watch_status": {
       "name": "stock_watch_status",
       "schema": "public",
-      "values": [
-        "WATCHING",
-        "ARCHIVED"
-      ]
+      "values": ["WATCHING", "ARCHIVED"]
     },
     "public.thesis_review_outcome": {
       "name": "thesis_review_outcome",
       "schema": "public",
-      "values": [
-        "INTACT",
-        "PARTIAL",
-        "INVALIDATED",
-        "UNCLEAR"
-      ]
+      "values": ["INTACT", "PARTIAL", "INVALIDATED", "UNCLEAR"]
     },
     "public.trade_plan_status": {
       "name": "trade_plan_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "active",
-        "closed",
-        "cancelled"
-      ]
+      "values": ["draft", "active", "closed", "cancelled"]
     },
     "public.transaction_type": {
       "name": "transaction_type",
       "schema": "public",
-      "values": [
-        "BUY",
-        "SELL"
-      ]
+      "values": ["BUY", "SELL"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "USER",
-        "ADMIN"
-      ]
+      "values": ["USER", "ADMIN"]
     }
   },
   "schemas": {},

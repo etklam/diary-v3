@@ -44,11 +44,13 @@ export interface HolidayProvider {
   publicHolidays(year: number, countryCode: string): Promise<Holiday[]>
 }
 
-export function createNagerHolidayProvider(options: {
-  fetch?: typeof globalThis.fetch
-  timeoutMs?: number
-  baseUrl?: string
-} = {}): HolidayProvider {
+export function createNagerHolidayProvider(
+  options: {
+    fetch?: typeof globalThis.fetch
+    timeoutMs?: number
+    baseUrl?: string
+  } = {},
+): HolidayProvider {
   const fetcher = options.fetch ?? globalThis.fetch
   const timeoutMs = options.timeoutMs ?? 5_000
   const baseUrl = options.baseUrl ?? 'https://date.nager.at/api/v3/PublicHolidays/'
@@ -62,8 +64,11 @@ export function createNagerHolidayProvider(options: {
       })
       if (!response.ok) throw new Error(`Holiday upstream returned HTTP ${response.status}`)
       const holidays = upstreamHolidayListSchema.parse(await readBoundedJson(response))
-      if (holidays.some(holiday => holiday.countryCode !== query.countryCode
-        || !holiday.date.startsWith(`${query.year}-`))) {
+      if (
+        holidays.some(
+          holiday => holiday.countryCode !== query.countryCode || !holiday.date.startsWith(`${query.year}-`),
+        )
+      ) {
         throw new Error('Holiday upstream returned data outside the requested country/year')
       }
       return holidays

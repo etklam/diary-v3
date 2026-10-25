@@ -3,12 +3,19 @@ import { groupPriceAlertHistoryNeeds } from '../../apps/api/src/price-alert-chec
 
 describe('price alert history grouping', () => {
   it('requests history once per symbol if any pending rule needs it', () => {
-    expect(groupPriceAlertHistoryNeeds([
-      { symbol: 'AAPL', type: 'PRICE_ABOVE' },
-      { symbol: 'MSFT', type: 'MOVING_AVG' },
-      { symbol: 'AAPL', type: 'MOVING_AVG' },
-      { symbol: 'MSFT', type: 'CHANGE_PERCENT' },
-    ])).toEqual(new Map([['AAPL', true], ['MSFT', true]]))
+    expect(
+      groupPriceAlertHistoryNeeds([
+        { symbol: 'AAPL', type: 'PRICE_ABOVE' },
+        { symbol: 'MSFT', type: 'MOVING_AVG' },
+        { symbol: 'AAPL', type: 'MOVING_AVG' },
+        { symbol: 'MSFT', type: 'CHANGE_PERCENT' },
+      ]),
+    ).toEqual(
+      new Map([
+        ['AAPL', true],
+        ['MSFT', true],
+      ]),
+    )
   })
 
   it('handles a large mixed rule set in one grouping pass', () => {

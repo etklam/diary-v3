@@ -24,4 +24,3 @@ export function resolveArticleReadAccess(
   if (article.access === 'PUBLIC' || viewer !== undefined) return 'FULL'
   return 'LOCKED'
 }
-

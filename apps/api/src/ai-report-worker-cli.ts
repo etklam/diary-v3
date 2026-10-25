@@ -15,7 +15,15 @@ process.once('SIGTERM', stop)
 try {
   if (process.argv.includes('--once')) {
     const result = await runAiReportOnce({ db: database.db, workerId })
-    console.log(JSON.stringify({ operation: 'ai_report_worker_once', workerId, status: result.status, reportId: 'reportId' in result ? result.reportId.toString() : undefined, errorCode: 'errorCode' in result ? result.errorCode : undefined }))
+    console.log(
+      JSON.stringify({
+        operation: 'ai_report_worker_once',
+        workerId,
+        status: result.status,
+        reportId: 'reportId' in result ? result.reportId.toString() : undefined,
+        errorCode: 'errorCode' in result ? result.errorCode : undefined,
+      }),
+    )
   } else {
     console.log(JSON.stringify({ operation: 'ai_report_worker_started', workerId, intervalMs }))
     await runAiWorker({ db: database.db, workerId, intervalMs, signal: abortController.signal })

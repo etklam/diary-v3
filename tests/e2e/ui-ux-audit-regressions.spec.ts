@@ -8,32 +8,46 @@ test('password recovery stays discoverable with a configured support route when 
       sessionStorage.setItem('initial-locale-set', 'true')
     }
   })
-  await page.route('**/api/auth/capabilities', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ registrationMode: 'direct', passwordRecoveryAvailable: false }),
-  }))
+  await page.route('**/api/auth/capabilities', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ registrationMode: 'direct', passwordRecoveryAvailable: false }),
+    }),
+  )
 
   await page.goto('/login')
   await page.getByRole('link', { name: 'Forgot password?', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Email password recovery is not enabled')
-  await expect(page.getByRole('link', { name: 'Get sign-in help', exact: true })).toHaveAttribute('href', 'https://support.example.test/account-recovery')
+  await expect(page.getByRole('link', { name: 'Get sign-in help', exact: true })).toHaveAttribute(
+    'href',
+    'https://support.example.test/account-recovery',
+  )
   await expect(page.getByRole('link', { name: 'Back to sign in', exact: true })).toBeVisible()
 
-  await page.route('**/api/auth/password-reset/complete', route => route.fulfill({
-    status: 410,
-    contentType: 'application/json',
-    body: JSON.stringify({ data: { code: 'AUTH_EMAIL_TOKEN_EXPIRED', requestId: 'synthetic-expired-reset' } }),
-  }))
+  await page.route('**/api/auth/password-reset/complete', route =>
+    route.fulfill({
+      status: 410,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { code: 'AUTH_EMAIL_TOKEN_EXPIRED', requestId: 'synthetic-expired-reset' } }),
+    }),
+  )
   await page.goto('/reset-password?token=synthetic-reset-token-abcdefghijklmnopqrstuvwxyz123456')
   await page.getByLabel('New password', { exact: true }).fill('synthetic-reset-password-123')
   await page.getByLabel('Confirm new password', { exact: true }).fill('synthetic-reset-password-123')
   await page.getByRole('button', { name: 'Reset password', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Email password recovery is not enabled')
-  await expect(page.getByRole('link', { name: 'Get sign-in help', exact: true })).toHaveAttribute('href', 'https://support.example.test/account-recovery')
+  await expect(page.getByRole('link', { name: 'Get sign-in help', exact: true })).toHaveAttribute(
+    'href',
+    'https://support.example.test/account-recovery',
+  )
 })
 
-test('browser titles follow locale, preserve public article titles, and keep private diary titles out of the tab', async ({ page, context, browser }) => {
+test('browser titles follow locale, preserve public article titles, and keep private diary titles out of the tab', async ({
+  page,
+  context,
+  browser,
+}) => {
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('initial-locale-set')) {
       localStorage.setItem('diary-locale', 'zh-TW')
@@ -58,14 +72,24 @@ test('browser titles follow locale, preserve public article titles, and keep pri
   const publicArticleTitle = `Public title ${randomUUID()}`
   const draftResponse = await page.request.post('/api/blog', {
     headers: { 'x-csrf-token': csrf ?? '' },
-    data: { title: publicArticleTitle, content: 'Synthetic public article body.', category: 'market', status: 'DRAFT', access: 'PUBLIC', sourceLocale: 'en' },
+    data: {
+      title: publicArticleTitle,
+      content: 'Synthetic public article body.',
+      category: 'market',
+      status: 'DRAFT',
+      access: 'PUBLIC',
+      sourceLocale: 'en',
+    },
   })
   expect(draftResponse.status(), await draftResponse.text()).toBe(200)
-  const draft = await draftResponse.json() as { id: string }
+  const draft = (await draftResponse.json()) as { id: string }
   const articleResponse = await page.request.get(`/api/blog/admin/${draft.id}`)
-  const article = await articleResponse.json() as { slug: string }
+  const article = (await articleResponse.json()) as { slug: string }
   expect(articleResponse.status()).toBe(200)
-  const publishResponse = await page.request.post(`/api/blog/admin/${draft.id}/publish`, { headers: { 'x-csrf-token': csrf ?? '' }, data: {} })
+  const publishResponse = await page.request.post(`/api/blog/admin/${draft.id}/publish`, {
+    headers: { 'x-csrf-token': csrf ?? '' },
+    data: {},
+  })
   expect(publishResponse.status(), await publishResponse.text()).toBe(200)
 
   const guestContext = await browser.newContext()
@@ -84,7 +108,7 @@ test('browser titles follow locale, preserve public article titles, and keep pri
     data: { date: '2026-09-26', title: privateTitle, content: 'Synthetic private reasoning.' },
   })
   expect(created.status()).toBe(201)
-  const diary = await created.json() as { id: string }
+  const diary = (await created.json()) as { id: string }
   await page.goto(`/diaries/${diary.id}`)
   await expect(page.getByRole('heading', { name: privateTitle, exact: true })).toBeVisible()
   await expect.poll(() => page.title()).toBe('Diary — Trade basic')

@@ -36,13 +36,13 @@ async function csrf(page: Page) {
 async function createDiary(page: Page, input: Record<string, unknown>) {
   const response = await page.request.post('/api/diaries', { headers: await csrf(page), data: input })
   expect(response.status()).toBe(201)
-  return await response.json() as Diary
+  return (await response.json()) as Diary
 }
 
 async function readDiary(page: Page, id: string) {
   const response = await page.request.get(`/api/diaries/${id}`)
   expect(response.status()).toBe(200)
-  return await response.json() as Diary
+  return (await response.json()) as Diary
 }
 
 async function capture(page: Page, name: string, width: number) {
@@ -57,7 +57,11 @@ for (const width of [1440, 390]) {
   test(`full editor conflict and schedule evidence at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await registerAndSignIn(page)
-    const existing = await createDiary(page, { date: '2026-11-04', title: 'Visual conflict destination', content: 'Existing visual body' })
+    const existing = await createDiary(page, {
+      date: '2026-11-04',
+      title: 'Visual conflict destination',
+      content: 'Existing visual body',
+    })
     await page.getByLabel('Diary date', { exact: true }).fill(existing.date)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Visual conflict draft')
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The conflict state remains inspectable.')
@@ -69,15 +73,23 @@ for (const width of [1440, 390]) {
 
     await page.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Visual conflict draft')
-    await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('The conflict state remains inspectable.')
+    await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+      'The conflict state remains inspectable.',
+    )
     await page.getByRole('button', { name: 'Save diary', exact: true }).click()
     await expect(page.getByTestId('error-code')).toHaveText('DIARY_ALREADY_EXISTS')
     await page.getByRole('link', { name: 'Edit existing diary', exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/diaries/${existing.id}/edit$`))
-    await expect.poll(() => page.evaluate(() => Object.entries(localStorage).some(([key, raw]) => {
-      if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
-      return JSON.parse(raw).value?.form?.content === 'The conflict state remains inspectable.'
-    }))).toBe(true)
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Object.entries(localStorage).some(([key, raw]) => {
+            if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
+            return JSON.parse(raw).value?.form?.content === 'The conflict state remains inspectable.'
+          }),
+        ),
+      )
+      .toBe(true)
     await page.goto('/diaries/new')
     await expect(page.getByRole('button', { name: 'Restore unsaved draft', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
@@ -89,7 +101,9 @@ for (const width of [1440, 390]) {
   })
 }
 
-test('full append keeps omitted structured values and applies explicit judgment, schedule, ledger and reminder changes', async ({ page }) => {
+test('full append keeps omitted structured values and applies explicit judgment, schedule, ledger and reminder changes', async ({
+  page,
+}) => {
   await registerAndSignIn(page)
   const existing = await createDiary(page, {
     date: '2026-11-05',
@@ -101,7 +115,16 @@ test('full append keeps omitted structured values and applies explicit judgment,
     risk: 'Existing risk',
     execution: 'Existing execution',
     reviewDueAt: '2026-11-20T09:00:00.000Z',
-    transactions: [{ symbol: 'AAPL', type: 'BUY', quantity: '2', price: '100', tradeDate: '2026-11-05T02:00:00.000Z', notes: 'Existing ledger row' }],
+    transactions: [
+      {
+        symbol: 'AAPL',
+        type: 'BUY',
+        quantity: '2',
+        price: '100',
+        tradeDate: '2026-11-05T02:00:00.000Z',
+        notes: 'Existing ledger row',
+      },
+    ],
     alerts: [{ message: 'Existing reminder', triggerAt: '2026-11-10T09:00:00.000Z' }],
   })
   await page.getByLabel('Diary date', { exact: true }).fill(existing.date)
@@ -146,7 +169,9 @@ test('full append keeps omitted structured values and applies explicit judgment,
   expect(appended.alerts?.some(row => row.message === 'Explicit appended reminder')).toBe(true)
 })
 
-test('full append writes a durable in-flight marker before a lost response and never replays after restore', async ({ page }) => {
+test('full append writes a durable in-flight marker before a lost response and never replays after restore', async ({
+  page,
+}) => {
   await registerAndSignIn(page)
   const existing = await createDiary(page, {
     date: '2026-11-01',
@@ -160,7 +185,9 @@ test('full append writes a durable in-flight marker before a lost response and n
 
   await page.getByLabel('Diary date', { exact: true }).fill(existing.date)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Draft title is ignored on append')
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Append committed before the response was lost.')
+  await page
+    .getByRole('textbox', { name: 'Content', exact: true })
+    .fill('Append committed before the response was lost.')
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_ALREADY_EXISTS')
   await expect(page.getByRole('button', { name: 'Append this writing', exact: true })).toBeVisible()
@@ -185,10 +212,16 @@ test('full append writes a durable in-flight marker before a lost response and n
   await expect(page.getByRole('button', { name: 'Append this writing', exact: true })).toBeDisabled()
   expect(appendCalls).toBe(1)
 
-  await expect.poll(async () => page.evaluate(() => Object.entries(localStorage).some(([key, raw]) => {
-    if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
-    return JSON.parse(raw).value?.uncertainAppend === true
-  }))).toBe(true)
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        Object.entries(localStorage).some(([key, raw]) => {
+          if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
+          return JSON.parse(raw).value?.uncertainAppend === true
+        }),
+      ),
+    )
+    .toBe(true)
   const committed = await readDiary(page, existing.id)
   expect(committed.content).toContain('Append committed before the response was lost.')
   expect(committed.title).toBe(existing.title)
@@ -207,7 +240,13 @@ test('full append writes a durable in-flight marker before a lost response and n
   expect(appendCalls).toBe(1)
 
   await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')))).toBe(false)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')),
+      ),
+    )
+    .toBe(false)
   expect(appendCalls).toBe(1)
   await page.unroute('**/api/diaries')
 })
@@ -235,7 +274,9 @@ test('full append refuses to send when the device cannot persist its uncertainty
   })
   await page.getByRole('button', { name: 'Append this writing', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('SYS_INTERNAL_ERROR')
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('This writing must stay in the form.')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+    'This writing must stay in the form.',
+  )
   await expect(page.getByRole('button', { name: 'Append this writing', exact: true })).toBeEnabled()
   expect(appendCalls).toBe(0)
   expect((await readDiary(page, existing.id)).content).toBe('Original body')
@@ -244,10 +285,16 @@ test('full append refuses to send when the device cannot persist its uncertainty
 
 test('full append keeps an uncertain lock for an unknown 408 response', async ({ page }) => {
   await registerAndSignIn(page)
-  const existing = await createDiary(page, { date: '2026-11-07', title: 'Unknown response destination', content: 'Original body' })
+  const existing = await createDiary(page, {
+    date: '2026-11-07',
+    title: 'Unknown response destination',
+    content: 'Original body',
+  })
   await page.getByLabel('Diary date', { exact: true }).fill(existing.date)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Unknown response draft')
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The proxy response must keep recovery locked.')
+  await page
+    .getByRole('textbox', { name: 'Content', exact: true })
+    .fill('The proxy response must keep recovery locked.')
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_ALREADY_EXISTS')
 
@@ -261,7 +308,11 @@ test('full append keeps an uncertain lock for an unknown 408 response', async ({
     await route.fulfill({
       status: 408,
       contentType: 'application/json',
-      body: JSON.stringify({ statusCode: 408, statusMessage: 'Request Timeout', data: { code: 'SYS_INTERNAL_ERROR', details: null, requestId: 'unknown-408' } }),
+      body: JSON.stringify({
+        statusCode: 408,
+        statusMessage: 'Request Timeout',
+        data: { code: 'SYS_INTERNAL_ERROR', details: null, requestId: 'unknown-408' },
+      }),
     })
   })
 
@@ -269,10 +320,16 @@ test('full append keeps an uncertain lock for an unknown 408 response', async ({
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_WRITE_UNCERTAIN')
   await expect(page.getByRole('button', { name: 'Load latest version', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Append this writing', exact: true })).toBeDisabled()
-  await expect.poll(async () => page.evaluate(() => Object.entries(localStorage).some(([key, raw]) => {
-    if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
-    return JSON.parse(raw).value?.uncertainAppend === true
-  }))).toBe(true)
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        Object.entries(localStorage).some(([key, raw]) => {
+          if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
+          return JSON.parse(raw).value?.uncertainAppend === true
+        }),
+      ),
+    )
+    .toBe(true)
   expect(appendCalls).toBe(1)
   expect((await readDiary(page, existing.id)).content).toBe(existing.content)
   await page.unroute('**/api/diaries')
@@ -280,7 +337,11 @@ test('full append keeps an uncertain lock for an unknown 408 response', async ({
 
 test('full append preserves its lock when the page reloads while the request is pending', async ({ page }) => {
   await registerAndSignIn(page)
-  const existing = await createDiary(page, { date: '2026-11-08', title: 'Pending response destination', content: 'Original body' })
+  const existing = await createDiary(page, {
+    date: '2026-11-08',
+    title: 'Pending response destination',
+    content: 'Original body',
+  })
   await page.getByLabel('Diary date', { exact: true }).fill(existing.date)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Pending response draft')
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The marker must survive an immediate reload.')
@@ -289,7 +350,9 @@ test('full append preserves its lock when the page reloads while the request is 
 
   let appendCalls = 0
   let releaseResponse!: () => void
-  const responseGate = new Promise<void>(resolve => { releaseResponse = resolve })
+  const responseGate = new Promise<void>(resolve => {
+    releaseResponse = resolve
+  })
   await page.route('**/api/diaries', async route => {
     if (route.request().method() !== 'POST') {
       await route.continue()
@@ -301,7 +364,11 @@ test('full append preserves its lock when the page reloads while the request is 
       await route.fulfill({
         status: 408,
         contentType: 'application/json',
-        body: JSON.stringify({ statusCode: 408, statusMessage: 'Request Timeout', data: { code: 'SYS_INTERNAL_ERROR', details: null, requestId: 'pending-408' } }),
+        body: JSON.stringify({
+          statusCode: 408,
+          statusMessage: 'Request Timeout',
+          data: { code: 'SYS_INTERNAL_ERROR', details: null, requestId: 'pending-408' },
+        }),
       })
     } catch {
       // Navigation may abort the request before the gated response is sent.
@@ -310,10 +377,16 @@ test('full append preserves its lock when the page reloads while the request is 
 
   await page.getByRole('button', { name: 'Append this writing', exact: true }).click()
   await expect.poll(() => appendCalls).toBe(1)
-  await expect.poll(async () => page.evaluate(() => Object.entries(localStorage).some(([key, raw]) => {
-    if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
-    return JSON.parse(raw).value?.uncertainAppend === true
-  }))).toBe(true)
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        Object.entries(localStorage).some(([key, raw]) => {
+          if (!key.startsWith('diary-editor-draft:') || !key.endsWith(':new') || !raw) return false
+          return JSON.parse(raw).value?.uncertainAppend === true
+        }),
+      ),
+    )
+    .toBe(true)
   page.once('dialog', dialog => void dialog.accept())
   await page.reload()
   releaseResponse()
@@ -324,15 +397,36 @@ test('full append preserves its lock when the page reloads while the request is 
   await expect(page.getByRole('button', { name: 'Append this writing', exact: true })).toBeDisabled()
   expect(appendCalls).toBe(1)
   await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')))).toBe(false)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')),
+      ),
+    )
+    .toBe(false)
   await page.unroute('**/api/diaries')
 })
 
-test('review schedule keeps guest continuation, cancel return, and completed review state when cleared', async ({ page, browser }) => {
+test('review schedule keeps guest continuation, cancel return, and completed review state when cleared', async ({
+  page,
+  browser,
+}) => {
   await registerAndSignIn(page)
-  const existing = await createDiary(page, { date: '2026-11-09', title: 'Completed schedule destination', content: 'Reviewed body', reviewDueAt: '2026-12-01T09:00:00.000Z' })
+  const existing = await createDiary(page, {
+    date: '2026-11-09',
+    title: 'Completed schedule destination',
+    content: 'Reviewed body',
+    reviewDueAt: '2026-12-01T09:00:00.000Z',
+  })
   const headers = await csrf(page)
-  expect((await page.request.patch(`/api/diaries/${existing.id}/review`, { headers, data: { reviewOutcome: 'INTACT', reviewSummary: 'The original judgment held.' } })).status()).toBe(200)
+  expect(
+    (
+      await page.request.patch(`/api/diaries/${existing.id}/review`, {
+        headers,
+        data: { reviewOutcome: 'INTACT', reviewSummary: 'The original judgment held.' },
+      })
+    ).status(),
+  ).toBe(200)
 
   const origin = new URL(page.url()).origin
   const guestContext = await browser.newContext({ baseURL: origin })
@@ -355,7 +449,11 @@ test('review schedule keeps guest continuation, cancel return, and completed rev
     await guest.getByRole('button', { name: 'Sign in', exact: true }).click()
     // The guest account cannot access the diary, but the exact editor
     // continuation remains in the URL after authentication.
-    await expect(guest).toHaveURL(new RegExp(`/diaries/${existing.id}/edit\\?returnTo=${encodeURIComponent(`/diaries/${existing.id}/review`)}#review-schedule$`))
+    await expect(guest).toHaveURL(
+      new RegExp(
+        `/diaries/${existing.id}/edit\\?returnTo=${encodeURIComponent(`/diaries/${existing.id}/review`)}#review-schedule$`,
+      ),
+    )
     await expect(guest.getByTestId('error-code')).toHaveText('DIARY_NOT_FOUND')
   } finally {
     await guestContext.close()
@@ -395,13 +493,21 @@ test('successful full save removes its draft before lifecycle cleanup can restor
   await page.getByRole('textbox', { name: 'Content', exact: true }).fill('The confirmed save is clean.')
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')))).toBe(false)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).some(key => key.startsWith('diary-editor-draft:') && key.endsWith(':new')),
+      ),
+    )
+    .toBe(false)
 
   await page.goto(`/diaries/new?date=${date}`)
   await expect(page.getByRole('button', { name: 'Restore unsaved draft', exact: true })).toHaveCount(0)
 })
 
-test('the real React lifecycle keeps key-bound values across account-key changes and save suppression', async ({ page }) => {
+test('the real React lifecycle keeps key-bound values across account-key changes and save suppression', async ({
+  page,
+}) => {
   await registerAndSignIn(page)
   const result = await page.evaluate(async () => {
     type Controls = { flushDraft: () => boolean; suppressDraft: () => void }
@@ -420,7 +526,12 @@ test('the real React lifecycle keeps key-bound values across account-key changes
     document.body.append(host)
     const root = ReactDOM.createRoot(host)
     function Harness(props: { draftKey: string; value: { content: string }; dirty: boolean }) {
-      browserWindow.__draftControls = lifecycle.useDraftLifecycle({ key: props.draftKey, value: props.value, dirty: props.dirty, paused: false })
+      browserWindow.__draftControls = lifecycle.useDraftLifecycle({
+        key: props.draftKey,
+        value: props.value,
+        dirty: props.dirty,
+        paused: false,
+      })
       return React.createElement('span')
     }
     const act = React.act
@@ -433,25 +544,36 @@ test('the real React lifecycle keeps key-bound values across account-key changes
       return raw ? JSON.parse(raw).value : null
     }
     const render = async (props: { draftKey: string; value: { content: string }; dirty: boolean }) => {
-      await act(async () => { root.render(React.createElement(Harness, props)) })
+      await act(async () => {
+        root.render(React.createElement(Harness, props))
+      })
     }
     try {
-      localStorage.removeItem(keyA); localStorage.removeItem(keyB); localStorage.removeItem(keyC); localStorage.removeItem(keyD)
+      localStorage.removeItem(keyA)
+      localStorage.removeItem(keyB)
+      localStorage.removeItem(keyC)
+      localStorage.removeItem(keyD)
       await render({ draftKey: keyA, value: { content: 'A' }, dirty: true })
       await render({ draftKey: keyB, value: { content: 'B' }, dirty: true })
       await new Promise(resolve => setTimeout(resolve, 700))
       if (read(keyA)?.content !== 'A' || read(keyB)?.content !== 'B') throw new Error('key change leaked a value')
 
       await render({ draftKey: keyB, value: { content: 'B2' }, dirty: true })
-      await act(async () => { root.unmount() })
+      await act(async () => {
+        root.unmount()
+      })
       if (read(keyB)?.content !== 'B2') throw new Error('unmount cleanup lost the committed value')
 
       const secondRoot = ReactDOM.createRoot(host)
       const renderSecond = async (props: { draftKey: string; value: { content: string }; dirty: boolean }) => {
-        await act(async () => { secondRoot.render(React.createElement(Harness, props)) })
+        await act(async () => {
+          secondRoot.render(React.createElement(Harness, props))
+        })
       }
       await renderSecond({ draftKey: keyC, value: { content: 'C1' }, dirty: true })
-      await act(async () => { browserWindow.__draftControls?.suppressDraft() })
+      await act(async () => {
+        browserWindow.__draftControls?.suppressDraft()
+      })
       if (read(keyC) !== null) throw new Error('suppression did not clear the draft')
       await renderSecond({ draftKey: keyC, value: { content: 'C baseline' }, dirty: false })
       await renderSecond({ draftKey: keyC, value: { content: 'C2' }, dirty: true })
@@ -460,16 +582,28 @@ test('the real React lifecycle keeps key-bound values across account-key changes
 
       await renderSecond({ draftKey: keyD, value: { content: 'D' }, dirty: true })
       let flushed = false
-      await act(async () => { flushed = browserWindow.__draftControls?.flushDraft() ?? false })
+      await act(async () => {
+        flushed = browserWindow.__draftControls?.flushDraft() ?? false
+      })
       if (!flushed || read(keyD)?.content !== 'D') throw new Error('explicit flush did not preserve its captured value')
-      await act(async () => { secondRoot.unmount() })
+      await act(async () => {
+        secondRoot.unmount()
+      })
       return { keyA: read(keyA), keyB: read(keyB), keyC: read(keyC), keyD: read(keyD) }
     } finally {
-      localStorage.removeItem(keyA); localStorage.removeItem(keyB); localStorage.removeItem(keyC); localStorage.removeItem(keyD)
+      localStorage.removeItem(keyA)
+      localStorage.removeItem(keyB)
+      localStorage.removeItem(keyC)
+      localStorage.removeItem(keyD)
       if (previousActEnvironment === undefined) delete browserWindow.IS_REACT_ACT_ENVIRONMENT
       else browserWindow.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment
       host.remove()
     }
   })
-  expect(result).toEqual({ keyA: { content: 'A' }, keyB: { content: 'B2' }, keyC: { content: 'C2' }, keyD: { content: 'D' } })
+  expect(result).toEqual({
+    keyA: { content: 'A' },
+    keyB: { content: 'B2' },
+    keyC: { content: 'C2' },
+    keyD: { content: 'D' },
+  })
 })

@@ -2,14 +2,9 @@ import { inArray } from 'drizzle-orm'
 import { type ArticleLocale } from '@diary/contracts'
 import { postTranslations, posts, type Database } from '@diary/db'
 
-type SourcePost = Pick<typeof posts.$inferSelect,
-  'title'
-  | 'excerpt'
-  | 'excerptAuthored'
-  | 'sourceLocale'
-  | 'sourceRevision'
-  | 'sourceHash'
-  | 'access'
+type SourcePost = Pick<
+  typeof posts.$inferSelect,
+  'title' | 'excerpt' | 'excerptAuthored' | 'sourceLocale' | 'sourceRevision' | 'sourceHash' | 'access'
 > & { content?: string }
 type Translation = typeof postTranslations.$inferSelect
 
@@ -17,8 +12,9 @@ type Translation = typeof postTranslations.$inferSelect
  * Fields needed to resolve a reader-facing translation snapshot. The content
  * field is optional so public list queries can keep their projection narrow.
  */
-export type ArticleTranslationSnapshot = Pick<Translation,
-  'locale'
+export type ArticleTranslationSnapshot = Pick<
+  Translation,
+  | 'locale'
   | 'status'
   | 'publishedTitle'
   | 'publishedExcerpt'
@@ -40,42 +36,87 @@ export interface ArticleLocaleResolution {
   translation: ArticleTranslationSnapshot | null
 }
 
-export function currentPublishedTranslation(post: SourcePost, translation: ArticleTranslationSnapshot | undefined): translation is ArticleTranslationSnapshot {
-  return Boolean(translation
-    && translation.locale !== post.sourceLocale
-    && translation.publishedVersion > 0
-    && translation.publishedAt
-    && translation.status !== 'draft'
-    && translation.status !== 'stale'
-    && translation.status !== 'unpublished'
-    && translation.publishedSourceRevision === post.sourceRevision
-    && translation.publishedSourceHash === post.sourceHash)
+export function currentPublishedTranslation(
+  post: SourcePost,
+  translation: ArticleTranslationSnapshot | undefined,
+): translation is ArticleTranslationSnapshot {
+  return Boolean(
+    translation &&
+    translation.locale !== post.sourceLocale &&
+    translation.publishedVersion > 0 &&
+    translation.publishedAt &&
+    translation.status !== 'draft' &&
+    translation.status !== 'stale' &&
+    translation.status !== 'unpublished' &&
+    translation.publishedSourceRevision === post.sourceRevision &&
+    translation.publishedSourceHash === post.sourceHash,
+  )
 }
 
-export function resolveArticleTranslation(post: SourcePost, rows: readonly ArticleTranslationSnapshot[], requestedLocale: ArticleLocale): ArticleLocaleResolution {
+export function resolveArticleTranslation(
+  post: SourcePost,
+  rows: readonly ArticleTranslationSnapshot[],
+  requestedLocale: ArticleLocale,
+): ArticleLocaleResolution {
   const byLocale = new Map(rows.map(row => [row.locale as ArticleLocale, row]))
   const selected = byLocale.get(requestedLocale)
-  const published = requestedLocale === post.sourceLocale ? null : currentPublishedTranslation(post, selected) ? selected : null
+  const published =
+    requestedLocale === post.sourceLocale ? null : currentPublishedTranslation(post, selected) ? selected : null
   const availableLocales: ArticleLocale[] = [post.sourceLocale as ArticleLocale]
   for (const locale of ['zh-TW', 'zh-CN', 'en'] as const) {
-    if (locale !== post.sourceLocale && currentPublishedTranslation(post, byLocale.get(locale))) availableLocales.push(locale)
+    if (locale !== post.sourceLocale && currentPublishedTranslation(post, byLocale.get(locale)))
+      availableLocales.push(locale)
   }
   if (requestedLocale === post.sourceLocale) {
-    return { requestedLocale, resolvedLocale: requestedLocale, sourceLocale: post.sourceLocale as ArticleLocale, availableLocales, isFallback: false, fallbackReason: null, translation: null }
+    return {
+      requestedLocale,
+      resolvedLocale: requestedLocale,
+      sourceLocale: post.sourceLocale as ArticleLocale,
+      availableLocales,
+      isFallback: false,
+      fallbackReason: null,
+      translation: null,
+    }
   }
   if (published) {
-    return { requestedLocale, resolvedLocale: requestedLocale, sourceLocale: post.sourceLocale as ArticleLocale, availableLocales, isFallback: false, fallbackReason: null, translation: published }
+    return {
+      requestedLocale,
+      resolvedLocale: requestedLocale,
+      sourceLocale: post.sourceLocale as ArticleLocale,
+      availableLocales,
+      isFallback: false,
+      fallbackReason: null,
+      translation: published,
+    }
   }
-  const fallbackReason = selected?.status === 'stale'
-    || Boolean(selected?.publishedVersion && (selected.publishedSourceRevision !== post.sourceRevision || selected.publishedSourceHash !== post.sourceHash))
-    ? 'translation_stale' as const
-    : 'translation_unavailable' as const
-  return { requestedLocale, resolvedLocale: post.sourceLocale as ArticleLocale, sourceLocale: post.sourceLocale as ArticleLocale, availableLocales, isFallback: true, fallbackReason, translation: null }
+  const fallbackReason =
+    selected?.status === 'stale' ||
+    Boolean(
+      selected?.publishedVersion &&
+      (selected.publishedSourceRevision !== post.sourceRevision || selected.publishedSourceHash !== post.sourceHash),
+    )
+      ? ('translation_stale' as const)
+      : ('translation_unavailable' as const)
+  return {
+    requestedLocale,
+    resolvedLocale: post.sourceLocale as ArticleLocale,
+    sourceLocale: post.sourceLocale as ArticleLocale,
+    availableLocales,
+    isFallback: true,
+    fallbackReason,
+    translation: null,
+  }
 }
 
-export async function loadArticleTranslations(db: Database, postIds: readonly bigint[]): Promise<Map<bigint, Translation[]>> {
+export async function loadArticleTranslations(
+  db: Database,
+  postIds: readonly bigint[],
+): Promise<Map<bigint, Translation[]>> {
   if (postIds.length === 0) return new Map()
-  const rows = await db.select().from(postTranslations).where(inArray(postTranslations.postId, [...postIds]))
+  const rows = await db
+    .select()
+    .from(postTranslations)
+    .where(inArray(postTranslations.postId, [...postIds]))
   const grouped = new Map<bigint, Translation[]>()
   for (const row of rows) grouped.set(row.postId, [...(grouped.get(row.postId) ?? []), row])
   return grouped
@@ -86,25 +127,35 @@ export async function loadArticleTranslations(db: Database, postIds: readonly bi
  * responses. In particular, do not pull draft or translated body content into
  * a list request.
  */
-export async function loadArticleTranslationSummaries(db: Database, postIds: readonly bigint[]): Promise<Map<bigint, ArticleTranslationSummary[]>> {
+export async function loadArticleTranslationSummaries(
+  db: Database,
+  postIds: readonly bigint[],
+): Promise<Map<bigint, ArticleTranslationSummary[]>> {
   if (postIds.length === 0) return new Map()
-  const rows = await db.select({
-    postId: postTranslations.postId,
-    locale: postTranslations.locale,
-    status: postTranslations.status,
-    publishedTitle: postTranslations.publishedTitle,
-    publishedExcerpt: postTranslations.publishedExcerpt,
-    publishedVersion: postTranslations.publishedVersion,
-    publishedSourceRevision: postTranslations.publishedSourceRevision,
-    publishedSourceHash: postTranslations.publishedSourceHash,
-    publishedAt: postTranslations.publishedAt,
-  }).from(postTranslations).where(inArray(postTranslations.postId, [...postIds]))
+  const rows = await db
+    .select({
+      postId: postTranslations.postId,
+      locale: postTranslations.locale,
+      status: postTranslations.status,
+      publishedTitle: postTranslations.publishedTitle,
+      publishedExcerpt: postTranslations.publishedExcerpt,
+      publishedVersion: postTranslations.publishedVersion,
+      publishedSourceRevision: postTranslations.publishedSourceRevision,
+      publishedSourceHash: postTranslations.publishedSourceHash,
+      publishedAt: postTranslations.publishedAt,
+    })
+    .from(postTranslations)
+    .where(inArray(postTranslations.postId, [...postIds]))
   const grouped = new Map<bigint, ArticleTranslationSummary[]>()
   for (const row of rows) grouped.set(row.postId, [...(grouped.get(row.postId) ?? []), row])
   return grouped
 }
 
-export function localizedPostFields(post: SourcePost, resolution: ArticleLocaleResolution, options: { includeContent?: boolean; redactProtectedExcerpt?: boolean } = {}) {
+export function localizedPostFields(
+  post: SourcePost,
+  resolution: ArticleLocaleResolution,
+  options: { includeContent?: boolean; redactProtectedExcerpt?: boolean } = {},
+) {
   const translation = resolution.translation
   const redact = options.redactProtectedExcerpt !== false && post.access === 'MEMBER' && !post.excerptAuthored
   const excerpt = redact ? null : translation ? translation.publishedExcerpt : post.excerpt

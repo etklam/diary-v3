@@ -3,7 +3,11 @@ import { diarySearchSnippet } from '../../apps/api/src/diary-search.js'
 
 describe('diarySearchSnippet', () => {
   it('returns a bounded content excerpt with offsets relative to the excerpt', () => {
-    const result = diarySearchSnippet([{ source: 'content', value: 'Before '.repeat(80) + 'target phrase' }], 'target phrase', 40)
+    const result = diarySearchSnippet(
+      [{ source: 'content', value: 'Before '.repeat(80) + 'target phrase' }],
+      'target phrase',
+      40,
+    )
     expect(result?.source).toBe('content')
     expect(result?.text).toContain('target phrase')
     expect(result && result.text.slice(result.matchStart, result.matchEnd)).toBe('target phrase')
@@ -11,7 +15,15 @@ describe('diarySearchSnippet', () => {
   })
 
   it('reports the source of a title, tag or symbol match', () => {
-    expect(diarySearchSnippet([{ source: 'title', value: 'AAPL thesis' }, { source: 'tag', value: 'earnings' }], 'earnings')?.source).toBe('tag')
+    expect(
+      diarySearchSnippet(
+        [
+          { source: 'title', value: 'AAPL thesis' },
+          { source: 'tag', value: 'earnings' },
+        ],
+        'earnings',
+      )?.source,
+    ).toBe('tag')
     expect(diarySearchSnippet([{ source: 'symbol', value: '2330' }], '330')?.source).toBe('symbol')
   })
 
@@ -24,7 +36,11 @@ describe('diarySearchSnippet', () => {
     const expanded = diarySearchSnippet([{ source: 'content', value: 'İXtarget' }], 'target')
     expect(expanded).toMatchObject({ matchStart: 2, matchEnd: 8 })
     expect(expanded?.text.slice(expanded.matchStart, expanded.matchEnd)).toBe('target')
-    const emoji = diarySearchSnippet([{ source: 'content', value: '🙂'.repeat(160) + 'needle' + 'x'.repeat(160) }], 'needle', 24)
+    const emoji = diarySearchSnippet(
+      [{ source: 'content', value: '🙂'.repeat(160) + 'needle' + 'x'.repeat(160) }],
+      'needle',
+      24,
+    )
     expect(emoji?.text).toBeDefined()
     expect(emoji?.text).not.toMatch(/[\uD800-\uDFFF]/u)
     expect(emoji && emoji.text.slice(emoji.matchStart, emoji.matchEnd)).toBe('needle')

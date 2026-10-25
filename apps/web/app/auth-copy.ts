@@ -16,7 +16,8 @@ export const authAsideCopy = {
       ['Review', 'Return later, compare the outcome with the original reasoning, and record what changed.'],
     ],
     signIn: 'Pick up the record where you left it. Everything you wrote stays as you wrote it.',
-    register: 'A diary for investment decisions: record the reasoning, keep the evidence beside it, and review it later.',
+    register:
+      'A diary for investment decisions: record the reasoning, keep the evidence beside it, and review it later.',
     recovery: 'Account recovery restores access to the record. Nothing you wrote changes.',
   },
   'zh-TW': {
@@ -41,4 +42,4 @@ export const authAsideCopy = {
     register: '一本投资决策日记：记下理由，把证据放在旁边，日后再回来复盘。',
     recovery: '账户恢复只会恢复访问权限，不会改动你写过的内容。',
   },
-} as const;
+} as const

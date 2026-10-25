@@ -16,6 +16,6 @@ describe('roundMetric', () => {
 
   it('truncates long fractional values', () => {
     // 333.333333... → 333.3333
-    expect(roundMetric(10 / 3 * 100)).toBe(333.3333)
+    expect(roundMetric((10 / 3) * 100)).toBe(333.3333)
   })
 })

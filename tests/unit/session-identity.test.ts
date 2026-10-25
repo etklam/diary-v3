@@ -9,7 +9,10 @@ async function freshSession(): Promise<SessionModule> {
   return import('../../apps/web/app/session')
 }
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('session content identity', () => {
   it('confirming the session the page already loaded under is not an identity change', async () => {

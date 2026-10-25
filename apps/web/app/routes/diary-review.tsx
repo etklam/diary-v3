@@ -1,28 +1,39 @@
-import { ReviewPlanExecution } from '../review-plan-execution';
-import { useReviewContinuation, ReviewProgress } from '../review-continuation';
-import { ReviewReschedule } from '../review-reschedule';
-import { workflowCopy } from '../review-workflow-copy';
-import { useEffect,useMemo,useRef,useState,type FormEvent } from 'react';
-import { Link,useBlocker,useLocation,useParams } from 'react-router';
-import { diaryReviewWorkflowResponseSchema,diaryReviewResponseSchema,structuredReviewInputSchema } from '@diary/contracts/review';
-import type { z } from 'zod';
-import { ActionButton, api, Disclosure, DisclosureSummary, useConfirm, useUi } from '../ui';
-import { apiFailure,FailureNotice,invalidField,type Failure } from '../api-error';
-import { signInPath,useSessionState } from '../session';
-import { Markdown } from '../markdown';
-import { diaryCopy } from '../diary-copy';
-import { reviewCopy } from '../review-copy';
-import { readDraftEnvelope,useDraftLifecycle } from '../draft-lifecycle';
-import { OriginalJudgment } from '../original-judgment';
-import { originalJudgmentCopy } from '../original-judgment-copy';
-import { formatAmount,formatInstantIn,formatQuantity } from '../market-display';
-import '../review.css';
-type Review=z.infer<typeof diaryReviewResponseSchema>;
-type ReflectionKey='reviewSummary'|'reviewLearning'|'reviewAdjustment';
-type Form={reviewOutcome:NonNullable<Review['reviewOutcome']>|''}&Record<ReflectionKey,string>;
-const fields=['reviewSummary','reviewLearning','reviewAdjustment'] as const;
-const outcomes=['INTACT','PARTIAL','INVALIDATED','UNCLEAR'] as const;
-function formFrom(review:Review):Form{return {reviewOutcome:review.reviewOutcome??'',reviewSummary:review.reviewSummary??'',reviewLearning:review.reviewLearning??'',reviewAdjustment:review.reviewAdjustment??''};}
+import { ReviewPlanExecution } from '../review-plan-execution'
+import { useReviewContinuation, ReviewProgress } from '../review-continuation'
+import { ReviewReschedule } from '../review-reschedule'
+import { workflowCopy } from '../review-workflow-copy'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link, useBlocker, useLocation, useParams } from 'react-router'
+import {
+  diaryReviewWorkflowResponseSchema,
+  diaryReviewResponseSchema,
+  structuredReviewInputSchema,
+} from '@diary/contracts/review'
+import type { z } from 'zod'
+import { ActionButton, api, Disclosure, DisclosureSummary, useConfirm, useUi } from '../ui'
+import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
+import { signInPath, useSessionState } from '../session'
+import { Markdown } from '../markdown'
+import { diaryCopy } from '../diary-copy'
+import { reviewCopy } from '../review-copy'
+import { readDraftEnvelope, useDraftLifecycle } from '../draft-lifecycle'
+import { OriginalJudgment } from '../original-judgment'
+import { originalJudgmentCopy } from '../original-judgment-copy'
+import { formatAmount, formatInstantIn, formatQuantity } from '../market-display'
+import '../review.css'
+type Review = z.infer<typeof diaryReviewResponseSchema>
+type ReflectionKey = 'reviewSummary' | 'reviewLearning' | 'reviewAdjustment'
+type Form = { reviewOutcome: NonNullable<Review['reviewOutcome']> | '' } & Record<ReflectionKey, string>
+const fields = ['reviewSummary', 'reviewLearning', 'reviewAdjustment'] as const
+const outcomes = ['INTACT', 'PARTIAL', 'INVALIDATED', 'UNCLEAR'] as const
+function formFrom(review: Review): Form {
+  return {
+    reviewOutcome: review.reviewOutcome ?? '',
+    reviewSummary: review.reviewSummary ?? '',
+    reviewLearning: review.reviewLearning ?? '',
+    reviewAdjustment: review.reviewAdjustment ?? '',
+  }
+}
 
 // --- Confirmed-baseline dirty state --------------------------------------------
 // Dirty means the normalized form differs from the last confirmed server state
@@ -31,10 +42,36 @@ function formFrom(review:Review):Form{return {reviewOutcome:review.reviewOutcome
 // strings to null, so '' and null are equal and whitespace-only edits read as
 // clean. An outcome selection counts the moment it changes and stops when the
 // original outcome is picked again.
-export type ReviewBaseline={reviewOutcome:NonNullable<Review['reviewOutcome']>|null;reviewSummary:string|null;reviewLearning:string|null;reviewAdjustment:string|null};
-function baselineFrom(review:Review):ReviewBaseline{return {reviewOutcome:review.reviewOutcome??null,reviewSummary:review.reviewSummary??null,reviewLearning:review.reviewLearning??null,reviewAdjustment:review.reviewAdjustment??null};}
-export function normalizeReview(form:Form):ReviewBaseline{return {reviewOutcome:form.reviewOutcome||null,reviewSummary:form.reviewSummary.trim()||null,reviewLearning:form.reviewLearning.trim()||null,reviewAdjustment:form.reviewAdjustment.trim()||null};}
-export function sameReview(a:ReviewBaseline,b:ReviewBaseline){return a.reviewOutcome===b.reviewOutcome&&a.reviewSummary===b.reviewSummary&&a.reviewLearning===b.reviewLearning&&a.reviewAdjustment===b.reviewAdjustment;}
+export type ReviewBaseline = {
+  reviewOutcome: NonNullable<Review['reviewOutcome']> | null
+  reviewSummary: string | null
+  reviewLearning: string | null
+  reviewAdjustment: string | null
+}
+function baselineFrom(review: Review): ReviewBaseline {
+  return {
+    reviewOutcome: review.reviewOutcome ?? null,
+    reviewSummary: review.reviewSummary ?? null,
+    reviewLearning: review.reviewLearning ?? null,
+    reviewAdjustment: review.reviewAdjustment ?? null,
+  }
+}
+export function normalizeReview(form: Form): ReviewBaseline {
+  return {
+    reviewOutcome: form.reviewOutcome || null,
+    reviewSummary: form.reviewSummary.trim() || null,
+    reviewLearning: form.reviewLearning.trim() || null,
+    reviewAdjustment: form.reviewAdjustment.trim() || null,
+  }
+}
+export function sameReview(a: ReviewBaseline, b: ReviewBaseline) {
+  return (
+    a.reviewOutcome === b.reviewOutcome &&
+    a.reviewSummary === b.reviewSummary &&
+    a.reviewLearning === b.reviewLearning &&
+    a.reviewAdjustment === b.reviewAdjustment
+  )
+}
 
 // --- Device-local draft ---------------------------------------------------------
 // Keyed by account and diary, 24-hour TTL, written debounced while dirty and
@@ -42,57 +79,522 @@ export function sameReview(a:ReviewBaseline,b:ReviewBaseline){return a.reviewOut
 // discarded. Cleared only by a confirmed save, an explicit discard, or a
 // signed-out session — never by a 401, so content survives re-login. Only the
 // reflection fields are stored; no session or token material.
-type ReviewDraft=Partial<{reviewOutcome:NonNullable<Review['reviewOutcome']>}&Record<ReflectionKey,string>>;
-function readReviewDraft(key:string):ReviewDraft|null{
- try{const value=readDraftEnvelope<ReviewDraft>(key);
-  if(!value||typeof value!=='object')return null;
-  const draft:ReviewDraft={};
-  if(outcomes.includes(value.reviewOutcome as (typeof outcomes)[number]))draft.reviewOutcome=value.reviewOutcome;
-  for(const field of fields)if(typeof value[field]==='string'&&value[field].length<=10000)draft[field]=value[field];
-  return draft.reviewOutcome||fields.some(field=>draft[field]?.trim())?draft:null;
- }catch{return null;}
+type ReviewDraft = Partial<{ reviewOutcome: NonNullable<Review['reviewOutcome']> } & Record<ReflectionKey, string>>
+function readReviewDraft(key: string): ReviewDraft | null {
+  try {
+    const value = readDraftEnvelope<ReviewDraft>(key)
+    if (!value || typeof value !== 'object') return null
+    const draft: ReviewDraft = {}
+    if (outcomes.includes(value.reviewOutcome as (typeof outcomes)[number])) draft.reviewOutcome = value.reviewOutcome
+    for (const field of fields)
+      if (typeof value[field] === 'string' && value[field].length <= 10000) draft[field] = value[field]
+    return draft.reviewOutcome || fields.some(field => draft[field]?.trim()) ? draft : null
+  } catch {
+    return null
+  }
 }
-function stringOr(value:unknown,fallback:string){return typeof value==='string'&&value.length<=10000?value:fallback;}
-function mergeDraft(base:Form,draft:ReviewDraft):Form{
- return {reviewOutcome:outcomes.includes(draft.reviewOutcome as (typeof outcomes)[number])?draft.reviewOutcome!:base.reviewOutcome,
-  reviewSummary:stringOr(draft.reviewSummary,base.reviewSummary),reviewLearning:stringOr(draft.reviewLearning,base.reviewLearning),reviewAdjustment:stringOr(draft.reviewAdjustment,base.reviewAdjustment)};
+function stringOr(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.length <= 10000 ? value : fallback
+}
+function mergeDraft(base: Form, draft: ReviewDraft): Form {
+  return {
+    reviewOutcome: outcomes.includes(draft.reviewOutcome as (typeof outcomes)[number])
+      ? draft.reviewOutcome!
+      : base.reviewOutcome,
+    reviewSummary: stringOr(draft.reviewSummary, base.reviewSummary),
+    reviewLearning: stringOr(draft.reviewLearning, base.reviewLearning),
+    reviewAdjustment: stringOr(draft.reviewAdjustment, base.reviewAdjustment),
+  }
 }
 // A draft identical to the confirmed baseline offers nothing to restore.
-function restorableDraft(draft:ReviewDraft|null,baseline:ReviewBaseline,review:Review):ReviewDraft|null{
- if(!draft)return null;
- return sameReview(normalizeReview(mergeDraft(formFrom(review),draft)),baseline)?null:draft;
+function restorableDraft(draft: ReviewDraft | null, baseline: ReviewBaseline, review: Review): ReviewDraft | null {
+  if (!draft) return null
+  return sameReview(normalizeReview(mergeDraft(formFrom(review), draft)), baseline) ? null : draft
 }
 
-export default function DiaryReviewPage(){const {id=''}=useParams(),{locale,t}=useUi(),confirm=useConfirm(),c=reviewCopy[locale],original=diaryCopy[locale],session=useSessionState();const [review,setReview]=useState<Review|null>(null),[timezone,setTimezone]=useState(''),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState<Failure|null>(null),[attempt,setAttempt]=useState(0),[editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[form,setForm]=useState<Form>({reviewOutcome:'',reviewSummary:'',reviewLearning:'',reviewAdjustment:''}),[error,setError]=useState<Failure|null>(null),[saved,setSaved]=useState(false);const [saveState,setSaveState]=useState<'idle'|'saving'|'failed'>('idle'),[accountId,setAccountId]=useState(''),[baseline,setBaseline]=useState<ReviewBaseline|null>(null),[restorable,setRestorable]=useState<ReviewDraft|null>(null);const active=useRef(true),completedHeading=useRef<HTMLHeadingElement>(null);const draftKey=accountId?`review-draft:${accountId}:${id}`:null;
- const [revision,setRevision]=useState(0),[scheduleError,setScheduleError]=useState<Failure|null>(null);const flow=useReviewContinuation(accountId,`diary:${id}`),workflow=workflowCopy[locale];
- // Queue context handed over by the review queue link (page/target only).
- const backToQueue=(useLocation().state as {queueSearch?:string}|null)?.queueSearch;
- const dirty=useMemo(()=>baseline!==null&&!sameReview(normalizeReview(form),baseline),[baseline,form]);const dirtyRef=useRef(dirty);dirtyRef.current=dirty;
- const {suppressDraft}=useDraftLifecycle({key:draftKey,value:form,dirty,paused:Boolean(restorable)});
- const blocker=useBlocker(()=>dirtyRef.current&&session.authenticated!==false);
- useEffect(()=>{if(blocker.state!=='blocked')return;void confirm({title:c.discard,confirm:t('discard')}).then(ok=>{if(ok)blocker.proceed();else blocker.reset();});},[blocker,c.discard,confirm,t]);
- useEffect(()=>{const unload=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',unload);return()=>window.removeEventListener('beforeunload',unload);},[]);
- useEffect(()=>{active.current=true;const controller=new AbortController();setLoading(true);setReview(null);setLoadError(null);Promise.all([api.GET('/api/diaries/{id}/review-workflow',{params:{path:{id}},signal:controller.signal}),api.GET('/api/auth/me',{signal:controller.signal})]).then(([result,user])=>{if(!active.current||controller.signal.aborted)return;if(!result.response.ok){setLoadError(apiFailure(result.response.status===401?{data:{code:'AUTH_UNAUTHORIZED'}}:result.error,t('failed')));return;}if(!user.response.ok||!user.data){setLoadError(apiFailure(user.error,t('connection')));return;}const envelope=diaryReviewWorkflowResponseSchema.parse(result.data);setRevision(envelope.revision);const data=envelope.review;const confirmed=baselineFrom(data);setReview(data);setForm(formFrom(data));setBaseline(confirmed);setTimezone(user.data.data.timezone);setEditing(false);setSaveState('idle');setError(null);setSaved(false);setAccountId(user.data.data.id);setRestorable(restorableDraft(readReviewDraft(`review-draft:${user.data.data.id}:${id}`),confirmed,data));}).catch(()=>{if(active.current&&!controller.signal.aborted)setLoadError(apiFailure(null,t('connection')));}).finally(()=>{if(active.current&&!controller.signal.aborted)setLoading(false);});return()=>{active.current=false;controller.abort();};},[id,attempt]);
- useEffect(()=>{if(saved&&!editing)completedHeading.current?.focus();},[saved,editing]);
- function clearDraft(){if(draftKey)suppressDraft();}
- function restoreDraft(){if(!review)return;setForm(mergeDraft(formFrom(review),restorable!));setRestorable(null);setEditing(true);setError(null);setSaved(false);}
- function discardDraft(){setRestorable(null);clearDraft();}
- async function cancelEditing(){if(!review||(dirty&&!await confirm({title:c.discard,confirm:t('discard')})))return;clearDraft();setRestorable(null);setForm(formFrom(review));setEditing(false);setError(null);setSaved(false);}
- function change<K extends keyof Form>(key:K,value:Form[K]){setSaved(false);setForm(current=>({...current,[key]:value}));}
- async function save(event:FormEvent){event.preventDefault();setError(null);setSaved(false);const parsed=structuredReviewInputSchema.safeParse(form);if(!parsed.success){setSaveState('failed');setError({message:c.reflectionHint,code:'SYS_VALIDATION_ERROR',fields:parsed.error.issues.map(issue=>issue.path.join('.'))});return;}setSaving(true);setSaveState('saving');try{const result=await api.PATCH('/api/diaries/{id}/review-workflow',{params:{path:{id}},body:{review:parsed.data,expectedRevision:revision}});if(!active.current)return;if(result.response.ok&&result.data){const envelope=diaryReviewWorkflowResponseSchema.parse(result.data);setRevision(envelope.revision);const data=envelope.review;dirtyRef.current=false;setBaseline(baselineFrom(data));setReview(data);setForm(formFrom(data));setEditing(false);setSaved(true);setSaveState('idle');clearDraft();setRestorable(null);window.dispatchEvent(new Event('diary-reminders-changed'));if(flow.value)await flow.advance('completed');}else{setSaveState('failed');setError(apiFailure(result.error,t('failed')));}}catch{if(active.current){setSaveState('failed');setError(apiFailure(null,t('connection')));}}finally{if(active.current)setSaving(false);}}
- async function reschedule(reviewDueAt:string|null){
-  setScheduleError(null);try{const result=await api.PATCH('/api/diaries/{id}/review-schedule',{params:{path:{id}},body:{reviewDueAt,expectedRevision:revision}});
-   if(!active.current)return false;if(!result.response.ok){setScheduleError(result.response.status===409?{message:workflow.stale,code:'DIARY_REVISION_CONFLICT',fields:[]}:apiFailure(result.error,t('failed')));return false;}
-   const envelope=diaryReviewWorkflowResponseSchema.parse(result.data);setRevision(envelope.revision);setReview(envelope.review);return true;
-  }catch{if(active.current)setScheduleError(apiFailure(null,t('connection')));return false;}
- }
- const formatInstant=(value:string)=>formatInstantIn(locale,value,timezone);
- if(session.authenticated===false)return <Link to={signInPath(`/diaries/${id}/review`)}>{t('login')}</Link>;
- if(loading)return <p role="status">{t('loading')}</p>;
- if(loadError||!review)return <section><h1>{c.title}</h1><FailureNotice failure={loadError}/><div className="actions"><button type="button" onClick={()=>setAttempt(value=>value+1)}>{t('retry')}</button>{loadError?.code?.startsWith('AUTH_')&&<Link to={signInPath(`/diaries/${id}/review`)}>{t('login')}</Link>}</div></section>;
- const completed=review.reviewStatus==='reviewed'&&review.reviewOutcome!==null;
- const statusClass=saveState==='failed'?'save-status is-failed':saveState==='saving'?'save-status is-saving':dirty?'save-status is-dirty':'save-status';
- const statusText=saveState==='saving'?c.statusSaving:saveState==='failed'?c.statusFailed:dirty?c.statusDirty:'';
- const schedulePath=`/diaries/${id}/edit?returnTo=${encodeURIComponent(`/diaries/${id}/review`)}#review-schedule`;
- return <article className="diary-review"><Link className="inline-link" to={`/diaries/${id}`}>{c.back}</Link><header className="review-heading"><div><h1>{c.title}</h1><p className="review-diary-title">{review.title}</p><time dateTime={review.date}>{review.date}</time></div><span className="review-status" data-testid="review-status">{c[review.reviewStatus]}</span></header><ReviewProgress flow={flow} disabled={saving||flow.busy} skip={()=>{void (async()=>{if(!dirty||await confirm({title:c.discard,confirm:t('discard')})){clearDraft();dirtyRef.current=false;await flow.advance('skipped');}})();}}/><div className="review-schedule"><div><p className="muted">{c.timezone}: <strong data-testid="review-timezone">{timezone}</strong></p><p>{c.due}: {review.reviewDueAt?<time dateTime={review.reviewDueAt} data-testid="review-due">{formatInstant(review.reviewDueAt)}</time>:c.none}</p>{review.reviewedAt&&<p>{c.completedAt}: <time dateTime={review.reviewedAt} data-testid="reviewed-at">{formatInstant(review.reviewedAt)}</time></p>}</div><div><ReviewReschedule due={review.reviewDueAt} timezone={timezone} save={reschedule} disabled={saving||flow.busy}/><Link to={schedulePath}>{c.schedule}</Link><FailureNotice failure={scheduleError}/></div></div><div className="review-columns"><section className="review-original" aria-labelledby="review-original-title"><Disclosure className="review-original-disclosure" open><DisclosureSummary>{workflow.original}</DisclosureSummary><OriginalJudgment headingId="review-original-title" heading={c.original} hint={c.originalHint} values={review} labels={{thesis:original.thesis,risk:original.risk,execution:original.execution}} emptyText={originalJudgmentCopy[locale].missing}>{review.content&&<Markdown>{review.content}</Markdown>}</OriginalJudgment></Disclosure></section><section className="review-reflection" aria-labelledby="review-reflection-title"><h2 ref={completedHeading} id="review-reflection-title" tabIndex={-1}>{completed&&!editing?c.complete:c.reflection}</h2><p className="muted">{c.private}</p>{restorable&&<div className="review-restore" role="status"><button type="button" onClick={restoreDraft}>{c.restore}</button><button type="button" className="secondary" onClick={discardDraft}>{c.discardDraft}</button></div>}{saved&&<p role="status" className="success">{c.saved}</p>}{completed&&!editing?<><p className="review-outcome">{c[review.reviewOutcome!]}</p><dl>{fields.filter(key=>review[key]).map(key=><div key={key}><dt>{c[key]}</dt><dd>{review[key]}</dd></div>)}</dl><div className="actions review-complete-actions"><button type="button" className="secondary" onClick={()=>{setEditing(true);setError(null);setSaved(false);}}>{c.edit}</button><Link className="button secondary" to={`/diaries/${id}`}>{c.back}</Link><Link className="button secondary" to={backToQueue?`/reviews?${backToQueue}`:'/reviews'}>{c.queue}</Link><Link to="/timeline">{c.timeline}</Link></div></>:<form onSubmit={save} aria-busy={saving}><fieldset disabled={saving||flow.busy}><legend>{c.outcome}</legend><p className="muted">{c.reflectionHint}</p><div className="review-outcomes">{outcomes.map(outcome=><label key={outcome}><input type="radio" required name="reviewOutcome" value={outcome} checked={form.reviewOutcome===outcome} onChange={()=>change('reviewOutcome',outcome)} aria-invalid={invalidField(error,'reviewOutcome')} aria-describedby={error?'review-error':undefined}/>{c[outcome]}</label>)}</div>{fields.map((key,index)=><label key={key}>{c[key]}<span className="review-field-hint" id={`${key}-hint`}>{[c.summaryHint,c.learningHint,c.adjustmentHint][index]}</span><textarea aria-label={c[key]} name={key} className={key==='reviewSummary'?'review-primary':undefined} rows={key==='reviewSummary'?6:4} maxLength={10000} value={form[key]} onChange={event=>change(key,event.target.value)} aria-invalid={invalidField(error,key)} aria-describedby={`${key}-hint${error?' review-error':''}`}/></label>)}<FailureNotice focusField failure={error} id="review-error"/><div className="review-footer"><span className={statusClass} data-testid="save-status" role="status">{statusText}</span><div className="actions">{completed&&<button type="button" className="secondary" onClick={()=>void cancelEditing()}>{c.cancel}</button>}<ActionButton type="submit" pending={saving||flow.busy}>{flow.value?workflow.next:completed?c.update:c.save}</ActionButton></div></div></fieldset></form>}</section></div>{review.transactions.length>0&&<section className="review-related"><h2>{c.transactions}</h2><ul>{review.transactions.map(transaction=><li key={transaction.id}><strong>{transaction.symbol}</strong><span>{transaction.type}</span><span className="review-decimal">{formatQuantity(locale,transaction.quantity)} × {formatAmount(locale,transaction.price)}</span><time dateTime={transaction.tradeDate}>{formatInstant(transaction.tradeDate)}</time>{transaction.notes&&<p>{transaction.notes}</p>}</li>)}</ul></section>}{review.tradePlans.length>0&&<section className="review-related"><h2>{c.plans}</h2><ul>{review.tradePlans.map(plan=><li key={plan.id}><strong><Link to={`/trade-plans/${plan.id}`}>{plan.symbol}</Link></strong><ReviewPlanExecution id={plan.id}/><span>{c.status}: {plan.status}</span>{plan.setupType&&<p>{c.setup}: {plan.setupType}</p>}{plan.invalidationCondition&&<p>{c.invalidation}: {plan.invalidationCondition}</p>}</li>)}</ul></section>}</article>;
+export default function DiaryReviewPage() {
+  const { id = '' } = useParams(),
+    { locale, t } = useUi(),
+    confirm = useConfirm(),
+    c = reviewCopy[locale],
+    original = diaryCopy[locale],
+    session = useSessionState()
+  const [review, setReview] = useState<Review | null>(null),
+    [timezone, setTimezone] = useState(''),
+    [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState<Failure | null>(null),
+    [attempt, setAttempt] = useState(0),
+    [editing, setEditing] = useState(false),
+    [saving, setSaving] = useState(false),
+    [form, setForm] = useState<Form>({
+      reviewOutcome: '',
+      reviewSummary: '',
+      reviewLearning: '',
+      reviewAdjustment: '',
+    }),
+    [error, setError] = useState<Failure | null>(null),
+    [saved, setSaved] = useState(false)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'failed'>('idle'),
+    [accountId, setAccountId] = useState(''),
+    [baseline, setBaseline] = useState<ReviewBaseline | null>(null),
+    [restorable, setRestorable] = useState<ReviewDraft | null>(null)
+  const active = useRef(true),
+    completedHeading = useRef<HTMLHeadingElement>(null)
+  const draftKey = accountId ? `review-draft:${accountId}:${id}` : null
+  const [revision, setRevision] = useState(0),
+    [scheduleError, setScheduleError] = useState<Failure | null>(null)
+  const flow = useReviewContinuation(accountId, `diary:${id}`),
+    workflow = workflowCopy[locale]
+  // Queue context handed over by the review queue link (page/target only).
+  const backToQueue = (useLocation().state as { queueSearch?: string } | null)?.queueSearch
+  const dirty = useMemo(() => baseline !== null && !sameReview(normalizeReview(form), baseline), [baseline, form])
+  const dirtyRef = useRef(dirty)
+  dirtyRef.current = dirty
+  const { suppressDraft } = useDraftLifecycle({ key: draftKey, value: form, dirty, paused: Boolean(restorable) })
+  const blocker = useBlocker(() => dirtyRef.current && session.authenticated !== false)
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    void confirm({ title: c.discard, confirm: t('discard') }).then(ok => {
+      if (ok) blocker.proceed()
+      else blocker.reset()
+    })
+  }, [blocker, c.discard, confirm, t])
+  useEffect(() => {
+    const unload = (event: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', unload)
+    return () => window.removeEventListener('beforeunload', unload)
+  }, [])
+  useEffect(() => {
+    active.current = true
+    const controller = new AbortController()
+    setLoading(true)
+    setReview(null)
+    setLoadError(null)
+    Promise.all([
+      api.GET('/api/diaries/{id}/review-workflow', { params: { path: { id } }, signal: controller.signal }),
+      api.GET('/api/auth/me', { signal: controller.signal }),
+    ])
+      .then(([result, user]) => {
+        if (!active.current || controller.signal.aborted) return
+        if (!result.response.ok) {
+          setLoadError(
+            apiFailure(
+              result.response.status === 401 ? { data: { code: 'AUTH_UNAUTHORIZED' } } : result.error,
+              t('failed'),
+            ),
+          )
+          return
+        }
+        if (!user.response.ok || !user.data) {
+          setLoadError(apiFailure(user.error, t('connection')))
+          return
+        }
+        const envelope = diaryReviewWorkflowResponseSchema.parse(result.data)
+        setRevision(envelope.revision)
+        const data = envelope.review
+        const confirmed = baselineFrom(data)
+        setReview(data)
+        setForm(formFrom(data))
+        setBaseline(confirmed)
+        setTimezone(user.data.data.timezone)
+        setEditing(false)
+        setSaveState('idle')
+        setError(null)
+        setSaved(false)
+        setAccountId(user.data.data.id)
+        setRestorable(restorableDraft(readReviewDraft(`review-draft:${user.data.data.id}:${id}`), confirmed, data))
+      })
+      .catch(() => {
+        if (active.current && !controller.signal.aborted) setLoadError(apiFailure(null, t('connection')))
+      })
+      .finally(() => {
+        if (active.current && !controller.signal.aborted) setLoading(false)
+      })
+    return () => {
+      active.current = false
+      controller.abort()
+    }
+  }, [id, attempt])
+  useEffect(() => {
+    if (saved && !editing) completedHeading.current?.focus()
+  }, [saved, editing])
+  function clearDraft() {
+    if (draftKey) suppressDraft()
+  }
+  function restoreDraft() {
+    if (!review) return
+    setForm(mergeDraft(formFrom(review), restorable!))
+    setRestorable(null)
+    setEditing(true)
+    setError(null)
+    setSaved(false)
+  }
+  function discardDraft() {
+    setRestorable(null)
+    clearDraft()
+  }
+  async function cancelEditing() {
+    if (!review || (dirty && !(await confirm({ title: c.discard, confirm: t('discard') })))) return
+    clearDraft()
+    setRestorable(null)
+    setForm(formFrom(review))
+    setEditing(false)
+    setError(null)
+    setSaved(false)
+  }
+  function change<K extends keyof Form>(key: K, value: Form[K]) {
+    setSaved(false)
+    setForm(current => ({ ...current, [key]: value }))
+  }
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    setError(null)
+    setSaved(false)
+    const parsed = structuredReviewInputSchema.safeParse(form)
+    if (!parsed.success) {
+      setSaveState('failed')
+      setError({
+        message: c.reflectionHint,
+        code: 'SYS_VALIDATION_ERROR',
+        fields: parsed.error.issues.map(issue => issue.path.join('.')),
+      })
+      return
+    }
+    setSaving(true)
+    setSaveState('saving')
+    try {
+      const result = await api.PATCH('/api/diaries/{id}/review-workflow', {
+        params: { path: { id } },
+        body: { review: parsed.data, expectedRevision: revision },
+      })
+      if (!active.current) return
+      if (result.response.ok && result.data) {
+        const envelope = diaryReviewWorkflowResponseSchema.parse(result.data)
+        setRevision(envelope.revision)
+        const data = envelope.review
+        dirtyRef.current = false
+        setBaseline(baselineFrom(data))
+        setReview(data)
+        setForm(formFrom(data))
+        setEditing(false)
+        setSaved(true)
+        setSaveState('idle')
+        clearDraft()
+        setRestorable(null)
+        window.dispatchEvent(new Event('diary-reminders-changed'))
+        if (flow.value) await flow.advance('completed')
+      } else {
+        setSaveState('failed')
+        setError(apiFailure(result.error, t('failed')))
+      }
+    } catch {
+      if (active.current) {
+        setSaveState('failed')
+        setError(apiFailure(null, t('connection')))
+      }
+    } finally {
+      if (active.current) setSaving(false)
+    }
+  }
+  async function reschedule(reviewDueAt: string | null) {
+    setScheduleError(null)
+    try {
+      const result = await api.PATCH('/api/diaries/{id}/review-schedule', {
+        params: { path: { id } },
+        body: { reviewDueAt, expectedRevision: revision },
+      })
+      if (!active.current) return false
+      if (!result.response.ok) {
+        setScheduleError(
+          result.response.status === 409
+            ? { message: workflow.stale, code: 'DIARY_REVISION_CONFLICT', fields: [] }
+            : apiFailure(result.error, t('failed')),
+        )
+        return false
+      }
+      const envelope = diaryReviewWorkflowResponseSchema.parse(result.data)
+      setRevision(envelope.revision)
+      setReview(envelope.review)
+      return true
+    } catch {
+      if (active.current) setScheduleError(apiFailure(null, t('connection')))
+      return false
+    }
+  }
+  const formatInstant = (value: string) => formatInstantIn(locale, value, timezone)
+  if (session.authenticated === false) return <Link to={signInPath(`/diaries/${id}/review`)}>{t('login')}</Link>
+  if (loading) return <p role="status">{t('loading')}</p>
+  if (loadError || !review)
+    return (
+      <section>
+        <h1>{c.title}</h1>
+        <FailureNotice failure={loadError} />
+        <div className="actions">
+          <button type="button" onClick={() => setAttempt(value => value + 1)}>
+            {t('retry')}
+          </button>
+          {loadError?.code?.startsWith('AUTH_') && <Link to={signInPath(`/diaries/${id}/review`)}>{t('login')}</Link>}
+        </div>
+      </section>
+    )
+  const completed = review.reviewStatus === 'reviewed' && review.reviewOutcome !== null
+  const statusClass =
+    saveState === 'failed'
+      ? 'save-status is-failed'
+      : saveState === 'saving'
+        ? 'save-status is-saving'
+        : dirty
+          ? 'save-status is-dirty'
+          : 'save-status'
+  const statusText =
+    saveState === 'saving' ? c.statusSaving : saveState === 'failed' ? c.statusFailed : dirty ? c.statusDirty : ''
+  const schedulePath = `/diaries/${id}/edit?returnTo=${encodeURIComponent(`/diaries/${id}/review`)}#review-schedule`
+  return (
+    <article className="diary-review">
+      <Link className="inline-link" to={`/diaries/${id}`}>
+        {c.back}
+      </Link>
+      <header className="review-heading">
+        <div>
+          <h1>{c.title}</h1>
+          <p className="review-diary-title">{review.title}</p>
+          <time dateTime={review.date}>{review.date}</time>
+        </div>
+        <span className="review-status" data-testid="review-status">
+          {c[review.reviewStatus]}
+        </span>
+      </header>
+      <ReviewProgress
+        flow={flow}
+        disabled={saving || flow.busy}
+        skip={() => {
+          void (async () => {
+            if (!dirty || (await confirm({ title: c.discard, confirm: t('discard') }))) {
+              clearDraft()
+              dirtyRef.current = false
+              await flow.advance('skipped')
+            }
+          })()
+        }}
+      />
+      <div className="review-schedule">
+        <div>
+          <p className="muted">
+            {c.timezone}: <strong data-testid="review-timezone">{timezone}</strong>
+          </p>
+          <p>
+            {c.due}:{' '}
+            {review.reviewDueAt ? (
+              <time dateTime={review.reviewDueAt} data-testid="review-due">
+                {formatInstant(review.reviewDueAt)}
+              </time>
+            ) : (
+              c.none
+            )}
+          </p>
+          {review.reviewedAt && (
+            <p>
+              {c.completedAt}:{' '}
+              <time dateTime={review.reviewedAt} data-testid="reviewed-at">
+                {formatInstant(review.reviewedAt)}
+              </time>
+            </p>
+          )}
+        </div>
+        <div>
+          <ReviewReschedule
+            due={review.reviewDueAt}
+            timezone={timezone}
+            save={reschedule}
+            disabled={saving || flow.busy}
+          />
+          <Link to={schedulePath}>{c.schedule}</Link>
+          <FailureNotice failure={scheduleError} />
+        </div>
+      </div>
+      <div className="review-columns">
+        <section className="review-original" aria-labelledby="review-original-title">
+          <Disclosure className="review-original-disclosure" open>
+            <DisclosureSummary>{workflow.original}</DisclosureSummary>
+            <OriginalJudgment
+              headingId="review-original-title"
+              heading={c.original}
+              hint={c.originalHint}
+              values={review}
+              labels={{ thesis: original.thesis, risk: original.risk, execution: original.execution }}
+              emptyText={originalJudgmentCopy[locale].missing}
+            >
+              {review.content && <Markdown>{review.content}</Markdown>}
+            </OriginalJudgment>
+          </Disclosure>
+        </section>
+        <section className="review-reflection" aria-labelledby="review-reflection-title">
+          <h2 ref={completedHeading} id="review-reflection-title" tabIndex={-1}>
+            {completed && !editing ? c.complete : c.reflection}
+          </h2>
+          <p className="muted">{c.private}</p>
+          {restorable && (
+            <div className="review-restore" role="status">
+              <button type="button" onClick={restoreDraft}>
+                {c.restore}
+              </button>
+              <button type="button" className="secondary" onClick={discardDraft}>
+                {c.discardDraft}
+              </button>
+            </div>
+          )}
+          {saved && (
+            <p role="status" className="success">
+              {c.saved}
+            </p>
+          )}
+          {completed && !editing ? (
+            <>
+              <p className="review-outcome">{c[review.reviewOutcome!]}</p>
+              <dl>
+                {fields
+                  .filter(key => review[key])
+                  .map(key => (
+                    <div key={key}>
+                      <dt>{c[key]}</dt>
+                      <dd>{review[key]}</dd>
+                    </div>
+                  ))}
+              </dl>
+              <div className="actions review-complete-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setEditing(true)
+                    setError(null)
+                    setSaved(false)
+                  }}
+                >
+                  {c.edit}
+                </button>
+                <Link className="button secondary" to={`/diaries/${id}`}>
+                  {c.back}
+                </Link>
+                <Link className="button secondary" to={backToQueue ? `/reviews?${backToQueue}` : '/reviews'}>
+                  {c.queue}
+                </Link>
+                <Link to="/timeline">{c.timeline}</Link>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={save} aria-busy={saving}>
+              <fieldset disabled={saving || flow.busy}>
+                <legend>{c.outcome}</legend>
+                <p className="muted">{c.reflectionHint}</p>
+                <div className="review-outcomes">
+                  {outcomes.map(outcome => (
+                    <label key={outcome}>
+                      <input
+                        type="radio"
+                        required
+                        name="reviewOutcome"
+                        value={outcome}
+                        checked={form.reviewOutcome === outcome}
+                        onChange={() => change('reviewOutcome', outcome)}
+                        aria-invalid={invalidField(error, 'reviewOutcome')}
+                        aria-describedby={error ? 'review-error' : undefined}
+                      />
+                      {c[outcome]}
+                    </label>
+                  ))}
+                </div>
+                {fields.map((key, index) => (
+                  <label key={key}>
+                    {c[key]}
+                    <span className="review-field-hint" id={`${key}-hint`}>
+                      {[c.summaryHint, c.learningHint, c.adjustmentHint][index]}
+                    </span>
+                    <textarea
+                      aria-label={c[key]}
+                      name={key}
+                      className={key === 'reviewSummary' ? 'review-primary' : undefined}
+                      rows={key === 'reviewSummary' ? 6 : 4}
+                      maxLength={10000}
+                      value={form[key]}
+                      onChange={event => change(key, event.target.value)}
+                      aria-invalid={invalidField(error, key)}
+                      aria-describedby={`${key}-hint${error ? ' review-error' : ''}`}
+                    />
+                  </label>
+                ))}
+                <FailureNotice focusField failure={error} id="review-error" />
+                <div className="review-footer">
+                  <span className={statusClass} data-testid="save-status" role="status">
+                    {statusText}
+                  </span>
+                  <div className="actions">
+                    {completed && (
+                      <button type="button" className="secondary" onClick={() => void cancelEditing()}>
+                        {c.cancel}
+                      </button>
+                    )}
+                    <ActionButton type="submit" pending={saving || flow.busy}>
+                      {flow.value ? workflow.next : completed ? c.update : c.save}
+                    </ActionButton>
+                  </div>
+                </div>
+              </fieldset>
+            </form>
+          )}
+        </section>
+      </div>
+      {review.transactions.length > 0 && (
+        <section className="review-related">
+          <h2>{c.transactions}</h2>
+          <ul>
+            {review.transactions.map(transaction => (
+              <li key={transaction.id}>
+                <strong>{transaction.symbol}</strong>
+                <span>{transaction.type}</span>
+                <span className="review-decimal">
+                  {formatQuantity(locale, transaction.quantity)} × {formatAmount(locale, transaction.price)}
+                </span>
+                <time dateTime={transaction.tradeDate}>{formatInstant(transaction.tradeDate)}</time>
+                {transaction.notes && <p>{transaction.notes}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {review.tradePlans.length > 0 && (
+        <section className="review-related">
+          <h2>{c.plans}</h2>
+          <ul>
+            {review.tradePlans.map(plan => (
+              <li key={plan.id}>
+                <strong>
+                  <Link to={`/trade-plans/${plan.id}`}>{plan.symbol}</Link>
+                </strong>
+                <ReviewPlanExecution id={plan.id} />
+                <span>
+                  {c.status}: {plan.status}
+                </span>
+                {plan.setupType && (
+                  <p>
+                    {c.setup}: {plan.setupType}
+                  </p>
+                )}
+                {plan.invalidationCondition && (
+                  <p>
+                    {c.invalidation}: {plan.invalidationCondition}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </article>
+  )
 }

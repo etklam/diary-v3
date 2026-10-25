@@ -32,9 +32,9 @@ export interface ClosedTrade {
   sellDate: Date
   sellQuantity: number
   sellPrice: number
-  avgCostBasis: number      // average cost at the time of sale
-  realizedPnL: number       // realized P&L (pre-tax)
-  realizedPnLPct: number    // realized P&L percentage
+  avgCostBasis: number // average cost at the time of sale
+  realizedPnL: number // realized P&L (pre-tax)
+  realizedPnLPct: number // realized P&L percentage
   strategy: string | null
   emotion: string | null
 }
@@ -44,18 +44,18 @@ export interface WinRateResult {
   losses: number
   breakEven: number
   total: number
-  winRate: number           // 0–100, null when N/A
+  winRate: number // 0–100, null when N/A
 }
 
 export interface RealizedDrawdownResult {
-  maxDrawdownPct: number    // 0–100 (positive value = loss magnitude, relative to cumulative invested cost)
+  maxDrawdownPct: number // 0–100 (positive value = loss magnitude, relative to cumulative invested cost)
   maxDrawdownDollars: number // peak-to-trough max drawdown of cumulative realized P&L (USD)
   peakPnL: number
   troughPnL: number
 }
 
 export interface SharpeResult {
-  sharpe: number | null     // null = zero volatility (cannot compute)
+  sharpe: number | null // null = zero volatility (cannot compute)
   avgReturn: number
   stdDev: number
 }
@@ -63,11 +63,11 @@ export interface SharpeResult {
 export type GroupPeriod = 'month' | 'quarter' | 'year'
 
 export interface PeriodStats {
-  period: string            // e.g. "2024-03", "2024-Q1", "2024"
+  period: string // e.g. "2024-03", "2024-Q1", "2024"
   realizedPnL: number
   tradeCount: number
   winCount: number
-  winRate: number           // 0–100
+  winRate: number // 0–100
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -96,28 +96,44 @@ function periodKey(date: Date, period: GroupPeriod): string {
  * 4. Shares exact matching with the ledger writer; invalid oversells are rejected by the ledger.
  */
 export function matchTrades(transactions: RawTransaction[]): ClosedTrade[] {
-  const rows = transactions.map((tx, index) => ({ ...tx, index,
-    quantity: String(typeof tx.quantity === 'object' ? tx.quantity.valueOf() : tx.quantity),
-    price: String(typeof tx.price === 'object' ? tx.price.valueOf() : tx.price),
-  })).sort((a, b) => new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime() || a.index - b.index)
+  const rows = transactions
+    .map((tx, index) => ({
+      ...tx,
+      index,
+      quantity: String(typeof tx.quantity === 'object' ? tx.quantity.valueOf() : tx.quantity),
+      price: String(typeof tx.price === 'object' ? tx.price.valueOf() : tx.price),
+    }))
+    .sort((a, b) => new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime() || a.index - b.index)
   const closed = replayLedger(rows.map(tx => ({ ...tx, id: String(tx.index), order: BigInt(tx.index) }))).closedTrades
   const quantities = new Map<string, bigint>()
   const metadata = new Map<string, { strategy: string | null; emotion: string | null }>()
   const atSale = new Map<string, { strategy: string | null; emotion: string | null }>()
   for (const tx of rows) {
-    const symbol = tx.symbol.trim().toUpperCase(), previous = metadata.get(symbol) ?? { strategy: null, emotion: null }
-    const attributes = { strategy: tx.strategy?.trim() || previous.strategy, emotion: tx.emotion?.trim() || previous.emotion }
+    const symbol = tx.symbol.trim().toUpperCase(),
+      previous = metadata.get(symbol) ?? { strategy: null, emotion: null }
+    const attributes = {
+      strategy: tx.strategy?.trim() || previous.strategy,
+      emotion: tx.emotion?.trim() || previous.emotion,
+    }
     const [whole, part = ''] = tx.quantity.split('.')
     const quantity = BigInt(whole!) * 10000n + BigInt(part.padEnd(4, '0'))
     const remaining = (quantities.get(symbol) ?? 0n) + (tx.type === 'BUY' ? quantity : -quantity)
     if (tx.type === 'BUY') metadata.set(symbol, attributes)
     else atSale.set(String(tx.index), attributes)
-    if (remaining === 0n) { quantities.delete(symbol); metadata.delete(symbol) }
-    else quantities.set(symbol, remaining)
+    if (remaining === 0n) {
+      quantities.delete(symbol)
+      metadata.delete(symbol)
+    } else quantities.set(symbol, remaining)
   }
-  return closed.map(trade => ({ ...trade, id: String(transactions[Number(trade.id)]!.id),
-    sellQuantity: Number(trade.sellQuantity), sellPrice: Number(trade.sellPrice), avgCostBasis: Number(trade.avgCostBasis),
-    realizedPnL: Number(trade.realizedPnL), realizedPnLPct: Number(trade.realizedPnLPct), ...atSale.get(trade.id)!,
+  return closed.map(trade => ({
+    ...trade,
+    id: String(transactions[Number(trade.id)]!.id),
+    sellQuantity: Number(trade.sellQuantity),
+    sellPrice: Number(trade.sellPrice),
+    avgCostBasis: Number(trade.avgCostBasis),
+    realizedPnL: Number(trade.realizedPnL),
+    realizedPnLPct: Number(trade.realizedPnLPct),
+    ...atSale.get(trade.id)!,
   }))
 }
 
@@ -128,9 +144,9 @@ export function matchTrades(transactions: RawTransaction[]): ClosedTrade[] {
  * Edge case: empty array → winRate = 0 (no division by zero).
  */
 export function calcWinRate(trades: ClosedTrade[]): WinRateResult {
-  const wins = trades.filter((t) => t.realizedPnL > 0).length
-  const losses = trades.filter((t) => t.realizedPnL < 0).length
-  const breakEven = trades.filter((t) => t.realizedPnL === 0).length
+  const wins = trades.filter(t => t.realizedPnL > 0).length
+  const losses = trades.filter(t => t.realizedPnL < 0).length
+  const breakEven = trades.filter(t => t.realizedPnL === 0).length
   const total = trades.length
   const winRate = total > 0 ? (wins / total) * 100 : 0
 
@@ -193,11 +209,7 @@ export function calcRealizedDrawdown(trades: ClosedTrade[]): RealizedDrawdownRes
  *
  * Edge case: return std dev = 0 → sharpe = null.
  */
-export function calcSharpe(
-  returns: number[],
-  riskFreeRate = 0,
-  periodsPerYear = 12
-): SharpeResult {
+export function calcSharpe(returns: number[], riskFreeRate = 0, periodsPerYear = 12): SharpeResult {
   if (returns.length === 0) {
     return { sharpe: null, avgReturn: 0, stdDev: 0 }
   }
@@ -224,10 +236,7 @@ export function calcSharpe(
  * groupByPeriod
  * Group closed trades by time period.
  */
-export function groupByPeriod(
-  trades: ClosedTrade[],
-  period: GroupPeriod
-): Map<string, ClosedTrade[]> {
+export function groupByPeriod(trades: ClosedTrade[], period: GroupPeriod): Map<string, ClosedTrade[]> {
   const result = new Map<string, ClosedTrade[]>()
 
   for (const trade of trades) {
@@ -244,14 +253,12 @@ export function groupByPeriod(
  * calcPeriodStats
  * Compute per-period stats for the grouped trades, returned in ascending time order.
  */
-export function calcPeriodStats(
-  grouped: Map<string, ClosedTrade[]>
-): PeriodStats[] {
+export function calcPeriodStats(grouped: Map<string, ClosedTrade[]>): PeriodStats[] {
   const result: PeriodStats[] = []
 
   for (const [period, trades] of grouped) {
     const realizedPnL = trades.reduce((sum, t) => sum + t.realizedPnL, 0)
-    const winCount = trades.filter((t) => t.realizedPnL > 0).length
+    const winCount = trades.filter(t => t.realizedPnL > 0).length
     const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0
 
     result.push({
@@ -298,7 +305,12 @@ export function buildMonthlyReturnPcts(trades: ClosedTrade[]): number[] {
   while (y < endY || (y === endY && m <= endM)) {
     const agg = byMonth.get(`${y}-${String(m).padStart(2, '0')}`)
     returns.push(agg && agg.basis > 0 ? (agg.pnl / agg.basis) * 100 : 0)
-    if (m === 12) { m = 1; y++ } else { m++ }
+    if (m === 12) {
+      m = 1
+      y++
+    } else {
+      m++
+    }
   }
 
   return returns
@@ -310,19 +322,17 @@ export function buildMonthlyReturnPcts(trades: ClosedTrade[]): number[] {
  * cumPnL = cumulative realized P&L (starts at 0, no fictional initial capital)
  */
 export interface EquityCurvePoint {
-  date: string    // ISO date string (YYYY-MM-DD)
-  cumPnL: number  // cumulative P&L (from the first trade onward, starting at 0)
+  date: string // ISO date string (YYYY-MM-DD)
+  cumPnL: number // cumulative P&L (from the first trade onward, starting at 0)
 }
 
-export function buildEquityCurveWithDates(
-  trades: ClosedTrade[]
-): EquityCurvePoint[] {
+export function buildEquityCurveWithDates(trades: ClosedTrade[]): EquityCurvePoint[] {
   if (!trades.length) return []
 
   const sorted = [...trades].sort((a, b) => a.sellDate.getTime() - b.sellDate.getTime())
 
   let cumPnL = 0
-  return sorted.map((trade) => {
+  return sorted.map(trade => {
     cumPnL += trade.realizedPnL
     return {
       date: trade.sellDate.toISOString().slice(0, 10),

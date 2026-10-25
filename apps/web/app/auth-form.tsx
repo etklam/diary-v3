@@ -45,7 +45,8 @@ const copy = {
     capabilityFailed: 'Registration settings are temporarily unavailable. Try again.',
     emailRegisterIntro: 'Enter your email and we will send a one-time verification link.',
     sendVerification: 'Send verification email',
-    verificationSent: 'If this email can be registered, you will receive a verification link. The link expires in 24 hours.',
+    verificationSent:
+      'If this email can be registered, you will receive a verification link. The link expires in 24 hours.',
     resend: 'Send verification email again',
     resendReady: 'You can send another verification email.',
     resendWait: (seconds: number) => `You can send another email in ${seconds} seconds.`,
@@ -94,19 +95,29 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
     let active = true
     setCapabilityState('loading')
     setCapability(null)
-    api.GET('/api/auth/capabilities', { cache: 'no-store' }).then(result => {
-      if (!active) return
-      const parsed = authCapabilitiesSchema.safeParse(result.data)
-      if (result.response.ok && parsed.success) {
-        setCapability(parsed.data)
-        setCapabilityState('ready')
-      } else setCapabilityState('error')
-    }).catch(() => { if (active) setCapabilityState('error') })
-    return () => { active = false }
+    api
+      .GET('/api/auth/capabilities', { cache: 'no-store' })
+      .then(result => {
+        if (!active) return
+        const parsed = authCapabilitiesSchema.safeParse(result.data)
+        if (result.response.ok && parsed.success) {
+          setCapability(parsed.data)
+          setCapabilityState('ready')
+        } else setCapabilityState('error')
+      })
+      .catch(() => {
+        if (active) setCapabilityState('error')
+      })
+    return () => {
+      active = false
+    }
   }, [capabilityAttempt])
 
   useEffect(() => {
-    if (!cooldownUntil) { setCooldownSeconds(0); return }
+    if (!cooldownUntil) {
+      setCooldownSeconds(0)
+      return
+    }
     const update = () => setCooldownSeconds(Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000)))
     update()
     const timer = window.setInterval(update, 1000)
@@ -117,30 +128,53 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
     setPending(true)
     setError(null)
     try {
-      const result = await api.POST('/api/auth/registration/request', { body: { email: email.trim(), locale }, cache: 'no-store' })
+      const result = await api.POST('/api/auth/registration/request', {
+        body: { email: email.trim(), locale },
+        cache: 'no-store',
+      })
       const retryAfter = retryAfterSeconds(result.response)
       setCooldownUntil(retryAfter > 0 ? Date.now() + retryAfter * 1000 : null)
-      if (!result.response.ok) { setError(apiFailure(result.error, t('failed'))); return }
+      if (!result.response.ok) {
+        setError(apiFailure(result.error, t('failed')))
+        return
+      }
       setEmailSent(true)
-    } catch { setError(apiFailure(null, t('connection'))) }
-    finally { setPending(false) }
+    } catch {
+      setError(apiFailure(null, t('connection')))
+    } finally {
+      setPending(false)
+    }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (register && capability?.registrationMode === 'email') { await requestVerification(); return }
+    if (register && capability?.registrationMode === 'email') {
+      await requestVerification()
+      return
+    }
     // Registration is the one password this account may never be able to
     // recover: with optional account email unconfigured there is no reset path
     // at all. It gets the same confirmation `/settings/security` already has.
-    if (register && password !== confirm) { setError({ message: text.mismatch, fields: ['confirm'] }); return }
+    if (register && password !== confirm) {
+      setError({ message: text.mismatch, fields: ['confirm'] })
+      return
+    }
     setPending(true)
     setError(null)
     try {
       const result = register
-        ? await api.POST('/api/auth/register', { body: { email: email.trim(), password, name: name.trim() || undefined } })
+        ? await api.POST('/api/auth/register', {
+            body: { email: email.trim(), password, name: name.trim() || undefined },
+          })
         : await api.POST('/api/auth/login', { body: { email: email.trim(), password } })
-      if (!result.response.ok) { setError(apiFailure(result.error, t('failed'))); return }
-      if (register) { setDirectDone(true); return }
+      if (!result.response.ok) {
+        setError(apiFailure(result.error, t('failed')))
+        return
+      }
+      if (register) {
+        setDirectDone(true)
+        return
+      }
       markSignedIn()
       // The sign-in response already carries the chosen start page, so the
       // first screen is not held behind a second settings request.
@@ -148,8 +182,11 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
         ? returnTo
         : defaultWorkspacePath(result.data && 'data' in result.data ? result.data.data.defaultWorkspacePage : undefined)
       navigate(destination, { replace: true })
-    } catch { setError(apiFailure(null, t('connection'))) }
-    finally { setPending(false) }
+    } catch {
+      setError(apiFailure(null, t('connection')))
+    } finally {
+      setPending(false)
+    }
   }
 
   async function resend() {
@@ -162,35 +199,151 @@ export function AuthForm({ register = false, supportUrl = null }: { register?: b
   const emailMode = register && capability?.registrationMode === 'email'
   const directRegistrationDone = directDone && register
 
-  return <AuthPage lede={authAsideCopy[locale][register ? 'register' : 'signIn']}>
-    <h1>{t(register ? 'registerTitle' : 'loginTitle')}</h1>
-    {capabilityLoading ? <p role="status">{text.capabilityLoading}</p>
-      : capabilityFailed ? <div role="alert"><p>{text.capabilityFailed}</p><button type="button" className="secondary" onClick={() => setCapabilityAttempt(value => value + 1)}>{text.retry}</button></div>
-        : directRegistrationDone ? <div role="status"><p>{t('registered')}</p><Link className="button" to={`/login${returnQuery}`}>{t('login')}</Link></div>
-          : emailSent && emailMode ? <div className="auth-request-complete">
-            <p role="status">{text.verificationSent}</p>
-            <p className="muted" aria-live="off">{cooldownSeconds > 0 ? text.resendWait(cooldownSeconds) : text.resendReady}</p>
-            <ActionButton type="button" className="secondary" pending={pending} disabled={cooldownSeconds > 0} onClick={() => void resend()}>{text.resend}</ActionButton>
-            <button type="button" className="secondary" onClick={() => { setEmailSent(false); setError(null); setCooldownUntil(null) }}>{text.changeEmail}</button>
-            <p className="form-alternate"><Link to={`/login${returnQuery}`}>{t('login')}</Link></p>
-          </div>
-          : <>
-            {emailMode && <p className="lede">{text.emailRegisterIntro}</p>}
-            <form id="auth-form" onSubmit={submit} aria-busy={pending}>
-              {register && !emailMode && <label>{t('name')}<input disabled={!ready || pending} name="name" value={name} onChange={event => setName(event.target.value)} aria-invalid={invalidField(error, 'name')} aria-describedby={error ? 'form-error' : undefined} autoComplete="name" maxLength={100} /></label>}
-              <label>{t('email')}<input disabled={!ready || pending} name="email" value={email} onChange={event => setEmail(event.target.value)} aria-invalid={invalidField(error, 'email')} aria-describedby={error ? 'form-error' : undefined} type="email" autoComplete="email" required /></label>
-              {!emailMode && <label>{t('password')}<input disabled={!ready || pending} name="password" value={password} onChange={event => setPassword(event.target.value)} aria-invalid={invalidField(error, 'password')} type="password" autoComplete={register ? 'new-password' : 'current-password'} minLength={register ? 8 : undefined} required aria-describedby={[register ? 'password-hint' : '', error ? 'form-error' : ''].filter(Boolean).join(' ') || undefined} /></label>}
-              {register && !emailMode && <label>{text.confirm}<input disabled={!ready || pending} name="confirm" value={confirm} onChange={event => setConfirm(event.target.value)} aria-invalid={invalidField(error, 'confirm')} type="password" autoComplete="new-password" minLength={8} required aria-describedby={['password-hint', error ? 'form-error' : ''].filter(Boolean).join(' ')} /></label>}
-              {register && !emailMode && <p id="password-hint" className="muted">{t('registerHint')}</p>}
-              <FailureNotice failure={error} messageOverride={error?.fields.includes('confirm') ? text.mismatch : undefined} />
-              <ActionButton pending={pending} disabled={!ready} type="submit">{emailMode ? text.sendVerification : register ? t('register') : t('login')}</ActionButton>
-            </form>
-            {/* The alternative journey carries weight; recovery stays quiet and
+  return (
+    <AuthPage lede={authAsideCopy[locale][register ? 'register' : 'signIn']}>
+      <h1>{t(register ? 'registerTitle' : 'loginTitle')}</h1>
+      {capabilityLoading ? (
+        <p role="status">{text.capabilityLoading}</p>
+      ) : capabilityFailed ? (
+        <div role="alert">
+          <p>{text.capabilityFailed}</p>
+          <button type="button" className="secondary" onClick={() => setCapabilityAttempt(value => value + 1)}>
+            {text.retry}
+          </button>
+        </div>
+      ) : directRegistrationDone ? (
+        <div role="status">
+          <p>{t('registered')}</p>
+          <Link className="button" to={`/login${returnQuery}`}>
+            {t('login')}
+          </Link>
+        </div>
+      ) : emailSent && emailMode ? (
+        <div className="auth-request-complete">
+          <p role="status">{text.verificationSent}</p>
+          <p className="muted" aria-live="off">
+            {cooldownSeconds > 0 ? text.resendWait(cooldownSeconds) : text.resendReady}
+          </p>
+          <ActionButton
+            type="button"
+            className="secondary"
+            pending={pending}
+            disabled={cooldownSeconds > 0}
+            onClick={() => void resend()}
+          >
+            {text.resend}
+          </ActionButton>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setEmailSent(false)
+              setError(null)
+              setCooldownUntil(null)
+            }}
+          >
+            {text.changeEmail}
+          </button>
+          <p className="form-alternate">
+            <Link to={`/login${returnQuery}`}>{t('login')}</Link>
+          </p>
+        </div>
+      ) : (
+        <>
+          {emailMode && <p className="lede">{text.emailRegisterIntro}</p>}
+          <form id="auth-form" onSubmit={submit} aria-busy={pending}>
+            {register && !emailMode && (
+              <label>
+                {t('name')}
+                <input
+                  disabled={!ready || pending}
+                  name="name"
+                  value={name}
+                  onChange={event => setName(event.target.value)}
+                  aria-invalid={invalidField(error, 'name')}
+                  aria-describedby={error ? 'form-error' : undefined}
+                  autoComplete="name"
+                  maxLength={100}
+                />
+              </label>
+            )}
+            <label>
+              {t('email')}
+              <input
+                disabled={!ready || pending}
+                name="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                aria-invalid={invalidField(error, 'email')}
+                aria-describedby={error ? 'form-error' : undefined}
+                type="email"
+                autoComplete="email"
+                required
+              />
+            </label>
+            {!emailMode && (
+              <label>
+                {t('password')}
+                <input
+                  disabled={!ready || pending}
+                  name="password"
+                  value={password}
+                  onChange={event => setPassword(event.target.value)}
+                  aria-invalid={invalidField(error, 'password')}
+                  type="password"
+                  autoComplete={register ? 'new-password' : 'current-password'}
+                  minLength={register ? 8 : undefined}
+                  required
+                  aria-describedby={
+                    [register ? 'password-hint' : '', error ? 'form-error' : ''].filter(Boolean).join(' ') || undefined
+                  }
+                />
+              </label>
+            )}
+            {register && !emailMode && (
+              <label>
+                {text.confirm}
+                <input
+                  disabled={!ready || pending}
+                  name="confirm"
+                  value={confirm}
+                  onChange={event => setConfirm(event.target.value)}
+                  aria-invalid={invalidField(error, 'confirm')}
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  aria-describedby={['password-hint', error ? 'form-error' : ''].filter(Boolean).join(' ')}
+                />
+              </label>
+            )}
+            {register && !emailMode && (
+              <p id="password-hint" className="muted">
+                {t('registerHint')}
+              </p>
+            )}
+            <FailureNotice
+              failure={error}
+              messageOverride={error?.fields.includes('confirm') ? text.mismatch : undefined}
+            />
+            <ActionButton pending={pending} disabled={!ready} type="submit">
+              {emailMode ? text.sendVerification : register ? t('register') : t('login')}
+            </ActionButton>
+          </form>
+          {/* The alternative journey carries weight; recovery stays quiet and
                 only appears when account email can actually deliver it. */}
-            <div className="auth-alternate">
-              <Link className="button secondary" to={`${register ? '/login' : '/register'}${returnQuery}`}>{t(register ? 'login' : 'register')}</Link>
-              {!register && recoveryPathOffered(capability, supportUrl) && <Link className="auth-recovery" to="/forgot-password">{text.forgotPassword}</Link>}
-            </div>
-          </>}
-  </AuthPage>
+          <div className="auth-alternate">
+            <Link className="button secondary" to={`${register ? '/login' : '/register'}${returnQuery}`}>
+              {t(register ? 'login' : 'register')}
+            </Link>
+            {!register && recoveryPathOffered(capability, supportUrl) && (
+              <Link className="auth-recovery" to="/forgot-password">
+                {text.forgotPassword}
+              </Link>
+            )}
+          </div>
+        </>
+      )}
+    </AuthPage>
+  )
 }

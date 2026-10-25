@@ -17,19 +17,32 @@ export function GuruStockWatchButton({ symbol }: { symbol: string }) {
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    if (session.authenticated !== true) { setWatching(null); return }
+    if (session.authenticated !== true) {
+      setWatching(null)
+      return
+    }
     const controller = new AbortController()
-    void api.GET('/api/stocks/{symbol}/guru-watch', { params: { path: { symbol } }, signal: controller.signal }).then(result => {
-      if (controller.signal.aborted) return
-      const parsed = guruStockWatchResponseSchema.safeParse(result.data)
-      if (result.response.ok && parsed.success) { setWatching(parsed.data.data.watching); setAvailable(true) }
-      else if (result.response.status === 404) setAvailable(false)
-    }).catch(() => { if (!controller.signal.aborted) setFailed(true) })
+    void api
+      .GET('/api/stocks/{symbol}/guru-watch', { params: { path: { symbol } }, signal: controller.signal })
+      .then(result => {
+        if (controller.signal.aborted) return
+        const parsed = guruStockWatchResponseSchema.safeParse(result.data)
+        if (result.response.ok && parsed.success) {
+          setWatching(parsed.data.data.watching)
+          setAvailable(true)
+        } else if (result.response.status === 404) setAvailable(false)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFailed(true)
+      })
     return () => controller.abort()
   }, [symbol, session.authenticated, session.revision])
 
   async function toggle() {
-    if (session.authenticated !== true) { void navigate(signInPath(`/stocks/${encodeURIComponent(symbol)}/gurus`)); return }
+    if (session.authenticated !== true) {
+      void navigate(signInPath(`/stocks/${encodeURIComponent(symbol)}/gurus`))
+      return
+    }
     if (pending) return
     setPending(true)
     setFailed(false)
@@ -38,17 +51,30 @@ export function GuruStockWatchButton({ symbol }: { symbol: string }) {
         ? await api.DELETE('/api/stocks/{symbol}/guru-watch', { params: { path: { symbol } } })
         : await api.PUT('/api/stocks/{symbol}/guru-watch', { params: { path: { symbol } } })
       const parsed = guruStockWatchResponseSchema.safeParse(result.data)
-      if (!result.response.ok || !parsed.success) { setFailed(true); return }
+      if (!result.response.ok || !parsed.success) {
+        setFailed(true)
+        return
+      }
       setWatching(parsed.data.data.watching)
-    } catch { setFailed(true) }
-    finally { setPending(false) }
+    } catch {
+      setFailed(true)
+    } finally {
+      setPending(false)
+    }
   }
 
   if (!available) return null
-  return <div className="guru-stock-watch">
-    <button type="button" className={watching ? 'secondary' : undefined} disabled={pending || session.authenticated === null} onClick={() => void toggle()}>
-      {session.authenticated !== true ? copy.watchSignIn : watching ? copy.unwatch : copy.watch}
-    </button>
-    {failed && <span role="alert">{copy.watchFailed}</span>}
-  </div>
+  return (
+    <div className="guru-stock-watch">
+      <button
+        type="button"
+        className={watching ? 'secondary' : undefined}
+        disabled={pending || session.authenticated === null}
+        onClick={() => void toggle()}
+      >
+        {session.authenticated !== true ? copy.watchSignIn : watching ? copy.unwatch : copy.watch}
+      </button>
+      {failed && <span role="alert">{copy.watchFailed}</span>}
+    </div>
+  )
 }

@@ -89,7 +89,9 @@ type AdminDiaryRow = {
   authorName: string | null
 }
 
-function instant(value: Date): string { return value.toISOString() }
+function instant(value: Date): string {
+  return value.toISOString()
+}
 
 function serializeUser(row: Pick<AdminUserRow, 'id' | 'email' | 'name' | 'role' | 'createdAt' | 'diaryCount'>) {
   return {
@@ -126,8 +128,15 @@ function serializeDiary(row: AdminDiaryRow) {
   })
 }
 
-async function selectAdminDiaries(db: Database, limit: number, offset: number, orderByCreatedAt: boolean): Promise<AdminDiaryRow[]> {
-  const query = db.select(adminDiaryColumns).from(diaries)
+async function selectAdminDiaries(
+  db: Database,
+  limit: number,
+  offset: number,
+  orderByCreatedAt: boolean,
+): Promise<AdminDiaryRow[]> {
+  const query = db
+    .select(adminDiaryColumns)
+    .from(diaries)
     .innerJoin(users, eq(users.id, diaries.userId))
     .limit(limit)
     .offset(offset)
@@ -145,8 +154,11 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
     if (!session) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     // Authentication already reads the user row, but repeat the role lookup at
     // the admin boundary so a role downgrade cannot race with a stale request.
-    const [current] = await db.select({ id: users.id, role: users.role })
-      .from(users).where(eq(users.id, BigInt(session.id))).limit(1)
+    const [current] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, BigInt(session.id)))
+      .limit(1)
     if (!current) return fail(401, 'AUTH_UNAUTHORIZED', 'Authentication required')
     if (current.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
     return current.id
@@ -164,19 +176,24 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
     const query = adminUserListQuerySchema.safeParse(context.req.query())
     if (!query.success) return validationError(query.error)
     const { page, limit, search } = query.data
-    const where = search
-      ? or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`))
-      : undefined
+    const where = search ? or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`)) : undefined
     const [totalRow, rows] = await Promise.all([
       db.select({ count: count() }).from(users).where(where),
-      db.select(adminUserColumns).from(users).where(where)
-        .orderBy(desc(users.createdAt), desc(users.id)).limit(limit).offset((page - 1) * limit),
+      db
+        .select(adminUserColumns)
+        .from(users)
+        .where(where)
+        .orderBy(desc(users.createdAt), desc(users.id))
+        .limit(limit)
+        .offset((page - 1) * limit),
     ])
     const total = Number(totalRow[0]?.count ?? 0)
-    return context.json(adminUserListResponseSchema.parse({
-      data: rows.map(row => serializeUser(row as AdminUserRow)),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    }))
+    return context.json(
+      adminUserListResponseSchema.parse({
+        data: rows.map(row => serializeUser(row as AdminUserRow)),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      }),
+    )
   })
 
   app.put('/api/admin/users/:id/role', async context => {
@@ -186,11 +203,18 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
     const input = await parseJson(context, adminUserRoleUpdateRequestSchema)
     const updated = await db.transaction(async tx => {
       await tx.execute(userSessionLock(targetId))
-      const [target] = await tx.select({ id: users.id, email: users.email, name: users.name })
-        .from(users).where(eq(users.id, targetId)).limit(1).for('update')
+      const [target] = await tx
+        .select({ id: users.id, email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.id, targetId))
+        .limit(1)
+        .for('update')
       if (!target) return undefined
-      const [row] = await tx.update(users).set({ role: input.role, updatedAt: now() })
-        .where(eq(users.id, targetId)).returning({ id: users.id, email: users.email, name: users.name, role: users.role })
+      const [row] = await tx
+        .update(users)
+        .set({ role: input.role, updatedAt: now() })
+        .where(eq(users.id, targetId))
+        .returning({ id: users.id, email: users.email, name: users.name, role: users.role })
       return row
     })
     if (!updated) return fail(404, 'USER_NOT_FOUND', 'User not found')
@@ -204,8 +228,12 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
     const deleted = await db.transaction(async tx => {
       await tx.execute(userSessionLock(targetId))
       await lockAiOwner(tx, targetId)
-      const [target] = await tx.select({ id: users.id, email: users.email })
-        .from(users).where(eq(users.id, targetId)).limit(1).for('update')
+      const [target] = await tx
+        .select({ id: users.id, email: users.email })
+        .from(users)
+        .where(eq(users.id, targetId))
+        .limit(1)
+        .for('update')
       if (!target) return undefined
       const [row] = await tx.delete(users).where(eq(users.id, targetId)).returning({ id: users.id, email: users.email })
       return row
@@ -227,15 +255,30 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
       selectAdminDiaries(db, limit, (page - 1) * limit, false),
     ])
     const total = Number(totalRow[0]?.count ?? 0)
-    return context.json(adminDiaryListResponseSchema.parse({
-      data: rows.map(serializeDiary),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    }))
+    return context.json(
+      adminDiaryListResponseSchema.parse({
+        data: rows.map(serializeDiary),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      }),
+    )
   })
 
   app.get('/api/admin/stats', async context => {
     await requireAdmin(context)
-    const [totalUsers, adminUsers, regularUsers, totalDiaries, totalAlerts, activeAlerts, dismissedAlerts, totalTransactions, buyTransactions, sellTransactions, recentUsers, recentDiaries] = await Promise.all([
+    const [
+      totalUsers,
+      adminUsers,
+      regularUsers,
+      totalDiaries,
+      totalAlerts,
+      activeAlerts,
+      dismissedAlerts,
+      totalTransactions,
+      buyTransactions,
+      sellTransactions,
+      recentUsers,
+      recentDiaries,
+    ] = await Promise.all([
       db.select({ count: count() }).from(users),
       db.select({ count: count() }).from(users).where(eq(users.role, 'ADMIN')),
       db.select({ count: count() }).from(users).where(eq(users.role, 'USER')),
@@ -249,14 +292,31 @@ export function registerAdminUserRoutes(app: Hono<AppEnv>, dependencies: AdminDe
       db.select(adminUserColumns).from(users).orderBy(desc(users.createdAt), desc(users.id)).limit(5),
       selectAdminDiaries(db, 5, 0, true),
     ])
-    return context.json(adminStatsResponseSchema.parse({
-      data: {
-        users: { total: Number(totalUsers[0]?.count ?? 0), admin: Number(adminUsers[0]?.count ?? 0), regular: Number(regularUsers[0]?.count ?? 0) },
-        diaries: { total: Number(totalDiaries[0]?.count ?? 0) },
-        alerts: { total: Number(totalAlerts[0]?.count ?? 0), active: Number(activeAlerts[0]?.count ?? 0), dismissed: Number(dismissedAlerts[0]?.count ?? 0) },
-        transactions: { total: Number(totalTransactions[0]?.count ?? 0), buy: Number(buyTransactions[0]?.count ?? 0), sell: Number(sellTransactions[0]?.count ?? 0) },
-        recentActivity: { users: recentUsers.map(row => serializeUser(row as AdminUserRow)), diaries: recentDiaries.map(serializeDiary) },
-      },
-    }))
+    return context.json(
+      adminStatsResponseSchema.parse({
+        data: {
+          users: {
+            total: Number(totalUsers[0]?.count ?? 0),
+            admin: Number(adminUsers[0]?.count ?? 0),
+            regular: Number(regularUsers[0]?.count ?? 0),
+          },
+          diaries: { total: Number(totalDiaries[0]?.count ?? 0) },
+          alerts: {
+            total: Number(totalAlerts[0]?.count ?? 0),
+            active: Number(activeAlerts[0]?.count ?? 0),
+            dismissed: Number(dismissedAlerts[0]?.count ?? 0),
+          },
+          transactions: {
+            total: Number(totalTransactions[0]?.count ?? 0),
+            buy: Number(buyTransactions[0]?.count ?? 0),
+            sell: Number(sellTransactions[0]?.count ?? 0),
+          },
+          recentActivity: {
+            users: recentUsers.map(row => serializeUser(row as AdminUserRow)),
+            diaries: recentDiaries.map(serializeDiary),
+          },
+        },
+      }),
+    )
   })
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { groupActivityDays, groupActivityEvents, mergeActivityEvents } from '@diary/domain'
-import { ACTIVITY_GROUP_KINDS, ACTIVITY_KIND_RANK, activityTimelineQuerySchema } from '@diary/contracts/activity-timeline'
+import {
+  ACTIVITY_GROUP_KINDS,
+  ACTIVITY_KIND_RANK,
+  activityTimelineQuerySchema,
+} from '@diary/contracts/activity-timeline'
 import { destinationLabel, destinations, matchScore, symbolCandidate } from '../../apps/web/app/destinations'
 
 describe('activity event grouping', () => {
@@ -13,12 +17,15 @@ describe('activity event grouping', () => {
       { id: 'DIARY:3', date: '2026-04-30', kind: 'DIARY' as const },
     ]
     expect(groupActivityEvents(events)).toEqual([
-      { period: '2026-05', entries: [
-        { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' },
-        { id: 'TRADE:12', date: '2026-05-10', kind: 'TRADE' },
-        { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' },
-        { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' },
-      ] },
+      {
+        period: '2026-05',
+        entries: [
+          { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' },
+          { id: 'TRADE:12', date: '2026-05-10', kind: 'TRADE' },
+          { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' },
+          { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' },
+        ],
+      },
       { period: '2026-04', entries: [{ id: 'DIARY:3', date: '2026-04-30', kind: 'DIARY' }] },
     ])
   })
@@ -28,15 +35,26 @@ describe('activity event grouping', () => {
       { id: 'DIARY:9007199254740993', date: '2026-05-10', kind: 'DIARY' as const },
       { id: 'DIARY:9007199254740992', date: '2026-05-10', kind: 'DIARY' as const },
     ]
-    expect(groupActivityEvents(events)[0]!.entries.map(event => event.id))
-      .toEqual(['DIARY:9007199254740993', 'DIARY:9007199254740992'])
+    expect(groupActivityEvents(events)[0]!.entries.map(event => event.id)).toEqual([
+      'DIARY:9007199254740993',
+      'DIARY:9007199254740992',
+    ])
   })
 
   it('keeps the first record for an id repeated within or across pages', () => {
-    expect(mergeActivityEvents(
-      [{ id: 'DIARY:1', title: 'Original' }],
-      [{ id: 'DIARY:1', title: 'Overlap' }, { id: 'TRADE:1', title: 'New' }, { id: 'TRADE:1', title: 'Duplicate' }],
-    )).toEqual([{ id: 'DIARY:1', title: 'Original' }, { id: 'TRADE:1', title: 'New' }])
+    expect(
+      mergeActivityEvents(
+        [{ id: 'DIARY:1', title: 'Original' }],
+        [
+          { id: 'DIARY:1', title: 'Overlap' },
+          { id: 'TRADE:1', title: 'New' },
+          { id: 'TRADE:1', title: 'Duplicate' },
+        ],
+      ),
+    ).toEqual([
+      { id: 'DIARY:1', title: 'Original' },
+      { id: 'TRADE:1', title: 'New' },
+    ])
   })
 
   it('never collides ids across kinds that share a source row id', () => {
@@ -60,11 +78,14 @@ describe('activity event grouping', () => {
     ]
     const [month] = groupActivityEvents(events)
     expect(groupActivityDays(month!.entries)).toEqual([
-      { date: '2026-05-10', entries: [
-        { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' },
-        { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' },
-        { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' },
-      ] },
+      {
+        date: '2026-05-10',
+        entries: [
+          { id: 'DIARY:4', date: '2026-05-10', kind: 'DIARY' },
+          { id: 'TRADE:9', date: '2026-05-10', kind: 'TRADE' },
+          { id: 'REVIEW:4', date: '2026-05-10', kind: 'REVIEW' },
+        ],
+      },
       { date: '2026-05-08', entries: [{ id: 'DIARY:2', date: '2026-05-08', kind: 'DIARY' }] },
     ])
   })
@@ -103,9 +124,16 @@ describe('command palette matching', () => {
   it('reaches routes the sidebar has no slot for', () => {
     const paths = new Set(destinations('en').map(destination => destination.path))
     for (const path of [
-      '/strategy-performance', '/etf/watchlist', '/settings/api-keys', '/settings/security',
-      '/partners/compare', '/tools/sec-filings', '/tools/position-sizing', '/admin/gurus',
-    ]) expect(paths).toContain(path)
+      '/strategy-performance',
+      '/etf/watchlist',
+      '/settings/api-keys',
+      '/settings/security',
+      '/partners/compare',
+      '/tools/sec-filings',
+      '/tools/position-sizing',
+      '/admin/gurus',
+    ])
+      expect(paths).toContain(path)
   })
 
   it('keeps administration destinations flagged so a USER never sees them', () => {

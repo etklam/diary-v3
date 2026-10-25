@@ -29,8 +29,15 @@ export function CaptureEntry({ symbol }: { symbol: string }) {
   const label = copy[locale].record
   // The icon is decorative, so the symbol reaches assistive technology through
   // the link's own name — without it every row in the list announces the same.
-  return <Link className="button quiet-button button-compact capture-entry" to={buildCapturePath('quick', context)}
-    aria-label={`${label} · ${context.symbol}`} title={label} data-testid={`capture-entry-${context.symbol}`}>
-    <Icon name="pen" size={16} />
-  </Link>
+  return (
+    <Link
+      className="button quiet-button button-compact capture-entry"
+      to={buildCapturePath('quick', context)}
+      aria-label={`${label} · ${context.symbol}`}
+      title={label}
+      data-testid={`capture-entry-${context.symbol}`}
+    >
+      <Icon name="pen" size={16} />
+    </Link>
+  )
 }

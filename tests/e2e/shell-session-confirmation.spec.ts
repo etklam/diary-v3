@@ -13,8 +13,13 @@ const password = 'shell-confirmation-synthetic-password'
  */
 async function holdSessionConfirmation(page: Page) {
   let release = () => {}
-  const held = new Promise<void>(resolve => { release = resolve })
-  await page.route('**/api/auth/me', async route => { await held; await route.continue() })
+  const held = new Promise<void>(resolve => {
+    release = resolve
+  })
+  await page.route('**/api/auth/me', async route => {
+    await held
+    await route.continue()
+  })
   return release
 }
 
@@ -59,7 +64,9 @@ test('a session confirming under a private page keeps its filters, disclosures a
   await expect(page.getByRole('heading', { name: 'Matching diaries', exact: true })).toBeVisible()
 })
 
-test('a session confirming under a public tool swaps the chrome without discarding the calculation', async ({ page }) => {
+test('a session confirming under a public tool swaps the chrome without discarding the calculation', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await signIn(page, await register(page), '/diaries')
 

@@ -105,10 +105,7 @@ export async function getLatestBreadthSnapshot(
   const where = asOfDate
     ? and(eq(marketBreadthDaily.universeKey, universeKey), lte(marketBreadthDaily.date, asOfDate))
     : eq(marketBreadthDaily.universeKey, universeKey)
-  const [row] = await db.select().from(marketBreadthDaily)
-    .where(where)
-    .orderBy(desc(marketBreadthDaily.date))
-    .limit(1)
+  const [row] = await db.select().from(marketBreadthDaily).where(where).orderBy(desc(marketBreadthDaily.date)).limit(1)
   return row ? toSnapshotResult(row) : null
 }
 
@@ -121,7 +118,9 @@ export async function getBreadthHistory(
   const where = asOfDate
     ? and(eq(marketBreadthDaily.universeKey, universeKey), lte(marketBreadthDaily.date, asOfDate))
     : eq(marketBreadthDaily.universeKey, universeKey)
-  const rows = await db.select().from(marketBreadthDaily)
+  const rows = await db
+    .select()
+    .from(marketBreadthDaily)
     .where(where)
     .orderBy(desc(marketBreadthDaily.date))
     .limit(days)
@@ -130,10 +129,15 @@ export async function getBreadthHistory(
 
 export function getRegimeGuidance(marketState: MarketState): { suggestedExposure: string; message: string } {
   switch (marketState) {
-    case 'risk_on': return { suggestedExposure: '80-100%', message: 'Risk-on confirmed. Favor leading ETFs.' }
-    case 'neutral': return { suggestedExposure: '40-60%', message: 'Market breadth is mixed. Keep exposure balanced.' }
-    case 'defensive': return { suggestedExposure: '20-40%', message: 'Defensive conditions. Reduce laggards and protect capital.' }
-    case 'risk_off': return { suggestedExposure: '0-20%', message: 'Capitulation risk elevated. Wait for breadth repair.' }
-    default: return { suggestedExposure: '40-60%', message: 'Market state unknown. Use caution.' }
+    case 'risk_on':
+      return { suggestedExposure: '80-100%', message: 'Risk-on confirmed. Favor leading ETFs.' }
+    case 'neutral':
+      return { suggestedExposure: '40-60%', message: 'Market breadth is mixed. Keep exposure balanced.' }
+    case 'defensive':
+      return { suggestedExposure: '20-40%', message: 'Defensive conditions. Reduce laggards and protect capital.' }
+    case 'risk_off':
+      return { suggestedExposure: '0-20%', message: 'Capitulation risk elevated. Wait for breadth repair.' }
+    default:
+      return { suggestedExposure: '40-60%', message: 'Market state unknown. Use caution.' }
   }
 }

@@ -26,14 +26,23 @@ export function openMailPayload(envelope: string, keyring = environmentSmtpKeyri
   }
   if (!decoded || typeof decoded !== 'object') throw new Error('SMTP_OUTBOX_PAYLOAD_UNAVAILABLE')
   const value = decoded as Record<string, unknown>
-  if (typeof value.to !== 'string' || typeof value.subject !== 'string' || typeof value.text !== 'string' || typeof value.html !== 'string') {
+  if (
+    typeof value.to !== 'string' ||
+    typeof value.subject !== 'string' ||
+    typeof value.text !== 'string' ||
+    typeof value.html !== 'string'
+  ) {
     throw new Error('SMTP_OUTBOX_PAYLOAD_UNAVAILABLE')
   }
   return { to: value.to, subject: value.subject, text: value.text, html: value.html }
 }
 
-export async function smtpConfigForSettings(row: SmtpSettingsRow, options: SmtpRuntimeOptions = {}): Promise<SmtpConfig> {
-  if (!row.host || !row.port || !row.security || !row.senderName || !row.senderEmail) throw new Error('ADMIN_EMAIL_SETTINGS_INVALID')
+export async function smtpConfigForSettings(
+  row: SmtpSettingsRow,
+  options: SmtpRuntimeOptions = {},
+): Promise<SmtpConfig> {
+  if (!row.host || !row.port || !row.security || !row.senderName || !row.senderEmail)
+    throw new Error('ADMIN_EMAIL_SETTINGS_INVALID')
   if (row.security === 'none') throw new Error('ADMIN_EMAIL_SETTINGS_INVALID')
   const resolved = await resolveSmtpHost(row.host, row.port, {
     ...(options.lookup ? { lookup: options.lookup } : {}),

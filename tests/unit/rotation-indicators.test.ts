@@ -15,7 +15,7 @@ describe('calculateRsi', () => {
   })
 
   it('returns null when fewer than 15 data points', () => {
-    const prices = [44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.10, 45.42, 45.84]
+    const prices = [44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.1, 45.42, 45.84]
     expect(calculateRsi(prices, 14)).toBeNull()
   })
 
@@ -28,12 +28,11 @@ describe('calculateRsi', () => {
     // 16 prices → 15 changes → initial avg(14) + 1 Wilder smoothing step
     // Wilder's smoothing: RSI ≈ 68.80
     const prices = [
-      44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.10, 45.42,
-      45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.00,
+      44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.1, 45.42, 45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.0,
     ]
     const result = calculateRsi(prices, 14)
     expect(result).not.toBeNull()
-    expect(result!).toBeCloseTo(68.80, 1)
+    expect(result!).toBeCloseTo(68.8, 1)
   })
 
   it('returns 100 when all changes are gains (always up)', () => {
@@ -50,8 +49,7 @@ describe('calculateRsi', () => {
 
   it('uses default period of 14', () => {
     const prices = [
-      44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.10, 45.42,
-      45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.00,
+      44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.1, 45.42, 45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.0,
     ]
     // Should behave identically to calculateRsi(prices, 14)
     const withDefault = calculateRsi(prices)

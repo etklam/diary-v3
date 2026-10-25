@@ -17,12 +17,16 @@ const outPath = option('--out') ?? `${repoRoot}docs/parity/performance-gates.jso
 
 if (!existsSync(legacyPath)) {
   console.error(`Legacy performance evidence not found: ${legacyPath}`)
-  console.error('Run scripts/parity/performance-run-legacy.sh first (on a quiet host, no parallel builds/browser suites).')
+  console.error(
+    'Run scripts/parity/performance-run-legacy.sh first (on a quiet host, no parallel builds/browser suites).',
+  )
   process.exit(1)
 }
 if (existsSync(outPath) && !force) {
   console.error(`Refusing to overwrite frozen gates at ${outPath} without --force.`)
-  console.error('Gates must not change after rebuilt-runtime results were observed; record any exception in the ticket.')
+  console.error(
+    'Gates must not change after rebuilt-runtime results were observed; record any exception in the ticket.',
+  )
   process.exit(1)
 }
 

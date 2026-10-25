@@ -11,13 +11,9 @@ import {
 
 const EXCLUDED_FROM_SECTORS = ['SPY', 'MAGS', 'QQQE', 'RSP'] as const
 
-const EXPECTED_SECTOR_SYMBOLS = [
-  'XLK', 'XLF', 'XLE', 'XLU', 'XLP', 'XLY', 'XLI', 'XLV', 'XLB', 'XLC', 'XLRE',
-] as const
+const EXPECTED_SECTOR_SYMBOLS = ['XLK', 'XLF', 'XLE', 'XLU', 'XLP', 'XLY', 'XLI', 'XLV', 'XLB', 'XLC', 'XLRE'] as const
 
-const EXPECTED_INDEX_SYMBOLS = [
-  'SPY', 'QQQ', 'DIA', 'IWM', 'RSP', 'VTI', 'VEA', 'VWO',
-] as const
+const EXPECTED_INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'RSP', 'VTI', 'VEA', 'VWO'] as const
 
 // ─── Sectors ────────────────────────────────────────────────────
 
@@ -117,13 +113,22 @@ describe('getIndexesUniverse', () => {
 // ─── Core (T2: split into core_etf + mega_cap/single_stock pools) ──
 
 const EXPECTED_CORE_ETF_SYMBOLS = [
-  'SPY', 'VOO', 'QQQ', 'QQQM', 'SOXX', 'SMH', 'XLK', 'IGV',
-  'XLP', 'XLU', 'TLT', 'BIL', 'SGOV',
+  'SPY',
+  'VOO',
+  'QQQ',
+  'QQQM',
+  'SOXX',
+  'SMH',
+  'XLK',
+  'IGV',
+  'XLP',
+  'XLU',
+  'TLT',
+  'BIL',
+  'SGOV',
 ] as const
 
-const EXPECTED_MEGA_CAP_SYMBOLS = [
-  'NVDA', 'MSFT', 'AAPL', 'GOOGL', 'AMZN', 'META', 'TSLA',
-] as const
+const EXPECTED_MEGA_CAP_SYMBOLS = ['NVDA', 'MSFT', 'AAPL', 'GOOGL', 'AMZN', 'META', 'TSLA'] as const
 
 const EXPECTED_SINGLE_STOCK_SYMBOLS = ['MU', 'PLTR', 'CRWV'] as const
 
@@ -200,10 +205,7 @@ describe('getCoreUniverse', () => {
   })
 
   it('every entry has a betaBucket from the allowed union', () => {
-    const allowed = [
-      'core_index', 'high_beta', 'mega_cap', 'single_stock',
-      'defensive', 'cash_proxy',
-    ] as const
+    const allowed = ['core_index', 'high_beta', 'mega_cap', 'single_stock', 'defensive', 'cash_proxy'] as const
     for (const entry of getCoreUniverse()) {
       expect(allowed).toContain(entry.betaBucket)
     }
@@ -215,9 +217,7 @@ describe('getCoreUniverse', () => {
   })
 
   it('mega cap + single stock pool count = 10', () => {
-    const pool = getCoreUniverse().filter(e =>
-      e.groupType === 'mega_cap' || e.groupType === 'single_stock',
-    )
+    const pool = getCoreUniverse().filter(e => e.groupType === 'mega_cap' || e.groupType === 'single_stock')
     expect(pool).toHaveLength(10)
   })
 

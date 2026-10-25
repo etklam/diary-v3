@@ -22,13 +22,24 @@ function limitsWith(overrides?: Partial<SecResourceLimits>): SecResourceLimits {
   return { ...SEC_LIMITS, ...overrides }
 }
 
-function u16(value: number): Uint8Array { const output = new Uint8Array(2); new DataView(output.buffer).setUint16(0, value, true); return output }
-function u32(value: number): Uint8Array { const output = new Uint8Array(4); new DataView(output.buffer).setUint32(0, value >>> 0, true); return output }
+function u16(value: number): Uint8Array {
+  const output = new Uint8Array(2)
+  new DataView(output.buffer).setUint16(0, value, true)
+  return output
+}
+function u32(value: number): Uint8Array {
+  const output = new Uint8Array(4)
+  new DataView(output.buffer).setUint32(0, value >>> 0, true)
+  return output
+}
 function concat(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((sum, item) => sum + item.byteLength, 0)
   const output = new Uint8Array(total)
   let offset = 0
-  for (const item of parts) { output.set(item, offset); offset += item.byteLength }
+  for (const item of parts) {
+    output.set(item, offset)
+    offset += item.byteLength
+  }
   return output
 }
 
@@ -44,7 +55,13 @@ function checkSignal(signal?: AbortSignal) {
   if (signal?.aborted) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request was cancelled', 503, true)
 }
 
-async function writeChunk(file: FileHandle, chunk: Uint8Array, state: { bytes: number }, limits: SecResourceLimits, signal?: AbortSignal) {
+async function writeChunk(
+  file: FileHandle,
+  chunk: Uint8Array,
+  state: { bytes: number },
+  limits: SecResourceLimits,
+  signal?: AbortSignal,
+) {
   checkSignal(signal)
   if (state.bytes + chunk.byteLength > limits.zipBytes) throw packageLimitError()
   let offset = 0
@@ -52,27 +69,69 @@ async function writeChunk(file: FileHandle, chunk: Uint8Array, state: { bytes: n
     checkSignal(signal)
     let bytesWritten: number
     try {
-      ({ bytesWritten } = await file.write(chunk, offset, chunk.byteLength - offset, state.bytes + offset))
+      ;({ bytesWritten } = await file.write(chunk, offset, chunk.byteLength - offset, state.bytes + offset))
     } catch (error) {
       if (error instanceof SecProviderError) throw error
       throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC package staging failed', 503, true)
     }
-    if (bytesWritten <= 0) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC package staging failed', 503, true)
+    if (bytesWritten <= 0)
+      throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC package staging failed', 503, true)
     offset += bytesWritten
   }
   state.bytes += chunk.byteLength
 }
 
 function localHeader(name: Uint8Array, checksum: number, size: number): Uint8Array {
-  return concat([u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0), u32(checksum), u32(size), u32(size), u16(name.byteLength), u16(0), name])
+  return concat([
+    u32(0x04034b50),
+    u16(20),
+    u16(0),
+    u16(0),
+    u16(0),
+    u16(0),
+    u32(checksum),
+    u32(size),
+    u32(size),
+    u16(name.byteLength),
+    u16(0),
+    name,
+  ])
 }
 
 function centralHeader(entry: CentralEntry): Uint8Array {
-  return concat([u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0), u32(entry.crc), u32(entry.size), u32(entry.size), u16(entry.name.byteLength), u16(0), u16(0), u16(0), u16(0), u32(0), u32(entry.offset), entry.name])
+  return concat([
+    u32(0x02014b50),
+    u16(20),
+    u16(20),
+    u16(0),
+    u16(0),
+    u16(0),
+    u16(0),
+    u32(entry.crc),
+    u32(entry.size),
+    u32(entry.size),
+    u16(entry.name.byteLength),
+    u16(0),
+    u16(0),
+    u16(0),
+    u16(0),
+    u32(0),
+    u32(entry.offset),
+    entry.name,
+  ])
 }
 
 function endRecord(entries: number, centralSize: number, centralOffset: number): Uint8Array {
-  return concat([u32(0x06054b50), u16(0), u16(0), u16(entries), u16(entries), u32(centralSize), u32(centralOffset), u16(0)])
+  return concat([
+    u32(0x06054b50),
+    u16(0),
+    u16(0),
+    u16(entries),
+    u16(entries),
+    u32(centralSize),
+    u32(centralOffset),
+    u16(0),
+  ])
 }
 
 async function appendMemoryEntry(
@@ -115,7 +174,8 @@ async function appendStagedEntry(
     if (signal?.aborted) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request was cancelled', 503, true)
     throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC package staging failed', 503, true)
   }
-  if (size !== entry.size) throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC staged document changed during packaging', 503, true)
+  if (size !== entry.size)
+    throw new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC staged document changed during packaging', 503, true)
   central.push({ name, crc: entry.crc, size, offset })
 }
 
@@ -125,7 +185,15 @@ function selectPackageDocuments(detail: SecFilingDetail, includes: string[]): Se
   const choices = includes.length ? includes : ['all']
   for (const choice of choices) {
     for (const document of detail.documents) {
-      if (choice === 'all' || choice === 'primary' && document.isPrimary || choice === 'complete' && document.classification === 'complete-submission' || choice === 'xbrl' && document.isXbrl || choice === 'exhibits' && document.isExhibit || choice === 'pdf' && document.isPdf) add(document)
+      if (
+        choice === 'all' ||
+        (choice === 'primary' && document.isPrimary) ||
+        (choice === 'complete' && document.classification === 'complete-submission') ||
+        (choice === 'xbrl' && document.isXbrl) ||
+        (choice === 'exhibits' && document.isExhibit) ||
+        (choice === 'pdf' && document.isPdf)
+      )
+        add(document)
     }
   }
   return [...selected.values()]
@@ -164,7 +232,10 @@ async function buildPackage(
   options: SecPackageOptions,
 ): Promise<SecPackageResult> {
   const limits = limitsWith(options.limits)
-  enforceManifestLimits(documents.map(item => item.document), limits)
+  enforceManifestLimits(
+    documents.map(item => item.document),
+    limits,
+  )
   const lifetime = createSecLifetime(options.signal, options.timeoutMs)
   let workspace: Awaited<ReturnType<typeof createTempWorkspace>> | undefined
   let file: FileHandle | undefined
@@ -185,29 +256,52 @@ async function buildPackage(
       const staged = await stageDocument(currentWorkspace.directory, index, item.document, opened.response, {
         signal: lifetime.signal,
         maxBytes: Math.min(limits.documentBytes, remaining),
-        onTooLarge: () => remaining < limits.documentBytes ? packageLimitError() : documentLimitError(),
+        onTooLarge: () => (remaining < limits.documentBytes ? packageLimitError() : documentLimitError()),
       })
       actualDocumentBytes += staged.size
       try {
         // Append one file at a time so the temporary document can be removed
         // before the next resource is staged.
-        await appendStagedEntry(file, { name: item.name, path: staged.path, size: staged.size, crc: staged.crc32 }, state, central, limits, lifetime.signal)
+        await appendStagedEntry(
+          file,
+          { name: item.name, path: staged.path, size: staged.size, crc: staged.crc32 },
+          state,
+          central,
+          limits,
+          lifetime.signal,
+        )
       } finally {
         await rm(staged.path, { force: true })
       }
     }
     const centralOffset = state.bytes
     for (const entry of central) await writeChunk(file, centralHeader(entry), state, limits, lifetime.signal)
-    await writeChunk(file, endRecord(central.length, state.bytes - centralOffset, centralOffset), state, limits, lifetime.signal)
+    await writeChunk(
+      file,
+      endRecord(central.length, state.bytes - centralOffset, centralOffset),
+      state,
+      limits,
+      lifetime.signal,
+    )
     await file.close()
     file = undefined
     const size = state.bytes
     const actualZipSize = (await stat(zipPath)).size
     if (actualZipSize !== size || actualZipSize > limits.zipBytes) throw packageLimitError()
-    const resourceCleanup = async () => { lifetime.dispose(); await currentWorkspace.cleanup() }
+    const resourceCleanup = async () => {
+      lifetime.dispose()
+      await currentWorkspace.cleanup()
+    }
     const resource = { path: zipPath, size: actualZipSize, cleanup: resourceCleanup }
-    const body = streamStagedFile(resource, { signal: lifetime.signal, onClosed: options.onClosed, timeoutMs: options.timeoutMs })
-    const cleanup = async () => { await body.cancel().catch(() => {}); await resourceCleanup() }
+    const body = streamStagedFile(resource, {
+      signal: lifetime.signal,
+      onClosed: options.onClosed,
+      timeoutMs: options.timeoutMs,
+    })
+    const cleanup = async () => {
+      await body.cancel().catch(() => {})
+      await resourceCleanup()
+    }
     return { filename, contentType: 'application/zip', ...resource, cleanup, body }
   } catch (error) {
     lifetime.dispose()
@@ -218,25 +312,76 @@ async function buildPackage(
   }
 }
 
-export async function buildSingleFilingPackage(service: SecEdgarService, cik: string, accession: string, includes: string[], options: SecPackageOptions = {}): Promise<SecPackageResult> {
+export async function buildSingleFilingPackage(
+  service: SecEdgarService,
+  cik: string,
+  accession: string,
+  includes: string[],
+  options: SecPackageOptions = {},
+): Promise<SecPackageResult> {
   checkSignal(options.signal)
   const detailResult = await service.getFilingDetail(cik, accession, options.signal)
   checkSignal(options.signal)
   const documents = selectPackageDocuments(detailResult.value, includes)
-  const manifest = { source: 'SEC EDGAR', createdAt: new Date().toISOString(), company: detailResult.value.company, filing: detailResult.value.filing, files: documents.map(({ basename, size, classification }) => ({ basename, size, classification })) }
-  return buildPackage(service, safeDownloadName(`${detailResult.value.company.tickers[0] ?? cik}_${detailResult.value.filing.form}_${accession}.zip`), { name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) }, documents.map(document => ({ name: safeDownloadName(document.basename), document, cik, accession })), options)
+  const manifest = {
+    source: 'SEC EDGAR',
+    createdAt: new Date().toISOString(),
+    company: detailResult.value.company,
+    filing: detailResult.value.filing,
+    files: documents.map(({ basename, size, classification }) => ({ basename, size, classification })),
+  }
+  return buildPackage(
+    service,
+    safeDownloadName(
+      `${detailResult.value.company.tickers[0] ?? cik}_${detailResult.value.filing.form}_${accession}.zip`,
+    ),
+    { name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) },
+    documents.map(document => ({ name: safeDownloadName(document.basename), document, cik, accession })),
+    options,
+  )
 }
 
-export async function buildBatchPackage(service: SecEdgarService, cik: string, accessions: string[], mode: SecBatchMode, options: SecPackageOptions = {}): Promise<SecPackageResult> {
+export async function buildBatchPackage(
+  service: SecEdgarService,
+  cik: string,
+  accessions: string[],
+  mode: SecBatchMode,
+  options: SecPackageOptions = {},
+): Promise<SecPackageResult> {
   const resolved: Array<{ detail: SecFilingDetail; document: SecFilingDocument }> = []
   for (const accession of accessions) {
     checkSignal(options.signal)
     const detail = await service.getFilingDetail(cik, accession, options.signal)
     checkSignal(options.signal)
-    const document = mode === 'primary' ? detail.value.documents.find(item => item.isPrimary) : detail.value.documents.find(item => item.classification === 'complete-submission')
+    const document =
+      mode === 'primary'
+        ? detail.value.documents.find(item => item.isPrimary)
+        : detail.value.documents.find(item => item.classification === 'complete-submission')
     if (!document) throw new SecProviderError('SEC_DOCUMENT_NOT_FOUND', `Required ${mode} document is unavailable`, 404)
     resolved.push({ detail: detail.value, document })
   }
-  const manifest = { source: 'SEC EDGAR', createdAt: new Date().toISOString(), cik, mode, filings: resolved.map(item => ({ filing: item.detail.filing, document: { basename: item.document.basename, size: item.document.size } })) }
-  return buildPackage(service, safeDownloadName(`${resolved[0]?.detail.company.tickers[0] ?? cik}_sec-filings_${mode}.zip`), { name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) }, resolved.map((item, index) => ({ name: safeDownloadName(`${String(index + 1).padStart(3, '0')}-${item.detail.company.tickers[0] ?? cik}_${item.detail.filing.form}_${item.detail.filing.filingDate}_${item.detail.filing.accession}_${item.document.basename}`), document: item.document, cik, accession: item.detail.filing.accession })), options)
+  const manifest = {
+    source: 'SEC EDGAR',
+    createdAt: new Date().toISOString(),
+    cik,
+    mode,
+    filings: resolved.map(item => ({
+      filing: item.detail.filing,
+      document: { basename: item.document.basename, size: item.document.size },
+    })),
+  }
+  return buildPackage(
+    service,
+    safeDownloadName(`${resolved[0]?.detail.company.tickers[0] ?? cik}_sec-filings_${mode}.zip`),
+    { name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) },
+    resolved.map((item, index) => ({
+      name: safeDownloadName(
+        `${String(index + 1).padStart(3, '0')}-${item.detail.company.tickers[0] ?? cik}_${item.detail.filing.form}_${item.detail.filing.filingDate}_${item.detail.filing.accession}_${item.document.basename}`,
+      ),
+      document: item.document,
+      cik,
+      accession: item.detail.filing.accession,
+    })),
+    options,
+  )
 }

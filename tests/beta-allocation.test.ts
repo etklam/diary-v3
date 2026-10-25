@@ -219,44 +219,38 @@ describe('decideBetaAllocation', () => {
   describe('warning rules', () => {
     it('warns when above50dRatio < 0.35', () => {
       const r = decideBetaAllocation(makeInput({ above50dRatio: 0.2 }))
-      expect(r.warnings.some((w) => w.includes('breadth ratio'))).toBe(true)
+      expect(r.warnings.some(w => w.includes('breadth ratio'))).toBe(true)
     })
 
     it('warns when averageRsi > 70', () => {
       const r = decideBetaAllocation(makeInput({ averageRsi: 75 }))
-      expect(r.warnings.some((w) => w.includes('overbought'))).toBe(true)
+      expect(r.warnings.some(w => w.includes('overbought'))).toBe(true)
     })
 
     it('warns on risk_on + warning breadth contradiction', () => {
       const r = decideBetaAllocation(makeInput({ marketState: 'risk_on', breadthConfirmation: 'warning' }))
-      expect(r.warnings.some((w) => w.includes('contradiction') || w.includes('conflicting'))).toBe(true)
+      expect(r.warnings.some(w => w.includes('contradiction') || w.includes('conflicting'))).toBe(true)
     })
 
     it('warns when topImproving is empty', () => {
       const r = decideBetaAllocation(makeInput({ leadership: { topImproving: [], bottomWeakening: [] } }))
-      expect(r.warnings.some((w) => w.includes('leadership') || w.includes('No leading'))).toBe(true)
+      expect(r.warnings.some(w => w.includes('leadership') || w.includes('No leading'))).toBe(true)
     })
 
     it('warns when bottomWeakening contains leadership ETF (QQQ)', () => {
-      const r = decideBetaAllocation(
-        makeInput({ leadership: { topImproving: ['XLK'], bottomWeakening: ['QQQ'] } }),
-      )
-      expect(r.warnings.some((w) => w.includes('QQQ') || w.includes('leadership ETF'))).toBe(true)
+      const r = decideBetaAllocation(makeInput({ leadership: { topImproving: ['XLK'], bottomWeakening: ['QQQ'] } }))
+      expect(r.warnings.some(w => w.includes('QQQ') || w.includes('leadership ETF'))).toBe(true)
     })
 
     it('warns when bottomWeakening contains SOXX', () => {
-      const r = decideBetaAllocation(
-        makeInput({ leadership: { topImproving: ['XLK'], bottomWeakening: ['SOXX'] } }),
-      )
-      expect(r.warnings.some((w) => w.includes('SOXX') || w.includes('leadership ETF'))).toBe(true)
+      const r = decideBetaAllocation(makeInput({ leadership: { topImproving: ['XLK'], bottomWeakening: ['SOXX'] } }))
+      expect(r.warnings.some(w => w.includes('SOXX') || w.includes('leadership ETF'))).toBe(true)
     })
 
     it('warns when bottomWeakening contains SMH, XLK, IGV, QQQM', () => {
       for (const sym of ['SMH', 'XLK', 'IGV', 'QQQM']) {
-        const r = decideBetaAllocation(
-          makeInput({ leadership: { topImproving: ['XLF'], bottomWeakening: [sym] } }),
-        )
-        expect(r.warnings.some((w) => w.includes(sym))).toBe(true)
+        const r = decideBetaAllocation(makeInput({ leadership: { topImproving: ['XLF'], bottomWeakening: [sym] } }))
+        expect(r.warnings.some(w => w.includes(sym))).toBe(true)
       }
     })
 
@@ -264,7 +258,7 @@ describe('decideBetaAllocation', () => {
       const r = decideBetaAllocation(
         makeInput({ leadership: { topImproving: ['XLK'], bottomWeakening: ['XLU', 'XLB'] } }),
       )
-      expect(r.warnings.some((w) => w.includes('leadership ETF'))).toBe(false)
+      expect(r.warnings.some(w => w.includes('leadership ETF'))).toBe(false)
     })
   })
 
@@ -307,22 +301,22 @@ describe('decideBetaAllocation', () => {
 
     it('normalizes 70.0 RSI boundary — not overbought at exactly 70', () => {
       const r = decideBetaAllocation(makeInput({ averageRsi: 70 }))
-      expect(r.warnings.some((w) => w.includes('overbought'))).toBe(false)
+      expect(r.warnings.some(w => w.includes('overbought'))).toBe(false)
     })
 
     it('normalizes 0.35 ratio boundary — not weak at exactly 0.35', () => {
       const r = decideBetaAllocation(makeInput({ above50dRatio: 0.35 }))
-      expect(r.warnings.some((w) => w.includes('breadth ratio'))).toBe(false)
+      expect(r.warnings.some(w => w.includes('breadth ratio'))).toBe(false)
     })
 
     it('null above50dRatio does not trigger ratio warning', () => {
       const r = decideBetaAllocation(makeInput({ above50dRatio: null }))
-      expect(r.warnings.some((w) => w.includes('breadth ratio'))).toBe(false)
+      expect(r.warnings.some(w => w.includes('breadth ratio'))).toBe(false)
     })
 
     it('null averageRsi does not trigger overbought warning', () => {
       const r = decideBetaAllocation(makeInput({ averageRsi: null }))
-      expect(r.warnings.some((w) => w.includes('overbought'))).toBe(false)
+      expect(r.warnings.some(w => w.includes('overbought'))).toBe(false)
     })
   })
 
@@ -331,7 +325,7 @@ describe('decideBetaAllocation', () => {
       const bogus = makeInput({ marketState: 'bogus_state' as never, breadthConfirmation: 'confirming' })
       const r = decideBetaAllocation(bogus)
       expect(r.suggestedMode).toBe('unknown')
-      expect(r.warnings.some((w) => w.includes('fallback') || w.includes('Unmapped'))).toBe(true)
+      expect(r.warnings.some(w => w.includes('fallback') || w.includes('Unmapped'))).toBe(true)
     })
   })
 })

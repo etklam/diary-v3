@@ -1,8 +1,13 @@
 import { type ErrorCode } from '@diary/contracts'
 import {
-  ACTIVITY_GROUP_KINDS, ACTIVITY_KIND_RANK, activityEventSchema, activityTimelineQuerySchema,
+  ACTIVITY_GROUP_KINDS,
+  ACTIVITY_KIND_RANK,
+  activityEventSchema,
+  activityTimelineQuerySchema,
   activityTimelineResponseSchema,
-  type ActivityEvent, type ActivityEventKind, type ActivityTimelineQuery,
+  type ActivityEvent,
+  type ActivityEventKind,
+  type ActivityTimelineQuery,
 } from '@diary/contracts/activity-timeline'
 import type { Database } from '@diary/db'
 import { diaryExcerpt } from '@diary/domain'
@@ -35,8 +40,9 @@ async function listActivityTimeline(db: Database, userId: bigint, query: Activit
   // bare select-list constant; the values stay owned by the shared contract.
   const rank = (kind: ActivityEventKind) => sql.raw(String(ACTIVITY_KIND_RANK[kind]))
 
-  const result = await db.transaction(async tx => {
-    const rows = await tx.execute(sql`
+  const result = await db.transaction(
+    async tx => {
+      const rows = await tx.execute(sql`
       with context as (
         select timezone from users where id = ${userId}
       ), events as (
@@ -114,8 +120,10 @@ async function listActivityTimeline(db: Database, userId: bigint, query: Activit
       ) page_items on true
       order by page_items.event_date desc, page_items.kind_rank asc, page_items.source_id desc
     `)
-    return rows.rows as Array<{ total: number; item: Record<string, unknown> | null }>
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+      return rows.rows as Array<{ total: number; item: Record<string, unknown> | null }>
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 
   const total = Number(result[0]?.total ?? 0)
   const items = result.map(row => row.item).filter((item): item is Record<string, unknown> => item !== null)
@@ -137,9 +145,8 @@ async function listActivityTimeline(db: Database, userId: bigint, query: Activit
     if (item.kind === 'DIARY') {
       const content = item.contentForExcerpt
       delete item.contentForExcerpt
-      item.excerpt = content === null || content === undefined
-        ? item.excerpt ?? ''
-        : diaryExcerpt(String(content), 240)
+      item.excerpt =
+        content === null || content === undefined ? (item.excerpt ?? '') : diaryExcerpt(String(content), 240)
       item.stockSymbols = symbolsByDiary.get(BigInt(String(item.diaryId))) ?? []
     }
     if (item.kind === 'REVIEW') item.stockSymbols = symbolsByDiary.get(BigInt(String(item.diaryId))) ?? []
@@ -160,11 +167,14 @@ async function listActivityTimeline(db: Database, userId: bigint, query: Activit
   }
 }
 
-export function registerActivityTimelineRoute(app: Hono<AppEnv>, dependencies: {
-  db: Database
-  fail: (status: number, code: ErrorCode, message: string) => never
-  validationError: (error: z.ZodError) => never
-}) {
+export function registerActivityTimelineRoute(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    fail: (status: number, code: ErrorCode, message: string) => never
+    validationError: (error: z.ZodError) => never
+  },
+) {
   const { db, fail, validationError } = dependencies
   app.get('/api/timeline', async c => {
     const user = c.get('user')

@@ -29,24 +29,29 @@ Use npm workspaces and the lockfile, from the repository root. Prefer Node 24 (D
 | Check or change | Command |
 | --- | --- |
 | Source gates | `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run build` |
+| Coverage floors | `npm run test:coverage` — same suite as `test:unit` plus the measured floors; [baseline](docs/audits/coverage-baseline-2026-10-25.md) |
 | Focused regression | `npx vitest run <test-file>` |
 | PostgreSQL integration | `npm run test:integration` |
 | Browser flows | `npx playwright install chromium webkit` once; `npm run test:e2e`, `npm run test:e2e:webkit:critical` |
 | Built release smoke | `npm run build`, then `npm run test:e2e:release` |
 | Contract changes | `npm run contracts:generate`, then `npm run contracts:check` |
 | Schema changes | `npm run db:generate`, review SQL, then `npm run db:migrate` on a disposable database |
-| UI rules / production manifests | `npm run design:check` / `npm run manifests:check` |
+| UI rules / production manifests | `npm run design:check` (contrast, figures, native edges, registers, locale parity) / `npm run manifests:check` |
 | Shared/native changes | `npm run native:proof:test`, `npm run native:api:test`; package/proof setup in [proofs/native/README.md](proofs/native/README.md) |
 
 Test harnesses use exported `DATABASE_URL` or the loopback default, create/drop unique databases, and need those privileges; they do not auto-load `.env`. Run browser suites sequentially (shared ports 3200/3201); they may regenerate visual evidence. `npm test` includes integration. See [CI/CD notes](docs/operations/ci-cd-notes.md) for release gates and [runbooks](docs/README.md#operations) for optional services.
 
 ## Code and product conventions
 
-- TypeScript ESM, strict mode, `noUncheckedIndexedAccess`; follow nearby formatting. Contracts/domain/client stay framework- and server-independent; Web accesses data through the API.
+- TypeScript ESM, strict mode, `noUncheckedIndexedAccess`. Formatting belongs to Prettier and is not a review subject:
+  `.prettierrc.json` pins no semicolons, single quotes, 120 columns and avoided arrow parens, and `npm run lint` fails on an
+  unformatted file. Run `npm run format` before committing. Markdown, workflow YAML, generated output and frozen parity
+  inputs are excluded in `.prettierignore`, each with a stated reason. Contracts/domain/client stay framework- and server-independent; Web accesses data through the API.
 - The API owns authorization and business validation. Preserve ownership, Partner allowlists, transactions, and concurrency. IDs/persisted financial decimals are strings; calendar dates use `YYYY-MM-DD`, instants use UTC `Z`. Missing quotes must not become zero.
 - Generate `openapi/openapi.json` and `packages/api-client/src/generated.ts` from contracts; do not hand-edit generated output. Use versioned SQL migrations for schema changes.
 - Before behavior changes, read [PRODUCT.md](PRODUCT.md), [PLAN.md](PLAN.md), and the relevant approved PRD/specification. The [rebuild PRD](.scratch/diary-v3-rebuild/PRD.md) is immutable original scope; extensions have separate records. Use [architecture](docs/architecture.md) and accepted [ADRs](docs/adr/) for implementation decisions.
 - Preserve valid legacy feature intent; deliberate bug/debt corrections need regression evidence and the policy in [ADR-0001](docs/adr/0001-parity-baseline-and-contract-corrections.md).
+- New locale copy uses `defineCopy` from `apps/web/app/locale-copy.ts`: zh-TW declares the key set and the other two locales are checked against it at compile time. Files not yet migrated are still checked for key-set parity by `scripts/check-locale-parity.mjs` in `design:check`.
 - UI follows [DESIGN.md](DESIGN.md) and Impeccable: preserve zh-TW/zh-CN/en, themes, responsiveness, accessibility, and private-data PWA boundaries. The implementing agent owns direction, architecture, design, and acceptance; record material visual rationale and before/after evidence without a routine design-approval gate.
 
 ## Agent skills

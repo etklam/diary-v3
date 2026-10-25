@@ -180,13 +180,19 @@
   background: var(--action-tint);
 }
 
-.calendar-grid > button[aria-current="date"] {
+.calendar-grid > button[aria-current='date'] {
   box-shadow: inset 0 0 0 2px var(--action);
 }
 
 .calendar-grid .holiday,
 .heatmap-day.holiday {
-  background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--rule-strong) 5px, var(--rule-strong) 6px);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 5px,
+    var(--rule-strong) 5px,
+    var(--rule-strong) 6px
+  );
 }
 
 .calendar-empty {
@@ -214,7 +220,13 @@
   height: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-inset);
-  background-image: repeating-linear-gradient(135deg, transparent, transparent 5px, var(--rule-strong) 5px, var(--rule-strong) 6px);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 5px,
+    var(--rule-strong) 5px,
+    var(--rule-strong) 6px
+  );
 }
 
 .calendar-legend-swatch {

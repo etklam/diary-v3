@@ -1,5 +1,11 @@
 import { createHash, randomUUID as nodeRandomUUID } from 'node:crypto'
-import { MAX_SERIALIZED_ID, nativeTokenPairSchema, serializedIdSchema, type ErrorCode, type NativeTokenPair } from '@diary/contracts'
+import {
+  MAX_SERIALIZED_ID,
+  nativeTokenPairSchema,
+  serializedIdSchema,
+  type ErrorCode,
+  type NativeTokenPair,
+} from '@diary/contracts'
 import { refreshTokens, users, type Database, type DatabaseTx } from '@diary/db'
 import bcrypt from 'bcryptjs'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -71,9 +77,12 @@ function nativeFamilyLock(familyId: string) {
 }
 
 function databaseId(value: string): bigint | undefined {
-  if (!serializedIdSchema.safeParse(value).success
-    || value.length > MAX_SERIALIZED_ID.length
-    || (value.length === MAX_SERIALIZED_ID.length && value > MAX_SERIALIZED_ID)) return undefined
+  if (
+    !serializedIdSchema.safeParse(value).success ||
+    value.length > MAX_SERIALIZED_ID.length ||
+    (value.length === MAX_SERIALIZED_ID.length && value > MAX_SERIALIZED_ID)
+  )
+    return undefined
   return BigInt(value)
 }
 
@@ -98,12 +107,16 @@ export function createAuthSessionService({
   const findSessionUser = async (id: string): Promise<SessionUser | undefined> => {
     const parsedId = databaseId(id)
     if (parsedId === undefined) return undefined
-    const [user] = await db.select({
-      id: users.id,
-      email: users.email,
-      role: users.role,
-      tokenVersion: users.tokenVersion,
-    }).from(users).where(eq(users.id, parsedId)).limit(1)
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        tokenVersion: users.tokenVersion,
+      })
+      .from(users)
+      .where(eq(users.id, parsedId))
+      .limit(1)
     return user ? { ...user, id: user.id.toString() } : undefined
   }
 
@@ -118,7 +131,8 @@ export function createAuthSessionService({
       role: user.role,
       tokenVersion: user.tokenVersion,
       type,
-    }).setProtectedHeader({ alg: 'HS256' })
+    })
+      .setProtectedHeader({ alg: 'HS256' })
       .setIssuer(JWT_ISSUER)
       .setAudience(JWT_AUDIENCE)
       .setIssuedAt(issuedAt)
@@ -141,12 +155,16 @@ export function createAuthSessionService({
         // signature still lets native replay containment revoke its family.
         currentDate: allowExpired ? new Date(0) : now(),
       })
-      if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)
-        || payload.type !== expectedType
-        || !serializedIdSchema.safeParse(payload.userId).success
-        || typeof payload.email !== 'string'
-        || (payload.role !== 'USER' && payload.role !== 'ADMIN')
-        || !Number.isInteger(payload.tokenVersion)) throw new Error('invalid claims')
+      if (
+        typeof payload.exp !== 'number' ||
+        !Number.isFinite(payload.exp) ||
+        payload.type !== expectedType ||
+        !serializedIdSchema.safeParse(payload.userId).success ||
+        typeof payload.email !== 'string' ||
+        (payload.role !== 'USER' && payload.role !== 'ADMIN') ||
+        !Number.isInteger(payload.tokenVersion)
+      )
+        throw new Error('invalid claims')
       return {
         id: payload.userId as string,
         email: payload.email,
@@ -188,12 +206,14 @@ export function createAuthSessionService({
    */
   const refreshWebSession = async (token: string) => {
     const payload = await verifyToken(token, 'refresh', true)
-    const [stored] = await db.select({
-      id: refreshTokens.id,
-      userId: refreshTokens.userId,
-      clientType: refreshTokens.clientType,
-      revokedAt: refreshTokens.revokedAt,
-    }).from(refreshTokens)
+    const [stored] = await db
+      .select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        clientType: refreshTokens.clientType,
+        revokedAt: refreshTokens.revokedAt,
+      })
+      .from(refreshTokens)
       .where(eq(refreshTokens.token, hashRefreshToken(token)))
       .limit(1)
 
@@ -204,15 +224,17 @@ export function createAuthSessionService({
       | { ok: true; sessionUser: SessionUser; accessToken: string }
       | { ok: false; reason: 'not-found' | 'expired' | 'invalid' }
 
-    const outcome: WebRefreshOutcome = await db.transaction(async (tx) => {
+    const outcome: WebRefreshOutcome = await db.transaction(async tx => {
       await tx.execute(userSessionLock(stored.userId))
-      const [current] = await tx.select({
-        id: refreshTokens.id,
-        clientType: refreshTokens.clientType,
-        revokedAt: refreshTokens.revokedAt,
-        expiresAt: refreshTokens.expiresAt,
-        user: users,
-      }).from(refreshTokens)
+      const [current] = await tx
+        .select({
+          id: refreshTokens.id,
+          clientType: refreshTokens.clientType,
+          revokedAt: refreshTokens.revokedAt,
+          expiresAt: refreshTokens.expiresAt,
+          user: users,
+        })
+        .from(refreshTokens)
         .innerJoin(users, eq(users.id, refreshTokens.userId))
         .where(eq(refreshTokens.id, stored.id))
         .limit(1)
@@ -221,10 +243,13 @@ export function createAuthSessionService({
       }
       const operationNow = now()
       if (current.expiresAt <= operationNow) {
-        await tx.update(refreshTokens).set({
-          revokedAt: operationNow,
-          revocationReason: 'EXPIRED',
-        }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
+        await tx
+          .update(refreshTokens)
+          .set({
+            revokedAt: operationNow,
+            revocationReason: 'EXPIRED',
+          })
+          .where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
         return { ok: false, reason: 'expired' }
       }
       if (current.user.id.toString() !== payload.id || current.user.tokenVersion !== payload.tokenVersion) {
@@ -247,14 +272,19 @@ export function createAuthSessionService({
     return outcome
   }
 
-  const buildNativeTokenPair = async (user: typeof users.$inferSelect): Promise<{
+  const buildNativeTokenPair = async (
+    user: typeof users.$inferSelect,
+  ): Promise<{
     rawRefreshToken: string
     refreshExpiresAt: Date
     pair: NativeTokenPair
   }> => {
     const issuedAt = Math.floor(now().getTime() / 1000)
     const sessionUser: SessionUser = {
-      id: user.id.toString(), email: user.email, role: user.role, tokenVersion: user.tokenVersion,
+      id: user.id.toString(),
+      email: user.email,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
     }
     const [accessToken, refreshToken] = await Promise.all([
       signToken(sessionUser, 'access', issuedAt),
@@ -278,12 +308,14 @@ export function createAuthSessionService({
     const payload = await parseToken(token, 'refresh', true)
     if (!payload) return { ok: false, reason: 'invalid' }
 
-    const [stored] = await db.select({
-      id: refreshTokens.id,
-      userId: refreshTokens.userId,
-      clientType: refreshTokens.clientType,
-      familyId: refreshTokens.familyId,
-    }).from(refreshTokens)
+    const [stored] = await db
+      .select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        clientType: refreshTokens.clientType,
+        familyId: refreshTokens.familyId,
+      })
+      .from(refreshTokens)
       .where(eq(refreshTokens.token, hashRefreshToken(token)))
       .limit(1)
 
@@ -296,16 +328,18 @@ export function createAuthSessionService({
       // The post-lock read gets a fresh READ COMMITTED snapshot, so replay/logout
       // sees any descendant committed by the previous lock holder.
       await tx.execute(nativeFamilyLock(stored.familyId))
-      const [current] = await tx.select({
-        id: refreshTokens.id,
-        userId: refreshTokens.userId,
-        clientType: refreshTokens.clientType,
-        familyId: refreshTokens.familyId,
-        deviceName: refreshTokens.deviceName,
-        revokedAt: refreshTokens.revokedAt,
-        expiresAt: refreshTokens.expiresAt,
-        user: users,
-      }).from(refreshTokens)
+      const [current] = await tx
+        .select({
+          id: refreshTokens.id,
+          userId: refreshTokens.userId,
+          clientType: refreshTokens.clientType,
+          familyId: refreshTokens.familyId,
+          deviceName: refreshTokens.deviceName,
+          revokedAt: refreshTokens.revokedAt,
+          expiresAt: refreshTokens.expiresAt,
+          user: users,
+        })
+        .from(refreshTokens)
         .innerJoin(users, eq(users.id, refreshTokens.userId))
         .where(eq(refreshTokens.id, stored.id))
         .limit(1)
@@ -314,14 +348,20 @@ export function createAuthSessionService({
       if (current.revokedAt) {
         // This update is part of the transaction, so the family revocation is
         // committed before the caller maps replay to its 401 response.
-        await tx.update(refreshTokens).set({
-          revokedAt: now(), revocationReason: 'REUSE_DETECTED',
-        }).where(and(
-          eq(refreshTokens.userId, current.userId),
-          eq(refreshTokens.familyId, current.familyId),
-          eq(refreshTokens.clientType, 'NATIVE'),
-          isNull(refreshTokens.revokedAt),
-        ))
+        await tx
+          .update(refreshTokens)
+          .set({
+            revokedAt: now(),
+            revocationReason: 'REUSE_DETECTED',
+          })
+          .where(
+            and(
+              eq(refreshTokens.userId, current.userId),
+              eq(refreshTokens.familyId, current.familyId),
+              eq(refreshTokens.clientType, 'NATIVE'),
+              isNull(refreshTokens.revokedAt),
+            ),
+          )
         return { ok: false, reason: 'revoked' }
       }
 
@@ -329,9 +369,13 @@ export function createAuthSessionService({
       // Database expiry is authoritative. This branch intentionally follows
       // replay detection so an expired rotated ancestor still revokes its family.
       if (current.expiresAt <= operationNow) {
-        await tx.update(refreshTokens).set({
-          revokedAt: operationNow, revocationReason: 'EXPIRED',
-        }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
+        await tx
+          .update(refreshTokens)
+          .set({
+            revokedAt: operationNow,
+            revocationReason: 'EXPIRED',
+          })
+          .where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
         return { ok: false, reason: 'expired' }
       }
       if (current.user.tokenVersion !== payload.tokenVersion || current.user.id.toString() !== payload.id) {
@@ -339,32 +383,40 @@ export function createAuthSessionService({
       }
 
       const replacementMaterial = await buildNativeTokenPair(current.user)
-      await tx.update(refreshTokens).set({
-        revokedAt: operationNow, revocationReason: 'ROTATED',
-      }).where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
-      const [replacement] = await tx.insert(refreshTokens).values({
-        token: hashRefreshToken(replacementMaterial.rawRefreshToken),
-        userId: current.userId,
-        clientType: 'NATIVE',
-        familyId: current.familyId,
-        deviceName: current.deviceName,
-        parentId: current.id,
-        expiresAt: replacementMaterial.refreshExpiresAt,
-      }).returning({ id: refreshTokens.id })
+      await tx
+        .update(refreshTokens)
+        .set({
+          revokedAt: operationNow,
+          revocationReason: 'ROTATED',
+        })
+        .where(and(eq(refreshTokens.id, current.id), isNull(refreshTokens.revokedAt)))
+      const [replacement] = await tx
+        .insert(refreshTokens)
+        .values({
+          token: hashRefreshToken(replacementMaterial.rawRefreshToken),
+          userId: current.userId,
+          clientType: 'NATIVE',
+          familyId: current.familyId,
+          deviceName: current.deviceName,
+          parentId: current.id,
+          expiresAt: replacementMaterial.refreshExpiresAt,
+        })
+        .returning({ id: refreshTokens.id })
       if (!replacement) throw new Error('Refresh replacement insert returned no row')
-      await tx.update(refreshTokens).set({ replacementId: replacement.id })
-        .where(eq(refreshTokens.id, current.id))
+      await tx.update(refreshTokens).set({ replacementId: replacement.id }).where(eq(refreshTokens.id, current.id))
       return { ok: true, pair: replacementMaterial.pair }
     })
   }
 
   const logoutNativeSession = async (token: string): Promise<NativeLogoutOutcome> => {
-    const [stored] = await db.select({
-      id: refreshTokens.id,
-      userId: refreshTokens.userId,
-      familyId: refreshTokens.familyId,
-      clientType: refreshTokens.clientType,
-    }).from(refreshTokens)
+    const [stored] = await db
+      .select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        familyId: refreshTokens.familyId,
+        clientType: refreshTokens.clientType,
+      })
+      .from(refreshTokens)
       .where(eq(refreshTokens.token, hashRefreshToken(token)))
       .limit(1)
 
@@ -376,24 +428,33 @@ export function createAuthSessionService({
       // revocation, then reread state after both locks.
       await tx.execute(userSessionLock(stored.userId))
       await tx.execute(nativeFamilyLock(stored.familyId))
-      const [current] = await tx.select({
-        id: refreshTokens.id,
-        userId: refreshTokens.userId,
-        familyId: refreshTokens.familyId,
-        clientType: refreshTokens.clientType,
-      }).from(refreshTokens)
+      const [current] = await tx
+        .select({
+          id: refreshTokens.id,
+          userId: refreshTokens.userId,
+          familyId: refreshTokens.familyId,
+          clientType: refreshTokens.clientType,
+        })
+        .from(refreshTokens)
         .where(eq(refreshTokens.id, stored.id))
         .limit(1)
 
       if (!current || current.clientType !== 'NATIVE') return { outcome: 'not-found' }
-      const revoked = await tx.update(refreshTokens).set({
-        revokedAt: now(), revocationReason: 'LOGOUT',
-      }).where(and(
-        eq(refreshTokens.userId, current.userId),
-        eq(refreshTokens.familyId, current.familyId),
-        eq(refreshTokens.clientType, 'NATIVE'),
-        isNull(refreshTokens.revokedAt),
-      )).returning({ id: refreshTokens.id })
+      const revoked = await tx
+        .update(refreshTokens)
+        .set({
+          revokedAt: now(),
+          revocationReason: 'LOGOUT',
+        })
+        .where(
+          and(
+            eq(refreshTokens.userId, current.userId),
+            eq(refreshTokens.familyId, current.familyId),
+            eq(refreshTokens.clientType, 'NATIVE'),
+            isNull(refreshTokens.revokedAt),
+          ),
+        )
+        .returning({ id: refreshTokens.id })
       return revoked.length > 0 ? { outcome: 'revoked' } : { outcome: 'already-revoked' }
     })
   }
@@ -408,59 +469,72 @@ export function createAuthSessionService({
     password: string
     clientType: 'WEB' | 'NATIVE'
     deviceName?: string
-  }) => db.transaction(async (tx) => {
-    await tx.execute(userSessionLock(candidate.id))
-    const [current] = await tx.select().from(users).where(eq(users.id, candidate.id)).limit(1)
-    if (!current) return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
+  }) =>
+    db.transaction(async tx => {
+      await tx.execute(userSessionLock(candidate.id))
+      const [current] = await tx.select().from(users).where(eq(users.id, candidate.id)).limit(1)
+      if (!current) return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
 
-    // Password mutation may have committed between the initial bcrypt check and
-    // this lock. Re-check only when the stored hash changed.
-    if (current.password !== candidate.password && !await bcrypt.compare(password, current.password)) {
-      return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
-    }
+      // Password mutation may have committed between the initial bcrypt check and
+      // this lock. Re-check only when the stored hash changed.
+      if (current.password !== candidate.password && !(await bcrypt.compare(password, current.password))) {
+        return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
+      }
 
-    if (clientType === 'NATIVE') {
-      const material = await buildNativeTokenPair(current)
+      if (clientType === 'NATIVE') {
+        const material = await buildNativeTokenPair(current)
+        await tx.insert(refreshTokens).values({
+          token: hashRefreshToken(material.rawRefreshToken),
+          userId: current.id,
+          clientType,
+          familyId: randomUUID(),
+          deviceName,
+          expiresAt: material.refreshExpiresAt,
+        })
+        return { clientType, user: current, pair: material.pair } as const
+      }
+
+      const sessionUser: SessionUser = {
+        id: current.id.toString(),
+        email: current.email,
+        role: current.role,
+        tokenVersion: current.tokenVersion,
+      }
+      const [accessToken, refreshToken] = await Promise.all([
+        signToken(sessionUser, 'access'),
+        signToken(sessionUser, 'refresh'),
+      ])
       await tx.insert(refreshTokens).values({
-        token: hashRefreshToken(material.rawRefreshToken),
+        token: hashRefreshToken(refreshToken),
         userId: current.id,
         clientType,
         familyId: randomUUID(),
-        deviceName,
-        expiresAt: material.refreshExpiresAt,
+        expiresAt: new Date(now().getTime() + REFRESH_SECONDS * 1000),
       })
-      return { clientType, user: current, pair: material.pair } as const
-    }
-
-    const sessionUser: SessionUser = {
-      id: current.id.toString(), email: current.email, role: current.role, tokenVersion: current.tokenVersion,
-    }
-    const [accessToken, refreshToken] = await Promise.all([
-      signToken(sessionUser, 'access'), signToken(sessionUser, 'refresh'),
-    ])
-    await tx.insert(refreshTokens).values({
-      token: hashRefreshToken(refreshToken),
-      userId: current.id,
-      clientType,
-      familyId: randomUUID(),
-      expiresAt: new Date(now().getTime() + REFRESH_SECONDS * 1000),
+      return { clientType, user: current, accessToken, refreshToken } as const
     })
-    return { clientType, user: current, accessToken, refreshToken } as const
-  })
 
-  const logoutAllSessions = async (userId: bigint) => db.transaction(async (tx) => {
-    await tx.execute(userSessionLock(userId))
-    const [updated] = await tx.update(users).set({
-      tokenVersion: sql`${users.tokenVersion} + 1`,
-      updatedAt: now(),
-    }).where(eq(users.id, userId)).returning({ tokenVersion: users.tokenVersion })
-    if (!updated) return fail(404, 'USER_NOT_FOUND', 'User not found')
-    await tx.update(refreshTokens).set({
-      revokedAt: now(),
-      revocationReason: 'LOGOUT_ALL',
-    }).where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)))
-    return updated.tokenVersion
-  })
+  const logoutAllSessions = async (userId: bigint) =>
+    db.transaction(async tx => {
+      await tx.execute(userSessionLock(userId))
+      const [updated] = await tx
+        .update(users)
+        .set({
+          tokenVersion: sql`${users.tokenVersion} + 1`,
+          updatedAt: now(),
+        })
+        .where(eq(users.id, userId))
+        .returning({ tokenVersion: users.tokenVersion })
+      if (!updated) return fail(404, 'USER_NOT_FOUND', 'User not found')
+      await tx
+        .update(refreshTokens)
+        .set({
+          revokedAt: now(),
+          revocationReason: 'LOGOUT_ALL',
+        })
+        .where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)))
+      return updated.tokenVersion
+    })
 
   /**
    * Changing a password revokes every existing session: the token version is
@@ -480,27 +554,33 @@ export function createAuthSessionService({
       afterPasswordChanged?: (tx: DatabaseTx, user: { email: string; locale: string }) => Promise<void>
     } = {},
   ): Promise<{ accessToken: string; refreshToken: string } | undefined> => {
-    const [candidate] = await db.select({ password: users.password }).from(users)
-      .where(eq(users.id, userId)).limit(1)
+    const [candidate] = await db.select({ password: users.password }).from(users).where(eq(users.id, userId)).limit(1)
     if (!candidate) return fail(404, 'USER_NOT_FOUND', 'User not found')
-    if (!await bcrypt.compare(currentPassword, candidate.password)) {
+    if (!(await bcrypt.compare(currentPassword, candidate.password))) {
       return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    return db.transaction(async (tx) => {
+    return db.transaction(async tx => {
       await tx.execute(userSessionLock(userId))
-      const [current] = await tx.select({ id: users.id, password: users.password, email: users.email, role: users.role, locale: users.locale }).from(users)
-        .where(eq(users.id, userId)).limit(1)
+      const [current] = await tx
+        .select({ id: users.id, password: users.password, email: users.email, role: users.role, locale: users.locale })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
       if (!current) return fail(404, 'USER_NOT_FOUND', 'User not found')
-      if (current.password !== candidate.password && !await bcrypt.compare(currentPassword, current.password)) {
+      if (current.password !== candidate.password && !(await bcrypt.compare(currentPassword, current.password))) {
         return fail(401, 'AUTH_LOGIN_INVALID_CREDENTIALS', 'Invalid email or password')
       }
-      const [updated] = await tx.update(users).set({
-        password: hashedPassword,
-        tokenVersion: sql`${users.tokenVersion} + 1`,
-        updatedAt: now(),
-      }).where(eq(users.id, userId)).returning({ tokenVersion: users.tokenVersion })
+      const [updated] = await tx
+        .update(users)
+        .set({
+          password: hashedPassword,
+          tokenVersion: sql`${users.tokenVersion} + 1`,
+          updatedAt: now(),
+        })
+        .where(eq(users.id, userId))
+        .returning({ tokenVersion: users.tokenVersion })
       if (!updated) return fail(404, 'USER_NOT_FOUND', 'User not found')
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId))
       await options.afterPasswordChanged?.(tx, { email: current.email, locale: current.locale })
@@ -509,10 +589,14 @@ export function createAuthSessionService({
       // Issued against the raised token version, so credentials minted before
       // the change stay invalid.
       const sessionUser: SessionUser = {
-        id: current.id.toString(), email: current.email, role: current.role, tokenVersion: updated.tokenVersion,
+        id: current.id.toString(),
+        email: current.email,
+        role: current.role,
+        tokenVersion: updated.tokenVersion,
       }
       const [accessToken, refreshToken] = await Promise.all([
-        signToken(sessionUser, 'access'), signToken(sessionUser, 'refresh'),
+        signToken(sessionUser, 'access'),
+        signToken(sessionUser, 'refresh'),
       ])
       await tx.insert(refreshTokens).values({
         token: hashRefreshToken(refreshToken),

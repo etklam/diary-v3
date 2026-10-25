@@ -70,8 +70,6 @@
   font-weight: 650;
 }
 
-
-
 .editor-restore {
   display: flex;
   flex-wrap: wrap;
@@ -225,5 +223,7 @@
   }
 }
 @media (max-height: 500px) and (max-width: 767px) {
-  .editor:not(.quick-dialog .editor) > form > .editor-footer { position: static; }
+  .editor:not(.quick-dialog .editor) > form > .editor-footer {
+    position: static;
+  }
 }

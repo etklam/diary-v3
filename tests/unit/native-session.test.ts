@@ -1,303 +1,401 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createNativeSession, NativeSessionError, NO_AUTOMATIC_SESSION_RETRY_HEADER, type NativeSessionStorage } from '../../packages/api-client/src/index';
-import type { NativeSession } from '../../packages/contracts/src/index';
+import { describe, expect, it, vi } from 'vitest'
+import {
+  createNativeSession,
+  NativeSessionError,
+  NO_AUTOMATIC_SESSION_RETRY_HEADER,
+  type NativeSessionStorage,
+} from '../../packages/api-client/src/index'
+import type { NativeSession } from '../../packages/contracts/src/index'
 
-const baseUrl = 'https://diary.test';
+const baseUrl = 'https://diary.test'
 function pair(suffix: string): NativeSession {
   return {
-    accessToken: `access-${suffix}`, refreshToken: `refresh-${suffix}`,
-    accessTokenExpiresAt: '2026-09-05T10:00:00.000Z', refreshTokenExpiresAt: '2026-10-05T10:00:00.000Z',
-    user: { id: '1', email: 'test@example.com', name: null, role: 'USER', timezone: 'UTC',
-      expectedMonthlyTrades: 0, expectedProfit: '0', expectedAvgHolding: '0', defaultWorkspacePage: 'timeline' },
-  };
+    accessToken: `access-${suffix}`,
+    refreshToken: `refresh-${suffix}`,
+    accessTokenExpiresAt: '2026-09-05T10:00:00.000Z',
+    refreshTokenExpiresAt: '2026-10-05T10:00:00.000Z',
+    user: {
+      id: '1',
+      email: 'test@example.com',
+      name: null,
+      role: 'USER',
+      timezone: 'UTC',
+      expectedMonthlyTrades: 0,
+      expectedProfit: '0',
+      expectedAvgHolding: '0',
+      defaultWorkspacePage: 'timeline',
+    },
+  }
 }
 function storage(initial: NativeSession | null = pair('a')) {
-  let value = initial;
+  let value = initial
   return {
     get: vi.fn(() => value),
-    set: vi.fn((session: NativeSession) => { value = session; }),
-    clear: vi.fn(() => { value = null; }),
-  } satisfies NativeSessionStorage;
+    set: vi.fn((session: NativeSession) => {
+      value = session
+    }),
+    clear: vi.fn(() => {
+      value = null
+    }),
+  } satisfies NativeSessionStorage
 }
 function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => { resolve = done; });
-  return { promise, resolve };
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(done => {
+    resolve = done
+  })
+  return { promise, resolve }
 }
-const sessionResponse = (suffix: string) => Response.json({ ok: true, data: pair(suffix) });
-const apiError = (status: number, code: string, details: unknown = null) => Response.json({
-  statusCode: status,
-  statusMessage: 'English response text is not the client error key',
-  data: { code, details, requestId: 'request-test' },
-}, { status });
+const sessionResponse = (suffix: string) => Response.json({ ok: true, data: pair(suffix) })
+const apiError = (status: number, code: string, details: unknown = null) =>
+  Response.json(
+    {
+      statusCode: status,
+      statusMessage: 'English response text is not the client error key',
+      data: { code, details, requestId: 'request-test' },
+    },
+    { status },
+  )
 
 describe('native session standard-fetch transport', () => {
   it('exposes invalid login as a structured error without using the response message', async () => {
-    const store = storage(null);
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async () => apiError(401, 'AUTH_LOGIN_INVALID_CREDENTIALS') });
+    const store = storage(null)
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async () => apiError(401, 'AUTH_LOGIN_INVALID_CREDENTIALS'),
+    })
     await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toMatchObject({
       name: 'NativeSessionError',
       message: 'AUTH_LOGIN_INVALID_CREDENTIALS',
       status: 401,
       code: 'AUTH_LOGIN_INVALID_CREDENTIALS',
       details: null,
-    });
-    expect(store.get()).toBeNull();
-  });
+    })
+    expect(store.get()).toBeNull()
+  })
 
   it('preserves the refresh-expired code and only safe error details', async () => {
-    const store = storage();
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async () => apiError(401, 'AUTH_TOKEN_EXPIRED', [
-      { field: 'refreshToken', message: 'Expired', value: 'secret-refresh-token' },
-    ]) });
-    let error: unknown;
+    const store = storage()
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async () =>
+        apiError(401, 'AUTH_TOKEN_EXPIRED', [
+          { field: 'refreshToken', message: 'Expired', value: 'secret-refresh-token' },
+        ]),
+    })
+    let error: unknown
     try {
-      await client.refresh();
+      await client.refresh()
     } catch (caught) {
-      error = caught;
+      error = caught
     }
-    expect(error).toBeInstanceOf(NativeSessionError);
-    expect(error).toMatchObject({ status: 401, message: 'AUTH_TOKEN_EXPIRED', code: 'AUTH_TOKEN_EXPIRED', details: [{ field: 'refreshToken', message: 'Expired' }] });
-    expect((error as NativeSessionError).details?.[0]).not.toHaveProperty('value');
-    expect(store.get()).toBeNull();
-  });
+    expect(error).toBeInstanceOf(NativeSessionError)
+    expect(error).toMatchObject({
+      status: 401,
+      message: 'AUTH_TOKEN_EXPIRED',
+      code: 'AUTH_TOKEN_EXPIRED',
+      details: [{ field: 'refreshToken', message: 'Expired' }],
+    })
+    expect((error as NativeSessionError).details?.[0]).not.toHaveProperty('value')
+    expect(store.get()).toBeNull()
+  })
 
   it('keeps bootstrap network failures distinct from structured HTTP errors', async () => {
-    const failure = new TypeError('Offline');
-    const client = createNativeSession({ baseUrl, storage: storage(null), fetch: async () => { throw failure; } });
-    await expect(client.login({ email: 'test@example.com', password: 'password' })).rejects.toBe(failure);
-  });
+    const failure = new TypeError('Offline')
+    const client = createNativeSession({
+      baseUrl,
+      storage: storage(null),
+      fetch: async () => {
+        throw failure
+      },
+    })
+    await expect(client.login({ email: 'test@example.com', password: 'password' })).rejects.toBe(failure)
+  })
 
   it('retries a rejected storage read and coalesces concurrent recovery reads', async () => {
-    const recovered = deferred<NativeSession | null>();
-    const failure = new Error('Secure storage unavailable');
-    let reads = 0;
+    const recovered = deferred<NativeSession | null>()
+    const failure = new Error('Secure storage unavailable')
+    let reads = 0
     const store = {
-      get: vi.fn(() => reads++ === 0 ? Promise.reject(failure) : recovered.promise),
+      get: vi.fn(() => (reads++ === 0 ? Promise.reject(failure) : recovered.promise)),
       set: vi.fn(),
       clear: vi.fn(),
-    } satisfies NativeSessionStorage;
-    const authorizations: Array<string | null> = [];
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      authorizations.push(new Request(input).headers.get('authorization'));
-      return new Response(null, { status: 200 });
-    } });
+    } satisfies NativeSessionStorage
+    const authorizations: Array<string | null> = []
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        authorizations.push(new Request(input).headers.get('authorization'))
+        return new Response(null, { status: 200 })
+      },
+    })
 
-    await expect(client.fetch(`${baseUrl}/api/first`)).rejects.toBe(failure);
-    const requests = [client.fetch(`${baseUrl}/api/second`), client.fetch(`${baseUrl}/api/third`)];
-    expect(store.get).toHaveBeenCalledTimes(2);
-    recovered.resolve(pair('a'));
-    expect((await Promise.all(requests)).map((response) => response.status)).toEqual([200, 200]);
-    expect(authorizations).toEqual(['Bearer access-a', 'Bearer access-a']);
-  });
+    await expect(client.fetch(`${baseUrl}/api/first`)).rejects.toBe(failure)
+    const requests = [client.fetch(`${baseUrl}/api/second`), client.fetch(`${baseUrl}/api/third`)]
+    expect(store.get).toHaveBeenCalledTimes(2)
+    recovered.resolve(pair('a'))
+    expect((await Promise.all(requests)).map(response => response.status)).toEqual([200, 200])
+    expect(authorizations).toEqual(['Bearer access-a', 'Bearer access-a'])
+  })
 
   it('can retry logout after a rejected storage read', async () => {
-    const failure = new Error('Secure storage unavailable');
-    let reads = 0;
+    const failure = new Error('Secure storage unavailable')
+    let reads = 0
     const store = {
-      get: vi.fn(() => reads++ === 0 ? Promise.reject(failure) : pair('a')),
+      get: vi.fn(() => (reads++ === 0 ? Promise.reject(failure) : pair('a'))),
       set: vi.fn(),
       clear: vi.fn(),
-    } satisfies NativeSessionStorage;
-    const transport = vi.fn(async () => new Response(null, { status: 204 }));
-    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
+    } satisfies NativeSessionStorage
+    const transport = vi.fn(async () => new Response(null, { status: 204 }))
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport })
 
-    await expect(client.logout()).rejects.toBe(failure);
-    await expect(client.logout()).resolves.toBeUndefined();
-    expect(store.get).toHaveBeenCalledTimes(2);
-    expect(store.clear).toHaveBeenCalledTimes(1);
-    expect(transport).toHaveBeenCalledTimes(1);
-  });
+    await expect(client.logout()).rejects.toBe(failure)
+    await expect(client.logout()).resolves.toBeUndefined()
+    expect(store.get).toHaveBeenCalledTimes(2)
+    expect(store.clear).toHaveBeenCalledTimes(1)
+    expect(transport).toHaveBeenCalledTimes(1)
+  })
 
   it('coalesces concurrent 401s, preserves POST bodies, and retries each once without cookies', async () => {
-    const store = storage();
-    const refresh = deferred<Response>();
-    const refreshStarted = deferred<void>();
-    let refreshCount = 0;
-    const bodies: string[] = [];
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      const request = new Request(input);
-      expect(request.credentials).toBe('omit');
-      expect(request.headers.has('cookie')).toBe(false);
-      expect(request.headers.has('x-csrf-token')).toBe(false);
-      if (request.url.endsWith('/refresh')) {
-        refreshCount++;
-        expect(request.headers.has('authorization')).toBe(false);
-        expect(await request.json()).toEqual({ refreshToken: 'refresh-a' });
-        refreshStarted.resolve();
-        return refresh.promise;
-      }
-      bodies.push(await request.text());
-      return new Response(null, { status: request.headers.get('authorization') === 'Bearer access-b' ? 200 : 401 });
-    } });
-    const send = () => client.fetch(`${baseUrl}/api/diaries`, {
-      method: 'POST', body: '{"title":"same body"}', headers: { cookie: 'old=web', 'x-csrf-token': 'web' },
-    });
-    const requests = [send(), send(), send()];
-    await refreshStarted.promise;
-    refresh.resolve(sessionResponse('b'));
-    expect((await Promise.all(requests)).map((response) => response.status)).toEqual([200, 200, 200]);
-    expect(refreshCount).toBe(1);
-    expect(bodies).toEqual(Array(6).fill('{"title":"same body"}'));
-    expect(store.get()).toEqual(pair('b'));
-  });
+    const store = storage()
+    const refresh = deferred<Response>()
+    const refreshStarted = deferred<void>()
+    let refreshCount = 0
+    const bodies: string[] = []
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        const request = new Request(input)
+        expect(request.credentials).toBe('omit')
+        expect(request.headers.has('cookie')).toBe(false)
+        expect(request.headers.has('x-csrf-token')).toBe(false)
+        if (request.url.endsWith('/refresh')) {
+          refreshCount++
+          expect(request.headers.has('authorization')).toBe(false)
+          expect(await request.json()).toEqual({ refreshToken: 'refresh-a' })
+          refreshStarted.resolve()
+          return refresh.promise
+        }
+        bodies.push(await request.text())
+        return new Response(null, { status: request.headers.get('authorization') === 'Bearer access-b' ? 200 : 401 })
+      },
+    })
+    const send = () =>
+      client.fetch(`${baseUrl}/api/diaries`, {
+        method: 'POST',
+        body: '{"title":"same body"}',
+        headers: { cookie: 'old=web', 'x-csrf-token': 'web' },
+      })
+    const requests = [send(), send(), send()]
+    await refreshStarted.promise
+    refresh.resolve(sessionResponse('b'))
+    expect((await Promise.all(requests)).map(response => response.status)).toEqual([200, 200, 200])
+    expect(refreshCount).toBe(1)
+    expect(bodies).toEqual(Array(6).fill('{"title":"same body"}'))
+    expect(store.get()).toEqual(pair('b'))
+  })
 
   it('uses the rotated token for an old 401 arriving after refresh completed', async () => {
-    const late = deferred<Response>();
-    let refreshCount = 0;
-    const client = createNativeSession({ baseUrl, storage: storage(), fetch: async (input) => {
-      const request = new Request(input);
-      if (request.url.endsWith('/refresh')) { refreshCount++; return sessionResponse('b'); }
-      if (request.headers.get('authorization') === 'Bearer access-b') return new Response(null, { status: 200 });
-      return request.url.endsWith('/late') ? late.promise : new Response(null, { status: 401 });
-    } });
-    const pending = client.fetch(`${baseUrl}/api/late`);
-    expect((await client.fetch(`${baseUrl}/api/fast`)).status).toBe(200);
-    late.resolve(new Response(null, { status: 401 }));
-    expect((await pending).status).toBe(200);
-    expect(refreshCount).toBe(1);
-  });
+    const late = deferred<Response>()
+    let refreshCount = 0
+    const client = createNativeSession({
+      baseUrl,
+      storage: storage(),
+      fetch: async input => {
+        const request = new Request(input)
+        if (request.url.endsWith('/refresh')) {
+          refreshCount++
+          return sessionResponse('b')
+        }
+        if (request.headers.get('authorization') === 'Bearer access-b') return new Response(null, { status: 200 })
+        return request.url.endsWith('/late') ? late.promise : new Response(null, { status: 401 })
+      },
+    })
+    const pending = client.fetch(`${baseUrl}/api/late`)
+    expect((await client.fetch(`${baseUrl}/api/fast`)).status).toBe(200)
+    late.resolve(new Response(null, { status: 401 }))
+    expect((await pending).status).toBe(200)
+    expect(refreshCount).toBe(1)
+  })
 
-  it.each(['rejected', 'lost-response', 'invalid-json'])('clears on %s refresh and never retries the old rotation token', async (mode) => {
-    const store = storage();
-    let refreshCount = 0;
-    let protectedCount = 0;
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      if (new Request(input).url.endsWith('/refresh')) {
-        refreshCount++;
-        if (mode === 'lost-response') throw new TypeError('Network response lost');
-        return mode === 'invalid-json' ? Response.json({}) : new Response(null, { status: 401 });
-      }
-      protectedCount++;
-      return new Response(null, { status: 401 });
-    } });
-    expect((await client.fetch(`${baseUrl}/api/diaries`)).status).toBe(401);
-    expect(store.get()).toBeNull();
-    await client.fetch(`${baseUrl}/api/diaries`);
-    expect(refreshCount).toBe(1);
-    expect(protectedCount).toBe(2);
-  });
+  it.each(['rejected', 'lost-response', 'invalid-json'])(
+    'clears on %s refresh and never retries the old rotation token',
+    async mode => {
+      const store = storage()
+      let refreshCount = 0
+      let protectedCount = 0
+      const client = createNativeSession({
+        baseUrl,
+        storage: store,
+        fetch: async input => {
+          if (new Request(input).url.endsWith('/refresh')) {
+            refreshCount++
+            if (mode === 'lost-response') throw new TypeError('Network response lost')
+            return mode === 'invalid-json' ? Response.json({}) : new Response(null, { status: 401 })
+          }
+          protectedCount++
+          return new Response(null, { status: 401 })
+        },
+      })
+      expect((await client.fetch(`${baseUrl}/api/diaries`)).status).toBe(401)
+      expect(store.get()).toBeNull()
+      await client.fetch(`${baseUrl}/api/diaries`)
+      expect(refreshCount).toBe(1)
+      expect(protectedCount).toBe(2)
+    },
+  )
 
   it('ends the local session when the one protected retry also returns 401', async () => {
-    const store = storage();
-    const calls: string[] = [];
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      const request = new Request(input);
-      calls.push(request.url);
-      return request.url.endsWith('/refresh') ? sessionResponse('b') : new Response(null, { status: 401 });
-    } });
-    expect((await client.fetch(`${baseUrl}/api/diaries`)).status).toBe(401);
-    expect(calls).toHaveLength(3);
-    expect(store.get()).toBeNull();
-  });
+    const store = storage()
+    const calls: string[] = []
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        const request = new Request(input)
+        calls.push(request.url)
+        return request.url.endsWith('/refresh') ? sessionResponse('b') : new Response(null, { status: 401 })
+      },
+    })
+    expect((await client.fetch(`${baseUrl}/api/diaries`)).status).toBe(401)
+    expect(calls).toHaveLength(3)
+    expect(store.get()).toBeNull()
+  })
 
   it('does not refresh or replay an explicitly marked uncertain write', async () => {
-    const store = storage();
+    const store = storage()
     const transport = vi.fn(async (input: RequestInfo | URL) => {
-      expect(new Request(input).headers.get(NO_AUTOMATIC_SESSION_RETRY_HEADER)).toBe('1');
-      return new Response(null, { status: 401 });
-    });
-    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
+      expect(new Request(input).headers.get(NO_AUTOMATIC_SESSION_RETRY_HEADER)).toBe('1')
+      return new Response(null, { status: 401 })
+    })
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport })
     const response = await client.fetch(`${baseUrl}/api/diaries`, {
       method: 'POST',
       headers: { [NO_AUTOMATIC_SESSION_RETRY_HEADER]: '1' },
       body: '{"appendToToday":true,"content":"Keep one copy"}',
-    });
-    expect(response.status).toBe(401);
-    expect(transport).toHaveBeenCalledTimes(1);
-    expect(store.get()).toEqual(pair('a'));
-  });
+    })
+    expect(response.status).toBe(401)
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect(store.get()).toEqual(pair('a'))
+  })
 
   it('does not recursively refresh bootstrap 401s or attach stored authorization', async () => {
-    const store = storage();
+    const store = storage()
     const transport = vi.fn(async (input: RequestInfo | URL) => {
-      expect(new Request(input).headers.has('authorization')).toBe(false);
-      return new Response(null, { status: 401 });
-    });
-    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
-    await client.fetch(`${baseUrl}/api/auth/native/login`, { method: 'POST' });
-    expect(transport).toHaveBeenCalledTimes(1);
-    await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toMatchObject({ status: 401, code: null });
-    expect(transport).toHaveBeenCalledTimes(2);
-    expect(store.get()).toBeNull();
-  });
+      expect(new Request(input).headers.has('authorization')).toBe(false)
+      return new Response(null, { status: 401 })
+    })
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport })
+    await client.fetch(`${baseUrl}/api/auth/native/login`, { method: 'POST' })
+    expect(transport).toHaveBeenCalledTimes(1)
+    await expect(client.login({ email: 'test@example.com', password: 'incorrect' })).rejects.toMatchObject({
+      status: 401,
+      code: null,
+    })
+    expect(transport).toHaveBeenCalledTimes(2)
+    expect(store.get()).toBeNull()
+  })
 
   it('logs in with JSON and clears local state even if remote logout fails', async () => {
-    const store = storage(null);
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      const request = new Request(input);
-      expect(request.credentials).toBe('omit');
-      if (request.url.endsWith('/login')) {
-        expect(await request.json()).toEqual({ email: 'test@example.com', password: 'password' });
-        return sessionResponse('b');
-      }
-      expect(await request.json()).toEqual({ refreshToken: 'refresh-b' });
-      throw new TypeError('Offline');
-    } });
-    await client.login({ email: 'test@example.com', password: 'password' });
-    expect(store.get()).toEqual(pair('b'));
-    await expect(client.logout()).rejects.toThrow('Offline');
-    expect(store.get()).toBeNull();
-    await client.logout();
-  });
+    const store = storage(null)
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        const request = new Request(input)
+        expect(request.credentials).toBe('omit')
+        if (request.url.endsWith('/login')) {
+          expect(await request.json()).toEqual({ email: 'test@example.com', password: 'password' })
+          return sessionResponse('b')
+        }
+        expect(await request.json()).toEqual({ refreshToken: 'refresh-b' })
+        throw new TypeError('Offline')
+      },
+    })
+    await client.login({ email: 'test@example.com', password: 'password' })
+    expect(store.get()).toEqual(pair('b'))
+    await expect(client.logout()).rejects.toThrow('Offline')
+    expect(store.get()).toBeNull()
+    await client.logout()
+  })
 
   it('invalidates a rejected login when secure storage cannot persist the pair', async () => {
-    let stored: NativeSession | null = null;
+    let stored: NativeSession | null = null
     const store = {
       get: vi.fn(() => stored),
       set: vi.fn(async (session: NativeSession) => {
-        stored = session;
-        throw new Error('Secure storage unavailable');
+        stored = session
+        throw new Error('Secure storage unavailable')
       }),
-      clear: vi.fn(() => { stored = null; }),
-    } satisfies NativeSessionStorage;
-    const authorizations: Array<string | null> = [];
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      const request = new Request(input);
-      if (request.url.endsWith('/login')) return sessionResponse('b');
-      authorizations.push(request.headers.get('authorization'));
-      return Response.json({ ok: true });
-    } });
+      clear: vi.fn(() => {
+        stored = null
+      }),
+    } satisfies NativeSessionStorage
+    const authorizations: Array<string | null> = []
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        const request = new Request(input)
+        if (request.url.endsWith('/login')) return sessionResponse('b')
+        authorizations.push(request.headers.get('authorization'))
+        return Response.json({ ok: true })
+      },
+    })
 
-    await expect(client.login({ email: 'test@example.com', password: 'password' }))
-      .rejects.toThrow('Secure storage unavailable');
-    expect(store.clear).toHaveBeenCalledTimes(2);
-    expect(store.get()).toBeNull();
-    expect((await client.fetch(`${baseUrl}/api/auth/me`)).status).toBe(200);
-    expect(authorizations).toEqual([null]);
-  });
+    await expect(client.login({ email: 'test@example.com', password: 'password' })).rejects.toThrow(
+      'Secure storage unavailable',
+    )
+    expect(store.clear).toHaveBeenCalledTimes(2)
+    expect(store.get()).toBeNull()
+    expect((await client.fetch(`${baseUrl}/api/auth/me`)).status).toBe(200)
+    expect(authorizations).toEqual([null])
+  })
 
   it('does not resurrect a logged-out session when an in-flight refresh responds', async () => {
-    const store = storage();
-    const response = deferred<Response>();
-    const started = deferred<void>();
-    const client = createNativeSession({ baseUrl, storage: store, fetch: async (input) => {
-      if (new Request(input).url.endsWith('/refresh')) { started.resolve(); return response.promise; }
-      return Response.json({ ok: true });
-    } });
-    const refresh = client.refresh();
-    await started.promise;
-    await client.logout();
-    response.resolve(sessionResponse('b'));
-    await expect(refresh).rejects.toThrow('changed');
-    expect(store.get()).toBeNull();
-  });
+    const store = storage()
+    const response = deferred<Response>()
+    const started = deferred<void>()
+    const client = createNativeSession({
+      baseUrl,
+      storage: store,
+      fetch: async input => {
+        if (new Request(input).url.endsWith('/refresh')) {
+          started.resolve()
+          return response.promise
+        }
+        return Response.json({ ok: true })
+      },
+    })
+    const refresh = client.refresh()
+    await started.promise
+    await client.logout()
+    response.resolve(sessionResponse('b'))
+    await expect(refresh).rejects.toThrow('changed')
+    expect(store.get()).toBeNull()
+  })
 
   it('preserves the session after a wrong current password without retrying the operation', async () => {
-    const store = storage();
-    const transport = vi.fn(async () => Response.json({ data: { code: 'AUTH_LOGIN_INVALID_CREDENTIALS' } }, { status: 401 }));
-    const client = createNativeSession({ baseUrl, storage: store, fetch: transport });
-    const response = await client.fetch(`${baseUrl}/api/user/password`, { method: 'PUT', body: '{}' });
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ data: { code: 'AUTH_LOGIN_INVALID_CREDENTIALS' } });
-    expect(transport).toHaveBeenCalledTimes(1);
-    expect(store.get()).toEqual(pair('a'));
-  });
+    const store = storage()
+    const transport = vi.fn(async () =>
+      Response.json({ data: { code: 'AUTH_LOGIN_INVALID_CREDENTIALS' } }, { status: 401 }),
+    )
+    const client = createNativeSession({ baseUrl, storage: store, fetch: transport })
+    const response = await client.fetch(`${baseUrl}/api/user/password`, { method: 'PUT', body: '{}' })
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ data: { code: 'AUTH_LOGIN_INVALID_CREDENTIALS' } })
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect(store.get()).toEqual(pair('a'))
+  })
 
   it('does not leak tokens to another origin', async () => {
-    const transport = vi.fn();
-    const client = createNativeSession({ baseUrl, storage: storage(), fetch: transport });
-    await expect(client.fetch('https://foreign.test/api/diaries')).rejects.toThrow('another origin');
-    expect(transport).not.toHaveBeenCalled();
-  });
-});
+    const transport = vi.fn()
+    const client = createNativeSession({ baseUrl, storage: storage(), fetch: transport })
+    await expect(client.fetch('https://foreign.test/api/diaries')).rejects.toThrow('another origin')
+    expect(transport).not.toHaveBeenCalled()
+  })
+})

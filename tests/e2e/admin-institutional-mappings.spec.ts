@@ -13,10 +13,32 @@ const timestamps = {
 
 function makeSecurity(id: string, issuer: string, cusip: string) {
   return {
-    id, issuer, titleOfClass: 'Common Stock', exchange: 'NASDAQ', securityType: 'EQUITY', sector: 'Technology', industry: 'Software', status: 'ACTIVE',
-    sourceUrl: 'https://issuer.example.test/investors/security', sourceVerifiedBy: '42', sourceVerifiedAt: timestamps.created,
-    createdAt: timestamps.created, updatedAt: timestamps.created,
-    identifiers: [{ id: `${id}1`, supersedesIdentifierId: null, type: 'CUSIP', value: cusip, validFrom: '2020-01-01', validTo: null, sourceUrl: 'https://issuer.example.test/investors/security', sourceVerifiedBy: '42', sourceVerifiedAt: timestamps.created }],
+    id,
+    issuer,
+    titleOfClass: 'Common Stock',
+    exchange: 'NASDAQ',
+    securityType: 'EQUITY',
+    sector: 'Technology',
+    industry: 'Software',
+    status: 'ACTIVE',
+    sourceUrl: 'https://issuer.example.test/investors/security',
+    sourceVerifiedBy: '42',
+    sourceVerifiedAt: timestamps.created,
+    createdAt: timestamps.created,
+    updatedAt: timestamps.created,
+    identifiers: [
+      {
+        id: `${id}1`,
+        supersedesIdentifierId: null,
+        type: 'CUSIP',
+        value: cusip,
+        validFrom: '2020-01-01',
+        validTo: null,
+        sourceUrl: 'https://issuer.example.test/investors/security',
+        sourceVerifiedBy: '42',
+        sourceVerifiedAt: timestamps.created,
+      },
+    ],
   }
 }
 
@@ -25,10 +47,27 @@ const existingSecurity = makeSecurity('7002', 'Synthetic Corrected Inc.', '22222
 function mappingRow() {
   return {
     holding: {
-      id: '5001', filingId: '4001', accession, periodEnd: timestamps.reportedPeriod, issuer: 'Synthetic Filing Issuer', titleOfClass: 'Common Stock',
-      cusip: '333333333', figi: null, quantity: '1000.00000000', quantityType: 'SH', reportedValue: '25000.00000000', putCall: null,
+      id: '5001',
+      filingId: '4001',
+      accession,
+      periodEnd: timestamps.reportedPeriod,
+      issuer: 'Synthetic Filing Issuer',
+      titleOfClass: 'Common Stock',
+      cusip: '333333333',
+      figi: null,
+      quantity: '1000.00000000',
+      quantityType: 'SH',
+      reportedValue: '25000.00000000',
+      putCall: null,
     },
-    resolution: { status: 'UNRESOLVED', securityId: null, reason: 'NO_IDENTIFIER_MATCH', candidateSecurityIds: [], algorithmVersion: 'exact-identifiers-v1', resolvedAt: timestamps.created },
+    resolution: {
+      status: 'UNRESOLVED',
+      securityId: null,
+      reason: 'NO_IDENTIFIER_MATCH',
+      candidateSecurityIds: [],
+      algorithmVersion: 'exact-identifiers-v1',
+      resolvedAt: timestamps.created,
+    },
     security: null,
     candidates: [],
     override: null,
@@ -36,8 +75,18 @@ function mappingRow() {
   }
 }
 
-type MappingFixture = Omit<ReturnType<typeof mappingRow>, 'resolution' | 'security' | 'candidates' | 'override' | 'overrideHistory'> & {
-  resolution: { status: string; securityId: string | null; reason: string; candidateSecurityIds: string[]; algorithmVersion: string; resolvedAt: string }
+type MappingFixture = Omit<
+  ReturnType<typeof mappingRow>,
+  'resolution' | 'security' | 'candidates' | 'override' | 'overrideHistory'
+> & {
+  resolution: {
+    status: string
+    securityId: string | null
+    reason: string
+    candidateSecurityIds: string[]
+    algorithmVersion: string
+    resolvedAt: string
+  }
   security: ReturnType<typeof makeSecurity> | null
   candidates: Array<Pick<ReturnType<typeof makeSecurity>, 'id' | 'issuer' | 'titleOfClass' | 'status' | 'identifiers'>>
   override: Record<string, unknown> | null
@@ -45,7 +94,9 @@ type MappingFixture = Omit<ReturnType<typeof mappingRow>, 'resolution' | 'securi
 }
 
 async function signInAdmin(page: Page) {
-  expect((await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status()).toBe(200)
+  expect(
+    (await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 }
 
@@ -77,46 +128,102 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
       const status = url.searchParams.get('status')
       const isManual = row.override !== null
       const include = status === 'MANUAL_OVERRIDE' ? isManual : !isManual
-      const matches = include && (!search || search === accession || row.holding.issuer.includes(search) || row.holding.cusip === search)
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        data: matches ? [row] : [],
-        pagination: { limit: 20, offset: Number(url.searchParams.get('offset') ?? 0), total: matches ? 1 : 0 },
-        filing: search === accession ? { id: '4001', accession, periodEnd: timestamps.reportedPeriod, status: 'PARSED', mappingCoverage: isManual ? '100.00' : '0.00', parsedRowCount: 1 } : null,
-      }) })
+      const matches =
+        include &&
+        (!search || search === accession || row.holding.issuer.includes(search) || row.holding.cusip === search)
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: matches ? [row] : [],
+          pagination: { limit: 20, offset: Number(url.searchParams.get('offset') ?? 0), total: matches ? 1 : 0 },
+          filing:
+            search === accession
+              ? {
+                  id: '4001',
+                  accession,
+                  periodEnd: timestamps.reportedPeriod,
+                  status: 'PARSED',
+                  mappingCoverage: isManual ? '100.00' : '0.00',
+                  parsedRowCount: 1,
+                }
+              : null,
+        }),
+      })
       return
     }
     if (path === '/api/admin/institutional/securities' && request.method() === 'GET') {
       const q = url.searchParams.get('q') ?? ''
       const data = q.toLowerCase().includes('corrected') || q === '222222222' ? [existingSecurity] : []
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data, pagination: { limit: 20, offset: 0, total: data.length } }) })
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data, pagination: { limit: 20, offset: 0, total: data.length } }),
+      })
       return
     }
     if (path === '/api/admin/institutional/securities' && request.method() === 'POST') {
-      const body = request.postDataJSON() as { issuer: string; titleOfClass: string; identifiers: Array<{ value: string }> }
+      const body = request.postDataJSON() as {
+        issuer: string
+        titleOfClass: string
+        identifiers: Array<{ value: string }>
+      }
       createdSecurity = makeSecurity('7001', body.issuer, body.identifiers[0]?.value ?? '333333333')
       currentSecurity = createdSecurity
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
-        data: createdSecurity,
-        mappingRefreshJob: {
-          id: '8201', securityId: createdSecurity.id, status: 'PENDING', lastFilingId: null,
-          processedFilingCount: 0, lastBatchProcessed: 0, lastError: null,
-          updatedAt: timestamps.created, completedAt: null,
-        },
-      }) })
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: createdSecurity,
+          mappingRefreshJob: {
+            id: '8201',
+            securityId: createdSecurity.id,
+            status: 'PENDING',
+            lastFilingId: null,
+            processedFilingCount: 0,
+            lastBatchProcessed: 0,
+            lastError: null,
+            updatedAt: timestamps.created,
+            completedAt: null,
+          },
+        }),
+      })
       return
     }
     const eventMatch = /^\/api\/admin\/institutional\/securities\/(\d+)\/identity-events$/.exec(path)
     if (eventMatch && request.method() === 'GET') {
       const data = events[eventMatch[1]!] ?? []
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data, pagination: { limit: 50, offset: 0, total: data.length } }) })
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data, pagination: { limit: 50, offset: 0, total: data.length } }),
+      })
       return
     }
     if (eventMatch && request.method() === 'POST') {
-      const body = request.postDataJSON() as { kind: string; effectiveOn: string; newTicker?: string; reason: string; evidenceUrl: string; supersedesEventId?: string }
+      const body = request.postDataJSON() as {
+        kind: string
+        effectiveOn: string
+        newTicker?: string
+        reason: string
+        evidenceUrl: string
+        supersedesEventId?: string
+      }
       const item = {
-        id: '8101', kind: body.kind, fromSecurityId: eventMatch[1], toSecurityId: eventMatch[1], effectiveOn: body.effectiveOn,
-        newTicker: body.newTicker ?? null, newSharesPerOldShare: null, comparable: true, reason: body.reason,
-        evidenceUrl: body.evidenceUrl, actorUserId: '42', verifiedAt: timestamps.created, createdAt: timestamps.created, supersedesEventId: body.supersedesEventId ?? null,
+        id: '8101',
+        kind: body.kind,
+        fromSecurityId: eventMatch[1],
+        toSecurityId: eventMatch[1],
+        effectiveOn: body.effectiveOn,
+        newTicker: body.newTicker ?? null,
+        newSharesPerOldShare: null,
+        comparable: true,
+        reason: body.reason,
+        evidenceUrl: body.evidenceUrl,
+        actorUserId: '42',
+        verifiedAt: timestamps.created,
+        createdAt: timestamps.created,
+        supersedesEventId: body.supersedesEventId ?? null,
       }
       events[eventMatch[1]!] = [item]
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ data: item }) })
@@ -129,22 +236,58 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
       const priorId = currentOverride?.id as string | undefined
       currentSecurity = body.securityId === existingSecurity.id ? existingSecurity : createdSecurity
       const savedOverride = {
-        id: String(9000 + overrideVersion), version: overrideVersion, actorUserId: '42', createdAt: timestamps.created,
-        evidenceUrl: body.evidenceUrl, reason: body.reason, supersedesOverrideId: priorId ?? null,
+        id: String(9000 + overrideVersion),
+        version: overrideVersion,
+        actorUserId: '42',
+        createdAt: timestamps.created,
+        evidenceUrl: body.evidenceUrl,
+        reason: body.reason,
+        supersedesOverrideId: priorId ?? null,
       }
       currentOverride = savedOverride
       row = {
         ...row,
-        resolution: { ...row.resolution, status: 'MANUAL_OVERRIDE', securityId: body.securityId, reason: 'ADMIN_OVERRIDE', candidateSecurityIds: [body.securityId] },
+        resolution: {
+          ...row.resolution,
+          status: 'MANUAL_OVERRIDE',
+          securityId: body.securityId,
+          reason: 'ADMIN_OVERRIDE',
+          candidateSecurityIds: [body.securityId],
+        },
         security: currentSecurity,
-        candidates: currentSecurity ? [{ id: currentSecurity.id, issuer: currentSecurity.issuer, titleOfClass: currentSecurity.titleOfClass, status: currentSecurity.status, identifiers: currentSecurity.identifiers }] : [],
+        candidates: currentSecurity
+          ? [
+              {
+                id: currentSecurity.id,
+                issuer: currentSecurity.issuer,
+                titleOfClass: currentSecurity.titleOfClass,
+                status: currentSecurity.status,
+                identifiers: currentSecurity.identifiers,
+              },
+            ]
+          : [],
         override: savedOverride,
         overrideHistory: [savedOverride, ...row.overrideHistory],
       }
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ data: { holdingId: overrideMatch[1], status: 'MANUAL_OVERRIDE', security: currentSecurity, override: savedOverride } }) })
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            holdingId: overrideMatch[1],
+            status: 'MANUAL_OVERRIDE',
+            security: currentSecurity,
+            override: savedOverride,
+          },
+        }),
+      })
       return
     }
-    await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_NOT_FOUND' } }) })
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { code: 'SYS_NOT_FOUND' } }),
+    })
   })
 
   await gotoWithPreferences(page, '/admin/institutional/mappings')
@@ -162,8 +305,14 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
 
   await page.getByRole('button', { name: 'Create verified security' }).click()
   const createForm = page.locator('.admin-mapping-create-form')
-  await createForm.getByLabel('Issuer or SEC source URL').fill('https://issuer.example.test/investors/synthetic-filing-issuer')
-  await createForm.getByLabel('I checked this issuer or SEC source. A ticker is added only from an explicitly entered, verified identifier.').check()
+  await createForm
+    .getByLabel('Issuer or SEC source URL')
+    .fill('https://issuer.example.test/investors/synthetic-filing-issuer')
+  await createForm
+    .getByLabel(
+      'I checked this issuer or SEC source. A ticker is added only from an explicitly entered, verified identifier.',
+    )
+    .check()
   await createForm.getByRole('button', { name: 'Save security record' }).click()
   await expect(page.getByText('Security created. Review the selected record before saving the mapping.')).toBeVisible()
   await expect(page.getByText('No identity events are recorded.')).toBeVisible()
@@ -183,7 +332,9 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
   await overrideForm.getByLabel('Issuer or SEC evidence URL').fill('https://issuer.example.test/investors/security')
   await overrideForm.getByLabel('I checked this primary source and confirm it supports this security mapping.').check()
   await overrideForm.getByRole('button', { name: 'Save manual mapping' }).click()
-  await expect(page.locator('.admin-mappings-page > .admin-mapping-success')).toHaveText('Mapping saved with its audit record.')
+  await expect(page.locator('.admin-mappings-page > .admin-mapping-success')).toHaveText(
+    'Mapping saved with its audit record.',
+  )
   await page.getByLabel('Mapping status').selectOption('MANUAL_OVERRIDE')
   const manualRow = page.getByTestId('admin-mapping-row').filter({ hasText: 'Synthetic Filing Issuer' })
   await manualRow.getByRole('button', { name: 'Review mapping' }).click()
@@ -194,7 +345,10 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
   await expect(auditHistory).toContainText('Current version · Version 1')
   await expect(auditHistory.locator('li').first()).toContainText('Admin ID')
   await expect(auditHistory.locator('li').first().locator('time')).toHaveAttribute('datetime', timestamps.created)
-  await expect(auditHistory.getByRole('link', { name: 'Admin-verified source' })).toHaveAttribute('href', 'https://issuer.example.test/investors/security')
+  await expect(auditHistory.getByRole('link', { name: 'Admin-verified source' })).toHaveAttribute(
+    'href',
+    'https://issuer.example.test/investors/security',
+  )
 
   await detail.getByLabel('Search existing securities').fill('Synthetic Corrected')
   await detail.getByRole('button', { name: 'Search securities' }).click()
@@ -204,7 +358,9 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
   await detail.getByLabel('Issuer or SEC evidence URL').fill('https://issuer.example.test/investors/class-correction')
   await detail.getByLabel('I checked this primary source and confirm it supports this security mapping.').check()
   await detail.getByRole('button', { name: 'Save manual mapping' }).click()
-  await expect(page.locator('.admin-mappings-page > .admin-mapping-success')).toHaveText('Mapping saved with its audit record.')
+  await expect(page.locator('.admin-mappings-page > .admin-mapping-success')).toHaveText(
+    'Mapping saved with its audit record.',
+  )
   const correctedDetail = page.getByTestId('admin-mapping-detail')
   const correctedHistory = correctedDetail.locator('.admin-mapping-override-history')
   await expect(correctedHistory.locator('li')).toHaveCount(2)
@@ -213,8 +369,14 @@ test('admin reviews, corrects, and traces a synthetic mapping on desktop and mob
   await expect(correctedHistory).toContainText('Correction: the original source points to the successor class.')
   await expect(correctedHistory).toContainText('CUSIP and issuer primary source confirm the holding identity.')
   await expect(correctedHistory).toContainText('9001')
-  await expect(correctedHistory.getByRole('link', { name: 'Admin-verified source' }).nth(0)).toHaveAttribute('href', 'https://issuer.example.test/investors/class-correction')
-  await expect(correctedHistory.getByRole('link', { name: 'Admin-verified source' }).nth(1)).toHaveAttribute('href', 'https://issuer.example.test/investors/security')
+  await expect(correctedHistory.getByRole('link', { name: 'Admin-verified source' }).nth(0)).toHaveAttribute(
+    'href',
+    'https://issuer.example.test/investors/class-correction',
+  )
+  await expect(correctedHistory.getByRole('link', { name: 'Admin-verified source' }).nth(1)).toHaveAttribute(
+    'href',
+    'https://issuer.example.test/investors/security',
+  )
 
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

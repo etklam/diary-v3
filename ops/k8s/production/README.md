@@ -65,7 +65,13 @@ not use the production SSH credentials.
 Layout notes:
 
 - The API deployment is a single `Recreate` replica: it owns the one
-  process-local Socket.IO and foreground scheduler instance.
+  process-local Socket.IO and foreground scheduler instance. This is enforced,
+  not conventional — `npm run manifests:check` rejects any `diary-v3-api`
+  Deployment that does not declare `replicas: 1`, and
+  [ADR-0020](../../../docs/adr/0020-single-api-replica-boundary.md) records the
+  ruling, what breaks per component at two replicas, and the work required
+  before scaling. Do not `kubectl scale` this Deployment; enabling Redis rate
+  limiting does not make a second replica safe.
 - The API requests 100m CPU, 256Mi memory, and 256Mi ephemeral storage; limits
   are 1000m CPU, 768Mi memory, and 2Gi ephemeral storage. SEC guest package
   downloads admit two heavy requests, each bounded to one 550Mi ZIP plus one

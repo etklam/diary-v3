@@ -1,46 +1,47 @@
-import { useEffect, useState } from 'react';
-import { recentDiaryTagsResponseSchema } from '@diary/contracts/diary-tags';
-import { api } from './ui';
+import { useEffect, useState } from 'react'
+import { recentDiaryTagsResponseSchema } from '@diary/contracts/diary-tags'
+import { api } from './ui'
 
-const RECENT_TAG_LIMIT = 8;
-const PREFIX = 'diary-recent-tags:';
+const RECENT_TAG_LIMIT = 8
+const PREFIX = 'diary-recent-tags:'
 
 function recentTagsKey(accountId: string): string {
-  return `${PREFIX}${accountId}`;
+  return `${PREFIX}${accountId}`
 }
 
 function clean(tags: unknown): string[] {
-  if (!Array.isArray(tags)) return [];
-  return tags.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+  if (!Array.isArray(tags)) return []
+  return tags
+    .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
     .map(tag => tag.trim())
     .filter((tag, index, all) => all.indexOf(tag) === index)
-    .slice(0, RECENT_TAG_LIMIT);
+    .slice(0, RECENT_TAG_LIMIT)
 }
 
 export function readRecentTags(accountId: string): string[] {
-  if (!accountId) return [];
+  if (!accountId) return []
   try {
-    return clean(JSON.parse(localStorage.getItem(recentTagsKey(accountId)) ?? '[]'));
+    return clean(JSON.parse(localStorage.getItem(recentTagsKey(accountId)) ?? '[]'))
   } catch {
-    return [];
+    return []
   }
 }
 
 export function rememberRecentTags(accountId: string, tags: readonly string[]): string[] {
-  if (!accountId) return [];
-  const next = clean([...tags, ...readRecentTags(accountId)]);
+  if (!accountId) return []
+  const next = clean([...tags, ...readRecentTags(accountId)])
   try {
-    localStorage.setItem(recentTagsKey(accountId), JSON.stringify(next));
+    localStorage.setItem(recentTagsKey(accountId), JSON.stringify(next))
   } catch {
     // Suggestions are optional and never block a confirmed save.
   }
-  return next;
+  return next
 }
 
 export function clearRecentTags(accountId: string): void {
-  if (!accountId) return;
+  if (!accountId) return
   try {
-    localStorage.removeItem(recentTagsKey(accountId));
+    localStorage.removeItem(recentTagsKey(accountId))
   } catch {
     // Private local data is best effort when storage is unavailable.
   }
@@ -49,13 +50,13 @@ export function clearRecentTags(accountId: string): void {
 /** Replace the device cache with the account's own tags, so the next cold start
  *  and any offline mount start from what the account actually tagged. */
 function storeRecentTags(accountId: string, tags: readonly string[]): string[] {
-  const next = clean(tags);
+  const next = clean(tags)
   try {
-    localStorage.setItem(recentTagsKey(accountId), JSON.stringify(next));
+    localStorage.setItem(recentTagsKey(accountId), JSON.stringify(next))
   } catch {
     // Suggestions are optional and never block a confirmed save.
   }
-  return next;
+  return next
 }
 
 /**
@@ -65,18 +66,24 @@ function storeRecentTags(accountId: string, tags: readonly string[]): string[] {
  * without waiting for a refetch. A failed read changes nothing.
  */
 export function useRecentTags(accountId: string): [string[], (tags: readonly string[]) => void] {
-  const [tags, setTags] = useState<string[]>(() => readRecentTags(accountId));
-  useEffect(() => setTags(readRecentTags(accountId)), [accountId]);
+  const [tags, setTags] = useState<string[]>(() => readRecentTags(accountId))
+  useEffect(() => setTags(readRecentTags(accountId)), [accountId])
   useEffect(() => {
-    if (!accountId) return;
-    let active = true;
-    api.GET('/api/diaries/recent-tags').then(result => {
-      if (!active || !result.response.ok) return;
-      const parsed = recentDiaryTagsResponseSchema.safeParse(result.data);
-      if (parsed.success) setTags(storeRecentTags(accountId, parsed.data.tags));
-    }).catch(() => { /* Suggestions never block writing. */ });
-    return () => { active = false; };
-  }, [accountId]);
-  return [tags, values => setTags(rememberRecentTags(accountId, values))];
+    if (!accountId) return
+    let active = true
+    api
+      .GET('/api/diaries/recent-tags')
+      .then(result => {
+        if (!active || !result.response.ok) return
+        const parsed = recentDiaryTagsResponseSchema.safeParse(result.data)
+        if (parsed.success) setTags(storeRecentTags(accountId, parsed.data.tags))
+      })
+      .catch(() => {
+        /* Suggestions never block writing. */
+      })
+    return () => {
+      active = false
+    }
+  }, [accountId])
+  return [tags, values => setTags(rememberRecentTags(accountId, values))]
 }
-

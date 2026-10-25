@@ -1,0 +1,41 @@
+# Generated from the contracts; regenerate rather than format.
+packages/api-client/src/generated.ts
+openapi/openapi.json
+
+# Frozen parity inputs and recorded evidence: formatting them would rewrite the
+# baseline these are compared against.
+docs/parity/
+tests/parity/
+docs/**/*.json
+tests/fixtures/
+
+# Build output and local scratch.
+node_modules/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.react-router/
+.scratch/
+
+# Dependency manifests npm owns.
+package-lock.json
+
+# Scope decision — ticket 127 is about code style.
+#
+# Markdown is excluded because Prettier reflows prose and re-aligns tables, and
+# this repository's docs are evidence: ADRs, audit tables and runbooks whose
+# column alignment and line breaks were written deliberately. Reformatting them
+# is churn against the thing being recorded.
+#
+# Workflow and manifest YAML is excluded because its value is partly literal:
+# `deploy-workflow.test.ts` asserts exact shell fragments, and the workflows
+# embed multi-line shell where indentation is semantics rather than style.
+*.md
+*.yml
+*.yaml
+
+# Agent/editor configuration, not project source.
+.impeccable/
+.claude/

@@ -13,5 +13,5 @@ export function recoveryPathOffered(
   capability: { passwordRecoveryAvailable: boolean } | null,
   supportUrl: string | null | undefined,
 ) {
-  return Boolean(supportUrl) || capability?.passwordRecoveryAvailable === true;
+  return Boolean(supportUrl) || capability?.passwordRecoveryAvailable === true
 }

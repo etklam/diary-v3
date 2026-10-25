@@ -14,42 +14,59 @@ export const priceAlertMovingAverageDirectionSchema = z.enum(['above', 'below'])
 const PRICE_ALERT_THRESHOLD_RE = /^-?\d{1,6}(?:\.\d{1,4})?$/
 
 const priceAlertThresholdInputSchema = z.preprocess(
-  value => value === '' ? undefined : value,
-  z.union([
-    z.string().trim().regex(PRICE_ALERT_THRESHOLD_RE, 'Threshold must fit DECIMAL(10,4)'),
-    z.number().finite().refine(value => PRICE_ALERT_THRESHOLD_RE.test(String(value)), 'Threshold must fit DECIMAL(10,4)'),
-  ]).transform(value => String(value).trim()),
+  value => (value === '' ? undefined : value),
+  z
+    .union([
+      z.string().trim().regex(PRICE_ALERT_THRESHOLD_RE, 'Threshold must fit DECIMAL(10,4)'),
+      z
+        .number()
+        .finite()
+        .refine(value => PRICE_ALERT_THRESHOLD_RE.test(String(value)), 'Threshold must fit DECIMAL(10,4)'),
+    ])
+    .transform(value => String(value).trim()),
 )
 
-export const createPriceAlertRequestSchema = z.object({
-  symbol: stockSymbolSchema,
-  type: priceAlertTypeSchema,
-  threshold: priceAlertThresholdInputSchema,
-  movingAverageDirection: priceAlertMovingAverageDirectionSchema.optional(),
-  message: z.string().trim().max(500).optional(),
-}).strict().superRefine((value, context) => {
-  if (value.type !== 'CHANGE_PERCENT' && value.threshold.startsWith('-')) {
-    context.addIssue({
-      code: 'custom',
-      path: ['threshold'],
-      message: 'Threshold must be non-negative for this alert type',
-    })
-  }
-  if (value.type === 'MOVING_AVG' && !(PRICE_ALERT_MOVING_AVG_PERIODS as readonly string[]).includes(value.threshold)) {
-    context.addIssue({ code: 'custom', path: ['threshold'], message: 'Moving average period must be 20, 50 or 200' })
-  }
-  if (value.type !== 'MOVING_AVG' && value.movingAverageDirection !== undefined) {
-    context.addIssue({ code: 'custom', path: ['movingAverageDirection'], message: 'Moving average direction is only valid for MOVING_AVG alerts' })
-  }
-})
+export const createPriceAlertRequestSchema = z
+  .object({
+    symbol: stockSymbolSchema,
+    type: priceAlertTypeSchema,
+    threshold: priceAlertThresholdInputSchema,
+    movingAverageDirection: priceAlertMovingAverageDirectionSchema.optional(),
+    message: z.string().trim().max(500).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.type !== 'CHANGE_PERCENT' && value.threshold.startsWith('-')) {
+      context.addIssue({
+        code: 'custom',
+        path: ['threshold'],
+        message: 'Threshold must be non-negative for this alert type',
+      })
+    }
+    if (
+      value.type === 'MOVING_AVG' &&
+      !(PRICE_ALERT_MOVING_AVG_PERIODS as readonly string[]).includes(value.threshold)
+    ) {
+      context.addIssue({ code: 'custom', path: ['threshold'], message: 'Moving average period must be 20, 50 or 200' })
+    }
+    if (value.type !== 'MOVING_AVG' && value.movingAverageDirection !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['movingAverageDirection'],
+        message: 'Moving average direction is only valid for MOVING_AVG alerts',
+      })
+    }
+  })
 
-export const updatePriceAlertRequestSchema = z.object({
-  threshold: priceAlertThresholdInputSchema.optional(),
-  movingAverageDirection: priceAlertMovingAverageDirectionSchema.optional(),
-  message: z.string().trim().max(500).optional(),
-  isTriggered: z.boolean().optional(),
-  triggeredAt: utcInstantSchema.nullable().optional(),
-}).strict()
+export const updatePriceAlertRequestSchema = z
+  .object({
+    threshold: priceAlertThresholdInputSchema.optional(),
+    movingAverageDirection: priceAlertMovingAverageDirectionSchema.optional(),
+    message: z.string().trim().max(500).optional(),
+    isTriggered: z.boolean().optional(),
+    triggeredAt: utcInstantSchema.nullable().optional(),
+  })
+  .strict()
   .refine(value => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',
   })
@@ -75,28 +92,33 @@ export const updatePriceAlertRequestSchema = z.object({
     }
   })
 
-export const priceAlertResponseSchema = z.object({
-  id: serializedIdSchema,
-  symbol: stockSymbolSchema,
-  type: priceAlertTypeSchema,
-  threshold: decimalStringSchema,
-  movingAverageDirection: priceAlertMovingAverageDirectionSchema.nullable(),
-  message: z.string(),
-  isTriggered: z.boolean(),
-  triggeredAt: utcInstantSchema.nullable(),
-  createdAt: utcInstantSchema,
-  updatedAt: utcInstantSchema,
-}).strict()
+export const priceAlertResponseSchema = z
+  .object({
+    id: serializedIdSchema,
+    symbol: stockSymbolSchema,
+    type: priceAlertTypeSchema,
+    threshold: decimalStringSchema,
+    movingAverageDirection: priceAlertMovingAverageDirectionSchema.nullable(),
+    message: z.string(),
+    isTriggered: z.boolean(),
+    triggeredAt: utcInstantSchema.nullable(),
+    createdAt: utcInstantSchema,
+    updatedAt: utcInstantSchema,
+  })
+  .strict()
 
 export const PRICE_ALERT_MAX_ITEMS = 100
 export const priceAlertListResponseSchema = z.array(priceAlertResponseSchema).max(PRICE_ALERT_MAX_ITEMS)
 
-
 export type CreatePriceAlertRequest = z.infer<typeof createPriceAlertRequestSchema>
 export type UpdatePriceAlertRequest = z.infer<typeof updatePriceAlertRequestSchema>
 export type PriceAlertResponse = z.infer<typeof priceAlertResponseSchema>
-function iso(value: Date | string) { return new Date(value).toISOString() }
-function decimal(value: unknown) { return String(value) }
+function iso(value: Date | string) {
+  return new Date(value).toISOString()
+}
+function decimal(value: unknown) {
+  return String(value)
+}
 export function toPriceAlertResponse(row: {
   id: bigint
   userId?: bigint
@@ -115,7 +137,7 @@ export function toPriceAlertResponse(row: {
     symbol: row.symbol,
     type: row.type,
     threshold: decimal(row.threshold),
-    movingAverageDirection: row.type === 'MOVING_AVG' ? row.movingAverageDirection ?? 'above' : null,
+    movingAverageDirection: row.type === 'MOVING_AVG' ? (row.movingAverageDirection ?? 'above') : null,
     message: row.message,
     isTriggered: row.isTriggered,
     triggeredAt: row.triggeredAt === null ? null : iso(row.triggeredAt),

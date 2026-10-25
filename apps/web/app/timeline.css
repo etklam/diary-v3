@@ -48,7 +48,9 @@
   color: var(--muted);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
-  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
 }
 
 .timeline-modes a:hover,
@@ -457,7 +459,6 @@
     flex: 1 1 100%;
     min-width: 0;
   }
-
 
   /* The date leads its own row instead of holding a column, so the records keep
      the full width of a phone. */

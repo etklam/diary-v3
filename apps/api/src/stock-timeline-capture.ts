@@ -45,16 +45,25 @@ export async function insertStockTimelineRecord(tx: DbTransaction, input: StockT
     createdAt: input.now,
     updatedAt: input.now,
   }
-  const [created] = await tx.insert(stockTimelineRecords).values(values)
-    .onConflictDoNothing({ target: [stockTimelineRecords.userId, stockTimelineRecords.stockId, stockTimelineRecords.idempotencyKey] })
+  const [created] = await tx
+    .insert(stockTimelineRecords)
+    .values(values)
+    .onConflictDoNothing({
+      target: [stockTimelineRecords.userId, stockTimelineRecords.stockId, stockTimelineRecords.idempotencyKey],
+    })
     .returning()
   if (created) return { record: created, created: true }
 
-  const [existing] = await tx.select().from(stockTimelineRecords).where(and(
-    eq(stockTimelineRecords.userId, input.userId),
-    eq(stockTimelineRecords.stockId, input.stockId),
-    eq(stockTimelineRecords.idempotencyKey, idempotencyKey),
-  ))
+  const [existing] = await tx
+    .select()
+    .from(stockTimelineRecords)
+    .where(
+      and(
+        eq(stockTimelineRecords.userId, input.userId),
+        eq(stockTimelineRecords.stockId, input.stockId),
+        eq(stockTimelineRecords.idempotencyKey, idempotencyKey),
+      ),
+    )
   if (!existing) throw new Error('Stock timeline record unavailable after insert')
   return { record: existing, created: false }
 }

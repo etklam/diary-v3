@@ -14,7 +14,7 @@ export const ATTENTION_REASONS = [
   'missing_thesis',
 ] as const
 
-export type AttentionReason = typeof ATTENTION_REASONS[number]
+export type AttentionReason = (typeof ATTENTION_REASONS)[number]
 
 export const ATTENTION_PRIORITY: Record<AttentionReason, number> = {
   invalidated_thesis_while_held: 500,
@@ -91,7 +91,11 @@ function isActiveHolding(holding: AttentionHolding): boolean {
 }
 
 function isOpenThesis(thesis: AttentionThesis): boolean {
-  return String(thesis.status ?? '').trim().toLowerCase() !== 'archived'
+  return (
+    String(thesis.status ?? '')
+      .trim()
+      .toLowerCase() !== 'archived'
+  )
 }
 
 /**
@@ -111,10 +115,7 @@ export function isThesisReviewOverdue(
   return thesis.reviewPending === true || !lastReviewedAt || lastReviewedAt.getTime() < dueAt.getTime()
 }
 
-function addItem(
-  items: Map<string, PortfolioAttentionItem>,
-  item: PortfolioAttentionItem,
-) {
+function addItem(items: Map<string, PortfolioAttentionItem>, item: PortfolioAttentionItem) {
   // A target/reason pair is one actionable fact. Multiple upstream joins must
   // not produce duplicate cards in the Overview.
   if (!items.has(item.id)) items.set(item.id, item)
@@ -142,7 +143,12 @@ export function evaluatePortfolioAttention(input: PortfolioAttentionInput): Port
     if (!symbol) continue
     const thesis = thesisBySymbol.get(symbol)
 
-    if (!thesis || String(thesis.status ?? '').trim().toLowerCase() === 'draft') {
+    if (
+      !thesis ||
+      String(thesis.status ?? '')
+        .trim()
+        .toLowerCase() === 'draft'
+    ) {
       addItem(items, {
         id: `stock:${symbol}:missing_thesis`,
         reason: 'missing_thesis',
@@ -173,7 +179,12 @@ export function evaluatePortfolioAttention(input: PortfolioAttentionInput): Port
         })
       }
 
-      if (isOpenThesis(thesis) && String(thesis.latestOutcome ?? '').trim().toUpperCase() === 'INVALIDATED') {
+      if (
+        isOpenThesis(thesis) &&
+        String(thesis.latestOutcome ?? '')
+          .trim()
+          .toUpperCase() === 'INVALIDATED'
+      ) {
         addItem(items, {
           id: `stock:${symbol}:invalidated_thesis_while_held`,
           reason: 'invalidated_thesis_while_held',
@@ -189,7 +200,11 @@ export function evaluatePortfolioAttention(input: PortfolioAttentionInput): Port
     }
 
     const concentrationPct = rawHolding.concentrationPct
-    if (typeof concentrationPct === 'number' && Number.isFinite(concentrationPct) && concentrationPct >= concentrationThresholdPct) {
+    if (
+      typeof concentrationPct === 'number' &&
+      Number.isFinite(concentrationPct) &&
+      concentrationPct >= concentrationThresholdPct
+    ) {
       addItem(items, {
         id: `stock:${symbol}:position_concentration`,
         reason: 'position_concentration',
@@ -205,7 +220,12 @@ export function evaluatePortfolioAttention(input: PortfolioAttentionInput): Port
   }
 
   for (const review of input.diaryReviews ?? []) {
-    if (String(review.reviewStatus ?? '').trim().toLowerCase() === 'reviewed') continue
+    if (
+      String(review.reviewStatus ?? '')
+        .trim()
+        .toLowerCase() === 'reviewed'
+    )
+      continue
     const dueAt = parseDate(review.reviewDueAt)
     if (!dueAt || dueAt.getTime() >= asOf.getTime()) continue
 
@@ -227,6 +247,8 @@ export function evaluatePortfolioAttention(input: PortfolioAttentionInput): Port
   }
 
   return [...items.values()]
-    .sort((a, b) => b.priority - a.priority || (a.symbol ?? '').localeCompare(b.symbol ?? '') || a.id.localeCompare(b.id))
+    .sort(
+      (a, b) => b.priority - a.priority || (a.symbol ?? '').localeCompare(b.symbol ?? '') || a.id.localeCompare(b.id),
+    )
     .slice(0, input.maxItems ?? 50)
 }

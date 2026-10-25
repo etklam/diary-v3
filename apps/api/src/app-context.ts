@@ -38,6 +38,8 @@ export interface ApiConfig {
   trustProxy: boolean
   webOrigin: string
   secUserAgent?: string
+  /** Ceiling on retained SEC metadata cache bytes; defaults to SEC_CACHE_DEFAULT_MAX_BYTES. */
+  secCacheMaxBytes?: number
 }
 
 export type AuthTransport = 'cookie' | 'bearer' | 'api-key'
@@ -75,10 +77,15 @@ export function fail(status: number, code: ErrorCode, message: string, details: 
 }
 
 export function validationError(error: z.ZodError): never {
-  fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', error.issues.map((issue) => ({
-    field: issue.path.join('.'),
-    message: issue.message,
-  })))
+  fail(
+    400,
+    'SYS_VALIDATION_ERROR',
+    'Validation failed',
+    error.issues.map(issue => ({
+      field: issue.path.join('.'),
+      message: issue.message,
+    })),
+  )
 }
 
 export async function parseJson<T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T> {
@@ -105,13 +112,20 @@ export function instant(value: Date | string): string {
 }
 
 export function databaseId(value: string): bigint | undefined {
-  if (!serializedIdSchema.safeParse(value).success
-    || value.length > MAX_SERIALIZED_ID.length
-    || (value.length === MAX_SERIALIZED_ID.length && value > MAX_SERIALIZED_ID)) return undefined
+  if (
+    !serializedIdSchema.safeParse(value).success ||
+    value.length > MAX_SERIALIZED_ID.length ||
+    (value.length === MAX_SERIALIZED_ID.length && value > MAX_SERIALIZED_ID)
+  )
+    return undefined
   return BigInt(value)
 }
 
-export function resolveClientIp(trustProxy: boolean, forwardedFor: string | undefined, remoteAddress: string | undefined): string {
+export function resolveClientIp(
+  trustProxy: boolean,
+  forwardedFor: string | undefined,
+  remoteAddress: string | undefined,
+): string {
   const trusted = trustProxy ? forwardedFor?.split(',').at(-1)?.trim() : undefined
   if (trusted && isIP(trusted)) return trusted
   return remoteAddress ?? 'unknown'
@@ -119,7 +133,11 @@ export function resolveClientIp(trustProxy: boolean, forwardedFor: string | unde
 
 export function clientIp(c: Context<AppEnv>, trustProxy: boolean): string {
   let remoteAddress: string | undefined
-  try { remoteAddress = getConnInfo(c).remote.address } catch { remoteAddress = undefined }
+  try {
+    remoteAddress = getConnInfo(c).remote.address
+  } catch {
+    remoteAddress = undefined
+  }
   return resolveClientIp(trustProxy, c.req.header('x-forwarded-for'), remoteAddress)
 }
 

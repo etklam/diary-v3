@@ -5,7 +5,7 @@ export const quickSnippets = [
     content: '今日心情：\n\n原因：\n\n想做的事：',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
+    isDefault: true,
   },
   {
     id: 'default-2',
@@ -13,7 +13,7 @@ export const quickSnippets = [
     content: '1. \n2. \n3. ',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
+    isDefault: true,
   },
   {
     id: 'default-3',
@@ -21,7 +21,7 @@ export const quickSnippets = [
     content: '今天學到：\n\n還有疑問：\n\n下一步：',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
+    isDefault: true,
   },
   {
     id: 'default-4',
@@ -29,7 +29,7 @@ export const quickSnippets = [
     content: '標的：\n\n策略：\n\n結果與反思：',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
+    isDefault: true,
   },
   {
     id: 'default-5',
@@ -37,7 +37,7 @@ export const quickSnippets = [
     content: '靈感一句話：\n\n展開：\n\n下一步：',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
+    isDefault: true,
   },
   {
     id: 'default-6',
@@ -45,7 +45,6 @@ export const quickSnippets = [
     content: '- \n- \n- ',
     createdAt: '',
     updatedAt: '',
-    isDefault: true
-  }
+    isDefault: true,
+  },
 ]
-

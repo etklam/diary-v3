@@ -30,7 +30,12 @@ function safeStart(value: string, offset: number) {
 }
 
 function safeEnd(value: string, offset: number) {
-  return offset > 0 && offset < value.length && (value.charCodeAt(offset - 1) & 0xfc00) === 0xd800 && (value.charCodeAt(offset) & 0xfc00) === 0xdc00 ? offset + 1 : offset
+  return offset > 0 &&
+    offset < value.length &&
+    (value.charCodeAt(offset - 1) & 0xfc00) === 0xd800 &&
+    (value.charCodeAt(offset) & 0xfc00) === 0xdc00
+    ? offset + 1
+    : offset
 }
 
 /**
@@ -38,7 +43,11 @@ function safeEnd(value: string, offset: number) {
  * are relative to the returned snippet so the Web client can render text
  * safely without HTML interpolation.
  */
-export function diarySearchSnippet(fields: Array<{ source: DiarySearchMatchSource; value: string | null | undefined }>, query: string, maxLength = 240): DiarySearchSnippet | null {
+export function diarySearchSnippet(
+  fields: Array<{ source: DiarySearchMatchSource; value: string | null | undefined }>,
+  query: string,
+  maxLength = 240,
+): DiarySearchSnippet | null {
   const needle = lowerWithOffsets(query.trim()).text
   if (!needle || maxLength < 1) return null
   for (const field of fields) {
@@ -58,12 +67,18 @@ export function diarySearchSnippet(fields: Array<{ source: DiarySearchMatchSourc
     let after = Math.min(contextBudget - before, value.length - matchEnd)
     const remaining = contextBudget - before - after
     if (remaining > 0) before += Math.min(remaining, matchStart - before)
-    if (before + after < contextBudget) after += Math.min(contextBudget - before - after, value.length - matchEnd - after)
+    if (before + after < contextBudget)
+      after += Math.min(contextBudget - before - after, value.length - matchEnd - after)
     const start = safeStart(value, matchStart - before)
     const end = safeEnd(value, matchEnd + after)
     const prefix = start > 0 ? '…' : ''
     const suffix = end < value.length ? '…' : ''
-    return { source: field.source, text: `${prefix}${value.slice(start, end)}${suffix}`, matchStart: prefix.length + matchStart - start, matchEnd: prefix.length + matchEnd - start }
+    return {
+      source: field.source,
+      text: `${prefix}${value.slice(start, end)}${suffix}`,
+      matchStart: prefix.length + matchStart - start,
+      matchEnd: prefix.length + matchEnd - start,
+    }
   }
   return null
 }

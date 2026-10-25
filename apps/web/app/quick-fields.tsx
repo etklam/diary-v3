@@ -1,15 +1,151 @@
-import { QuickRelatedTrades } from './quick-related-trades';
-import { getQuickNoteObservationTypeOptions,getQuickNoteReflectionMarketConditionGroups,type QuickNoteTemplateData,type QuickNoteTemplateKind } from '@diary/domain';
-import { ActionButton, api,useUi } from './ui';
-import { useRef,useState } from 'react';
-import { apiFailure,FailureNotice,type Failure } from './api-error';
-import { quickCopy } from './quick-copy';
-import { formatMarketValueWithSuffix, marketClass } from './market-display';
-export function QuickFields({kind,data,change}:{kind:QuickNoteTemplateKind;data:QuickNoteTemplateData;change:(patch:Partial<QuickNoteTemplateData>)=>void}){
- const {locale,t}=useUi(),c=quickCopy[locale],currentKind=useRef(kind);currentKind.current=kind;const [spxPending,setSpxPending]=useState(false),[spxError,setSpxError]=useState<Failure|null>(null),[spxPercent,setSpxPercent]=useState<number|null>(null);
- async function applySpx(){setSpxPending(true);setSpxError(null);try{const result=await api.GET('/api/market/spx-session');if(currentKind.current!=='reflection')return;if(result.response.ok&&result.data){change({marketCondition:result.data.condition});setSpxPercent(result.data.changePercent);}else setSpxError(apiFailure(result.error,t('failed')));}catch{if(currentKind.current==='reflection')setSpxError(apiFailure(null,t('connection')));}finally{setSpxPending(false);}}
- const text=(key:keyof QuickNoteTemplateData,label:string)=><label key={key}>{label}<textarea rows={2} value={String(data[key]??'')} onChange={event=>change({[key]:event.target.value})}/></label>;
- const select=(key:keyof QuickNoteTemplateData,label:string,values:Array<{value:string;label:string}>)=><label>{label}<select value={String(data[key]??'')} onChange={event=>change({[key]:event.target.value})}><option value="">—</option>{values.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
- if(kind==='blank')return null;
- return <fieldset className="quick-fields"><legend>{c[kind]}</legend>{kind==='trading'?<>{select('tradingType',c.operation,['buy','sell','both','none'].map(value=>({value,label:c[value as 'buy']})))}{text('symbols',c.symbols)}{select('marketMood',c.mood,['bullish','bearish','neutral'].map(value=>({value,label:c[value as 'bullish']})))}{text('note',c.note)}</>:kind==='reflection'?<><div><ActionButton type="button" className="secondary" pending={spxPending} onClick={()=>void applySpx()}>{locale==='en'?'Use SPX session':locale==='zh-CN'?'使用 SPX 市场状况':'使用 SPX 市場狀況'}</ActionButton>{spxPercent!==null&&<p className={marketClass(spxPercent)} role="status">SPX {formatMarketValueWithSuffix(locale, spxPercent, '%')}</p>}<FailureNotice failure={spxError} id="quick-spx-error"/></div><label>{c.condition}<select value={data.marketCondition??''} onChange={event=>change({marketCondition:event.target.value})}><option value="">—</option>{getQuickNoteReflectionMarketConditionGroups(locale).map(group=><optgroup label={group.label} key={group.label}>{group.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>)}</select></label><fieldset className="quick-rating"><legend>{c.rating}</legend>{[0,1,2,3,4,5].map(value=><label key={value}><input type="radio" name="quick-rating" value={value} checked={(data.rating??0)===value} onChange={()=>change({rating:value})}/>{value}</label>)}</fieldset><label className="quick-check"><input type="checkbox" checked={!!data.noRashTrading} onChange={event=>change({noRashTrading:event.target.checked})}/>{c.noRash}</label>{text('goodPoints',c.good)}{text('improvePoints',c.improve)}<QuickRelatedTrades value={data.relatedTrades??[]} onChange={relatedTrades=>change({relatedTrades})}/></>:<>{text('topic',c.topic)}{select('observationType',c.type,getQuickNoteObservationTypeOptions(locale))}{text('observationContent',c.body)}{text('action',c.action)}</>}</fieldset>;
+import { QuickRelatedTrades } from './quick-related-trades'
+import {
+  getQuickNoteObservationTypeOptions,
+  getQuickNoteReflectionMarketConditionGroups,
+  type QuickNoteTemplateData,
+  type QuickNoteTemplateKind,
+} from '@diary/domain'
+import { ActionButton, api, useUi } from './ui'
+import { useRef, useState } from 'react'
+import { apiFailure, FailureNotice, type Failure } from './api-error'
+import { quickCopy } from './quick-copy'
+import { formatMarketValueWithSuffix, marketClass } from './market-display'
+export function QuickFields({
+  kind,
+  data,
+  change,
+}: {
+  kind: QuickNoteTemplateKind
+  data: QuickNoteTemplateData
+  change: (patch: Partial<QuickNoteTemplateData>) => void
+}) {
+  const { locale, t } = useUi(),
+    c = quickCopy[locale],
+    currentKind = useRef(kind)
+  currentKind.current = kind
+  const [spxPending, setSpxPending] = useState(false),
+    [spxError, setSpxError] = useState<Failure | null>(null),
+    [spxPercent, setSpxPercent] = useState<number | null>(null)
+  async function applySpx() {
+    setSpxPending(true)
+    setSpxError(null)
+    try {
+      const result = await api.GET('/api/market/spx-session')
+      if (currentKind.current !== 'reflection') return
+      if (result.response.ok && result.data) {
+        change({ marketCondition: result.data.condition })
+        setSpxPercent(result.data.changePercent)
+      } else setSpxError(apiFailure(result.error, t('failed')))
+    } catch {
+      if (currentKind.current === 'reflection') setSpxError(apiFailure(null, t('connection')))
+    } finally {
+      setSpxPending(false)
+    }
+  }
+  const text = (key: keyof QuickNoteTemplateData, label: string) => (
+    <label key={key}>
+      {label}
+      <textarea rows={2} value={String(data[key] ?? '')} onChange={event => change({ [key]: event.target.value })} />
+    </label>
+  )
+  const select = (key: keyof QuickNoteTemplateData, label: string, values: Array<{ value: string; label: string }>) => (
+    <label>
+      {label}
+      <select value={String(data[key] ?? '')} onChange={event => change({ [key]: event.target.value })}>
+        <option value="">—</option>
+        {values.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+  if (kind === 'blank') return null
+  return (
+    <fieldset className="quick-fields">
+      <legend>{c[kind]}</legend>
+      {kind === 'trading' ? (
+        <>
+          {select(
+            'tradingType',
+            c.operation,
+            ['buy', 'sell', 'both', 'none'].map(value => ({ value, label: c[value as 'buy'] })),
+          )}
+          {text('symbols', c.symbols)}
+          {select(
+            'marketMood',
+            c.mood,
+            ['bullish', 'bearish', 'neutral'].map(value => ({ value, label: c[value as 'bullish'] })),
+          )}
+          {text('note', c.note)}
+        </>
+      ) : kind === 'reflection' ? (
+        <>
+          <div>
+            <ActionButton type="button" className="secondary" pending={spxPending} onClick={() => void applySpx()}>
+              {locale === 'en' ? 'Use SPX session' : locale === 'zh-CN' ? '使用 SPX 市场状况' : '使用 SPX 市場狀況'}
+            </ActionButton>
+            {spxPercent !== null && (
+              <p className={marketClass(spxPercent)} role="status">
+                SPX {formatMarketValueWithSuffix(locale, spxPercent, '%')}
+              </p>
+            )}
+            <FailureNotice failure={spxError} id="quick-spx-error" />
+          </div>
+          <label>
+            {c.condition}
+            <select
+              value={data.marketCondition ?? ''}
+              onChange={event => change({ marketCondition: event.target.value })}
+            >
+              <option value="">—</option>
+              {getQuickNoteReflectionMarketConditionGroups(locale).map(group => (
+                <optgroup label={group.label} key={group.label}>
+                  {group.options.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <fieldset className="quick-rating">
+            <legend>{c.rating}</legend>
+            {[0, 1, 2, 3, 4, 5].map(value => (
+              <label key={value}>
+                <input
+                  type="radio"
+                  name="quick-rating"
+                  value={value}
+                  checked={(data.rating ?? 0) === value}
+                  onChange={() => change({ rating: value })}
+                />
+                {value}
+              </label>
+            ))}
+          </fieldset>
+          <label className="quick-check">
+            <input
+              type="checkbox"
+              checked={!!data.noRashTrading}
+              onChange={event => change({ noRashTrading: event.target.checked })}
+            />
+            {c.noRash}
+          </label>
+          {text('goodPoints', c.good)}
+          {text('improvePoints', c.improve)}
+          <QuickRelatedTrades value={data.relatedTrades ?? []} onChange={relatedTrades => change({ relatedTrades })} />
+        </>
+      ) : (
+        <>
+          {text('topic', c.topic)}
+          {select('observationType', c.type, getQuickNoteObservationTypeOptions(locale))}
+          {text('observationContent', c.body)}
+          {text('action', c.action)}
+        </>
+      )}
+    </fieldset>
+  )
 }

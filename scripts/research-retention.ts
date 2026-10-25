@@ -11,5 +11,7 @@ if (!rawDays) {
   try {
     const result = await purgeAbandonedResearchPreparation({ db: database.db, retentionDays: Number(rawDays) })
     console.log(JSON.stringify({ operation: 'research_preparation_retention', ...result }))
-  } finally { await database.pool.end() }
+  } finally {
+    await database.pool.end()
+  }
 }

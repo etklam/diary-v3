@@ -8,13 +8,16 @@ export interface SecSharedScheduler {
 }
 
 export function createPostgresSecSharedScheduler(db: Database, minIntervalMs = 125): SecSharedScheduler {
-  if (!Number.isInteger(minIntervalMs) || minIntervalMs < 100 || minIntervalMs > 10_000) throw new Error('SEC_SCHEDULER_INTERVAL_INVALID')
+  if (!Number.isInteger(minIntervalMs) || minIntervalMs < 100 || minIntervalMs > 10_000)
+    throw new Error('SEC_SCHEDULER_INTERVAL_INVALID')
 
   return {
     async start<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<{ response: Promise<T> }> {
       let response!: Promise<T>
       await db.transaction(async tx => {
-        await tx.execute(sql`insert into sec_request_scheduler_state (singleton, next_allowed_at) values (1, clock_timestamp()) on conflict (singleton) do nothing`)
+        await tx.execute(
+          sql`insert into sec_request_scheduler_state (singleton, next_allowed_at) values (1, clock_timestamp()) on conflict (singleton) do nothing`,
+        )
         const result = await tx.execute<{ scheduled_at: Date | string }>(sql`
           select greatest(next_allowed_at, clock_timestamp()) as scheduled_at
           from sec_request_scheduler_state
@@ -42,7 +45,9 @@ export function createPostgresSecSharedScheduler(db: Database, minIntervalMs = 1
     },
     async recordResult(success) {
       if (success) return
-      await db.execute(sql`update sec_request_scheduler_state set failure_count = failure_count + 1, updated_at = clock_timestamp() where singleton = 1`)
+      await db.execute(
+        sql`update sec_request_scheduler_state set failure_count = failure_count + 1, updated_at = clock_timestamp() where singleton = 1`,
+      )
     },
   }
 }

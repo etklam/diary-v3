@@ -56,22 +56,26 @@ describe('evaluatePortfolioAttention', () => {
     // completeThesisReview sets lastReviewedAt without advancing
     // reviewDueAt — the overdue signal must flip off on that alone.
     const reviewedAfterDue = evaluate({
-      theses: [{
-        symbol: 'MSFT',
-        status: 'active',
-        reviewDueAt: '2026-08-10T23:59:59.000Z',
-        lastReviewedAt: '2026-08-10T23:59:59.000Z',
-        latestOutcome: 'ON_TRACK',
-      }],
+      theses: [
+        {
+          symbol: 'MSFT',
+          status: 'active',
+          reviewDueAt: '2026-08-10T23:59:59.000Z',
+          lastReviewedAt: '2026-08-10T23:59:59.000Z',
+          latestOutcome: 'ON_TRACK',
+        },
+      ],
     })
     const staleReviewOnly = evaluate({
-      theses: [{
-        symbol: 'MSFT',
-        status: 'active',
-        reviewDueAt: '2026-08-10T23:59:59.000Z',
-        lastReviewedAt: '2026-08-09T00:00:00.000Z',
-        latestOutcome: 'ON_TRACK',
-      }],
+      theses: [
+        {
+          symbol: 'MSFT',
+          status: 'active',
+          reviewDueAt: '2026-08-10T23:59:59.000Z',
+          lastReviewedAt: '2026-08-09T00:00:00.000Z',
+          latestOutcome: 'ON_TRACK',
+        },
+      ],
     })
 
     expect(reviewedAfterDue).toEqual([])

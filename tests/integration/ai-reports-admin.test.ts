@@ -5,7 +5,14 @@ import type { AddressInfo } from 'node:net'
 import bcrypt from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { and, eq } from 'drizzle-orm'
-import { aiAdminAuditEvents, aiProviderConfigVersions, aiReportAttempts, aiReports, aiUsageBuckets, users } from '@diary/db'
+import {
+  aiAdminAuditEvents,
+  aiProviderConfigVersions,
+  aiReportAttempts,
+  aiReports,
+  aiUsageBuckets,
+  users,
+} from '@diary/db'
 import { createApp } from '../../apps/api/src/app'
 import type { AiTransport } from '../../apps/api/src/ai-reports/outbound-policy'
 import { BrowserSession } from '../support/browser-session'
@@ -56,7 +63,12 @@ beforeAll(async () => {
     databasePool: database.pool,
     now,
     aiTransport: fixtureTransport,
-    config: { jwtSecret: 'synthetic-review-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    config: {
+      jwtSecret: 'synthetic-review-key-with-at-least-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
@@ -76,7 +88,11 @@ async function login(admin: boolean, url = baseUrl) {
   const browser = new BrowserSession(url)
   const email = `${randomUUID()}@example.test`
   const password = 'synthetic-admin-password'
-  await database.pool.query('insert into users(email,password,role) values ($1,$2,$3)', [email, await bcrypt.hash(password, 4), admin ? 'ADMIN' : 'USER'])
+  await database.pool.query('insert into users(email,password,role) values ($1,$2,$3)', [
+    email,
+    await bcrypt.hash(password, 4),
+    admin ? 'ADMIN' : 'USER',
+  ])
   const response = await browser.post('/api/auth/login', { email, password })
   expect(response.status).toBe(200)
   expect((await browser.request('/api/auth/me')).status).toBe(200)
@@ -124,27 +140,38 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
     const admin = await login(true)
     const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(0))
     expect(draft.status).toBe(200)
-    const body = await draft.json() as { revision: number; hasApiKey: boolean; disclosureText: string }
+    const body = (await draft.json()) as { revision: number; hasApiKey: boolean; disclosureText: string }
     expect(body).toMatchObject({ revision: 1, hasApiKey: true, disclosureText: 'Synthetic journal disclosure' })
     expect(JSON.stringify(body)).not.toContain('fixture-secret')
 
-    const changedRecipient = await put(admin, '/api/admin/ai/settings/draft', providerDraft(1, {
-      recipientName: 'Changed recipient',
-      apiKeyAction: 'keep',
-      apiKey: undefined,
-    }))
+    const changedRecipient = await put(
+      admin,
+      '/api/admin/ai/settings/draft',
+      providerDraft(1, {
+        recipientName: 'Changed recipient',
+        apiKeyAction: 'keep',
+        apiKey: undefined,
+      }),
+    )
     expect(changedRecipient.status).toBe(200)
     expect(await changedRecipient.json()).toMatchObject({ hasApiKey: false, recipientRevision: 2 })
 
-    const rows = await database.db.select({ encryptedApiKey: aiProviderConfigVersions.encryptedApiKey })
-      .from(aiProviderConfigVersions).where(eq(aiProviderConfigVersions.revision, 2)).limit(1)
+    const rows = await database.db
+      .select({ encryptedApiKey: aiProviderConfigVersions.encryptedApiKey })
+      .from(aiProviderConfigVersions)
+      .where(eq(aiProviderConfigVersions.revision, 2))
+      .limit(1)
     expect(rows[0]?.encryptedApiKey).toBeNull()
   })
 
   it('validates monthly synthetic periods and charges a successful admin test', async () => {
     const admin = await login(true)
     expect((await admin.request('/api/admin/ai/settings')).status).toBe(200)
-    const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(2, { apiKeyAction: 'replace', apiKey: 'fixture-secret' }))
+    const draft = await put(
+      admin,
+      '/api/admin/ai/settings/draft',
+      providerDraft(2, { apiKeyAction: 'replace', apiKey: 'fixture-secret' }),
+    )
     expect(draft.status).toBe(200)
     const tested = await admin.post('/api/admin/ai/settings/test', { expectedRevision: 3 })
     expect(tested.status).toBe(200)
@@ -156,21 +183,42 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
 
     const promptTest = await admin.post('/api/admin/ai/prompts/monthly/test', { expectedRevision: 1 })
     expect(promptTest.status).toBe(200)
-    const chatBodies = transportCalls.filter(call => call.path === 'chat/completions').map(call => call.body as { messages?: Array<{ content: string }> })
-    expect(chatBodies.some(body => body.messages?.some(message => message.content.includes('2026-01-01') && message.content.includes('2026-02-01')))).toBe(true)
+    const chatBodies = transportCalls
+      .filter(call => call.path === 'chat/completions')
+      .map(call => call.body as { messages?: Array<{ content: string }> })
+    expect(
+      chatBodies.some(body =>
+        body.messages?.some(
+          message => message.content.includes('2026-01-01') && message.content.includes('2026-02-01'),
+        ),
+      ),
+    ).toBe(true)
 
-    const month = await database.db.select().from(aiUsageBuckets).where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01'))).limit(1)
+    const month = await database.db
+      .select()
+      .from(aiUsageBuckets)
+      .where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
+      .limit(1)
     expect(month[0]).toMatchObject({ consumed: 2, estimatedCostCents: 10 })
-    const attempts = await database.db.select().from(aiReportAttempts).where(eq(aiReportAttempts.pricingCurrency, 'USD'))
+    const attempts = await database.db
+      .select()
+      .from(aiReportAttempts)
+      .where(eq(aiReportAttempts.pricingCurrency, 'USD'))
     expect(attempts.length).toBeGreaterThanOrEqual(2)
     expect(attempts.every(attempt => attempt.status === 'succeeded')).toBe(true)
   })
 
   it('reads the latest prompt revision after publish and uses it for the next edit', async () => {
     const admin = await login(true)
-    const first = await admin.post('/api/admin/ai/prompts/weekly/draft', { expectedRevision: 1, template: 'First {{period_label}} review in {{locale}}.' })
+    const first = await admin.post('/api/admin/ai/prompts/weekly/draft', {
+      expectedRevision: 1,
+      template: 'First {{period_label}} review in {{locale}}.',
+    })
     expect(first.status).toBe(200)
-    const second = await admin.post('/api/admin/ai/prompts/weekly/draft', { expectedRevision: 2, template: 'Second {{period_label}} review in {{locale}}.' })
+    const second = await admin.post('/api/admin/ai/prompts/weekly/draft', {
+      expectedRevision: 2,
+      template: 'Second {{period_label}} review in {{locale}}.',
+    })
     expect(second.status).toBe(200)
     const tested = await admin.post('/api/admin/ai/prompts/weekly/test', { expectedRevision: 3 })
     expect(tested.status).toBe(200)
@@ -179,8 +227,13 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
 
     const settings = await admin.request('/api/admin/ai/settings')
     expect(settings.status).toBe(200)
-    expect((await settings.json()) as unknown).toMatchObject({ prompts: { weekly: { revision: 3, status: 'published' } } })
-    const next = await admin.post('/api/admin/ai/prompts/weekly/draft', { expectedRevision: 3, template: 'Next {{period_label}} review in {{locale}}.' })
+    expect((await settings.json()) as unknown).toMatchObject({
+      prompts: { weekly: { revision: 3, status: 'published' } },
+    })
+    const next = await admin.post('/api/admin/ai/prompts/weekly/draft', {
+      expectedRevision: 3,
+      template: 'Next {{period_label}} review in {{locale}}.',
+    })
     expect(next.status).toBe(200)
     expect((await next.json()) as unknown).toMatchObject({ revision: 4, status: 'draft' })
   })
@@ -188,13 +241,25 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
   it('settles a failed synthetic test as unknown usage while retaining its reservation bound', async () => {
     const admin = await login(true)
     const settings = await admin.request('/api/admin/ai/settings')
-    const settingsBody = await settings.json() as { provider: { revision: number; status: string } }
+    const settingsBody = (await settings.json()) as { provider: { revision: number; status: string } }
     expect(settingsBody.provider).toMatchObject({ revision: 3, status: 'published' })
-    const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(settingsBody.provider.revision, { apiKeyAction: 'replace', apiKey: 'fixture-secret' }))
+    const draft = await put(
+      admin,
+      '/api/admin/ai/settings/draft',
+      providerDraft(settingsBody.provider.revision, { apiKeyAction: 'replace', apiKey: 'fixture-secret' }),
+    )
     expect(draft.status).toBe(200)
-    const attempt = await database.db.select({ id: aiReportAttempts.id, status: aiReportAttempts.status }).from(aiReportAttempts).orderBy(aiReportAttempts.id).limit(1)
+    const attempt = await database.db
+      .select({ id: aiReportAttempts.id, status: aiReportAttempts.status })
+      .from(aiReportAttempts)
+      .orderBy(aiReportAttempts.id)
+      .limit(1)
     expect(attempt[0]).toBeTruthy()
-    const before = await database.db.select().from(aiUsageBuckets).where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01'))).limit(1)
+    const before = await database.db
+      .select()
+      .from(aiUsageBuckets)
+      .where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
+      .limit(1)
     expect(before[0]?.estimatedCostCents).toBe(15)
 
     const failingApp = createApp({
@@ -202,49 +267,75 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
       databasePool: database.pool,
       now: () => new Date('2026-09-05T12:00:00.000Z'),
       aiTransport: failingTransport,
-      config: { jwtSecret: 'synthetic-review-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+      config: {
+        jwtSecret: 'synthetic-review-key-with-at-least-32-characters',
+        nodeEnv: 'test',
+        trustProxy: false,
+        webOrigin: 'http://127.0.0.1',
+      },
     })
     const failingServer = serve({ fetch: failingApp.fetch, hostname: '127.0.0.1', port: 0 })
     await once(failingServer, 'listening')
     const failingBaseUrl = `http://127.0.0.1:${(failingServer.address() as AddressInfo).port}`
     try {
       const failingAdmin = await login(true, failingBaseUrl)
-      const response = await failingAdmin.post('/api/admin/ai/settings/test', { expectedRevision: settingsBody.provider.revision + 1 })
+      const response = await failingAdmin.post('/api/admin/ai/settings/test', {
+        expectedRevision: settingsBody.provider.revision + 1,
+      })
       expect(response.status).toBe(502)
     } finally {
       failingServer.close()
       await once(failingServer, 'close')
     }
-    const latestAttempt = await database.db.select({ id: aiReportAttempts.id, status: aiReportAttempts.status }).from(aiReportAttempts).orderBy(aiReportAttempts.id).limit(10)
+    const latestAttempt = await database.db
+      .select({ id: aiReportAttempts.id, status: aiReportAttempts.status })
+      .from(aiReportAttempts)
+      .orderBy(aiReportAttempts.id)
+      .limit(10)
     expect(latestAttempt.at(-1)?.status).toBe('unknown')
-    const after = await database.db.select().from(aiUsageBuckets).where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01'))).limit(1)
+    const after = await database.db
+      .select()
+      .from(aiUsageBuckets)
+      .where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
+      .limit(1)
     expect(after[0]).toMatchObject({ consumed: 4, estimatedCostCents: 20, unknown: 4 })
   })
 
   it('cancels pending work and releases both quota reservations when generation is disabled', async () => {
     const admin = await login(true)
-    const [owner] = await database.db.insert(users).values({ email: `${randomUUID()}@example.test`, password: 'synthetic' }).returning({ id: users.id })
-    const [report] = await database.db.insert(aiReports).values({
-      userId: owner!.id,
-      reportType: 'weekly',
-      periodStart: '2026-09-01',
-      periodEndExclusive: '2026-09-08',
-      timezone: 'UTC',
-      locale: 'en',
-      revision: 1,
-      inputSnapshotHash: 'a'.repeat(64),
-      coverageJson: '{}',
-      metricsJson: '[]',
-      recipientRevision: 1,
-      idempotencyKeyHash: 'b'.repeat(64),
-      normalizedRequestHash: 'c'.repeat(64),
-      status: 'queued',
-      createdAt: new Date('2026-09-05T12:00:00.000Z'),
-      reservationBucketMonth: '2026-09-01',
-      reservationCostCents: 5,
-    }).returning({ id: aiReports.id })
-    await database.db.insert(aiUsageBuckets).values({ scope: 'user', userId: owner!.id, bucketMonth: '2026-09-01', reserved: 1 })
-    await database.db.update(aiUsageBuckets).set({ reserved: 1, reservedCostCents: 5 }).where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
+    const [owner] = await database.db
+      .insert(users)
+      .values({ email: `${randomUUID()}@example.test`, password: 'synthetic' })
+      .returning({ id: users.id })
+    const [report] = await database.db
+      .insert(aiReports)
+      .values({
+        userId: owner!.id,
+        reportType: 'weekly',
+        periodStart: '2026-09-01',
+        periodEndExclusive: '2026-09-08',
+        timezone: 'UTC',
+        locale: 'en',
+        revision: 1,
+        inputSnapshotHash: 'a'.repeat(64),
+        coverageJson: '{}',
+        metricsJson: '[]',
+        recipientRevision: 1,
+        idempotencyKeyHash: 'b'.repeat(64),
+        normalizedRequestHash: 'c'.repeat(64),
+        status: 'queued',
+        createdAt: new Date('2026-09-05T12:00:00.000Z'),
+        reservationBucketMonth: '2026-09-01',
+        reservationCostCents: 5,
+      })
+      .returning({ id: aiReports.id })
+    await database.db
+      .insert(aiUsageBuckets)
+      .values({ scope: 'user', userId: owner!.id, bucketMonth: '2026-09-01', reserved: 1 })
+    await database.db
+      .update(aiUsageBuckets)
+      .set({ reserved: 1, reservedCostCents: 5 })
+      .where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
 
     const enabled = await put(admin, '/api/admin/ai/runtime', { generationEnabled: true })
     expect(enabled.status).toBe(200)
@@ -252,60 +343,101 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
     expect(disabled.status).toBe(200)
     const cancelled = await database.db.select().from(aiReports).where(eq(aiReports.id, report!.id)).limit(1)
     expect(cancelled[0]).toMatchObject({ status: 'cancelled', errorCode: 'AI_CONFIG_CHANGED' })
-    const userBucket = await database.db.select().from(aiUsageBuckets).where(and(eq(aiUsageBuckets.scope, 'user'), eq(aiUsageBuckets.userId, owner!.id))).limit(1)
+    const userBucket = await database.db
+      .select()
+      .from(aiUsageBuckets)
+      .where(and(eq(aiUsageBuckets.scope, 'user'), eq(aiUsageBuckets.userId, owner!.id)))
+      .limit(1)
     expect(userBucket[0]).toMatchObject({ reserved: 0, released: 1 })
-    const globalBucket = await database.db.select().from(aiUsageBuckets).where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01'))).limit(1)
+    const globalBucket = await database.db
+      .select()
+      .from(aiUsageBuckets)
+      .where(and(eq(aiUsageBuckets.scope, 'global'), eq(aiUsageBuckets.bucketMonth, '2026-09-01')))
+      .limit(1)
     expect(globalBucket[0]).toMatchObject({ reservedCostCents: 0, released: 1 })
-    const audit = await database.db.select().from(aiAdminAuditEvents).where(eq(aiAdminAuditEvents.action, 'runtime.generation.disabled'))
+    const audit = await database.db
+      .select()
+      .from(aiAdminAuditEvents)
+      .where(eq(aiAdminAuditEvents.action, 'runtime.generation.disabled'))
     expect(audit.length).toBeGreaterThan(0)
   })
 
   it('rejects a reservation below the declared full token-price bound', async () => {
     const admin = await login(true)
-    const latest = await database.pool.query('select coalesce(max(revision), 0)::int as revision from ai_provider_config_version')
-    const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(Number(latest.rows[0].revision), {
-      inputPricePerMillionCents: 1_000_000,
-      outputPricePerMillionCents: 1_000_000,
-      reservationCostCents: 5,
-    }))
+    const latest = await database.pool.query(
+      'select coalesce(max(revision), 0)::int as revision from ai_provider_config_version',
+    )
+    const draft = await put(
+      admin,
+      '/api/admin/ai/settings/draft',
+      providerDraft(Number(latest.rows[0].revision), {
+        inputPricePerMillionCents: 1_000_000,
+        outputPricePerMillionCents: 1_000_000,
+        reservationCostCents: 5,
+      }),
+    )
     expect(draft.status).toBe(400)
   })
 
   it('invalidates a successful provider test when the draft is edited before publish', async () => {
     const admin = await login(true)
-    const latest = await database.pool.query('select coalesce(max(revision), 0)::int as revision from ai_provider_config_version')
+    const latest = await database.pool.query(
+      'select coalesce(max(revision), 0)::int as revision from ai_provider_config_version',
+    )
     const firstDraftRevision = Number(latest.rows[0].revision) + 1
     const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(firstDraftRevision - 1))
     expect(draft.status).toBe(200)
     const tested = await admin.post('/api/admin/ai/settings/test', { expectedRevision: firstDraftRevision })
     expect(tested.status).toBe(200)
 
-    const edited = await put(admin, '/api/admin/ai/settings/draft', providerDraft(firstDraftRevision, { displayName: 'Edited after test', apiKeyAction: 'keep', apiKey: undefined }))
+    const edited = await put(
+      admin,
+      '/api/admin/ai/settings/draft',
+      providerDraft(firstDraftRevision, { displayName: 'Edited after test', apiKeyAction: 'keep', apiKey: undefined }),
+    )
     expect(edited.status).toBe(200)
-    const stalePublish = await admin.post('/api/admin/ai/settings/publish', { expectedRevision: firstDraftRevision + 1 })
+    const stalePublish = await admin.post('/api/admin/ai/settings/publish', {
+      expectedRevision: firstDraftRevision + 1,
+    })
     expect(stalePublish.status).toBe(409)
   })
 
   it('rejects a new currency when the current month already has usage before publication', async () => {
     const admin = await login(true)
-    const currentRuntime = await database.pool.query('select active_provider_config_id from ai_runtime_state where singleton=$1', ['default'])
+    const currentRuntime = await database.pool.query(
+      'select active_provider_config_id from ai_runtime_state where singleton=$1',
+      ['default'],
+    )
     const activeProviderId = currentRuntime.rows[0].active_provider_config_id
     expect(activeProviderId).not.toBeNull()
-    await database.pool.query('update ai_runtime_state set active_provider_config_id=null where singleton=$1', ['default'])
+    await database.pool.query('update ai_runtime_state set active_provider_config_id=null where singleton=$1', [
+      'default',
+    ])
     try {
-      const latest = await database.pool.query('select coalesce(max(revision), 0)::int as revision from ai_provider_config_version')
-      const draft = await put(admin, '/api/admin/ai/settings/draft', providerDraft(Number(latest.rows[0].revision), {
-        pricingCurrency: 'CNY',
-        pricingVersion: 'fixture-price-cny',
-      }))
+      const latest = await database.pool.query(
+        'select coalesce(max(revision), 0)::int as revision from ai_provider_config_version',
+      )
+      const draft = await put(
+        admin,
+        '/api/admin/ai/settings/draft',
+        providerDraft(Number(latest.rows[0].revision), {
+          pricingCurrency: 'CNY',
+          pricingVersion: 'fixture-price-cny',
+        }),
+      )
       expect(draft.status).toBe(409)
     } finally {
-      await database.pool.query('update ai_runtime_state set active_provider_config_id=$1 where singleton=$2', [activeProviderId, 'default'])
+      await database.pool.query('update ai_runtime_state set active_provider_config_id=$1 where singleton=$2', [
+        activeProviderId,
+        'default',
+      ])
     }
   })
 
   it('enforces the two-call cap across concurrent manual capability tests', async () => {
-    const latest = await database.pool.query('select coalesce(max(revision), 0)::int as revision from ai_provider_config_version')
+    const latest = await database.pool.query(
+      'select coalesce(max(revision), 0)::int as revision from ai_provider_config_version',
+    )
     const expectedRevision = Number(latest.rows[0].revision)
     const setupAdmin = await login(true)
     const enabled = await put(setupAdmin, '/api/admin/ai/runtime', { generationEnabled: true })
@@ -313,7 +445,9 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
 
     let started = 0
     let resolveStartedTwo!: () => void
-    const startedTwo = new Promise<void>(resolve => { resolveStartedTwo = resolve })
+    const startedTwo = new Promise<void>(resolve => {
+      resolveStartedTwo = resolve
+    })
     const release: Array<() => void> = []
     const barrierTransport: AiTransport = async () => {
       started += 1
@@ -334,7 +468,12 @@ describe('AI admin lifecycle with disposable PostgreSQL', () => {
       databasePool: database.pool,
       now: () => new Date('2026-09-05T12:00:00.000Z'),
       aiTransport: barrierTransport,
-      config: { jwtSecret: 'synthetic-review-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+      config: {
+        jwtSecret: 'synthetic-review-key-with-at-least-32-characters',
+        nodeEnv: 'test',
+        trustProxy: false,
+        webOrigin: 'http://127.0.0.1',
+      },
     })
     const barrierServer = serve({ fetch: barrierApp.fetch, hostname: '127.0.0.1', port: 0 })
     await once(barrierServer, 'listening')

@@ -84,12 +84,24 @@
   font-size: var(--text-sm);
 }
 
-.admin-institutional-table.is-managers { min-width: 1080px; }
-.admin-institutional-table.is-filings { min-width: 1040px; }
-.admin-institutional-table.is-artifacts { min-width: 880px; }
-.admin-institutional-table.is-parsed-rows { min-width: 1240px; }
-.admin-institutional-table.is-sources { min-width: 760px; }
-.admin-institutional-table.is-amendments { min-width: 1040px; }
+.admin-institutional-table.is-managers {
+  min-width: 1080px;
+}
+.admin-institutional-table.is-filings {
+  min-width: 1040px;
+}
+.admin-institutional-table.is-artifacts {
+  min-width: 880px;
+}
+.admin-institutional-table.is-parsed-rows {
+  min-width: 1240px;
+}
+.admin-institutional-table.is-sources {
+  min-width: 760px;
+}
+.admin-institutional-table.is-amendments {
+  min-width: 1040px;
+}
 
 .admin-institutional-table th,
 .admin-institutional-table td {

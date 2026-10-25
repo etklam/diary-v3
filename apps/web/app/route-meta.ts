@@ -17,19 +17,23 @@ import type { MetaDescriptor, MetaFunction } from 'react-router'
 const PUBLIC_PAGE_META = {
   '/gurus': {
     title: 'Guru portfolios',
-    description: 'Discover tracked investment managers through prepared 13F portfolio analytics, disclosed changes, and shared holdings.',
+    description:
+      'Discover tracked investment managers through prepared 13F portfolio analytics, disclosed changes, and shared holdings.',
   },
   '/tools': {
     title: 'Tools',
-    description: 'Public calculators and market research: position sizing, financial freedom, ETF research, market rotation, relative value, seasonality, and SEC filings.',
+    description:
+      'Public calculators and market research: position sizing, financial freedom, ETF research, market rotation, relative value, seasonality, and SEC filings.',
   },
   '/tools/etf': {
     title: 'ETF research',
-    description: 'Review an ETF against a benchmark with risk, drawdown, and relative-strength measures over a chosen period.',
+    description:
+      'Review an ETF against a benchmark with risk, drawdown, and relative-strength measures over a chosen period.',
   },
   '/tools/market-rotation': {
     title: 'Market rotation',
-    description: 'Track sector and style rotation with breadth, trend, and relative-strength readings from completed trading sessions.',
+    description:
+      'Track sector and style rotation with breadth, trend, and relative-strength readings from completed trading sessions.',
   },
   '/tools/relative-value': {
     title: 'Relative value',
@@ -41,7 +45,8 @@ const PUBLIC_PAGE_META = {
   },
   '/tools/sec-filings': {
     title: 'SEC filings',
-    description: 'Search SEC EDGAR companies and filings, read filing details, and download bounded documents or packages.',
+    description:
+      'Search SEC EDGAR companies and filings, read filing details, and download bounded documents or packages.',
   },
   '/login': {
     title: 'Sign in',
@@ -49,7 +54,8 @@ const PUBLIC_PAGE_META = {
   },
   '/register': {
     title: 'Create account',
-    description: 'Create a Trade basic account to record investment decisions, trades, research evidence, and later reviews.',
+    description:
+      'Create a Trade basic account to record investment decisions, trades, research evidence, and later reviews.',
   },
 } as const satisfies Record<string, { title: string; description: string }>
 

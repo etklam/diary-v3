@@ -1,1 +1,1 @@
-export {default} from './trade-plan';
+export { default } from './trade-plan'

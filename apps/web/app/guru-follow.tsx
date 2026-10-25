@@ -6,7 +6,12 @@ import { signInPath, useSessionState } from './session'
 import { api, useUi } from './ui'
 import { guruCopy, type GuruCopy } from './routes/gurus-copy'
 
-export function GuruFollowButton({ slug, followerCount, followed, onChange }: {
+export function GuruFollowButton({
+  slug,
+  followerCount,
+  followed,
+  onChange,
+}: {
   slug: string
   followerCount: number
   followed: boolean
@@ -44,11 +49,30 @@ export function GuruFollowButton({ slug, followerCount, followed, onChange }: {
     }
   }
 
-  return <div className="guru-follow-control">
-    <button type="button" className={followed ? 'secondary' : undefined} disabled={pending || session.authenticated === null} onClick={() => void toggle()}>
-      {pending ? '…' : session.authenticated === true && followed ? c.unfollow : session.authenticated === true ? c.follow : c.signIn}
-    </button>
-    <span className="guru-follow-count">{c.followerCount(followerCount)}</span>
-    {error && <FailureNotice failure={apiFailure(undefined, c.failed)} id={`guru-follow-error-${slug}`} messageOverride={c.failed} />}
-  </div>
+  return (
+    <div className="guru-follow-control">
+      <button
+        type="button"
+        className={followed ? 'secondary' : undefined}
+        disabled={pending || session.authenticated === null}
+        onClick={() => void toggle()}
+      >
+        {pending
+          ? '…'
+          : session.authenticated === true && followed
+            ? c.unfollow
+            : session.authenticated === true
+              ? c.follow
+              : c.signIn}
+      </button>
+      <span className="guru-follow-count">{c.followerCount(followerCount)}</span>
+      {error && (
+        <FailureNotice
+          failure={apiFailure(undefined, c.failed)}
+          id={`guru-follow-error-${slug}`}
+          messageOverride={c.failed}
+        />
+      )}
+    </div>
+  )
 }

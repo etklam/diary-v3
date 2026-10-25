@@ -37,7 +37,14 @@ const contextErrorCodes = new Set<ErrorCode>([
 
 function errorStatus(code: string, fallback: number): number {
   if (code === 'AI_ACCESS_DENIED') return 403
-  if (code === 'AI_CONSENT_REQUIRED' || code === 'AI_CONFIG_CHANGED' || code === 'AI_PREVIEW_CHANGED' || code === 'AI_IDEMPOTENCY_CONFLICT' || code === 'AI_REPORT_ALREADY_RUNNING') return 409
+  if (
+    code === 'AI_CONSENT_REQUIRED' ||
+    code === 'AI_CONFIG_CHANGED' ||
+    code === 'AI_PREVIEW_CHANGED' ||
+    code === 'AI_IDEMPOTENCY_CONFLICT' ||
+    code === 'AI_REPORT_ALREADY_RUNNING'
+  )
+    return 409
   if (code === 'AI_QUOTA_EXCEEDED' || code === 'AI_PROVIDER_RATE_LIMITED') return 429
   if (code === 'AI_REPORT_CONTEXT_TOO_LARGE') return 413
   if (code === 'AI_REPORTS_DISABLED' || code === 'AI_NOT_CONFIGURED' || code === 'AI_WORKER_UNAVAILABLE') return 503
@@ -61,7 +68,10 @@ export function registerAiReportRoutes(app: Hono<AppEnv>, dependencies: AiRouteD
       return await operation()
     } catch (error) {
       if (error instanceof AiReportServiceError) return fail(error.statusCode, error.code as ErrorCode, error.message)
-      const coded = error && typeof error === 'object' && 'code' in error && typeof (error as { code?: unknown }).code === 'string' ? (error as { code: string }).code : ''
+      const coded =
+        error && typeof error === 'object' && 'code' in error && typeof (error as { code?: unknown }).code === 'string'
+          ? (error as { code: string }).code
+          : ''
       const code = coded || (error instanceof Error ? error.message : '')
       if (contextErrorCodes.has(code as ErrorCode)) return fail(errorStatus(code, 400), code as ErrorCode, code)
       throw error
@@ -139,7 +149,9 @@ export function registerAiReportRoutes(app: Hono<AppEnv>, dependencies: AiRouteD
     const id = userId(context)
     const rawId = context.req.param('id')
     if (!/^\d+$/.test(rawId)) return fail(400, 'SYS_VALIDATION_ERROR', 'Invalid report id')
-    return context.json(aiReportCancelResponseSchema.parse(await invoke(context, () => service.cancel(id, BigInt(rawId)))))
+    return context.json(
+      aiReportCancelResponseSchema.parse(await invoke(context, () => service.cancel(id, BigInt(rawId)))),
+    )
   })
 
   app.delete('/api/ai/reports/:id', async context => {

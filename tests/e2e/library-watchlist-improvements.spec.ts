@@ -21,10 +21,20 @@ async function signIn(page: Page, path: string, prefix: string) {
 test('diary library saved views and snippets retain confirmed results during stale auth', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   const { csrf } = await signIn(page, '/diaries', 'library-improvement')
-  for (const [title, date] of [['Decision with evidence', '2026-09-01'], ['Unrelated observation', '2026-09-02']] as const) {
+  for (const [title, date] of [
+    ['Decision with evidence', '2026-09-01'],
+    ['Unrelated observation', '2026-09-02'],
+  ] as const) {
     const response = await page.request.post('/api/diaries', {
       headers: { 'x-csrf-token': csrf },
-      data: { title, content: title === 'Decision with evidence' ? 'The demand needle <img src=x onerror="window.snippetExecuted=true"> **投資 😀** needle remains visible in the evidence.' : 'Synthetic unrelated content.', date },
+      data: {
+        title,
+        content:
+          title === 'Decision with evidence'
+            ? 'The demand needle <img src=x onerror="window.snippetExecuted=true"> **投資 😀** needle remains visible in the evidence.'
+            : 'Synthetic unrelated content.',
+        date,
+      },
     })
     expect(response.status()).toBe(201)
   }
@@ -58,11 +68,13 @@ test('diary library saved views and snippets retain confirmed results during sta
   await search.fill('needle')
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
   await expect(page.locator('.diary-records > li')).toHaveCount(1)
-  await page.route('**/api/diaries/summary*', route => route.fulfill({
-    status: 401,
-    contentType: 'application/json',
-    body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'library-stale-auth' } }),
-  }))
+  await page.route('**/api/diaries/summary*', route =>
+    route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'library-stale-auth' } }),
+    }),
+  )
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('AUTH_UNAUTHORIZED')
   await expect(page.locator('.diary-records > li')).toHaveCount(0)
@@ -74,12 +86,20 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
   await page.setViewportSize({ width: 1440, height: 1000 })
   const { csrf } = await signIn(page, '/stocks/watchlist', 'watchlist-improvement')
   for (const symbol of ['AAPL', 'MSFT', 'NVDA']) {
-    const response = await page.request.post('/api/stocks/watchlist', { headers: { 'x-csrf-token': csrf }, data: { symbol } })
+    const response = await page.request.post('/api/stocks/watchlist', {
+      headers: { 'x-csrf-token': csrf },
+      data: { symbol },
+    })
     expect(response.status()).toBe(200)
   }
   const evidence = await page.request.post('/api/stocks/AAPL/evidence', {
     headers: { 'x-csrf-token': csrf },
-    data: { summary: 'Synthetic research record.', sourceType: 'ARTICLE', occurredAt: '2026-09-05T10:30:00Z', sourceTitle: 'Synthetic watchlist evidence' },
+    data: {
+      summary: 'Synthetic research record.',
+      sourceType: 'ARTICLE',
+      occurredAt: '2026-09-05T10:30:00Z',
+      sourceTitle: 'Synthetic watchlist evidence',
+    },
   })
   expect(evidence.status()).toBe(200)
 
@@ -92,7 +112,8 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
 
   const watchlistGets: string[] = []
   page.on('request', request => {
-    if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/stocks/watchlist') watchlistGets.push(request.url())
+    if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/stocks/watchlist')
+      watchlistGets.push(request.url())
   })
   const beforeMove = watchlistGets.length
   await page.getByRole('button', { name: 'Arrange order', exact: true }).click()
@@ -112,8 +133,12 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
 
   let releaseRefresh!: () => void
   let refreshReadStarted!: () => void
-  const refreshReadStartedPromise = new Promise<void>(resolve => { refreshReadStarted = resolve })
-  const refreshReleasePromise = new Promise<void>(resolve => { releaseRefresh = resolve })
+  const refreshReadStartedPromise = new Promise<void>(resolve => {
+    refreshReadStarted = resolve
+  })
+  const refreshReleasePromise = new Promise<void>(resolve => {
+    releaseRefresh = resolve
+  })
   await page.route('**/api/stocks/watchlist', async route => {
     if (route.request().method() !== 'GET') return route.continue()
     const staleResponse = await route.fetch()
@@ -135,11 +160,13 @@ test('watchlist filter, reorder and undo update rows without a list reload', asy
   await page.getByRole('button', { name: 'Undo remove', exact: true }).click()
   await expect(page.getByTestId('watch-AAPL')).toBeVisible()
 
-  await page.route('**/api/stocks/watchlist', route => route.fulfill({
-    status: 401,
-    contentType: 'application/json',
-    body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'watchlist-stale-auth' } }),
-  }))
+  await page.route('**/api/stocks/watchlist', route =>
+    route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'watchlist-stale-auth' } }),
+    }),
+  )
   await page.getByRole('button', { name: 'Refresh watchlist', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('AUTH_UNAUTHORIZED')
   await expect(page.getByTestId('watch-AAPL')).toHaveCount(0)

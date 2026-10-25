@@ -17,10 +17,22 @@ function statement(overrides: Partial<GuruAnalysis['executiveSummary'][number]> 
 
 function analysis(overrides: Partial<GuruAnalysis> = {}): GuruAnalysis {
   return {
-    executiveSummary: [statement()], portfolioDirection: [], convictionPositions: [], newPositions: [],
-    increasedPositions: [], reducedPositions: [], exitedPositions: [], sectorAndThemeChange: [],
-    concentrationChange: [], turnoverInterpretation: [], historicalContext: [], consensusContext: [],
-    risks: [statement()], takeaways: [statement()], caveatIds: [...guruAnalysisCaveatKeys], ...overrides,
+    executiveSummary: [statement()],
+    portfolioDirection: [],
+    convictionPositions: [],
+    newPositions: [],
+    increasedPositions: [],
+    reducedPositions: [],
+    exitedPositions: [],
+    sectorAndThemeChange: [],
+    concentrationChange: [],
+    turnoverInterpretation: [],
+    historicalContext: [],
+    consensusContext: [],
+    risks: [statement()],
+    takeaways: [statement()],
+    caveatIds: [...guruAnalysisCaveatKeys],
+    ...overrides,
   }
 }
 
@@ -30,9 +42,15 @@ describe('Guru analysis structured context', () => {
   })
 
   it('carries prepared facts, the disclosure identifiers and no raw filing text', () => {
-    expect(context.facts.map(fact => fact.id)).toEqual(expect.arrayContaining([
-      'portfolio.reportedValueUsd', 'concentration.topTen', 'turnover.band', 'actions.NEW', 'holding.rank-1',
-    ]))
+    expect(context.facts.map(fact => fact.id)).toEqual(
+      expect.arrayContaining([
+        'portfolio.reportedValueUsd',
+        'concentration.topTen',
+        'turnover.band',
+        'actions.NEW',
+        'holding.rank-1',
+      ]),
+    )
     expect(context.disclosureIds).toEqual([...guruAnalysisCaveatKeys])
     expect(JSON.stringify(context)).not.toMatch(/<\?xml|informationTable|sourceData/i)
   })
@@ -63,7 +81,9 @@ describe('Guru analysis structured context', () => {
 describe('Guru analysis output validation', () => {
   it('accepts a cited analysis and replaces the caveat list with the code-owned set', () => {
     const payload = analysis({
-      executiveSummary: [statement({ kind: 'fact', factRefs: ['portfolio.reportedValueUsd'], positionKeys: ['synthetic-a'] })],
+      executiveSummary: [
+        statement({ kind: 'fact', factRefs: ['portfolio.reportedValueUsd'], positionKeys: ['synthetic-a'] }),
+      ],
       caveatIds: [...guruAnalysisCaveatKeys, 'DELAYED_QUARTER_END'],
     })
     expect(validateGuruAnalysisOutput(payload, context).caveatIds).toEqual([...guruAnalysisCaveatKeys])
@@ -71,13 +91,21 @@ describe('Guru analysis output validation', () => {
 
   it('rejects malformed output, unknown citations and uncited facts', () => {
     expect(() => validateGuruAnalysisOutput({ executiveSummary: 'not an array' }, context)).toThrow('AI_OUTPUT_INVALID')
-    expect(() => validateGuruAnalysisOutput(analysis({ risks: [statement({ factRefs: ['invented.metric'] })] }), context)).toThrow('AI_OUTPUT_INVALID')
-    expect(() => validateGuruAnalysisOutput(analysis({ risks: [statement({ positionKeys: ['invented-position'] })] }), context)).toThrow('AI_OUTPUT_INVALID')
-    expect(() => validateGuruAnalysisOutput(analysis({ takeaways: [statement({ kind: 'fact' })] }), context)).toThrow('AI_OUTPUT_INVALID')
+    expect(() =>
+      validateGuruAnalysisOutput(analysis({ risks: [statement({ factRefs: ['invented.metric'] })] }), context),
+    ).toThrow('AI_OUTPUT_INVALID')
+    expect(() =>
+      validateGuruAnalysisOutput(analysis({ risks: [statement({ positionKeys: ['invented-position'] })] }), context),
+    ).toThrow('AI_OUTPUT_INVALID')
+    expect(() => validateGuruAnalysisOutput(analysis({ takeaways: [statement({ kind: 'fact' })] }), context)).toThrow(
+      'AI_OUTPUT_INVALID',
+    )
   })
 
   it('rejects output that drops any required 13F disclosure', () => {
-    expect(() => validateGuruAnalysisOutput(analysis({ caveatIds: ['DELAYED_QUARTER_END'] }), context)).toThrow('AI_OUTPUT_INVALID')
+    expect(() => validateGuruAnalysisOutput(analysis({ caveatIds: ['DELAYED_QUARTER_END'] }), context)).toThrow(
+      'AI_OUTPUT_INVALID',
+    )
   })
 
   it('keeps the published schema strict about extra keys', () => {

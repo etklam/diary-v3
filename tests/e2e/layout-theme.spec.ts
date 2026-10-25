@@ -23,10 +23,11 @@ test('public direct routes load their stylesheet and share the responsive gutter
     expect(response?.status(), `login at ${width}px`).toBe(200)
     await expect(page.locator('.public-header')).toBeVisible()
     await expect(page.locator('.form-page')).toBeVisible()
-    await expect.poll(
-      () => page.locator('.public-header').evaluate(element => getComputedStyle(element).paddingLeft),
-      { message: `public CSS is applied at ${width}px` },
-    ).toBe(expectedGutter)
+    await expect
+      .poll(() => page.locator('.public-header').evaluate(element => getComputedStyle(element).paddingLeft), {
+        message: `public CSS is applied at ${width}px`,
+      })
+      .toBe(expectedGutter)
 
     const values = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement)
@@ -51,7 +52,10 @@ test('public direct routes load their stylesheet and share the responsive gutter
   }
 
   expect(stylesheetResponses.length).toBeGreaterThan(0)
-  expect(stylesheetResponses.every(({ status }) => status === 200), stylesheetResponses.map(({ status, url }) => `${status} ${url}`).join('\n')).toBe(true)
+  expect(
+    stylesheetResponses.every(({ status }) => status === 200),
+    stylesheetResponses.map(({ status, url }) => `${status} ${url}`).join('\n'),
+  ).toBe(true)
 })
 
 test('workspace page header and section cards share one alignment line', async ({ page }) => {
@@ -73,7 +77,11 @@ test('workspace page header and section cards share one alignment line', async (
     await page.waitForTimeout(300)
     const edges = await page.evaluate(() => {
       const left = (selector: string) => document.querySelector(selector)?.getBoundingClientRect().left ?? null
-      return { header: left('.overview-header'), card: left('.overview-section, .overview-first-use'), main: left('.app-shell > main') }
+      return {
+        header: left('.overview-header'),
+        card: left('.overview-section, .overview-first-use'),
+        main: left('.app-shell > main'),
+      }
     })
     expect(edges.header).not.toBeNull()
     expect(edges.card).toBeCloseTo(edges.header ?? 0, 0)

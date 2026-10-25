@@ -1,4 +1,8 @@
-import type { PortfolioAttentionItem, PortfolioAttentionResponse, PortfolioAttentionReason } from '@diary/contracts/portfolio-attention'
+import type {
+  PortfolioAttentionItem,
+  PortfolioAttentionResponse,
+  PortfolioAttentionReason,
+} from '@diary/contracts/portfolio-attention'
 import type { PortfolioValuationResponse } from '@diary/contracts/portfolio'
 import { diarySummaryListResponseSchema } from '@diary/contracts/diary-summary'
 import type { ReviewGroups, ReviewItem } from '@diary/contracts/review-queue'
@@ -25,7 +29,10 @@ export type OverviewAttentionRow = {
   priority: number
 }
 
-const priority: Record<PortfolioAttentionReason | 'overdue_thesis' | 'overdue_diary' | 'today_thesis' | 'today_diary', number> = {
+const priority: Record<
+  PortfolioAttentionReason | 'overdue_thesis' | 'overdue_diary' | 'today_thesis' | 'today_diary',
+  number
+> = {
   invalidated_thesis_while_held: 1,
   overdue_thesis_review: 2,
   overdue_diary_review: 3,
@@ -80,7 +87,7 @@ function attentionRow(item: PortfolioAttentionItem): OverviewAttentionRow {
 function queueRow(item: ReviewItem, reviewBucket: OverviewReviewBucket): OverviewAttentionRow {
   const thesis = item.targetType === 'thesis'
   const symbol = thesis ? normalizedSymbol(item.symbol) || null : null
-  const targetId = item.targetType === 'diary' ? item.id : symbol ?? item.thesisId
+  const targetId = item.targetType === 'diary' ? item.id : (symbol ?? item.thesisId)
   return {
     key: reviewKey(item),
     source: 'reviews',
@@ -90,9 +97,12 @@ function queueRow(item: ReviewItem, reviewBucket: OverviewReviewBucket): Overvie
     targetId,
     symbol,
     title: item.title,
-    href: item.targetType === 'diary'
-      ? `/diaries/${item.id}/review`
-      : symbol ? `/stocks/${encodeURIComponent(symbol)}/thesis` : '/reviews?target=thesis',
+    href:
+      item.targetType === 'diary'
+        ? `/diaries/${item.id}/review`
+        : symbol
+          ? `/stocks/${encodeURIComponent(symbol)}/thesis`
+          : '/reviews?target=thesis',
     dueAt: item.reviewDueAt,
     concentrationPct: null,
     priority: priority[`${reviewBucket}_${thesis ? 'thesis' : 'diary'}`],
@@ -134,11 +144,13 @@ export function isOverviewFirstUse(input: {
   watchlist: StockWatchlistResponse
 }): boolean {
   const { attention, reviews, recent, valuation, plans, watchlist } = input
-  return attention.items.length === 0
-    && Object.values(reviews.counts).every(count => count === 0)
-    && recent.pagination.total === 0
-    && plans.pagination.total === 0
-    && valuation.valuation.valuationStatus === 'empty'
-    && valuation.valuation.totalHoldings === 0
-    && watchlist.items.length === 0
+  return (
+    attention.items.length === 0 &&
+    Object.values(reviews.counts).every(count => count === 0) &&
+    recent.pagination.total === 0 &&
+    plans.pagination.total === 0 &&
+    valuation.valuation.valuationStatus === 'empty' &&
+    valuation.valuation.totalHoldings === 0 &&
+    watchlist.items.length === 0
+  )
 }

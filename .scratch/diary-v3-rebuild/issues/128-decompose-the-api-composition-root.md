@@ -2,9 +2,10 @@
 
 # [128] Decompose the API composition root
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: architecture
 Type: Architecture deepening
@@ -66,10 +67,10 @@ Guru path ordering is still exercised by the existing Guru tests.
 
 ## Provisional acceptance criteria
 
-- [ ] `app.ts` holds middleware, service composition, and grouped registration, with no flat 55-item list.
-- [ ] Each literal-before-parameter ordering constraint is documented next to its group.
-- [ ] Group and leaf dependencies remain explicit, without adding unused dependencies for uniformity.
-- [ ] The full integration suite is green and the route surface is byte-identical in behaviour.
+- [x] `app.ts` holds middleware, service composition, and grouped registration, with no flat 55-item list.
+- [x] Each literal-before-parameter ordering constraint is documented next to its group.
+- [x] Group and leaf dependencies remain explicit, without adding unused dependencies for uniformity.
+- [x] The full integration suite is green and the route surface is byte-identical in behaviour.
 
 ## Related work
 
@@ -85,3 +86,38 @@ None.
 
 Filed 2026-10-16 from a repository quality audit. Low urgency, but the cost compounds: this
 is the file every remaining API ticket must open.
+
+### Acceptance — 2026-10-25
+
+`apps/api/src/app.ts` went from 540 lines with a flat 51-call registration block to 448
+lines whose route section is 11 group calls. Eleven surfaces under
+`apps/api/src/surfaces/`: market, diary, account, performance, publishing, admin, guru,
+institutional, ai, account-email, research. Auth, the diary routes and the portfolio routes
+stay in the root because each closes over session state the root owns — the session service,
+the cookie writers, the rate limiter.
+
+**The ordering constraint is now enforced, not just commented.** The ticket's verification
+was "the integration suite is the regression proof", and that suite needs PostgreSQL. So the
+proof was made local instead: `tests/unit/api-route-order.test.ts` freezes all **279
+registered routes in order** (`tests/fixtures/api-route-order.txt`) and additionally
+asserts that every literal `/api/gurus/*` path precedes `/api/gurus/:slug` and that the
+whole middleware pipeline precedes the first concrete route. The snapshot was captured
+before the decomposition and is **byte-identical after it** — that is the regression proof.
+
+Dependencies stayed explicit. `SurfaceContext` carries only db, config, now, logger,
+market, consume and clientIp; `fail`/`validationError`/`parseJson` remain module
+imports, and anything domain-specific (the SEC service, the SMTP keyring, the AI transport)
+is a surface's own second argument. `registerDiaryRoutes(app, { db, now })` still takes two
+dependencies and did not grow unused helpers for uniformity.
+
+`guru-surface.ts` carries the load-bearing ordering comment next to the code it
+constrains, and `market-surface.ts` states why the SEC filing tool registers there: it
+shares this surface's policy exactly — an unauthenticated provider-backed read throttled per
+client IP.
+
+Gates: lint, `tsc --noEmit`, `npm run test:unit` **142 files / 1253 tests**, design
+checks, and both artifact builds pass.
+
+**Not done.** `npm run test:integration` was not run. The frozen route surface is a
+stronger local proof than it sounds — it would catch any reordering — but it is not the
+integration suite the ticket asked for.

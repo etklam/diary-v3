@@ -35,7 +35,7 @@ const RELATIVE_STRENGTH_LIMIT = 60
 const SOURCE_LIMIT = 50
 
 function object(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
 }
 
 function valueAtPath(value: unknown, path: string): unknown {
@@ -70,7 +70,7 @@ export function formatResearchDecimal(value: unknown, places: number): string {
   let rounded: bigint
   if (shift >= 0) {
     if (shift > 120) return 'N/A'
-    rounded = parsed.digits * (10n ** BigInt(shift))
+    rounded = parsed.digits * 10n ** BigInt(shift)
   } else {
     if (shift < -120) return parsed.digits === 0n ? (places ? `0.${'0'.repeat(places)}` : '0') : 'N/A'
     const divisor = 10n ** BigInt(-shift)
@@ -87,7 +87,10 @@ export function formatResearchDecimal(value: unknown, places: number): string {
 }
 
 function cleanCell(value: string): string {
-  return value.replace(/[\r\n]+/gu, ' ').replace(/\p{Cc}/gu, ' ').trim()
+  return value
+    .replace(/[\r\n]+/gu, ' ')
+    .replace(/\p{Cc}/gu, ' ')
+    .trim()
 }
 
 /** Escape untrusted text before placing it into a Markdown table or link label. */
@@ -114,15 +117,16 @@ function safeHttpsUrl(value: string | null): string | null {
 }
 
 function isDiscoverySource(source: ResearchSourceRecord): boolean {
-  return source.sourceId === 'TAVILY_SEARCH'
-    || /(?:^|[_.-])(?:search|discovery)(?:$|[_.-])/iu.test(source.purpose)
-    || /discovery_only/iu.test(source.evidenceLocator ?? '')
+  return (
+    source.sourceId === 'TAVILY_SEARCH' ||
+    /(?:^|[_.-])(?:search|discovery)(?:$|[_.-])/iu.test(source.purpose) ||
+    /discovery_only/iu.test(source.evidenceLocator ?? '')
+  )
 }
 
 function publicationPermissionVerified(source: ResearchSourceRecord): boolean {
   const permission = source.use.publicationOfAnalysisAndExcerpts
-  return sourcePermissionIsVerifiedAllowed(permission)
-    && Boolean(permission.basis && safeHttpsUrl(permission.basis))
+  return sourcePermissionIsVerifiedAllowed(permission) && Boolean(permission.basis && safeHttpsUrl(permission.basis))
 }
 
 function publicCitationUrl(source: ResearchSourceRecord): string | null {
@@ -136,7 +140,9 @@ function isBlsHosted(source: ResearchSourceRecord): boolean {
   try {
     const hostname = new URL(source.resolvedUrl).hostname.toLowerCase()
     return hostname === 'bls.gov' || hostname.endsWith('.bls.gov')
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 /** Keep source identifiers for claim validation while allowing links only for verified public citations. */
@@ -161,15 +167,13 @@ function metricTable(metrics: Record<string, unknown>): string {
     const value = valueAtPath(metrics, path)
     return `| ${cell(label)} | \`${path}\` | ${numericCell(value, places, suffix)} |`
   })
-  const missing = METRICS.filter(([path]) => formatResearchDecimal(valueAtPath(metrics, path), 2) === 'N/A').map(([path]) => `\`${path}\``)
+  const missing = METRICS.filter(([path]) => formatResearchDecimal(valueAtPath(metrics, path), 2) === 'N/A').map(
+    ([path]) => `\`${path}\``,
+  )
   const limitation = missing.length
     ? `\n\n缺值欄位以 N/A 保留：${missing.join('、')}。這些值未包含在凍結快照中，不能由報告補算。`
     : ''
-  return [
-    '| 指標 | 凍結 metric path | 數值 |',
-    '| --- | --- | ---: |',
-    ...rows,
-  ].join('\n') + limitation
+  return ['| 指標 | 凍結 metric path | 數值 |', '| --- | --- | ---: |', ...rows].join('\n') + limitation
 }
 
 function relativeStrengthTable(metrics: Record<string, unknown>): string | null {
@@ -177,9 +181,12 @@ function relativeStrengthTable(metrics: Record<string, unknown>): string | null 
   if (!rows.length) return null
   const rendered = rows.map((item, index) => {
     const record = object(item)
-    const benchmark = typeof record.benchmark === 'string' && /^[A-Z0-9.-]{1,20}$/u.test(record.benchmark) ? record.benchmark : 'N/A'
-    const window = ['5_session', '20_session', '3_calendar_month'].includes(String(record.window)) ? String(record.window) : 'N/A'
-    const date = (value: unknown) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : 'N/A'
+    const benchmark =
+      typeof record.benchmark === 'string' && /^[A-Z0-9.-]{1,20}$/u.test(record.benchmark) ? record.benchmark : 'N/A'
+    const window = ['5_session', '20_session', '3_calendar_month'].includes(String(record.window))
+      ? String(record.window)
+      : 'N/A'
+    const date = (value: unknown) => (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : 'N/A')
     const path = `relativeStrength[${index}]`
     return `| ${cell(benchmark)} | ${cell(window)} | ${date(record.startDate)} | ${date(record.endDate)} | ${numericCell(record.targetReturnPct, 2, '%')} | ${numericCell(record.benchmarkReturnPct, 2, '%')} | ${numericCell(record.outperformancePp, 2, ' pp')} | \`${path}\` |`
   })
@@ -194,7 +201,8 @@ function relativeStrengthTable(metrics: Record<string, unknown>): string | null 
 
 function zoneSummary(value: unknown): string {
   const zone = object(value)
-  const zoneId = typeof zone.zoneId === 'string' && /^[A-Za-z0-9_.+-]{1,80}$/u.test(zone.zoneId) ? cell(zone.zoneId) : null
+  const zoneId =
+    typeof zone.zoneId === 'string' && /^[A-Za-z0-9_.+-]{1,80}$/u.test(zone.zoneId) ? cell(zone.zoneId) : null
   const lower = formatResearchDecimal(zone.lower, 2)
   const upper = formatResearchDecimal(zone.upper, 2)
   if (!zoneId || lower === 'N/A' || upper === 'N/A') return 'N/A'
@@ -223,18 +231,25 @@ function planSection(planId: 'breakout' | 'pullback', evidence: unknown): string
     fixed('目標 2 區', zoneSummary(plan?.target2)),
     fixed('Mid R/R (T1 / T2)', `${riskReward(mid.target1)} / ${riskReward(mid.target2)}`),
     fixed('Conservative R/R (T1 / T2)', `${riskReward(conservative.target1)} / ${riskReward(conservative.target2)}`),
-    fixed('有效至', typeof plan?.validUntilSession === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(plan.validUntilSession) ? plan.validUntilSession : 'N/A'),
+    fixed(
+      '有效至',
+      typeof plan?.validUntilSession === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(plan.validUntilSession)
+        ? plan.validUntilSession
+        : 'N/A',
+    ),
     fixed('倉位／訂單', 'N/A — 未建立股數或執行訂單'),
     fixed('限制', plan && typeof plan.reason === 'string' ? cell(plan.reason) : '沒有可用的凍結候選資料。'),
   ]
-  const details = plan && plan.status === 'WATCH'
-    ? [
-      ['觸發條件', plan.trigger],
-      ['確認條件', plan.confirmation],
-      ['失效條件', plan.invalidation],
-    ].filter((row): row is [string, string] => typeof row[1] === 'string' && row[1].trim().length > 0)
-      .map(([label, text]) => `- ${label}：${cell(text)}`)
-    : []
+  const details =
+    plan && plan.status === 'WATCH'
+      ? [
+          ['觸發條件', plan.trigger],
+          ['確認條件', plan.confirmation],
+          ['失效條件', plan.invalidation],
+        ]
+          .filter((row): row is [string, string] => typeof row[1] === 'string' && row[1].trim().length > 0)
+          .map(([label, text]) => `- ${label}：${cell(text)}`)
+      : []
   return [
     `#### ${planId}`,
     '',
@@ -260,34 +275,40 @@ function sourceTable(sources: readonly ResearchSourceRecord[]): string {
     if (!href || !retrievedAt) {
       return `| ${cell(record.sourceId)} | N/A — public link withheld because HTTPS, verified publication permission, or retrieval timestamp is unavailable. |`
     }
-    const label = `${record.publisher ?? ''}${record.publisher && record.title ? ' — ' : ''}${record.title ?? ''}`.trim() || record.sourceId
+    const label =
+      `${record.publisher ?? ''}${record.publisher && record.title ? ' — ' : ''}${record.title ?? ''}`.trim() ||
+      record.sourceId
     const checkedAt = record.use.publicationOfAnalysisAndExcerpts.checkedAt!
     const citation = `[${cell(label)}](<${href}>) (source ID: \`${cell(record.sourceId)}\`; retrieved ${cell(retrievedAt)}; publication-use policy checked ${cell(checkedAt)}).`
     return `| ${cell(record.sourceId)} | ${citation} |`
   })
   if (!rows.length) rows.push('| N/A | N/A — no frozen source records are available for public citation. |')
-  if (unique.size > SOURCE_LIMIT) rows.push(`| N/A | ${unique.size - SOURCE_LIMIT} additional source records omitted from this bounded report table. |`)
-  return [
-    '| Source ID | Public citation or limitation |',
-    '| --- | --- |',
-    ...rows,
-  ].join('\n')
+  if (unique.size > SOURCE_LIMIT)
+    rows.push(
+      `| N/A | ${unique.size - SOURCE_LIMIT} additional source records omitted from this bounded report table. |`,
+    )
+  return ['| Source ID | Public citation or limitation |', '| --- | --- |', ...rows].join('\n')
 }
 
 function evidencePreamble(evidence: RenderEvidence): string {
   const { manifest, metrics, quality } = evidence
-  const symbol = typeof metrics.symbol === 'string' && /^[A-Z0-9.-]{1,20}$/u.test(metrics.symbol) ? metrics.symbol : 'N/A'
-  const calculatorVersion = typeof metrics.calculatorVersion === 'string' && /^[A-Za-z0-9._-]{1,80}$/u.test(metrics.calculatorVersion) ? metrics.calculatorVersion : 'N/A'
+  const symbol =
+    typeof metrics.symbol === 'string' && /^[A-Z0-9.-]{1,20}$/u.test(metrics.symbol) ? metrics.symbol : 'N/A'
+  const calculatorVersion =
+    typeof metrics.calculatorVersion === 'string' && /^[A-Za-z0-9._-]{1,80}$/u.test(metrics.calculatorVersion)
+      ? metrics.calculatorVersion
+      : 'N/A'
   const missing = manifest.missingSessions.length
     ? `${manifest.missingSessions.slice(0, 10).join(', ')}${manifest.missingSessions.length > 10 ? ` … (${manifest.missingSessions.length} total)` : ''}`
     : 'N/A'
   const warnings = manifest.warnings.slice(0, 5).map(warning => `- ${cell(warning)}`)
   if (manifest.warnings.length > 5) warnings.push(`- ${manifest.warnings.length - 5} additional warnings omitted.`)
-  const adjustmentLimitation = manifest.normalizationVersion === 'split_only'
-    ? 'Adjusted close is incomplete; cash-dividend adjustment is unavailable.'
-    : manifest.normalizationVersion === 'unavailable'
-      ? 'N/A — no supported adjustment basis is available.'
-      : 'N/A'
+  const adjustmentLimitation =
+    manifest.normalizationVersion === 'split_only'
+      ? 'Adjusted close is incomplete; cash-dividend adjustment is unavailable.'
+      : manifest.normalizationVersion === 'unavailable'
+        ? 'N/A — no supported adjustment basis is available.'
+        : 'N/A'
   return [
     `**標的：** ${cell(symbol)} · **Reference session：** ${manifest.referenceSession ?? 'N/A'} · **As of (UTC)：** ${manifest.asOf}`,
     `**資料口徑：** ${cell(manifest.normalizationVersion)} · **資料品質：** ${quality} · **顯示時區：** ${cell(manifest.displayTimezone)} · **交易所時區：** ${cell(manifest.exchangeTimezone)}`,
@@ -333,18 +354,24 @@ export function renderResearchReport(draft: ResearchDraft, evidence: RenderEvide
   const metrics = object(evidence.metrics)
   const candidates = object(evidence.candidates)
   const relativeStrength = relativeStrengthTable(metrics)
-  const sections = [...draft.sections].sort((a, b) => a.section - b.section)
+  const sections = [...draft.sections]
+    .sort((a, b) => a.section - b.section)
     .map(section => {
-      const additions = section.section === 5
-        ? `\n\n${metricSection(metrics)}`
-        : section.section === 6 && relativeStrength
-          ? `\n\n${relativeStrength}`
-          : section.section === 9
-            ? `\n\n${planFacts(candidates)}`
-            : ''
+      const additions =
+        section.section === 5
+          ? `\n\n${metricSection(metrics)}`
+          : section.section === 6 && relativeStrength
+            ? `\n\n${relativeStrength}`
+            : section.section === 9
+              ? `\n\n${planFacts(candidates)}`
+              : ''
       return `## ${section.section}. ${section.title}\n\n${section.content}${additions}`
-    }).join('\n\n')
-  const answers = draft.finalAnswers.map((answer, index) => `${index + 1}. ${answer.question}\n${answer.answer}`).join('\n\n')
-  const limitations = draft.limitations.length > 0 ? `\n\n## Limitations\n\n${draft.limitations.map(item => `- ${item}`).join('\n')}` : ''
+    })
+    .join('\n\n')
+  const answers = draft.finalAnswers
+    .map((answer, index) => `${index + 1}. ${answer.question}\n${answer.answer}`)
+    .join('\n\n')
+  const limitations =
+    draft.limitations.length > 0 ? `\n\n## Limitations\n\n${draft.limitations.map(item => `- ${item}`).join('\n')}` : ''
   return `# ${draft.title}\n\n${evidencePreamble(evidence)}\n\n${sections}\n\n## Final answers\n\n${answers}${limitations}\n\n${sourceAppendix(evidence.sources)}`
 }

@@ -54,21 +54,18 @@ function buildKey(symbol: string, date: string): string {
  *          dates with missing prices or when the base (comparison-date)
  *          price is invalid.
  */
-export function buildNormalizedTrendSeries(
-  input: BuildTrendSeriesInput,
-): TrendPoint[] {
+export function buildNormalizedTrendSeries(input: BuildTrendSeriesInput): TrendPoint[] {
   const { symbol, qualifiedDates, priceBySymbolDate, comparisonDate } = input
 
   if (qualifiedDates.length === 0) return []
 
   // Resolve the base price from the comparison date.
-  const base
-    = priceBySymbolDate.get(buildKey(symbol, comparisonDate)) ?? null
+  const base = priceBySymbolDate.get(buildKey(symbol, comparisonDate)) ?? null
 
   // If base is invalid, every point in the series is null.
   const baseValid = base != null && base > 0
 
-  return qualifiedDates.map((date) => {
+  return qualifiedDates.map(date => {
     if (!baseValid) {
       return { date, value: null }
     }

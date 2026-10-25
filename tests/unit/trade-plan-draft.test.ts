@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formFromTradePlan, normalizeTradePlanForm, sameTradePlanForm, tradePlanDraftKey, type TradePlanForm } from '../../apps/web/app/trade-plan-draft'
+import {
+  formFromTradePlan,
+  normalizeTradePlanForm,
+  sameTradePlanForm,
+  tradePlanDraftKey,
+  type TradePlanForm,
+} from '../../apps/web/app/trade-plan-draft'
 
 function form(patch: Partial<TradePlanForm> = {}): TradePlanForm {
   return { ...formFromTradePlan(), symbol: 'ABC', ...patch }

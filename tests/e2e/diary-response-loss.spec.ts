@@ -6,8 +6,12 @@ test('Diary create can retry when the write fails before commit', async ({ page 
   const password = 'synthetic-diary-precommit-loss-password'
   expect((await page.request.post('/api/auth/register', { data: { email, password } })).status()).toBe(200)
   expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
-  const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200)
-  const settingsReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200)
+  const sessionReady = page.waitForResponse(
+    response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200,
+  )
+  const settingsReady = page.waitForResponse(
+    response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200,
+  )
   await page.goto('/diaries/new')
   await Promise.all([sessionReady, settingsReady])
   await selectAccountLocale(page, 'en')
@@ -22,7 +26,9 @@ test('Diary create can retry when the write fails before commit', async ({ page 
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_WRITE_UNCERTAIN')
   await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeEnabled()
-  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue('The first write never reaches the API.')
+  await expect(page.getByRole('textbox', { name: 'Content', exact: true })).toHaveValue(
+    'The first write never reaches the API.',
+  )
   await page.unroute('**/api/diaries')
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
@@ -36,8 +42,12 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   expect((await page.request.post('/api/auth/login', { data: { email, password } })).status()).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 
-  const sessionReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200)
-  const settingsReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200)
+  const sessionReady = page.waitForResponse(
+    response => new URL(response.url()).pathname === '/api/auth/me' && response.status() === 200,
+  )
+  const settingsReady = page.waitForResponse(
+    response => new URL(response.url()).pathname === '/api/user/settings' && response.status() === 200,
+  )
   await page.goto('/diaries/new')
   await Promise.all([sessionReady, settingsReady])
   await selectAccountLocale(page, 'en')
@@ -50,7 +60,10 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
 
   let createCalls = 0
   await page.route('**/api/diaries', async route => {
-    if (route.request().method() !== 'POST') { await route.continue(); return }
+    if (route.request().method() !== 'POST') {
+      await route.continue()
+      return
+    }
     createCalls += 1
     if (createCalls === 1) {
       const response = await route.fetch()
@@ -63,7 +76,10 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
   expect(createCalls).toBe(1)
-  const created = await (await page.request.get(`/api/diaries/by-date?date=${createDate}`)).json() as { id: string; title: string }
+  const created = (await (await page.request.get(`/api/diaries/by-date?date=${createDate}`)).json()) as {
+    id: string
+    title: string
+  }
   expect(created.title).toBe('Response loss create')
 
   await page.goto('/diaries/new')
@@ -73,7 +89,9 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.getByRole('button', { name: 'Save diary', exact: true }).click()
   await expect(page.getByTestId('error-code')).toHaveText('DIARY_ALREADY_EXISTS')
   expect(createCalls).toBe(2)
-  const afterDuplicate = await (await page.request.get(`/api/diaries/by-date?date=${createDate}`)).json() as { id: string }
+  const afterDuplicate = (await (await page.request.get(`/api/diaries/by-date?date=${createDate}`)).json()) as {
+    id: string
+  }
   expect(afterDuplicate.id).toBe(created.id)
   await page.unroute('**/api/diaries')
 
@@ -81,12 +99,14 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   const sourceResponse = await page.request.post('/api/diaries', {
     headers: { 'x-csrf-token': csrfToken },
     data: {
-      date: '2026-09-11', title: 'Reminder source', content: 'Original reminder decision.',
+      date: '2026-09-11',
+      title: 'Reminder source',
+      content: 'Original reminder decision.',
       alerts: [{ message: 'Initial reminder', triggerAt: '2026-09-12T09:00:00.000Z' }],
     },
   })
   expect(sourceResponse.status()).toBe(201)
-  const source = await sourceResponse.json() as { id: string; alerts: Array<{ triggerAt: string }> }
+  const source = (await sourceResponse.json()) as { id: string; alerts: Array<{ triggerAt: string }> }
   await page.goto(`/diaries/${source.id}/edit`)
   await expect(page.getByLabel('Reminder message', { exact: true })).toHaveValue('Initial reminder')
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Browser reminder update')
@@ -107,10 +127,18 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await page.route(`**/api/diaries/${source.id}`, async route => {
     if (route.request().method() === 'GET' && putCalls === 1 && !concurrentApplied) {
       concurrentApplied = true
-      const current = await (await page.request.get(`/api/diaries/${source.id}`)).json() as { revision: number; alerts: Array<{ triggerAt: string }> }
+      const current = (await (await page.request.get(`/api/diaries/${source.id}`)).json()) as {
+        revision: number
+        alerts: Array<{ triggerAt: string }>
+      }
       const concurrent = await page.request.put(`/api/v2/diaries/${source.id}`, {
         headers: { 'x-csrf-token': csrfToken },
-        data: { expectedRevision: current.revision, title: 'Concurrent decision', content: 'Concurrent decision body.', alerts: [{ message: 'Concurrent reminder', triggerAt: current.alerts[0]!.triggerAt }] },
+        data: {
+          expectedRevision: current.revision,
+          title: 'Concurrent decision',
+          content: 'Concurrent decision body.',
+          alerts: [{ message: 'Concurrent reminder', triggerAt: current.alerts[0]!.triggerAt }],
+        },
       })
       expect(concurrent.status()).toBe(200)
     }
@@ -121,7 +149,10 @@ test('Diary create and explicit reminder replacement reconcile a committed respo
   await expect(page.getByText('The save result could not be confirmed.', { exact: false })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save diary', exact: true })).toBeDisabled()
   expect(putCalls).toBe(1)
-  const concurrent = await (await page.request.get(`/api/diaries/${source.id}`)).json() as { title: string; alerts: Array<{ message: string }> }
+  const concurrent = (await (await page.request.get(`/api/diaries/${source.id}`)).json()) as {
+    title: string
+    alerts: Array<{ message: string }>
+  }
   expect(concurrent.title).toBe('Concurrent decision')
   expect(concurrent.alerts[0]!.message).toBe('Concurrent reminder')
 

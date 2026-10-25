@@ -8,12 +8,7 @@
  * Pure function — no Prisma, no IO, no side effects.
  */
 
-import {
-  calculatePercentile,
-  calculateRotationScore,
-  assignRotationRanks,
-  type RankableRow,
-} from './calculations.js'
+import { calculatePercentile, calculateRotationScore, assignRotationRanks, type RankableRow } from './calculations.js'
 import { getRotationSignal, type MaStatus } from './signal.js'
 import { calculatePerformance } from './indicators.js'
 
@@ -100,7 +95,7 @@ export function enrichWithComparison(
   }
 
   // Step 2: Calculate 2W performance for each latest snapshot
-  const rows: IntermediateRow[] = latest.map((snap) => {
+  const rows: IntermediateRow[] = latest.map(snap => {
     const comp = comparisonMap.get(snap.symbol)
 
     const twoWeekPerformancePct = computePerformance(snap, comp)
@@ -122,9 +117,7 @@ export function enrichWithComparison(
   })
 
   // Step 3: Calculate scope-local performance percentiles
-  const perfValues = rows
-    .map(r => r.twoWeekPerformancePct)
-    .filter((v): v is number => v !== null)
+  const perfValues = rows.map(r => r.twoWeekPerformancePct).filter((v): v is number => v !== null)
 
   for (const row of rows) {
     if (row.twoWeekPerformancePct !== null && perfValues.length > 0) {

@@ -1,14 +1,7 @@
 import { createHash } from 'node:crypto'
 import { accountEmailRateLimits } from '@diary/db'
 import { and, desc, eq, inArray } from 'drizzle-orm'
-import {
-  mailAdminAuditEvents,
-  mailOutbox,
-  mailSettings,
-  users,
-  type Database,
-  type DatabaseTx,
-} from '@diary/db'
+import { mailAdminAuditEvents, mailOutbox, mailSettings, users, type Database, type DatabaseTx } from '@diary/db'
 import {
   adminEmailSettingsResponseSchema,
   adminEmailTestResponseSchema,
@@ -16,7 +9,13 @@ import {
 } from '@diary/contracts/account-email'
 import type { z } from 'zod'
 import { adminEmailSettingsUpdateSchema, adminEmailTestRequestSchema } from '@diary/contracts/account-email'
-import { decryptSmtpSecret, encryptSmtpSecret, environmentSmtpKeyring, SmtpSecretError, type SmtpKeyring } from './secrets.js'
+import {
+  decryptSmtpSecret,
+  encryptSmtpSecret,
+  environmentSmtpKeyring,
+  SmtpSecretError,
+  type SmtpKeyring,
+} from './secrets.js'
 import { normalizeSmtpHostname } from './smtp-host.js'
 import { classifySmtpError, SmtpTransportError, type SmtpTransportFactory } from './smtp.js'
 import { sendConfiguredMail, type SmtpRuntimeOptions } from './runtime.js'
@@ -37,7 +36,13 @@ export interface SmtpAdminOptions {
 }
 
 export class SmtpAdminError extends Error {
-  readonly code: 'ADMIN_EMAIL_CONFIG_CONFLICT' | 'ADMIN_EMAIL_TEST_REQUIRED' | 'ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE' | 'ADMIN_EMAIL_SETTINGS_INVALID' | 'AUTH_RATE_LIMITED' | 'AUTH_FORBIDDEN'
+  readonly code:
+    | 'ADMIN_EMAIL_CONFIG_CONFLICT'
+    | 'ADMIN_EMAIL_TEST_REQUIRED'
+    | 'ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE'
+    | 'ADMIN_EMAIL_SETTINGS_INVALID'
+    | 'AUTH_RATE_LIMITED'
+    | 'AUTH_FORBIDDEN'
 
   constructor(code: SmtpAdminError['code']) {
     super(code)
@@ -66,8 +71,12 @@ async function lockSettings(tx: DatabaseTx, now: Date): Promise<SettingsRow> {
 
 async function assertAdminInTransaction(tx: DatabaseTx, actorUserId: bigint) {
   await tx.execute(userSessionLock(actorUserId))
-  const [actor] = await tx.select({ role: users.role }).from(users)
-    .where(eq(users.id, actorUserId)).limit(1).for('update')
+  const [actor] = await tx
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, actorUserId))
+    .limit(1)
+    .for('update')
   if (actor?.role !== 'ADMIN') throw new SmtpAdminError('AUTH_FORBIDDEN')
 }
 
@@ -110,15 +119,19 @@ function serializeSettings(row: SettingsRow) {
 
 export async function readAdminEmailSettings(db: Database, now = new Date()): Promise<AdminEmailSettingsResponse> {
   const settings = await ensureSettings(db, now)
-  const deliveries = await db.select({
-    id: mailOutbox.id,
-    kind: mailOutbox.kind,
-    recipientEmail: mailOutbox.recipientEmail,
-    status: mailOutbox.status,
-    attempts: mailOutbox.attempts,
-    lastErrorCode: mailOutbox.lastErrorCode,
-    createdAt: mailOutbox.createdAt,
-  }).from(mailOutbox).orderBy(desc(mailOutbox.createdAt), desc(mailOutbox.id)).limit(20)
+  const deliveries = await db
+    .select({
+      id: mailOutbox.id,
+      kind: mailOutbox.kind,
+      recipientEmail: mailOutbox.recipientEmail,
+      status: mailOutbox.status,
+      attempts: mailOutbox.attempts,
+      lastErrorCode: mailOutbox.lastErrorCode,
+      createdAt: mailOutbox.createdAt,
+    })
+    .from(mailOutbox)
+    .orderBy(desc(mailOutbox.createdAt), desc(mailOutbox.id))
+    .limit(20)
 
   return adminEmailSettingsResponseSchema.parse({
     settings: serializeSettings(settings),
@@ -134,14 +147,17 @@ export async function readAdminEmailSettings(db: Database, now = new Date()): Pr
   })
 }
 
-async function writeAudit(tx: DatabaseTx, input: {
-  actorUserId: bigint
-  action: string
-  result: 'success' | 'failure'
-  configRevision: number | null
-  errorCode?: string | null
-  now: Date
-}) {
+async function writeAudit(
+  tx: DatabaseTx,
+  input: {
+    actorUserId: bigint
+    action: string
+    result: 'success' | 'failure'
+    configRevision: number | null
+    errorCode?: string | null
+    now: Date
+  },
+) {
   await tx.insert(mailAdminAuditEvents).values({
     actorUserId: input.actorUserId,
     action: input.action,
@@ -153,72 +169,96 @@ async function writeAudit(tx: DatabaseTx, input: {
 }
 
 async function cancelPendingAccountMail(tx: DatabaseTx, now: Date) {
-  await tx.update(mailOutbox).set({
-    status: 'cancelled',
-    encryptedPayload: null,
-    leaseToken: null,
-    workerId: null,
-    leaseExpiresAt: null,
-    heartbeatAt: null,
-    finishedAt: now,
-    sentAt: null,
-    updatedAt: now,
-  }).where(and(
-    inArray(mailOutbox.status, ['queued', 'running']),
-    inArray(mailOutbox.kind, ['registration_verification', 'password_reset', 'password_changed']),
-  ))
+  await tx
+    .update(mailOutbox)
+    .set({
+      status: 'cancelled',
+      encryptedPayload: null,
+      leaseToken: null,
+      workerId: null,
+      leaseExpiresAt: null,
+      heartbeatAt: null,
+      finishedAt: now,
+      sentAt: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        inArray(mailOutbox.status, ['queued', 'running']),
+        inArray(mailOutbox.kind, ['registration_verification', 'password_reset', 'password_changed']),
+      ),
+    )
 }
 
-export async function updateSmtpSettings(db: Database, input: SettingsUpdate, actorUserId: bigint, now: Date, options: SmtpAdminOptions = {}) {
+export async function updateSmtpSettings(
+  db: Database,
+  input: SettingsUpdate,
+  actorUserId: bigint,
+  now: Date,
+  options: SmtpAdminOptions = {},
+) {
   const normalizedHost = input.host === null || input.host.length === 0 ? null : normalizeSmtpHostname(input.host)
   const normalizedUsername = input.username?.trim() || null
   const normalizedFromName = input.fromName?.trim() || null
   const priorPasswordAction = input.passwordAction
   const secretKeyring = keyring(options)
 
-  return withMailDispatchFence(options.pool, 'exclusive', () => db.transaction(async tx => {
-    await assertAdminInTransaction(tx, actorUserId)
-    const current = await lockSettings(tx, now)
-    if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
+  return withMailDispatchFence(options.pool, 'exclusive', () =>
+    db.transaction(async tx => {
+      await assertAdminInTransaction(tx, actorUserId)
+      const current = await lockSettings(tx, now)
+      if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
 
-    let auth: 'none' | 'password' = input.authEnabled ? 'password' : 'none'
-    let username: string | null = input.authEnabled ? normalizedUsername : null
-    let encryptedPassword: string | null = input.authEnabled ? current.encryptedPassword : null
+      let auth: 'none' | 'password' = input.authEnabled ? 'password' : 'none'
+      let username: string | null = input.authEnabled ? normalizedUsername : null
+      let encryptedPassword: string | null = input.authEnabled ? current.encryptedPassword : null
 
-    if (input.authEnabled) {
-      if (priorPasswordAction === 'replace') encryptedPassword = encryptSmtpSecret(input.password!, 'smtp-password', secretKeyring)
-      if (priorPasswordAction === 'clear') encryptedPassword = null
-    } else {
-      auth = 'none'
-      username = null
-      encryptedPassword = null
-    }
+      if (input.authEnabled) {
+        if (priorPasswordAction === 'replace')
+          encryptedPassword = encryptSmtpSecret(input.password!, 'smtp-password', secretKeyring)
+        if (priorPasswordAction === 'clear') encryptedPassword = null
+      } else {
+        auth = 'none'
+        username = null
+        encryptedPassword = null
+      }
 
-    const nextRevision = current.revision + 1
-    await cancelPendingAccountMail(tx, now)
-    const [updated] = await tx.update(mailSettings).set({
-      enabled: false,
-      host: normalizedHost,
-      port: input.port,
-      security: input.security,
-      auth,
-      username,
-      encryptedPassword,
-      senderName: normalizedFromName,
-      senderEmail: input.fromEmail,
-      replyToEmail: input.replyTo,
-      revision: nextRevision,
-      lastTestedRevision: null,
-      lastTestedAt: null,
-      lastTestStatus: null,
-      lastTestErrorCode: null,
-      updatedBy: actorUserId,
-      updatedAt: now,
-    }).where(eq(mailSettings.singleton, 'default')).returning()
+      const nextRevision = current.revision + 1
+      await cancelPendingAccountMail(tx, now)
+      const [updated] = await tx
+        .update(mailSettings)
+        .set({
+          enabled: false,
+          host: normalizedHost,
+          port: input.port,
+          security: input.security,
+          auth,
+          username,
+          encryptedPassword,
+          senderName: normalizedFromName,
+          senderEmail: input.fromEmail,
+          replyToEmail: input.replyTo,
+          revision: nextRevision,
+          lastTestedRevision: null,
+          lastTestedAt: null,
+          lastTestStatus: null,
+          lastTestErrorCode: null,
+          updatedBy: actorUserId,
+          updatedAt: now,
+        })
+        .where(eq(mailSettings.singleton, 'default'))
+        .returning()
 
-    await writeAudit(tx, { actorUserId, action: 'settings_updated', result: 'success', configRevision: nextRevision, now })
-    return serializeSettings(updated!)
-  }))
+      await writeAudit(tx, {
+        actorUserId,
+        action: 'settings_updated',
+        result: 'success',
+        configRevision: nextRevision,
+        now,
+      })
+      return serializeSettings(updated!)
+    }),
+  )
 }
 
 function safeSmtpErrorCode(error: unknown): string {
@@ -229,15 +269,18 @@ function safeSmtpErrorCode(error: unknown): string {
   return classifySmtpError(error).code
 }
 
-async function saveTestRecord(tx: DatabaseTx, input: {
-  actorUserId: bigint
-  revision: number
-  recipient: string
-  locale: EmailLocale
-  status: 'sent' | 'failed'
-  errorCode: string | null
-  now: Date
-}) {
+async function saveTestRecord(
+  tx: DatabaseTx,
+  input: {
+    actorUserId: bigint
+    revision: number
+    recipient: string
+    locale: EmailLocale
+    status: 'sent' | 'failed'
+    errorCode: string | null
+    now: Date
+  },
+) {
   await tx.insert(mailOutbox).values({
     kind: 'admin_test',
     recipientEmail: input.recipient,
@@ -273,31 +316,41 @@ async function admitSmtpTest(db: Database, actorUserId: bigint, recipient: strin
   return db.transaction(async tx => {
     let admitted = true
     for (const digest of keys) {
-      await tx.insert(accountEmailRateLimits).values({
-        digest,
-        requestCount: 0,
-        windowStartedAt: now,
-        lastRequestedAt: now,
-        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-        createdAt: now,
-        updatedAt: now,
-      }).onConflictDoNothing()
-      const [bucket] = await tx.select().from(accountEmailRateLimits)
-        .where(eq(accountEmailRateLimits.digest, digest)).for('update').limit(1)
+      await tx
+        .insert(accountEmailRateLimits)
+        .values({
+          digest,
+          requestCount: 0,
+          windowStartedAt: now,
+          lastRequestedAt: now,
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing()
+      const [bucket] = await tx
+        .select()
+        .from(accountEmailRateLimits)
+        .where(eq(accountEmailRateLimits.digest, digest))
+        .for('update')
+        .limit(1)
       if (!bucket) throw new Error('SMTP_TEST_RATE_LIMIT_ROW_MISSING')
       const inWindow = bucket.windowStartedAt.getTime() > now.getTime() - 60 * 60 * 1000
       if (bucket.requestCount >= 5 && inWindow) {
         admitted = false
         continue
       }
-      await tx.update(accountEmailRateLimits).set({
-        requestCount: inWindow ? bucket.requestCount + 1 : 1,
-        windowStartedAt: inWindow ? bucket.windowStartedAt : now,
-        lastRequestedAt: now,
-        blockedUntil: null,
-        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-        updatedAt: now,
-      }).where(eq(accountEmailRateLimits.digest, digest))
+      await tx
+        .update(accountEmailRateLimits)
+        .set({
+          requestCount: inWindow ? bucket.requestCount + 1 : 1,
+          windowStartedAt: inWindow ? bucket.windowStartedAt : now,
+          lastRequestedAt: now,
+          blockedUntil: null,
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+          updatedAt: now,
+        })
+        .where(eq(accountEmailRateLimits.digest, digest))
     }
     return admitted
   })
@@ -310,9 +363,8 @@ export async function testSmtpSettings(
   now: Date,
   options: SmtpAdminOptions = {},
 ) {
-  if (!await admitSmtpTest(db, actor.userId, input.recipient, now)) throw new SmtpAdminError('AUTH_RATE_LIMITED')
-  const [snapshot] = await db.select().from(mailSettings)
-    .where(eq(mailSettings.singleton, 'default')).limit(1)
+  if (!(await admitSmtpTest(db, actor.userId, input.recipient, now))) throw new SmtpAdminError('AUTH_RATE_LIMITED')
+  const [snapshot] = await db.select().from(mailSettings).where(eq(mailSettings.singleton, 'default')).limit(1)
   if (!snapshot || snapshot.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
 
   let errorCode: string | null = null
@@ -324,126 +376,200 @@ export async function testSmtpSettings(
   }
 
   const testedAt = now
-  const result = await withMailDispatchFence(options.pool, 'exclusive', () => db.transaction(async tx => {
-    await assertAdminInTransaction(tx, actor.userId)
-    const current = await lockSettings(tx, testedAt)
-    if (current.revision !== input.expectedRevision) {
+  const result = await withMailDispatchFence(options.pool, 'exclusive', () =>
+    db.transaction(async tx => {
+      await assertAdminInTransaction(tx, actor.userId)
+      const current = await lockSettings(tx, testedAt)
+      if (current.revision !== input.expectedRevision) {
+        await saveTestRecord(tx, {
+          actorUserId: actor.userId,
+          revision: input.expectedRevision,
+          recipient: input.recipient,
+          locale: actor.locale,
+          status: 'failed',
+          errorCode: 'ADMIN_EMAIL_CONFIG_CONFLICT',
+          now: testedAt,
+        })
+        return { conflict: true as const }
+      }
+
+      const status = errorCode === null ? 'passed' : 'failed'
+      if (status === 'failed' && current.enabled) {
+        await cancelPendingAccountMail(tx, testedAt)
+      }
+      await tx
+        .update(mailSettings)
+        .set({
+          ...(status === 'failed' ? { enabled: false } : {}),
+          lastTestedRevision: current.revision,
+          lastTestedAt: testedAt,
+          lastTestStatus: status,
+          lastTestErrorCode: errorCode,
+          updatedAt: testedAt,
+        })
+        .where(eq(mailSettings.singleton, 'default'))
+
       await saveTestRecord(tx, {
         actorUserId: actor.userId,
-        revision: input.expectedRevision,
+        revision: current.revision,
         recipient: input.recipient,
         locale: actor.locale,
-        status: 'failed',
-        errorCode: 'ADMIN_EMAIL_CONFIG_CONFLICT',
+        status: status === 'passed' ? 'sent' : 'failed',
+        errorCode,
         now: testedAt,
       })
-      return { conflict: true as const }
-    }
-
-    const status = errorCode === null ? 'passed' : 'failed'
-    if (status === 'failed' && current.enabled) {
-      await cancelPendingAccountMail(tx, testedAt)
-    }
-    await tx.update(mailSettings).set({
-      ...(status === 'failed' ? { enabled: false } : {}),
-      lastTestedRevision: current.revision,
-      lastTestedAt: testedAt,
-      lastTestStatus: status,
-      lastTestErrorCode: errorCode,
-      updatedAt: testedAt,
-    }).where(eq(mailSettings.singleton, 'default'))
-
-    await saveTestRecord(tx, {
-      actorUserId: actor.userId,
-      revision: current.revision,
-      recipient: input.recipient,
-      locale: actor.locale,
-      status: status === 'passed' ? 'sent' : 'failed',
-      errorCode,
-      now: testedAt,
-    })
-    return { conflict: false as const, response: {
-      revision: current.revision,
-      status,
-      testedAt: testedAt.toISOString(),
-      errorCode,
-    } }
-  }))
+      return {
+        conflict: false as const,
+        response: {
+          revision: current.revision,
+          status,
+          testedAt: testedAt.toISOString(),
+          errorCode,
+        },
+      }
+    }),
+  )
 
   if (result.conflict) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
   return adminEmailTestResponseSchema.parse(result.response)
 }
 
 function settingsAreComplete(row: SettingsRow): boolean {
-  if (!row.host || !row.port || (row.security !== 'tls' && row.security !== 'starttls') || !row.senderName || !row.senderEmail) return false
-  try { normalizeSmtpHostname(row.host) } catch { return false }
+  if (
+    !row.host ||
+    !row.port ||
+    (row.security !== 'tls' && row.security !== 'starttls') ||
+    !row.senderName ||
+    !row.senderEmail
+  )
+    return false
+  try {
+    normalizeSmtpHostname(row.host)
+  } catch {
+    return false
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(row.senderEmail)) return false
   if (row.replyToEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(row.replyToEmail)) return false
   if (row.auth === 'password' && (!row.username || !row.encryptedPassword)) return false
   return true
 }
 
-export async function setSmtpEnabled(db: Database, input: { expectedRevision: number }, actorUserId: bigint, enabled: boolean, now: Date, options: SmtpAdminOptions = {}) {
-  return withMailDispatchFence(options.pool, 'exclusive', () => db.transaction(async tx => {
-    await assertAdminInTransaction(tx, actorUserId)
-    const current = await lockSettings(tx, now)
-    if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
+export async function setSmtpEnabled(
+  db: Database,
+  input: { expectedRevision: number },
+  actorUserId: bigint,
+  enabled: boolean,
+  now: Date,
+  options: SmtpAdminOptions = {},
+) {
+  return withMailDispatchFence(options.pool, 'exclusive', () =>
+    db.transaction(async tx => {
+      await assertAdminInTransaction(tx, actorUserId)
+      const current = await lockSettings(tx, now)
+      if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
 
-    if (enabled) {
-      if (!settingsAreComplete(current)) throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID')
-      if (current.lastTestStatus !== 'passed' || current.lastTestedRevision !== current.revision || !current.lastTestedAt) {
-        throw new SmtpAdminError('ADMIN_EMAIL_TEST_REQUIRED')
+      if (enabled) {
+        if (!settingsAreComplete(current)) throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID')
+        if (
+          current.lastTestStatus !== 'passed' ||
+          current.lastTestedRevision !== current.revision ||
+          !current.lastTestedAt
+        ) {
+          throw new SmtpAdminError('ADMIN_EMAIL_TEST_REQUIRED')
+        }
+        try {
+          encryptSmtpSecret('account-email-key-check', 'outbox-payload', keyring(options))
+        } catch {
+          throw new SmtpAdminError('ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE')
+        }
+        if (current.auth === 'password') {
+          try {
+            decryptSmtpSecret(current.encryptedPassword!, 'smtp-password', keyring(options))
+          } catch {
+            throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID')
+          }
+        }
+        const [updated] = await tx
+          .update(mailSettings)
+          .set({ enabled: true, updatedBy: actorUserId, updatedAt: now })
+          .where(eq(mailSettings.singleton, 'default'))
+          .returning()
+        await writeAudit(tx, {
+          actorUserId,
+          action: 'smtp_enabled',
+          result: 'success',
+          configRevision: current.revision,
+          now,
+        })
+        return serializeSettings(updated!)
       }
-      try { encryptSmtpSecret('account-email-key-check', 'outbox-payload', keyring(options)) }
-      catch { throw new SmtpAdminError('ADMIN_EMAIL_ENCRYPTION_UNAVAILABLE') }
-      if (current.auth === 'password') {
-        try { decryptSmtpSecret(current.encryptedPassword!, 'smtp-password', keyring(options)) }
-        catch { throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID') }
-      }
-      const [updated] = await tx.update(mailSettings).set({ enabled: true, updatedBy: actorUserId, updatedAt: now })
-        .where(eq(mailSettings.singleton, 'default')).returning()
-      await writeAudit(tx, { actorUserId, action: 'smtp_enabled', result: 'success', configRevision: current.revision, now })
+
+      await cancelPendingAccountMail(tx, now)
+
+      const [updated] = await tx
+        .update(mailSettings)
+        .set({ enabled: false, updatedBy: actorUserId, updatedAt: now })
+        .where(eq(mailSettings.singleton, 'default'))
+        .returning()
+      await writeAudit(tx, {
+        actorUserId,
+        action: 'smtp_disabled',
+        result: 'success',
+        configRevision: current.revision,
+        now,
+      })
       return serializeSettings(updated!)
-    }
-
-    await cancelPendingAccountMail(tx, now)
-
-    const [updated] = await tx.update(mailSettings).set({ enabled: false, updatedBy: actorUserId, updatedAt: now })
-      .where(eq(mailSettings.singleton, 'default')).returning()
-    await writeAudit(tx, { actorUserId, action: 'smtp_disabled', result: 'success', configRevision: current.revision, now })
-    return serializeSettings(updated!)
-  }))
+    }),
+  )
 }
 
-export async function clearSmtpSettings(db: Database, input: { expectedRevision: number }, actorUserId: bigint, now: Date, options: SmtpAdminOptions = {}) {
-  return withMailDispatchFence(options.pool, 'exclusive', () => db.transaction(async tx => {
-    await assertAdminInTransaction(tx, actorUserId)
-    const current = await lockSettings(tx, now)
-    if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
-    if (current.enabled) throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID')
+export async function clearSmtpSettings(
+  db: Database,
+  input: { expectedRevision: number },
+  actorUserId: bigint,
+  now: Date,
+  options: SmtpAdminOptions = {},
+) {
+  return withMailDispatchFence(options.pool, 'exclusive', () =>
+    db.transaction(async tx => {
+      await assertAdminInTransaction(tx, actorUserId)
+      const current = await lockSettings(tx, now)
+      if (current.revision !== input.expectedRevision) throw new SmtpAdminError('ADMIN_EMAIL_CONFIG_CONFLICT')
+      if (current.enabled) throw new SmtpAdminError('ADMIN_EMAIL_SETTINGS_INVALID')
 
-    const nextRevision = current.revision + 1
-    await cancelPendingAccountMail(tx, now)
-    const [updated] = await tx.update(mailSettings).set({
-      enabled: false,
-      host: null,
-      port: null,
-      security: null,
-      auth: 'none',
-      username: null,
-      encryptedPassword: null,
-      senderName: null,
-      senderEmail: null,
-      replyToEmail: null,
-      revision: nextRevision,
-      lastTestedRevision: null,
-      lastTestedAt: null,
-      lastTestStatus: null,
-      lastTestErrorCode: null,
-      updatedBy: actorUserId,
-      updatedAt: now,
-    }).where(eq(mailSettings.singleton, 'default')).returning()
-    await writeAudit(tx, { actorUserId, action: 'settings_cleared', result: 'success', configRevision: nextRevision, now })
-    return serializeSettings(updated!)
-  }))
+      const nextRevision = current.revision + 1
+      await cancelPendingAccountMail(tx, now)
+      const [updated] = await tx
+        .update(mailSettings)
+        .set({
+          enabled: false,
+          host: null,
+          port: null,
+          security: null,
+          auth: 'none',
+          username: null,
+          encryptedPassword: null,
+          senderName: null,
+          senderEmail: null,
+          replyToEmail: null,
+          revision: nextRevision,
+          lastTestedRevision: null,
+          lastTestedAt: null,
+          lastTestStatus: null,
+          lastTestErrorCode: null,
+          updatedBy: actorUserId,
+          updatedAt: now,
+        })
+        .where(eq(mailSettings.singleton, 'default'))
+        .returning()
+      await writeAudit(tx, {
+        actorUserId,
+        action: 'settings_cleared',
+        result: 'success',
+        configRevision: nextRevision,
+        now,
+      })
+      return serializeSettings(updated!)
+    }),
+  )
 }

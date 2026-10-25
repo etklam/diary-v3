@@ -52,10 +52,15 @@ export async function diaryActivity(db: Database, userId: bigint, dateFrom: stri
       sum(alert_count)::int as alert_count
     from days group by day order by day asc
   `)
-  const data: DiaryActivityDay[] = (result.rows as Array<{
-    date: string; diary_id: string | null
-    transaction_count: number; review_count: number; alert_count: number
-  }>).map(row => ({
+  const data: DiaryActivityDay[] = (
+    result.rows as Array<{
+      date: string
+      diary_id: string | null
+      transaction_count: number
+      review_count: number
+      alert_count: number
+    }>
+  ).map(row => ({
     date: row.date,
     diaryId: row.diary_id,
     transactionCount: Number(row.transaction_count),

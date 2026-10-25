@@ -21,7 +21,9 @@ export function mergeDiaryStockSymbols(existing: readonly string[], incoming: re
 
 export async function listDiaryStocks(db: Database | Transaction, userId: bigint, diaryIds: bigint[]) {
   if (!diaryIds.length) return []
-  return db.select({ diaryId: diaryStocks.diaryId, symbol: stocks.symbol }).from(diaryStocks)
+  return db
+    .select({ diaryId: diaryStocks.diaryId, symbol: stocks.symbol })
+    .from(diaryStocks)
     .innerJoin(diaries, eq(diaries.id, diaryStocks.diaryId))
     .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
     .where(and(eq(diaries.userId, userId), inArray(diaryStocks.diaryId, diaryIds)))

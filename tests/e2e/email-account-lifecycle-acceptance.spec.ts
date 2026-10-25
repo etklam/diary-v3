@@ -7,10 +7,13 @@ const evidenceDir = resolve(process.cwd(), 'docs/design/evidence/email-account-l
 const syntheticToken = 'synthetic-acceptance-token-abcdefghijklmnopqrstuvwxyz123456'
 
 async function preferences(page: Page, locale: 'zh-TW' | 'zh-CN' | 'en', theme: 'light' | 'dark') {
-  await page.addInitScript(({ savedLocale, savedTheme }: { savedLocale: string; savedTheme: string }) => {
-    localStorage.setItem('diary-locale', savedLocale)
-    localStorage.setItem('diary-theme', savedTheme)
-  }, { savedLocale: locale, savedTheme: theme })
+  await page.addInitScript(
+    ({ savedLocale, savedTheme }: { savedLocale: string; savedTheme: string }) => {
+      localStorage.setItem('diary-locale', savedLocale)
+      localStorage.setItem('diary-theme', savedTheme)
+    },
+    { savedLocale: locale, savedTheme: theme },
+  )
 }
 
 async function capture(page: Page, name: string) {
@@ -20,29 +23,85 @@ async function capture(page: Page, name: string) {
 }
 
 function capabilityRoute(page: Page, passwordRecoveryAvailable = true) {
-  return page.route('**/api/auth/capabilities', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ registrationMode: 'email', passwordRecoveryAvailable }),
-  }))
+  return page.route('**/api/auth/capabilities', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ registrationMode: 'email', passwordRecoveryAvailable }),
+    }),
+  )
 }
 
 test('acceptance capture: admin SMTP settings on desktop and mobile', async ({ page }) => {
   let adminLocale: 'zh-TW' | 'en' = 'en'
   await preferences(page, 'en', 'light')
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.route('**/api/auth/me', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { id: 'synthetic-admin', email: 'admin@example.test', role: 'ADMIN' } }) }))
-  await page.route('**/api/user/settings', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ settings: { locale: adminLocale, name: 'Synthetic admin', timezone: 'UTC', defaultWorkspacePage: 'timeline', expectedMonthlyTrades: 0, expectedProfit: '0', expectedAvgHolding: '0', excludeHolidaysInStats: false } }) }))
-  await page.route('**/api/alerts*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }))
-  await page.route('**/api/stocks/alerts*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }))
-  await page.route('**/api/admin/email-settings', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({
-      settings: { enabled: false, host: 'smtp.synthetic.test', port: 587, security: 'starttls', authEnabled: false, username: null, passwordConfigured: false, fromName: 'Trade basic', fromEmail: 'noreply@example.test', replyTo: null, revision: 2, testedRevision: null, lastTestAt: null, lastTestStatus: null },
-      deliveries: [{ id: 'synthetic-delivery-1', kind: 'password_reset', recipientMasked: 'u***@e***.test', status: 'failed', attemptCount: 3, lastErrorCode: 'SMTP_TRANSIENT', createdAt: '2026-09-26T03:00:00.000Z' }],
+  await page.route('**/api/auth/me', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { id: 'synthetic-admin', email: 'admin@example.test', role: 'ADMIN' } }),
     }),
-  }))
+  )
+  await page.route('**/api/user/settings', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        settings: {
+          locale: adminLocale,
+          name: 'Synthetic admin',
+          timezone: 'UTC',
+          defaultWorkspacePage: 'timeline',
+          expectedMonthlyTrades: 0,
+          expectedProfit: '0',
+          expectedAvgHolding: '0',
+          excludeHolidaysInStats: false,
+        },
+      }),
+    }),
+  )
+  await page.route('**/api/alerts*', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+  )
+  await page.route('**/api/stocks/alerts*', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+  )
+  await page.route('**/api/admin/email-settings', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        settings: {
+          enabled: false,
+          host: 'smtp.synthetic.test',
+          port: 587,
+          security: 'starttls',
+          authEnabled: false,
+          username: null,
+          passwordConfigured: false,
+          fromName: 'Trade basic',
+          fromEmail: 'noreply@example.test',
+          replyTo: null,
+          revision: 2,
+          testedRevision: null,
+          lastTestAt: null,
+          lastTestStatus: null,
+        },
+        deliveries: [
+          {
+            id: 'synthetic-delivery-1',
+            kind: 'password_reset',
+            recipientMasked: 'u***@e***.test',
+            status: 'failed',
+            attemptCount: 3,
+            lastErrorCode: 'SMTP_TRANSIENT',
+            createdAt: '2026-09-26T03:00:00.000Z',
+          },
+        ],
+      }),
+    }),
+  )
   await page.goto('/admin/email-settings')
   await expect(page.getByRole('heading', { level: 1, name: 'Mail settings', exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Service state' })).toContainText('Disabled')
@@ -64,7 +123,14 @@ test('acceptance capture: registration request and verification completion', asy
   await preferences(page, 'zh-CN', 'light')
   await page.setViewportSize({ width: 390, height: 844 })
   await capabilityRoute(page)
-  await page.route('**/api/auth/registration/request', route => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'retry-after': '60' }, body: JSON.stringify({ success: true }) }))
+  await page.route('**/api/auth/registration/request', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'retry-after': '60' },
+      body: JSON.stringify({ success: true }),
+    }),
+  )
   await page.goto('/register')
   await expect(page.getByRole('heading', { level: 1, name: '开始你的投资日记', exact: true })).toBeVisible()
   await page.getByLabel('邮箱', { exact: true }).fill('new-user@example.test')
@@ -74,7 +140,9 @@ test('acceptance capture: registration request and verification completion', asy
 
   await preferences(page, 'en', 'dark')
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.route('**/api/auth/registration/complete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }))
+  await page.route('**/api/auth/registration/complete', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }),
+  )
   await page.goto(`/register/complete?token=${syntheticToken}`)
   await expect(page.getByRole('heading', { level: 1, name: 'Finish creating your account', exact: true })).toBeVisible()
   await page.getByLabel('Password', { exact: true }).fill('synthetic-password-123')
@@ -96,7 +164,13 @@ test('acceptance capture: recovery unavailable and failed request states', async
   await preferences(page, 'zh-CN', 'dark')
   await page.setViewportSize({ width: 390, height: 844 })
   await capabilityRoute(page, true)
-  await page.route('**/api/auth/password-reset/request', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_EMAIL_SERVICE_DISABLED', requestId: 'synthetic-disabled' } }) }))
+  await page.route('**/api/auth/password-reset/request', route =>
+    route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { code: 'AUTH_EMAIL_SERVICE_DISABLED', requestId: 'synthetic-disabled' } }),
+    }),
+  )
   await page.goto('/forgot-password')
   await expect(page.getByRole('heading', { level: 1, name: '重置密码', exact: true })).toBeVisible()
   await page.getByLabel('邮箱', { exact: true }).fill('user@example.test')
@@ -112,10 +186,22 @@ test('acceptance capture: expired reset link and successful password reset', asy
   let recoveryAvailable = true
   await preferences(page, 'en', 'light')
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.route('**/api/auth/capabilities', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ registrationMode: 'email', passwordRecoveryAvailable: recoveryAvailable }) }))
-  await page.route('**/api/auth/password-reset/complete', route => tokenExpired
-    ? route.fulfill({ status: 410, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_EMAIL_TOKEN_EXPIRED', requestId: 'synthetic-expired' } }) })
-    : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }))
+  await page.route('**/api/auth/capabilities', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ registrationMode: 'email', passwordRecoveryAvailable: recoveryAvailable }),
+    }),
+  )
+  await page.route('**/api/auth/password-reset/complete', route =>
+    tokenExpired
+      ? route.fulfill({
+          status: 410,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: { code: 'AUTH_EMAIL_TOKEN_EXPIRED', requestId: 'synthetic-expired' } }),
+        })
+      : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }),
+  )
   await page.goto(`/reset-password?token=${syntheticToken}`)
   await expect(page.getByRole('heading', { level: 1, name: 'Set a new password', exact: true })).toBeVisible()
   await page.getByLabel('New password', { exact: true }).fill('synthetic-new-password-123')

@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-25T07:22:13.935Z",
+  "corpus": {
+    "companies": 120,
+    "filingsPerCompany": 4,
+    "metadataReads": 600,
+    "indexBytesEach": 4194304,
+    "podMemoryLimitBytes": 805306368
+  },
+  "runs": [
+    {
+      "label": "budget enforced (default 64 MiB)",
+      "maxBytes": 67108864,
+      "peakRetainedBytes": 66101112,
+      "finalRetainedBytes": 66101112,
+      "peakRssBytes": 584450048,
+      "caches": {
+        "directory": {
+          "entries": 0,
+          "bytes": 0
+        },
+        "submissions": {
+          "entries": 7,
+          "bytes": 7345674
+        },
+        "segments": {
+          "entries": 0,
+          "bytes": 0
+        },
+        "filingIndexes": {
+          "entries": 14,
+          "bytes": 58755438
+        }
+      }
+    },
+    {
+      "label": "entry caps only (pre-131 behaviour)",
+      "maxBytes": 68719476736,
+      "peakRetainedBytes": 2140397784,
+      "finalRetainedBytes": 2140397784,
+      "peakRssBytes": 1164951552,
+      "caches": {
+        "directory": {
+          "entries": 0,
+          "bytes": 0
+        },
+        "submissions": {
+          "entries": 120,
+          "bytes": 125925624
+        },
+        "segments": {
+          "entries": 0,
+          "bytes": 0
+        },
+        "filingIndexes": {
+          "entries": 480,
+          "bytes": 2014472160
+        }
+      }
+    }
+  ]
+}

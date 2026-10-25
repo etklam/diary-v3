@@ -1,41 +1,272 @@
-import { randomUUID } from 'node:crypto';
-import { test,expect,clickNav, selectLocale, selectTheme, signOut } from '../support/e2e';
-for(const width of [1440,390])test(`Timeline month reading, retry and stale filters at ${width}px`,async({page,context})=>{
- await page.setViewportSize({width,height:width===390?844:900});const email=`timeline-${randomUUID()}@example.test`,password='synthetic-timeline-password';await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
- const csrf=(await context.cookies()).find(cookie=>cookie.name==='csrf-token')!.value;
- const long='## Original observation\n\n**Evidence** remains incomplete.\n\n'+('Compare the original expectation with the next report. '.repeat(25))+'\n\nEnd of original observation.';
- for(let day=1;day<=20;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-08-${String(day).padStart(2,'0')}`,title:`August ${day}: keep the original reasoning`,content:day===2?long:'Observed the change and kept the original question open.',tags:['research, evidence','長期'],...(day===20?{transactions:[{symbol:'AAPL',type:'BUY',quantity:'2',price:'210',tradeDate:'2026-08-20T12:00:00Z'}]}:{})}})).status()).toBe(201);
- for(let day=26;day<=30;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-07-${day}`,title:`July ${day}: wait for confirmation`,content:'Earlier reasoning remains available.'}})).status()).toBe(201);
- const initial=await (await page.request.get('/api/timeline?page=1&limit=20')).json();let failMore=true;const requested:string[]=[];
- // The summary feed is private-text-free by contract; assert that on the wire.
- expect(JSON.stringify(initial)).not.toContain('reviewSummary');
- await page.route('**/api/timeline*',async route=>{const url=new URL(route.request().url());if(url.searchParams.get('page')==='2'){requested.push('2');if(failMore){await route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({data:{code:'SYS_INTERNAL_ERROR',requestId:'timeline-page-two'}})});return;}const response=await route.fetch(),body=await response.json();await route.fulfill({response,json:{...body,data:[initial.data[0],...body.data,body.data[0]]}});return;}await route.continue();});
- await clickNav(page,'Timeline');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);const groupedDay=page.locator('time.timeline-day-mark[datetime="2026-08-20"]').locator('..');await expect(groupedDay).toHaveCount(1);await expect(groupedDay.locator('.timeline-record')).toHaveCount(2);await expect(groupedDay.locator('.timeline-record').nth(0)).toHaveAttribute('data-kind','DIARY');await expect(groupedDay.locator('.timeline-record').nth(1)).toHaveAttribute('data-kind','TRADE');await expect(groupedDay.locator('.timeline-day-mark .sr-only')).toContainText('August 20, 2026');const firstEntryBox=await page.getByTestId('timeline-entry').first().boundingBox();expect(firstEntryBox?.y??Infinity).toBeLessThan(width===390?844:900);await page.screenshot({path:`docs/design/evidence/convenience-follow-up/timeline-${width}-collapsed.png`,fullPage:true});await page.getByTestId('timeline-filters').locator('summary').click();await page.getByRole('button',{name:'Load more activity',exact:true}).click();await expect(page.getByTestId('request-id')).toHaveText('timeline-page-two');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);failMore=false;await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByTestId('timeline-entry')).toHaveCount(26);expect(requested).toEqual(['2','2']);await expect(page.getByRole('heading',{name:'July 2026',exact:true})).toBeVisible();
- await page.unroute('**/api/timeline*');let startDelay:()=>void=()=>{},release:()=>void=()=>{},finished:()=>void=()=>{};const started=new Promise<void>(resolve=>{startDelay=resolve;}),gate=new Promise<void>(resolve=>{release=resolve;}),done=new Promise<void>(resolve=>{finished=resolve;});
- await page.route('**/api/timeline*',async route=>{if(new URL(route.request().url()).searchParams.get('dateFrom')==='2026-08-01'){startDelay();await gate;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(initial)}).catch(()=>{});finished();}else await route.continue();});
- await page.getByLabel('From date',{exact:true}).fill('2026-08-01');await page.getByRole('button',{name:'Apply dates',exact:true}).click();await started;await page.getByLabel('From date',{exact:true}).fill('2040-01-01');await page.getByRole('button',{name:'Apply dates',exact:true}).click();await expect(page.getByText('No activity in this date range.',{exact:true})).toBeVisible();release();await done;await expect(page.getByTestId('timeline-entry')).toHaveCount(0);await page.unroute('**/api/diaries?*');
- await page.getByLabel('From date',{exact:true}).fill('2026-07-30');await page.getByLabel('Through date',{exact:true}).fill('2026-08-02');await page.getByRole('button',{name:'Apply dates',exact:true}).click();await expect(page.getByTestId('timeline-entry')).toHaveCount(3);await expect(page).toHaveURL(/dateFrom=2026-07-30&dateTo=2026-08-02/);await expect(page.getByTestId('timeline-filter-range')).toContainText('2026-07-30');await expect(page.getByRole('button',{name:'Clear date filters',exact:true})).toBeVisible();await page.getByRole('button',{name:'Clear date filters',exact:true}).click();await expect(page).toHaveURL(/\/timeline$/);await expect(page.getByTestId('timeline-entry')).toHaveCount(20);await page.getByLabel('From date',{exact:true}).fill('2026-07-30');await page.getByLabel('Through date',{exact:true}).fill('2026-08-02');await page.getByRole('button',{name:'Apply dates',exact:true}).click();await expect(page.getByTestId('timeline-entry')).toHaveCount(3);await page.getByTestId('timeline-entry').first().getByRole('link',{name:'Read full diary',exact:true}).click();await expect(page.locator('.safe-markdown')).toContainText('End of original observation.');await expect(page.locator('.safe-markdown strong')).toHaveText('Evidence');await page.goBack();await expect(page).toHaveURL(/dateFrom=2026-07-30&dateTo=2026-08-02/);await expect(page.getByTestId('timeline-filter-range')).toContainText('2026-07-30');await expect(page.getByTestId('timeline-entry').first()).toBeVisible();
- for(const [locale,heading] of [['zh-TW','活動時間軸'],['zh-CN','活动时间轴'],['en','Activity timeline']] as const){await selectLocale(page, locale);await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();}
- if(width===390)await selectTheme(page, 'dark');await page.evaluate(()=>{if(document.activeElement instanceof HTMLElement)document.activeElement.blur();window.scrollTo({top:0,behavior:'instant'});});if(process.env.TIMELINE_CAPTURE!=='0')await page.screenshot({path:`docs/design/evidence/convenience-follow-up/timeline-${width}-active.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:'2026-08-02',title:'Do not replace original title',content:'Timeline capture refresh evidence.',appendToToday:true}})).status()).toBe(201);const refreshed=page.waitForResponse(response=>response.url().includes('/api/timeline?')&&response.request().method()==='GET');await page.evaluate(()=>window.dispatchEvent(new Event('diary-quick-saved')));await refreshed;await expect(page.getByTestId('timeline-entry')).toHaveCount(3);await page.getByTestId('timeline-entry').first().getByRole('link',{name:'Read full diary',exact:true}).click();await expect(page.locator('.safe-markdown')).toContainText('Timeline capture refresh evidence.');await page.goBack();
- const link=page.getByRole('link',{name:'August 2: keep the original reasoning',exact:true});const destination=await link.getAttribute('href');await link.click();await expect(page).toHaveURL(new RegExp(`${destination}$`));await expect(page.getByRole('heading',{name:'August 2: keep the original reasoning',exact:true})).toBeVisible();await clickNav(page,'Timeline');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);await signOut(page);await expect(page.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();await expect(page.getByTestId('timeline-entry')).toHaveCount(0);
-});
-test('Timeline restores loaded pages and scroll on browser back',async({page})=>{
- await page.setViewportSize({width:1440,height:900});const email=`timeline-restore-${randomUUID()}@example.test`,password='synthetic-timeline-password';await page.request.post('/api/auth/register',{data:{email,password}});await page.goto('/login?returnTo=%2Fdiaries%2Fnew');await selectLocale(page, 'en');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/new$/);await selectLocale(page, 'en');
- const csrf=(await page.context().cookies()).find(cookie=>cookie.name==='csrf-token')!.value;
- for(let day=1;day<=10;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-09-${String(day).padStart(2,'0')}`,title:`September ${day}: recent observation`,content:'Recent reasoning stays available.'}})).status()).toBe(201);
- for(let day=1;day<=17;day++)expect((await page.request.post('/api/diaries',{headers:{'x-csrf-token':csrf},data:{date:`2026-08-${String(day).padStart(2,'0')}`,title:`August ${day}: older observation`,content:'Older reasoning stays available.'}})).status()).toBe(201);
- await page.goto('/timeline');await expect(page.getByTestId('timeline-entry')).toHaveCount(20);
- await page.getByRole('button',{name:'Load more activity',exact:true}).click();await expect(page.getByTestId('timeline-entry')).toHaveCount(27);
- await page.getByTestId('timeline-entry').nth(20).scrollIntoViewIfNeeded();expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
- // Restored pages must come from fresh fetches: count completed summary requests
- // (responses, so React StrictMode's aborted remount attempt cannot flake) from
- // the Back press until the count assertion below.
- const restoredPages:string[]=[];page.on('response',response=>{if(new URL(response.url()).pathname==='/api/timeline')restoredPages.push(new URL(response.url()).searchParams.get('page')??'');});
- await page.getByRole('link',{name:'August 7: older observation',exact:true}).click();await expect(page).toHaveURL(/\/diaries\/[^/]+$/);await expect(page.getByRole('heading',{name:'August 7: older observation',exact:true})).toBeVisible();
- await page.goBack();
- await expect(page.getByTestId('timeline-entry')).toHaveCount(27);await expect(page.getByTestId('timeline-entry').first()).toContainText('September 10: recent observation');
- await expect(page.getByRole('heading',{name:'August 2026',exact:true})).toBeVisible();
- await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(100);
- expect(restoredPages).toEqual(['1','2']);
-});
+import { randomUUID } from 'node:crypto'
+import { test, expect, clickNav, selectLocale, selectTheme, signOut } from '../support/e2e'
+for (const width of [1440, 390])
+  test(`Timeline month reading, retry and stale filters at ${width}px`, async ({ page, context }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 })
+    const email = `timeline-${randomUUID()}@example.test`,
+      password = 'synthetic-timeline-password'
+    await page.request.post('/api/auth/register', { data: { email, password } })
+    await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+    await selectLocale(page, 'en')
+    await page.getByLabel('Email', { exact: true }).fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/diaries\/new$/)
+    await selectLocale(page, 'en')
+    const csrf = (await context.cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+    const long =
+      '## Original observation\n\n**Evidence** remains incomplete.\n\n' +
+      'Compare the original expectation with the next report. '.repeat(25) +
+      '\n\nEnd of original observation.'
+    for (let day = 1; day <= 20; day++)
+      expect(
+        (
+          await page.request.post('/api/diaries', {
+            headers: { 'x-csrf-token': csrf },
+            data: {
+              date: `2026-08-${String(day).padStart(2, '0')}`,
+              title: `August ${day}: keep the original reasoning`,
+              content: day === 2 ? long : 'Observed the change and kept the original question open.',
+              tags: ['research, evidence', '長期'],
+              ...(day === 20
+                ? {
+                    transactions: [
+                      { symbol: 'AAPL', type: 'BUY', quantity: '2', price: '210', tradeDate: '2026-08-20T12:00:00Z' },
+                    ],
+                  }
+                : {}),
+            },
+          })
+        ).status(),
+      ).toBe(201)
+    for (let day = 26; day <= 30; day++)
+      expect(
+        (
+          await page.request.post('/api/diaries', {
+            headers: { 'x-csrf-token': csrf },
+            data: {
+              date: `2026-07-${day}`,
+              title: `July ${day}: wait for confirmation`,
+              content: 'Earlier reasoning remains available.',
+            },
+          })
+        ).status(),
+      ).toBe(201)
+    const initial = await (await page.request.get('/api/timeline?page=1&limit=20')).json()
+    let failMore = true
+    const requested: string[] = []
+    // The summary feed is private-text-free by contract; assert that on the wire.
+    expect(JSON.stringify(initial)).not.toContain('reviewSummary')
+    await page.route('**/api/timeline*', async route => {
+      const url = new URL(route.request().url())
+      if (url.searchParams.get('page') === '2') {
+        requested.push('2')
+        if (failMore) {
+          await route.fulfill({
+            status: 500,
+            contentType: 'application/json',
+            body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'timeline-page-two' } }),
+          })
+          return
+        }
+        const response = await route.fetch(),
+          body = await response.json()
+        await route.fulfill({ response, json: { ...body, data: [initial.data[0], ...body.data, body.data[0]] } })
+        return
+      }
+      await route.continue()
+    })
+    await clickNav(page, 'Timeline')
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(20)
+    const groupedDay = page.locator('time.timeline-day-mark[datetime="2026-08-20"]').locator('..')
+    await expect(groupedDay).toHaveCount(1)
+    await expect(groupedDay.locator('.timeline-record')).toHaveCount(2)
+    await expect(groupedDay.locator('.timeline-record').nth(0)).toHaveAttribute('data-kind', 'DIARY')
+    await expect(groupedDay.locator('.timeline-record').nth(1)).toHaveAttribute('data-kind', 'TRADE')
+    await expect(groupedDay.locator('.timeline-day-mark .sr-only')).toContainText('August 20, 2026')
+    const firstEntryBox = await page.getByTestId('timeline-entry').first().boundingBox()
+    expect(firstEntryBox?.y ?? Infinity).toBeLessThan(width === 390 ? 844 : 900)
+    await page.screenshot({
+      path: `docs/design/evidence/convenience-follow-up/timeline-${width}-collapsed.png`,
+      fullPage: true,
+    })
+    await page.getByTestId('timeline-filters').locator('summary').click()
+    await page.getByRole('button', { name: 'Load more activity', exact: true }).click()
+    await expect(page.getByTestId('request-id')).toHaveText('timeline-page-two')
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(20)
+    failMore = false
+    await page.getByRole('button', { name: 'Try again', exact: true }).click()
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(26)
+    expect(requested).toEqual(['2', '2'])
+    await expect(page.getByRole('heading', { name: 'July 2026', exact: true })).toBeVisible()
+    await page.unroute('**/api/timeline*')
+    let startDelay: () => void = () => {},
+      release: () => void = () => {},
+      finished: () => void = () => {}
+    const started = new Promise<void>(resolve => {
+        startDelay = resolve
+      }),
+      gate = new Promise<void>(resolve => {
+        release = resolve
+      }),
+      done = new Promise<void>(resolve => {
+        finished = resolve
+      })
+    await page.route('**/api/timeline*', async route => {
+      if (new URL(route.request().url()).searchParams.get('dateFrom') === '2026-08-01') {
+        startDelay()
+        await gate
+        await route
+          .fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(initial) })
+          .catch(() => {})
+        finished()
+      } else await route.continue()
+    })
+    await page.getByLabel('From date', { exact: true }).fill('2026-08-01')
+    await page.getByRole('button', { name: 'Apply dates', exact: true }).click()
+    await started
+    await page.getByLabel('From date', { exact: true }).fill('2040-01-01')
+    await page.getByRole('button', { name: 'Apply dates', exact: true }).click()
+    await expect(page.getByText('No activity in this date range.', { exact: true })).toBeVisible()
+    release()
+    await done
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(0)
+    await page.unroute('**/api/diaries?*')
+    await page.getByLabel('From date', { exact: true }).fill('2026-07-30')
+    await page.getByLabel('Through date', { exact: true }).fill('2026-08-02')
+    await page.getByRole('button', { name: 'Apply dates', exact: true }).click()
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(3)
+    await expect(page).toHaveURL(/dateFrom=2026-07-30&dateTo=2026-08-02/)
+    await expect(page.getByTestId('timeline-filter-range')).toContainText('2026-07-30')
+    await expect(page.getByRole('button', { name: 'Clear date filters', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Clear date filters', exact: true }).click()
+    await expect(page).toHaveURL(/\/timeline$/)
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(20)
+    await page.getByLabel('From date', { exact: true }).fill('2026-07-30')
+    await page.getByLabel('Through date', { exact: true }).fill('2026-08-02')
+    await page.getByRole('button', { name: 'Apply dates', exact: true }).click()
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(3)
+    await page.getByTestId('timeline-entry').first().getByRole('link', { name: 'Read full diary', exact: true }).click()
+    await expect(page.locator('.safe-markdown')).toContainText('End of original observation.')
+    await expect(page.locator('.safe-markdown strong')).toHaveText('Evidence')
+    await page.goBack()
+    await expect(page).toHaveURL(/dateFrom=2026-07-30&dateTo=2026-08-02/)
+    await expect(page.getByTestId('timeline-filter-range')).toContainText('2026-07-30')
+    await expect(page.getByTestId('timeline-entry').first()).toBeVisible()
+    for (const [locale, heading] of [
+      ['zh-TW', '活動時間軸'],
+      ['zh-CN', '活动时间轴'],
+      ['en', 'Activity timeline'],
+    ] as const) {
+      await selectLocale(page, locale)
+      await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+    }
+    if (width === 390) await selectTheme(page, 'dark')
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    })
+    if (process.env.TIMELINE_CAPTURE !== '0')
+      await page.screenshot({
+        path: `docs/design/evidence/convenience-follow-up/timeline-${width}-active.png`,
+        fullPage: true,
+      })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    expect(
+      (
+        await page.request.post('/api/diaries', {
+          headers: { 'x-csrf-token': csrf },
+          data: {
+            date: '2026-08-02',
+            title: 'Do not replace original title',
+            content: 'Timeline capture refresh evidence.',
+            appendToToday: true,
+          },
+        })
+      ).status(),
+    ).toBe(201)
+    const refreshed = page.waitForResponse(
+      response => response.url().includes('/api/timeline?') && response.request().method() === 'GET',
+    )
+    await page.evaluate(() => window.dispatchEvent(new Event('diary-quick-saved')))
+    await refreshed
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(3)
+    await page.getByTestId('timeline-entry').first().getByRole('link', { name: 'Read full diary', exact: true }).click()
+    await expect(page.locator('.safe-markdown')).toContainText('Timeline capture refresh evidence.')
+    await page.goBack()
+    const link = page.getByRole('link', { name: 'August 2: keep the original reasoning', exact: true })
+    const destination = await link.getAttribute('href')
+    await link.click()
+    await expect(page).toHaveURL(new RegExp(`${destination}$`))
+    await expect(
+      page.getByRole('heading', { name: 'August 2: keep the original reasoning', exact: true }),
+    ).toBeVisible()
+    await clickNav(page, 'Timeline')
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(20)
+    await signOut(page)
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible()
+    await expect(page.getByTestId('timeline-entry')).toHaveCount(0)
+  })
+test('Timeline restores loaded pages and scroll on browser back', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const email = `timeline-restore-${randomUUID()}@example.test`,
+    password = 'synthetic-timeline-password'
+  await page.request.post('/api/auth/register', { data: { email, password } })
+  await page.goto('/login?returnTo=%2Fdiaries%2Fnew')
+  await selectLocale(page, 'en')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/new$/)
+  await selectLocale(page, 'en')
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf-token')!.value
+  for (let day = 1; day <= 10; day++)
+    expect(
+      (
+        await page.request.post('/api/diaries', {
+          headers: { 'x-csrf-token': csrf },
+          data: {
+            date: `2026-09-${String(day).padStart(2, '0')}`,
+            title: `September ${day}: recent observation`,
+            content: 'Recent reasoning stays available.',
+          },
+        })
+      ).status(),
+    ).toBe(201)
+  for (let day = 1; day <= 17; day++)
+    expect(
+      (
+        await page.request.post('/api/diaries', {
+          headers: { 'x-csrf-token': csrf },
+          data: {
+            date: `2026-08-${String(day).padStart(2, '0')}`,
+            title: `August ${day}: older observation`,
+            content: 'Older reasoning stays available.',
+          },
+        })
+      ).status(),
+    ).toBe(201)
+  await page.goto('/timeline')
+  await expect(page.getByTestId('timeline-entry')).toHaveCount(20)
+  await page.getByRole('button', { name: 'Load more activity', exact: true }).click()
+  await expect(page.getByTestId('timeline-entry')).toHaveCount(27)
+  await page.getByTestId('timeline-entry').nth(20).scrollIntoViewIfNeeded()
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  // Restored pages must come from fresh fetches: count completed summary requests
+  // (responses, so React StrictMode's aborted remount attempt cannot flake) from
+  // the Back press until the count assertion below.
+  const restoredPages: string[] = []
+  page.on('response', response => {
+    if (new URL(response.url()).pathname === '/api/timeline')
+      restoredPages.push(new URL(response.url()).searchParams.get('page') ?? '')
+  })
+  await page.getByRole('link', { name: 'August 7: older observation', exact: true }).click()
+  await expect(page).toHaveURL(/\/diaries\/[^/]+$/)
+  await expect(page.getByRole('heading', { name: 'August 7: older observation', exact: true })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByTestId('timeline-entry')).toHaveCount(27)
+  await expect(page.getByTestId('timeline-entry').first()).toContainText('September 10: recent observation')
+  await expect(page.getByRole('heading', { name: 'August 2026', exact: true })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
+  expect(restoredPages).toEqual(['1', '2'])
+})

@@ -2,9 +2,10 @@
 
 # [126] Make the end-to-end suites own their own flakiness
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: process
 Type: Test debt
@@ -61,10 +62,10 @@ timing race (a throwaway experiment) shows up as `flaky`, not as `passed`, in th
 
 ## Provisional acceptance criteria
 
-- [ ] CI runs record and publish a flaky-case count distinct from pass and fail.
-- [ ] A failed-then-passed case is labelled flaky in the output, never reported as a clean pass.
-- [ ] A written quarantine rule exists, names where the list lives, and forbids silent deletion or skip.
-- [ ] The PWA controller flake and the `partner-timeline-parity` timeout are each either fixed or filed against this ticket's quarantine list with their evidence.
+- [x] CI runs record and publish a flaky-case count distinct from pass and fail.
+- [x] A failed-then-passed case is labelled flaky in the output, never reported as a clean pass.
+- [x] A written quarantine rule exists, names where the list lives, and forbids silent deletion or skip.
+- [x] The PWA controller flake and the `partner-timeline-parity` timeout are each either fixed or filed against this ticket's quarantine list with their evidence.
 
 ## Related work
 
@@ -80,3 +81,39 @@ None. (Step 4 is independent; steps 1–3 do not need [124](124-gate-changes-bef
 
 Filed 2026-10-16 from a repository quality audit. The rule already exists in prose in
 [117](117-remaining-e2e-failures.md); this ticket makes it a mechanism.
+
+### Acceptance — 2026-10-25
+
+`tests/support/flake-reporter.ts` runs in the Chromium and WebKit critical configs, prints
+a flake count every run **including zero**, and writes
+`playwright-report/flaky-<suite>.json` with spec, title, project, attempt count, each
+failed attempt's duration and a one-line failure summary that distinguishes a timeout from
+an assertion. The artifact is named per suite because both run sequentially in one CI job.
+
+Retries: `process.env.CI ? 1 : 0` in the Chromium and WebKit configs; **zero always** on
+the release gate, with the reason stated in `playwright.release.config.ts` — that gate
+decides whether a built image ships, so a retried pass there would hide a release defect
+rather than a timing race.
+
+The quarantine rule is written in
+[`docs/operations/e2e-flakiness.md`](../../../docs/operations/e2e-flakiness.md): more than
+one flake in ten consecutive runs quarantines a case; quarantining means a `@flaky` tag, a
+register row with evidence and a ticket, and exclusion from the blocking set; deletion,
+`test.skip` and `test.fixme` are forbidden; leaving quarantine requires a deterministic
+seam, not a longer timeout. The mechanism is live — `test:e2e:blocking` runs
+`--grep-invert @flaky` as the gating step and a separate non-blocking
+`test:e2e:quarantine` step keeps quarantined cases running, because unblocking is not the
+same as not looking.
+
+Covered by `tests/unit/flake-reporting.test.ts` (6 tests), which feeds the reporter a
+synthetic failed-then-passed case and asserts it is recorded as flaky and never as a clean
+pass.
+
+**Not done — step 4 and the two-run verification.** The PWA controller case and the
+`partner-timeline-parity.spec.ts:146` timeout are entered in the register as **carried,
+not reproduced**, with the evidence that exists. Characterising either needs PostgreSQL and
+two full 20–36 minute browser runs, neither available here, so no run of this reporter has
+produced a flake count yet. The register says so explicitly rather than implying the cases
+were investigated. The PWA case is deliberately **not** tagged `@flaky`: three probes could
+not reproduce it, and quarantining on historical evidence would remove a passing check from
+the blocking set.

@@ -10,7 +10,8 @@ export const buildSecUrls = {
   directory: () => 'https://www.sec.gov/files/company_tickers_exchange.json',
   submissions: (cik: string) => `https://data.sec.gov/submissions/CIK${canonicalizeCik(cik)}.json`,
   historicalSegment: (name: string) => {
-    if (!/^CIK\d{10}-submissions-\d{3}\.json$/.test(name)) throw new SecProviderError('SEC_VALIDATION_ERROR', 'Invalid historical segment name', 400)
+    if (!/^CIK\d{10}-submissions-\d{3}\.json$/.test(name))
+      throw new SecProviderError('SEC_VALIDATION_ERROR', 'Invalid historical segment name', 400)
     return `https://data.sec.gov/submissions/${name}`
   },
   filingDirectory: (cik: string, accession: string) => {
@@ -66,9 +67,18 @@ function responseWithDeadline(response: Response, signal: AbortSignal, callerSig
     if (cleaned) return
     cleaned = true
     signal.removeEventListener('abort', onAbort)
-    try { reader.releaseLock() } catch { /* already released */ }
+    try {
+      reader.releaseLock()
+    } catch {
+      /* already released */
+    }
   }
-  const onAbort = () => { void reader.cancel().catch(() => undefined).finally(cleanup) }
+  const onAbort = () => {
+    void reader
+      .cancel()
+      .catch(() => undefined)
+      .finally(cleanup)
+  }
   signal.addEventListener('abort', onAbort, { once: true })
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -105,11 +115,19 @@ export class SecEdgarClient {
 
   constructor(private readonly options: ClientOptions) {
     if (!options.userAgent.trim() || !options.userAgent.includes('@')) {
-      throw new SecProviderError('SEC_CONFIG_MISSING', 'SEC_USER_AGENT must contain application name and contact email', 503)
+      throw new SecProviderError(
+        'SEC_CONFIG_MISSING',
+        'SEC_USER_AGENT must contain application name and contact email',
+        503,
+      )
     }
     this.fetchFn = options.fetchFn ?? fetch
     this.sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
-    this.queue = new SecRequestQueue({ minIntervalMs: options.minIntervalMs, sleep: this.sleep, sharedScheduler: options.sharedScheduler })
+    this.queue = new SecRequestQueue({
+      minIntervalMs: options.minIntervalMs,
+      sleep: this.sleep,
+      sharedScheduler: options.sharedScheduler,
+    })
     this.timeoutMs = options.timeoutMs ?? 15_000
     this.streamTimeoutMs = options.streamTimeoutMs ?? 60_000
   }
@@ -117,15 +135,21 @@ export class SecEdgarClient {
   async getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
     const existing = this.inflight.get(url) as Promise<T> | undefined
     if (existing) return withAbort(existing, signal)
-    const request = this.request(url, 'application/json', this.timeoutMs).then(async ({ response, signal: deadline }) => {
-      const length = Number(response.headers.get('content-length') ?? 0)
-      if (length > MAX_METADATA_BYTES) {
-        await cancelResponseBody(response)
-        throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
-      }
-      const text = await this.readMetadataText(response, deadline)
-      try { return JSON.parse(text) as T } catch { throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC returned invalid JSON', 502) }
-    }).finally(() => this.inflight.delete(url))
+    const request = this.request(url, 'application/json', this.timeoutMs)
+      .then(async ({ response, signal: deadline }) => {
+        const length = Number(response.headers.get('content-length') ?? 0)
+        if (length > MAX_METADATA_BYTES) {
+          await cancelResponseBody(response)
+          throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC metadata response is too large', 502)
+        }
+        const text = await this.readMetadataText(response, deadline)
+        try {
+          return JSON.parse(text) as T
+        } catch {
+          throw new SecProviderError('SEC_UPSTREAM_INVALID_RESPONSE', 'SEC returned invalid JSON', 502)
+        }
+      })
+      .finally(() => this.inflight.delete(url))
     this.inflight.set(url, request)
     void request.catch(() => undefined)
     return withAbort(request, signal)
@@ -146,14 +170,23 @@ export class SecEdgarClient {
     if (parsed.protocol !== 'https:' || !ALLOWED_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) {
       throw new SecProviderError('SEC_VALIDATION_ERROR', 'SEC URL is not allowed', 400)
     }
-    const allowedPath = parsed.hostname === 'data.sec.gov'
-      ? /^\/submissions\/CIK\d{10}(?:-submissions-\d{3})?\.json$/.test(parsed.pathname)
-      : parsed.pathname === '/files/company_tickers_exchange.json' || /^\/Archives\/edgar\/data\/\d+\/\d{18}\/[A-Za-z0-9._-]+$/.test(parsed.pathname)
-    if (!allowedPath || parsed.search || parsed.hash) throw new SecProviderError('SEC_VALIDATION_ERROR', 'SEC path is not allowed', 400)
+    const allowedPath =
+      parsed.hostname === 'data.sec.gov'
+        ? /^\/submissions\/CIK\d{10}(?:-submissions-\d{3})?\.json$/.test(parsed.pathname)
+        : parsed.pathname === '/files/company_tickers_exchange.json' ||
+          /^\/Archives\/edgar\/data\/\d+\/\d{18}\/[A-Za-z0-9._-]+$/.test(parsed.pathname)
+    if (!allowedPath || parsed.search || parsed.hash)
+      throw new SecProviderError('SEC_VALIDATION_ERROR', 'SEC path is not allowed', 400)
     return parsed
   }
 
-  private async request(url: string, accept: string, timeoutMs = 15_000, retry = true, callerSignal?: AbortSignal): Promise<SecResponse> {
+  private async request(
+    url: string,
+    accept: string,
+    timeoutMs = 15_000,
+    retry = true,
+    callerSignal?: AbortSignal,
+  ): Promise<SecResponse> {
     throwIfAborted(callerSignal)
     const expected = this.assertUrl(url)
     const attempts = retry ? 3 : 1
@@ -165,11 +198,15 @@ export class SecEdgarClient {
       try {
         // The deadline belongs to the whole response, including body reads. A
         // fetch-only timer otherwise leaves a stalled SEC stream unbounded.
-        const response = await this.queue.run(() => this.fetchFn(expected, {
-          headers: { 'User-Agent': this.options.userAgent, Accept: accept, 'Accept-Encoding': 'gzip, deflate' },
-          redirect: 'manual',
+        const response = await this.queue.run(
+          () =>
+            this.fetchFn(expected, {
+              headers: { 'User-Agent': this.options.userAgent, Accept: accept, 'Accept-Encoding': 'gzip, deflate' },
+              redirect: 'manual',
+              signal,
+            }),
           signal,
-        }), signal)
+        )
         if (signal.aborted) {
           await cancelResponseBody(response)
           throw callerSignal?.aborted ? cancelledSecRequest() : timeoutError()
@@ -182,7 +219,11 @@ export class SecEdgarClient {
             throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC redirect has no location', 502)
           }
           const destination = new URL(location, expected)
-          if (destination.protocol !== 'https:' || destination.hostname !== expected.hostname || destination.pathname !== expected.pathname) {
+          if (
+            destination.protocol !== 'https:' ||
+            destination.hostname !== expected.hostname ||
+            destination.pathname !== expected.pathname
+          ) {
             await cancelResponseBody(response)
             throw new SecProviderError('SEC_UNSAFE_REDIRECT', 'SEC returned an unsafe redirect', 502)
           }
@@ -207,12 +248,23 @@ export class SecEdgarClient {
         }
         const delay = this.retryDelay(response.headers.get('retry-after'), attempt)
         await cancelResponseBody(response)
-        lastError = new SecProviderError(response.status === 429 ? 'SEC_UPSTREAM_RATE_LIMITED' : 'SEC_UPSTREAM_UNAVAILABLE', 'SEC is temporarily unavailable', 503, true, Math.ceil(delay / 1000))
+        lastError = new SecProviderError(
+          response.status === 429 ? 'SEC_UPSTREAM_RATE_LIMITED' : 'SEC_UPSTREAM_UNAVAILABLE',
+          'SEC is temporarily unavailable',
+          503,
+          true,
+          Math.ceil(delay / 1000),
+        )
         if (attempt < attempts - 1) await withAbort(this.sleep(delay), callerSignal)
       } catch (error) {
         if (callerSignal?.aborted) throw cancelledSecRequest()
         if (error instanceof SecProviderError && !error.retryable) throw error
-        lastError = error instanceof SecProviderError ? error : signal.aborted ? timeoutError() : new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request failed', 503, true)
+        lastError =
+          error instanceof SecProviderError
+            ? error
+            : signal.aborted
+              ? timeoutError()
+              : new SecProviderError('SEC_UPSTREAM_UNAVAILABLE', 'SEC request failed', 503, true)
         if (attempt < attempts - 1) await withAbort(this.sleep(Math.min(30_000, 250 * 2 ** attempt)), callerSignal)
       }
     }

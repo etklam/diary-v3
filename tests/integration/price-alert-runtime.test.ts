@@ -12,13 +12,17 @@ let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let runtime: ReturnType<typeof createApiRuntime> | undefined
 const sockets: Socket[] = []
 
-beforeAll(async () => { database = await provisionTestDatabase('price_alert_runtime') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('price_alert_runtime')
+})
 afterEach(async () => {
   sockets.splice(0).forEach(socket => socket.disconnect())
   await runtime?.close()
   runtime = undefined
 })
-afterAll(async () => { await database?.dispose() })
+afterAll(async () => {
+  await database?.dispose()
+})
 
 function collectEvents(socket: Socket, count: number) {
   return new Promise<Record<string, unknown>[]>((resolve, reject) => {
@@ -65,13 +69,21 @@ it('keeps all four conditions pending on stale/missing data, then emits owner hi
     db: database.db,
     marketData,
     now: () => clock,
-    config: { jwtSecret: 'synthetic-price-runtime-secret-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    config: {
+      jwtSecret: 'synthetic-price-runtime-secret-at-least-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
   })
   runtime.server.listen(0, '127.0.0.1')
   await once(runtime.server, 'listening')
   const baseUrl = `http://127.0.0.1:${(runtime.server.address() as AddressInfo).port}`
   const browser = new BrowserSession(baseUrl)
-  const credentials = { email: `price-runtime-${randomUUID()}@example.test`, password: 'synthetic-price-runtime-password' }
+  const credentials = {
+    email: `price-runtime-${randomUUID()}@example.test`,
+    password: 'synthetic-price-runtime-password',
+  }
   expect((await browser.post('/api/auth/register', credentials)).status).toBe(200)
   expect((await browser.post('/api/auth/login', credentials)).status).toBe(200)
   await browser.request('/api/auth/me')
@@ -85,9 +97,14 @@ it('keeps all four conditions pending on stale/missing data, then emits owner hi
   for (const body of bodies) {
     const response = await browser.post('/api/stocks/alerts', body)
     expect(response.status).toBe(200)
-    created.push(await response.json() as { id: string; type: string })
+    created.push((await response.json()) as { id: string; type: string })
   }
-  const client = io(baseUrl, { autoConnect: false, reconnection: false, transports: ['websocket'], auth: { token: browser.cookies.get('access-token')! } })
+  const client = io(baseUrl, {
+    autoConnect: false,
+    reconnection: false,
+    transports: ['websocket'],
+    auth: { token: browser.cookies.get('access-token')! },
+  })
   sockets.push(client)
   const connected = new Promise<void>(resolve => client.once('connect', () => resolve()))
   client.connect()
@@ -95,7 +112,11 @@ it('keeps all four conditions pending on stale/missing data, then emits owner hi
 
   quoteAvailable = false
   await runtime.priceChecker.checkPriceAlerts()
-  expect((await (await browser.request('/api/stocks/alerts')).json()).every((row: { isTriggered: boolean }) => !row.isTriggered)).toBe(true)
+  expect(
+    (await (await browser.request('/api/stocks/alerts')).json()).every(
+      (row: { isTriggered: boolean }) => !row.isTriggered,
+    ),
+  ).toBe(true)
 
   quoteAvailable = true
   historyAvailable = false
@@ -103,20 +124,36 @@ it('keeps all four conditions pending on stale/missing data, then emits owner hi
   await runtime.priceChecker.checkPriceAlerts()
   const partialPayloads = await nonAverageEvents
   expect(partialPayloads.map(payload => payload.type).sort()).toEqual(['CHANGE_PERCENT', 'PRICE_ABOVE', 'PRICE_BELOW'])
-  expect(partialPayloads).toEqual(expect.arrayContaining([
-    expect.objectContaining({ thresholdUnit: 'price', message: 'Fresh price above', currentPrice: 100 }),
-    expect.objectContaining({ thresholdUnit: 'price', message: 'Fresh price below', currentPrice: 100 }),
-    expect.objectContaining({ thresholdUnit: 'percent', message: 'Fresh percent', threshold: 0, currentPrice: 100 }),
-  ]))
-  const partialRows = await (await browser.request('/api/stocks/alerts')).json() as { id: string; type: string; isTriggered: boolean }[]
+  expect(partialPayloads).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ thresholdUnit: 'price', message: 'Fresh price above', currentPrice: 100 }),
+      expect.objectContaining({ thresholdUnit: 'price', message: 'Fresh price below', currentPrice: 100 }),
+      expect.objectContaining({ thresholdUnit: 'percent', message: 'Fresh percent', threshold: 0, currentPrice: 100 }),
+    ]),
+  )
+  const partialRows = (await (await browser.request('/api/stocks/alerts')).json()) as {
+    id: string
+    type: string
+    isTriggered: boolean
+  }[]
   expect(partialRows.filter(row => row.type !== 'MOVING_AVG').every(row => row.isTriggered)).toBe(true)
   expect(partialRows.find(row => row.type === 'MOVING_AVG')?.isTriggered).toBe(false)
 
   historyAvailable = true
   const averageEvent = collectEvents(client, 1)
   await runtime.priceChecker.checkPriceAlerts()
-  expect(await averageEvent).toEqual([expect.objectContaining({ id: created[3]?.id, type: 'MOVING_AVG', threshold: 20, thresholdUnit: 'period', movingAverageDirection: 'above', message: 'Fresh average', currentPrice: 100 })])
-  const finalRows = await (await browser.request('/api/stocks/alerts')).json() as { isTriggered: boolean }[]
+  expect(await averageEvent).toEqual([
+    expect.objectContaining({
+      id: created[3]?.id,
+      type: 'MOVING_AVG',
+      threshold: 20,
+      thresholdUnit: 'period',
+      movingAverageDirection: 'above',
+      message: 'Fresh average',
+      currentPrice: 100,
+    }),
+  ])
+  const finalRows = (await (await browser.request('/api/stocks/alerts')).json()) as { isTriggered: boolean }[]
   expect(finalRows).toHaveLength(4)
   expect(finalRows.every(row => row.isTriggered)).toBe(true)
 })

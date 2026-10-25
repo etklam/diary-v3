@@ -5,9 +5,33 @@ import { useReviewCount } from './use-review-count'
 import { usePendingPathname } from './navigation-progress'
 
 const copy = {
-  'zh-TW': { nav: '日記快捷導覽', capture: '記錄', library: '日記庫', timeline: '時間軸', calendar: '日曆', reviews: '複盤', waiting: '項待複盤' },
-  'zh-CN': { nav: '日记快捷导航', capture: '记录', library: '日记库', timeline: '时间轴', calendar: '日历', reviews: '复盘', waiting: '项待复盘' },
-  en: { nav: 'Diary shortcuts', capture: 'Capture', library: 'Library', timeline: 'Timeline', calendar: 'Calendar', reviews: 'Reviews', waiting: 'waiting for review' },
+  'zh-TW': {
+    nav: '日記快捷導覽',
+    capture: '記錄',
+    library: '日記庫',
+    timeline: '時間軸',
+    calendar: '日曆',
+    reviews: '複盤',
+    waiting: '項待複盤',
+  },
+  'zh-CN': {
+    nav: '日记快捷导航',
+    capture: '记录',
+    library: '日记库',
+    timeline: '时间轴',
+    calendar: '日历',
+    reviews: '复盘',
+    waiting: '项待复盘',
+  },
+  en: {
+    nav: 'Diary shortcuts',
+    capture: 'Capture',
+    library: 'Library',
+    timeline: 'Timeline',
+    calendar: 'Calendar',
+    reviews: 'Reviews',
+    waiting: 'waiting for review',
+  },
 } as const
 
 type View = 'capture' | 'library' | 'timeline' | 'calendar' | 'reviews'
@@ -40,24 +64,35 @@ export function DiaryNavigation() {
 
   // The badge is decorative; the count reaches assistive technology through the
   // link's own accessible name so it is never announced twice.
-  const item = (view: View, to: string, icon: IconName, text: string, badge = 0) =>
-    <Link key={view} to={to} aria-current={active === view ? 'page' : undefined}
+  const item = (view: View, to: string, icon: IconName, text: string, badge = 0) => (
+    <Link
+      key={view}
+      to={to}
+      aria-current={active === view ? 'page' : undefined}
       data-nav-pending={pending === view && active !== view ? 'true' : undefined}
-      aria-label={badge > 0 ? `${text} · ${badge} ${c.waiting}` : undefined}>
+      aria-label={badge > 0 ? `${text} · ${badge} ${c.waiting}` : undefined}
+    >
       <span className="mobile-diary-icon">
         <Icon name={icon} size={20} />
-        {badge > 0 && <span className="mobile-diary-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}
+        {badge > 0 && (
+          <span className="mobile-diary-badge" aria-hidden="true">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </span>
       <span>{text}</span>
     </Link>
+  )
 
-  return <nav className="mobile-diary-navigation" data-testid="mobile-diary-navigation" aria-label={c.nav}>
-    {/* Quick capture is the low-friction path the product is built around, so
+  return (
+    <nav className="mobile-diary-navigation" data-testid="mobile-diary-navigation" aria-label={c.nav}>
+      {/* Quick capture is the low-friction path the product is built around, so
         it is the one the bar offers — the full editor stays in the drawer. */}
-    {item('capture', '/diaries/quick', 'pen', c.capture)}
-    {item('library', '/diaries', 'book', c.library)}
-    {item('timeline', '/timeline', 'timeline', c.timeline)}
-    {item('calendar', '/calendar', 'calendar', c.calendar)}
-    {item('reviews', '/reviews', 'check', c.reviews, waiting ?? 0)}
-  </nav>
+      {item('capture', '/diaries/quick', 'pen', c.capture)}
+      {item('library', '/diaries', 'book', c.library)}
+      {item('timeline', '/timeline', 'timeline', c.timeline)}
+      {item('calendar', '/calendar', 'calendar', c.calendar)}
+      {item('reviews', '/reviews', 'check', c.reviews, waiting ?? 0)}
+    </nav>
+  )
 }

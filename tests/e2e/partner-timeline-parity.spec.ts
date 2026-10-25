@@ -34,18 +34,30 @@ async function startSession(page: Page) {
 
 /** Invite the already signed-in `second` account, accept, and let the partner share diaries. */
 async function connect(page: Page, second: Page, emailB: string) {
-  const invited = await page.request.post('/api/partners', { headers: await csrf(page), data: { partnerEmail: emailB } })
+  const invited = await page.request.post('/api/partners', {
+    headers: await csrf(page),
+    data: { partnerEmail: emailB },
+  })
   expect(invited.status(), await invited.text()).toBe(200)
-  const { link } = await invited.json() as { link: { id: string; partner: { id: string } } }
-  expect((await second.request.post(`/api/partners/${link.id}/accept`, { headers: await csrf(second) })).status()).toBe(200)
-  expect((await second.request.put(`/api/partners/${link.id}/sharing`, { headers: await csrf(second), data: { shareDiaries: true } })).status()).toBe(200)
+  const { link } = (await invited.json()) as { link: { id: string; partner: { id: string } } }
+  expect((await second.request.post(`/api/partners/${link.id}/accept`, { headers: await csrf(second) })).status()).toBe(
+    200,
+  )
+  expect(
+    (
+      await second.request.put(`/api/partners/${link.id}/sharing`, {
+        headers: await csrf(second),
+        data: { shareDiaries: true },
+      })
+    ).status(),
+  ).toBe(200)
   return { partnerId: link.partner.id, linkId: link.id }
 }
 
 async function createDiary(page: Page, input: { date: string; title: string; content: string; tags?: string[] }) {
   const response = await page.request.post('/api/diaries', { headers: await csrf(page), data: input })
   expect(response.status()).toBe(201)
-  return await response.json() as { id: string }
+  return (await response.json()) as { id: string }
 }
 
 const longContent = `${'Long observation. '.repeat(160)}\n\n| Column A | Column B | Column C | Column D | Column E |\n| --- | --- | --- | --- | --- |\n| wide | table | stays | inside | container |\n\nFinal marker for expanded reading.`
@@ -59,9 +71,20 @@ test('timeline switches into a date-paired partner comparison and back @webkit-c
   await registerAndLogin(other, emailB)
   await connect(page, other, emailB)
   const bHeaders = await csrf(other)
-  await createDiary(page, { date: '2026-09-10', title: 'Mine on the tenth', content: 'My tenth observation', tags: ['planning'] })
-  await other.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-10', title: 'Partner on the tenth', content: longContent } })
-  await other.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-09', title: 'Partner only day', content: 'Only the partner wrote here.' } })
+  await createDiary(page, {
+    date: '2026-09-10',
+    title: 'Mine on the tenth',
+    content: 'My tenth observation',
+    tags: ['planning'],
+  })
+  await other.request.post('/api/diaries', {
+    headers: bHeaders,
+    data: { date: '2026-09-10', title: 'Partner on the tenth', content: longContent },
+  })
+  await other.request.post('/api/diaries', {
+    headers: bHeaders,
+    data: { date: '2026-09-09', title: 'Partner only day', content: 'Only the partner wrote here.' },
+  })
   await createDiary(page, { date: '2026-09-08', title: 'Mine alone on the eighth', content: 'Only I wrote here.' })
 
   await page.goto('/timeline?dateFrom=2026-09-01')
@@ -71,8 +94,12 @@ test('timeline switches into a date-paired partner comparison and back @webkit-c
   // The comparison reads as the timeline context: diary navigation stays present,
   // the switch marks the current mode, and exactly one sidebar destination is current.
   await expect(page.locator('.desktop-nav').getByRole('link', { name: 'Timeline', exact: true })).toBeVisible()
-  await expect(page.getByTestId('timeline-modes').getByRole('link', { name: 'Partner comparison', exact: true })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByTestId('timeline-modes').getByRole('link', { name: 'My timeline', exact: true })).not.toHaveAttribute('aria-current')
+  await expect(
+    page.getByTestId('timeline-modes').getByRole('link', { name: 'Partner comparison', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(
+    page.getByTestId('timeline-modes').getByRole('link', { name: 'My timeline', exact: true }),
+  ).not.toHaveAttribute('aria-current')
   await expect(page.locator('.desktop-nav a[aria-current="page"]')).toHaveText('Timeline')
 
   const days = page.getByTestId('compare-day')
@@ -86,8 +113,12 @@ test('timeline switches into a date-paired partner comparison and back @webkit-c
   await expect(days.nth(1).getByTestId('owner-diary')).toContainText('No diary on this day.')
   await expect(days.nth(2).getByTestId('partner-diary')).toContainText('No diary on this day.')
   // Own side keeps the ordinary reading and editing entrances; partner content stays read only.
-  await expect(days.nth(0).getByTestId('owner-diary').getByRole('link', { name: 'Read diary', exact: true })).toHaveAttribute('href', /\/diaries\/\d+$/)
-  await expect(days.nth(0).getByTestId('owner-diary').getByRole('link', { name: 'Edit diary', exact: true })).toBeVisible()
+  await expect(
+    days.nth(0).getByTestId('owner-diary').getByRole('link', { name: 'Read diary', exact: true }),
+  ).toHaveAttribute('href', /\/diaries\/\d+$/)
+  await expect(
+    days.nth(0).getByTestId('owner-diary').getByRole('link', { name: 'Edit diary', exact: true }),
+  ).toBeVisible()
   await expect(days.nth(0).getByTestId('partner-diary').getByRole('link')).toHaveCount(0)
   await expect(page.locator('.pair-page')).not.toContainText(emailB)
 
@@ -98,11 +129,16 @@ test('timeline switches into a date-paired partner comparison and back @webkit-c
   await expect(partnerBody.locator('.safe-markdown')).not.toContainText('Final marker for expanded reading.')
   await expand.click()
   await expect(partnerBody.locator('.safe-markdown')).toContainText('Final marker for expanded reading.')
-  await expect(partnerBody.getByRole('button', { name: 'Show less', exact: true })).toHaveAttribute('aria-expanded', 'true')
+  await expect(partnerBody.getByRole('button', { name: 'Show less', exact: true })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  )
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 
   await page.locator('.pair-page').screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-1440.png' })
-  await days.nth(2).screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-1440-missing-partner.png' })
+  await days
+    .nth(2)
+    .screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-1440-missing-partner.png' })
 
   // Switching back keeps the reader's filters, and browser back re-opens the comparison.
   await page.getByTestId('timeline-modes').getByRole('link', { name: 'My timeline', exact: true }).click()
@@ -127,7 +163,10 @@ test('mobile comparison stacks both sides inside each date @webkit-critical', as
   await connect(page, other, emailB)
   const bHeaders = await csrf(other)
   await createDiary(page, { date: '2026-09-10', title: 'Mobile mine', content: 'My mobile observation' })
-  await other.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-10', title: 'Mobile partner', content: 'Partner mobile observation' } })
+  await other.request.post('/api/diaries', {
+    headers: bHeaders,
+    data: { date: '2026-09-10', title: 'Mobile partner', content: 'Partner mobile observation' },
+  })
   await page.goto('/partners/compare')
   const day = page.getByTestId('compare-day').first()
   await expect(day.getByTestId('owner-diary')).toContainText('My mobile observation')
@@ -138,30 +177,47 @@ test('mobile comparison stacks both sides inside each date @webkit-critical', as
   expect(Math.abs(theirs!.x - mine!.x)).toBeLessThan(8)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await selectTheme(page, 'dark')
-  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }) })
-  await page.locator('.pair-page').screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-390-dark.png' })
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  })
+  await page
+    .locator('.pair-page')
+    .screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-390-dark.png' })
   await otherContext.close()
 })
 
 test('a late response from the previous partner never overrides the current selection', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await startSession(page)
-  const bContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } }), cContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })
-  const b = await bContext.newPage(), cPage = await cContext.newPage()
-  const emailB = `parity-b-${randomUUID()}@example.test`, emailC = `parity-c-${randomUUID()}@example.test`
+  const bContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } }),
+    cContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })
+  const b = await bContext.newPage(),
+    cPage = await cContext.newPage()
+  const emailB = `parity-b-${randomUUID()}@example.test`,
+    emailC = `parity-c-${randomUUID()}@example.test`
   await registerAndLogin(b, emailB)
   await registerAndLogin(cPage, emailC)
   const { partnerId: bId } = await connect(page, b, emailB)
   const { partnerId: cId } = await connect(page, cPage, emailC)
-  const bHeaders = await csrf(b), cHeaders = await csrf(cPage)
-  await b.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-10', title: 'B diary', content: 'Written by partner B' } })
-  await cPage.request.post('/api/diaries', { headers: cHeaders, data: { date: '2026-09-11', title: 'C diary', content: 'Written by partner C' } })
+  const bHeaders = await csrf(b),
+    cHeaders = await csrf(cPage)
+  await b.request.post('/api/diaries', {
+    headers: bHeaders,
+    data: { date: '2026-09-10', title: 'B diary', content: 'Written by partner B' },
+  })
+  await cPage.request.post('/api/diaries', {
+    headers: cHeaders,
+    data: { date: '2026-09-11', title: 'C diary', content: 'Written by partner C' },
+  })
   await page.goto(`/partners/compare?partnerId=${bId}`)
   await selectLocale(page, 'en')
   await expect(page.getByTestId('partner-diary')).toContainText('Written by partner B')
 
   let releaseB: () => void = () => {}
-  const gate = new Promise<void>(resolve => { releaseB = resolve })
+  const gate = new Promise<void>(resolve => {
+    releaseB = resolve
+  })
   await page.route(`**/api/partners/compare?*partnerId=${bId}*`, async route => {
     const response = await route.fetch()
     await gate
@@ -179,7 +235,10 @@ test('a late response from the previous partner never overrides the current sele
   await cContext.close()
 })
 
-test('comparison states separate no partner, pending invitation and login return with selection', async ({ page, browser }) => {
+test('comparison states separate no partner, pending invitation and login return with selection', async ({
+  page,
+  browser,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   const email = `parity-state-${randomUUID()}@example.test`
   await registerAndLogin(page, email)
@@ -188,22 +247,27 @@ test('comparison states separate no partner, pending invitation and login return
   await expect(page.getByText('Connect with a partner to compare diaries.')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Manage partners', exact: true })).toBeVisible()
   await expect(page.getByTestId('timeline-modes')).toBeVisible()
-  await page.locator('.pair-page').screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-no-partner.png' })
+  await page
+    .locator('.pair-page')
+    .screenshot({ path: 'docs/design/evidence/partner-timeline-parity/compare-no-partner.png' })
 
   const otherContext = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test-id': randomUUID() } })
   const other = await otherContext.newPage()
   const otherEmail = `parity-invited-${randomUUID()}@example.test`
   await registerAndLogin(other, otherEmail)
-  const invited = await page.request.post('/api/partners', { headers: await csrf(page), data: { partnerEmail: otherEmail } })
-  const { link } = await invited.json() as { link: { id: string } }
+  const invited = await page.request.post('/api/partners', {
+    headers: await csrf(page),
+    data: { partnerEmail: otherEmail },
+  })
+  const { link } = (await invited.json()) as { link: { id: string } }
   await page.goto('/partners/compare')
   await expect(page.getByTestId('compare-pending')).toBeVisible()
   await other.request.post(`/api/partners/${link.id}/accept`, { headers: await csrf(other) })
   await page.getByRole('button', { name: 'Refresh comparison', exact: true }).click()
   await expect(page.getByText('Your partner has not shared diaries.', { exact: true })).toBeVisible()
 
-  const logoutResponse = page.waitForResponse(response =>
-    new URL(response.url()).pathname === '/api/auth/logout' && response.request().method() === 'POST',
+  const logoutResponse = page.waitForResponse(
+    response => new URL(response.url()).pathname === '/api/auth/logout' && response.request().method() === 'POST',
   )
   await signOut(page)
   expect((await logoutResponse).status()).toBe(200)
@@ -226,7 +290,10 @@ test('sharing withdrawal and unlinking remove partner content on revalidation', 
   await registerAndLogin(other, emailB)
   const { partnerId: bId } = await connect(page, other, emailB)
   const bHeaders = await csrf(other)
-  await other.request.post('/api/diaries', { headers: bHeaders, data: { date: '2026-09-10', title: 'Shared before withdrawal', content: 'Partner visible marker' } })
+  await other.request.post('/api/diaries', {
+    headers: bHeaders,
+    data: { date: '2026-09-10', title: 'Shared before withdrawal', content: 'Partner visible marker' },
+  })
   await createDiary(page, { date: '2026-09-10', title: 'Mine on the same day', content: 'My own entry stays readable' })
   await other.goto('/partners')
   await selectLocale(other, 'en')
@@ -262,7 +329,10 @@ test('explicit sign-out clears rendered comparison content in the tab', async ({
   const emailB = `parity-b-${randomUUID()}@example.test`
   await registerAndLogin(other, emailB)
   await connect(page, other, emailB)
-  await other.request.post('/api/diaries', { headers: await csrf(other), data: { date: '2026-09-10', title: 'Before logout', content: 'Content that must not survive logout' } })
+  await other.request.post('/api/diaries', {
+    headers: await csrf(other),
+    data: { date: '2026-09-10', title: 'Before logout', content: 'Content that must not survive logout' },
+  })
   await page.goto('/partners/compare')
   await selectLocale(page, 'en')
   await expect(page.getByTestId('partner-diary')).toContainText('Content that must not survive logout')
@@ -281,7 +351,10 @@ test('comparison labels spot-check across the three locales', async ({ page, bro
   const emailB = `parity-b-${randomUUID()}@example.test`
   await registerAndLogin(other, emailB)
   await connect(page, other, emailB)
-  await other.request.post('/api/diaries', { headers: await csrf(other), data: { date: '2026-09-10', title: 'Locale partner entry', content: 'Shared body' } })
+  await other.request.post('/api/diaries', {
+    headers: await csrf(other),
+    data: { date: '2026-09-10', title: 'Locale partner entry', content: 'Shared body' },
+  })
   await page.goto('/partners/compare')
   for (const [locale, heading, mine, mode] of [
     ['zh-TW', '日記對照', '我的日記', '伙伴對照'],

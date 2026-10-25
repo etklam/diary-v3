@@ -4,12 +4,14 @@ export class MemoryRateLimitStore implements RateLimitStore {
   private readonly attempts = new Map<string, number[]>()
   private nextCleanupAt = 0
 
-  constructor(
-    private readonly options: { maxBuckets?: number; now?: () => number } = {},
-  ) {}
+  constructor(private readonly options: { maxBuckets?: number; now?: () => number } = {}) {}
 
-  get ready() { return true }
-  get size() { return this.attempts.size }
+  get ready() {
+    return true
+  }
+  get size() {
+    return this.attempts.size
+  }
 
   async consume(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
     const { limit, windowMs } = options

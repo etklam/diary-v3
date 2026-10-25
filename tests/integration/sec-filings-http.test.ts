@@ -10,15 +10,47 @@ import { provisionTestDatabase } from '../support/database.js'
 const accession = '0000000001-24-000001'
 const service = createSecFixtureService({
   async getJson<T>(url: string): Promise<T> {
-    if (url === buildSecUrls.directory()) return ({ fields: ['cik', 'name', 'ticker', 'exchange'], data: [['1', 'Synthetic Holdings', 'SYN', 'NYSE']] } as T)
-    if (url === buildSecUrls.submissions('1')) return ({ cik: '0000000001', name: 'Synthetic Holdings', tickers: ['SYN'], exchanges: ['NYSE'], filings: { recent: {
-      accessionNumber: [accession], filingDate: ['2024-04-01'], reportDate: ['2023-12-31'], acceptanceDateTime: ['2024-04-01 12:00:00'], form: ['10-K'], primaryDocument: ['syn-10k.htm'], primaryDocDescription: ['Annual report'], fileNumber: ['1'], filmNumber: [null], items: [null], size: [12],
-    } } } as T)
-    if (url.endsWith('/index.json')) return ({ directory: { item: [{ name: 'syn-10k.htm', size: 12 }, { name: `${accession}.txt`, size: 12 }] } } as T)
+    if (url === buildSecUrls.directory())
+      return { fields: ['cik', 'name', 'ticker', 'exchange'], data: [['1', 'Synthetic Holdings', 'SYN', 'NYSE']] } as T
+    if (url === buildSecUrls.submissions('1'))
+      return {
+        cik: '0000000001',
+        name: 'Synthetic Holdings',
+        tickers: ['SYN'],
+        exchanges: ['NYSE'],
+        filings: {
+          recent: {
+            accessionNumber: [accession],
+            filingDate: ['2024-04-01'],
+            reportDate: ['2023-12-31'],
+            acceptanceDateTime: ['2024-04-01 12:00:00'],
+            form: ['10-K'],
+            primaryDocument: ['syn-10k.htm'],
+            primaryDocDescription: ['Annual report'],
+            fileNumber: ['1'],
+            filmNumber: [null],
+            items: [null],
+            size: [12],
+          },
+        },
+      } as T
+    if (url.endsWith('/index.json'))
+      return {
+        directory: {
+          item: [
+            { name: 'syn-10k.htm', size: 12 },
+            { name: `${accession}.txt`, size: 12 },
+          ],
+        },
+      } as T
     throw new Error(`unexpected fixture URL: ${url}`)
   },
-  async getText(): Promise<string> { return '<table><tr><td>1</td><td>Annual report</td><td>syn-10k.htm</td><td>10-K</td></tr></table>' },
-  async getStream(url: string): Promise<Response> { return new Response(`fixture:${url}`, { headers: { 'content-type': 'text/plain' } }) },
+  async getText(): Promise<string> {
+    return '<table><tr><td>1</td><td>Annual report</td><td>syn-10k.htm</td><td>10-K</td></tr></table>'
+  },
+  async getStream(url: string): Promise<Response> {
+    return new Response(`fixture:${url}`, { headers: { 'content-type': 'text/plain' } })
+  },
 })
 
 let database: Awaited<ReturnType<typeof provisionTestDatabase>>
@@ -29,9 +61,41 @@ beforeAll(async () => {
   database = await provisionTestDatabase('sec_filings_http')
   const app = createApp({
     db: database.db,
-    config: { jwtSecret: 'synthetic-sec-filings-key-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    config: {
+      jwtSecret: 'synthetic-sec-filings-key-with-at-least-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
     secFilings: service,
-    marketData: { quote: async () => { throw new Error('not used') }, historical: async () => { throw new Error('not used') }, intraday: async () => { throw new Error('not used') }, monthly: async () => { throw new Error('not used') }, dailyPrices: async () => { throw new Error('not used') }, dailyResearch: async () => { throw new Error('not used') }, dailyResearchBars: async () => { throw new Error('not used') }, fundValuation: async () => { throw new Error('not used') }, quotes: async () => ({ quotes: new Map(), errors: [] }), close: async () => {} },
+    marketData: {
+      quote: async () => {
+        throw new Error('not used')
+      },
+      historical: async () => {
+        throw new Error('not used')
+      },
+      intraday: async () => {
+        throw new Error('not used')
+      },
+      monthly: async () => {
+        throw new Error('not used')
+      },
+      dailyPrices: async () => {
+        throw new Error('not used')
+      },
+      dailyResearch: async () => {
+        throw new Error('not used')
+      },
+      dailyResearchBars: async () => {
+        throw new Error('not used')
+      },
+      fundValuation: async () => {
+        throw new Error('not used')
+      },
+      quotes: async () => ({ quotes: new Map(), errors: [] }),
+      close: async () => {},
+    },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
@@ -59,12 +123,16 @@ describe('SEC filing HTTP boundary', () => {
     expect(detail.status).toBe(200)
     expect((await detail.json()).data.hasPdf).toBe(false)
 
-    const document = await fetch(`${baseUrl}/api/tools/sec-filings/companies/1/filings/${accession}/documents/syn-10k.htm`)
+    const document = await fetch(
+      `${baseUrl}/api/tools/sec-filings/companies/1/filings/${accession}/documents/syn-10k.htm`,
+    )
     expect(document.status).toBe(200)
     expect(document.headers.get('content-disposition')).toContain('syn-10k.htm')
     expect(await document.text()).toContain('fixture:')
 
-    const packageResponse = await fetch(`${baseUrl}/api/tools/sec-filings/companies/1/filings/${accession}/package?include=primary`)
+    const packageResponse = await fetch(
+      `${baseUrl}/api/tools/sec-filings/companies/1/filings/${accession}/package?include=primary`,
+    )
     expect(packageResponse.status).toBe(200)
     expect((await packageResponse.arrayBuffer()).byteLength).toBeGreaterThan(30)
     expect(packageResponse.headers.get('content-type')).toBe('application/zip')
@@ -80,7 +148,9 @@ describe('SEC filing HTTP boundary', () => {
     expect(invalid.headers.get('cache-control')).toBe('no-store')
     const unsafe = await fetch(`${baseUrl}/api/tools/sec-filings/companies/1/filings/${accession}/documents/a%2Fb.txt`)
     expect(unsafe.status).toBe(400)
-    const invalidBearer = await fetch(`${baseUrl}/api/tools/sec-filings/companies?q=SYN`, { headers: { authorization: 'Bearer malformed' } })
+    const invalidBearer = await fetch(`${baseUrl}/api/tools/sec-filings/companies?q=SYN`, {
+      headers: { authorization: 'Bearer malformed' },
+    })
     expect(invalidBearer.status).toBe(401)
   })
 })

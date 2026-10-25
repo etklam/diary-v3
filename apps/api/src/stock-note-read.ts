@@ -13,26 +13,26 @@ type AuthorReference = bigint | SQLWrapper
  * their response projection: the list exposes ownership and pagination, while the Hub adds
  * attribution and its ten-row bound.
  */
-export type StockNoteReadTarget =
-  | { kind: 'owner' }
-  | { kind: 'partner'; authorId: bigint }
+export type StockNoteReadTarget = { kind: 'owner' } | { kind: 'partner'; authorId: bigint }
 
 export type AuthorizedStockNoteRow = {
   note: typeof stockNotes.$inferSelect
   authorName: string | null
 }
 
-export type StockNoteListRead = {
-  authorized: true
-  stock: typeof stocks.$inferSelect | null
-  rows: AuthorizedStockNoteRow[]
-  total: number
-} | {
-  authorized: false
-  stock: null
-  rows: []
-  total: 0
-}
+export type StockNoteListRead =
+  | {
+      authorized: true
+      stock: typeof stocks.$inferSelect | null
+      rows: AuthorizedStockNoteRow[]
+      total: number
+    }
+  | {
+      authorized: false
+      stock: null
+      rows: []
+      total: 0
+    }
 
 function authorIsShared(viewerId: bigint, author: AuthorReference) {
   return sql`exists (
@@ -49,7 +49,9 @@ async function findStock(tx: DbTransaction, symbol: string) {
 }
 
 async function selectRows(tx: DbTransaction, where: ReturnType<typeof and>, limit: number, offset: number) {
-  return tx.select({ note: stockNotes, authorName: users.name }).from(stockNotes)
+  return tx
+    .select({ note: stockNotes, authorName: users.name })
+    .from(stockNotes)
     .innerJoin(users, eq(users.id, stockNotes.userId))
     .where(where)
     .orderBy(desc(stockNotes.date), desc(stockNotes.id))
@@ -57,26 +59,32 @@ async function selectRows(tx: DbTransaction, where: ReturnType<typeof and>, limi
     .offset(offset)
 }
 
-export async function readStockNotesForAuthor(tx: DbTransaction, input: {
-  viewerId: bigint
-  symbol: string
-  target: StockNoteReadTarget
-  createdVia?: 'USER' | 'AGENT'
-  page: number
-  limit: number
-}): Promise<StockNoteListRead> {
+export async function readStockNotesForAuthor(
+  tx: DbTransaction,
+  input: {
+    viewerId: bigint
+    symbol: string
+    target: StockNoteReadTarget
+    createdVia?: 'USER' | 'AGENT'
+    page: number
+    limit: number
+  },
+): Promise<StockNoteListRead> {
   // Keep this check before stock acquisition. A selected partner must be accepted and must have
   // enabled the author-side flag even when the requested symbol has no Stock row.
   if (input.target.kind === 'partner') {
-    const [permission] = await tx.select({ id: partnerLinks.id }).from(partnerLinks).where(authorIsShared(input.viewerId, input.target.authorId)).limit(1)
+    const [permission] = await tx
+      .select({ id: partnerLinks.id })
+      .from(partnerLinks)
+      .where(authorIsShared(input.viewerId, input.target.authorId))
+      .limit(1)
     if (!permission) return { authorized: false, stock: null, rows: [], total: 0 }
   }
 
   const stock = await findStock(tx, input.symbol)
   if (!stock) return { authorized: true, stock: null, rows: [], total: 0 }
-  const authorWhere = input.target.kind === 'owner'
-    ? eq(stockNotes.userId, input.viewerId)
-    : eq(stockNotes.userId, input.target.authorId)
+  const authorWhere =
+    input.target.kind === 'owner' ? eq(stockNotes.userId, input.viewerId) : eq(stockNotes.userId, input.target.authorId)
   const where = and(
     eq(stockNotes.stockId, stock.id),
     authorWhere,
@@ -87,11 +95,14 @@ export async function readStockNotesForAuthor(tx: DbTransaction, input: {
   return { authorized: true, stock, rows, total: totalRow?.total ?? 0 }
 }
 
-export async function readAuthorizedStockNotePreview(tx: DbTransaction, input: {
-  viewerId: bigint
-  stock: typeof stocks.$inferSelect | null
-  limit: number
-}): Promise<{ stock: typeof stocks.$inferSelect | null; rows: AuthorizedStockNoteRow[] }> {
+export async function readAuthorizedStockNotePreview(
+  tx: DbTransaction,
+  input: {
+    viewerId: bigint
+    stock: typeof stocks.$inferSelect | null
+    limit: number
+  },
+): Promise<{ stock: typeof stocks.$inferSelect | null; rows: AuthorizedStockNoteRow[] }> {
   const stock = input.stock
   if (!stock) return { stock: null, rows: [] }
   const where = and(

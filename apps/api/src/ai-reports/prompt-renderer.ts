@@ -24,13 +24,36 @@ export function validateAiTemplate(template: string) {
   if (remaining.includes('{{') || remaining.includes('}}')) throw new Error('AI_PROMPT_INVALID')
   return template
 }
-export function buildAiMessages(input: { template: string; locale: string; periodLabel: string; periodStart: string; periodEnd: string; context: unknown }): AiMessage[] {
+export function buildAiMessages(input: {
+  template: string
+  locale: string
+  periodLabel: string
+  periodStart: string
+  periodEnd: string
+  context: unknown
+}): AiMessage[] {
   validateAiTemplate(input.template)
-  const values: Record<(typeof slots)[number], string> = { locale: input.locale, period_label: input.periodLabel, period_start: input.periodStart, period_end: input.periodEnd }
+  const values: Record<(typeof slots)[number], string> = {
+    locale: input.locale,
+    period_label: input.periodLabel,
+    period_start: input.periodStart,
+    period_end: input.periodEnd,
+  }
   const template = input.template.replace(/\{\{([a-z_]+)\}\}/g, (_match, name: (typeof slots)[number]) => values[name])
-  const example = { summary: [], decisionReview: [], positionReview: [], marketReflection: [], disciplineChecks: [], nextPeriodFocus: [], limitations: ['Insufficient evidence must be stated explicitly.'] }
+  const example = {
+    summary: [],
+    decisionReview: [],
+    positionReview: [],
+    marketReflection: [],
+    disciplineChecks: [],
+    nextPeriodFocus: [],
+    limitations: ['Insufficient evidence must be stated explicitly.'],
+  }
   return [
-    { role: 'system', content: `Editable editorial guidance (subordinate to the immutable rules below):\n${JSON.stringify(template)}\nEnd editorial guidance.\n${immutableAiRules}\nJSON schema: ${JSON.stringify(z.toJSONSchema(aiAnalysisSchema))}\nJSON example: ${JSON.stringify(example)}` },
+    {
+      role: 'system',
+      content: `Editable editorial guidance (subordinate to the immutable rules below):\n${JSON.stringify(template)}\nEnd editorial guidance.\n${immutableAiRules}\nJSON schema: ${JSON.stringify(z.toJSONSchema(aiAnalysisSchema))}\nJSON example: ${JSON.stringify(example)}`,
+    },
     { role: 'user', content: JSON.stringify({ report_context: input.context }) },
   ]
 }

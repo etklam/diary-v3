@@ -28,13 +28,21 @@ describe('Portfolio Overview diagnostics', () => {
       db,
       now: () => new Date('2026-09-25T12:00:00.000Z'),
       market: {} as never,
-      fail: ((status: number, code: never, message: string) => { throw new Error(`${status}:${code}:${message}`) }) as never,
-      validationError: (() => { throw new Error('unexpected validation') }) as never,
-      logger: { error(message, context) { logs.push({ message, context }) } },
+      fail: ((status: number, code: never, message: string) => {
+        throw new Error(`${status}:${code}:${message}`)
+      }) as never,
+      validationError: (() => {
+        throw new Error('unexpected validation')
+      }) as never,
+      logger: {
+        error(message, context) {
+          logs.push({ message, context })
+        },
+      },
     })
 
     const response = await app.request('http://localhost/api/portfolio/overview')
-    const body = await response.json() as { valuation: unknown; attention: unknown }
+    const body = (await response.json()) as { valuation: unknown; attention: unknown }
     const serialized = JSON.stringify(logs)
 
     expect(response.status).toBe(200)

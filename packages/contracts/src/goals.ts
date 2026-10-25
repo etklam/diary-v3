@@ -9,20 +9,24 @@ import { calendarDateSchema, serializedIdSchema, utcInstantSchema } from './comm
 export const goalContentSchema = z.string().trim().min(1).max(1000)
 export const goalStatusSchema = z.enum(['active', 'achieved'])
 /** `targetDate` is null for open-ended goals; `status` is omitted when only the text changes. */
-export const writeGoalSchema = z.object({
-  content: goalContentSchema,
-  targetDate: calendarDateSchema.nullable(),
-  status: goalStatusSchema.optional(),
-}).strict()
-export const goalResponseSchema = z.object({
-  id: serializedIdSchema,
-  content: goalContentSchema,
-  targetDate: calendarDateSchema.nullable(),
-  status: goalStatusSchema,
-  achievedDate: calendarDateSchema.nullable(),
-  createdAt: utcInstantSchema,
-  updatedAt: utcInstantSchema,
-}).strict()
+export const writeGoalSchema = z
+  .object({
+    content: goalContentSchema,
+    targetDate: calendarDateSchema.nullable(),
+    status: goalStatusSchema.optional(),
+  })
+  .strict()
+export const goalResponseSchema = z
+  .object({
+    id: serializedIdSchema,
+    content: goalContentSchema,
+    targetDate: calendarDateSchema.nullable(),
+    status: goalStatusSchema,
+    achievedDate: calendarDateSchema.nullable(),
+    createdAt: utcInstantSchema,
+    updatedAt: utcInstantSchema,
+  })
+  .strict()
 export const goalListSchema = z.array(goalResponseSchema)
 export const deleteGoalResponseSchema = z.object({ success: z.literal(true) }).strict()
 

@@ -15,25 +15,43 @@ let baseUrl: string
 let clock: Date
 let nextCik = 300000
 
-beforeAll(async () => { database = await provisionTestDatabase('admin_gurus_http') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('admin_gurus_http')
+})
 beforeEach(async () => {
   clock = new Date('2026-10-06T08:00:00.000Z')
   const app = createApp({
-    db: database.db, databasePool: database.pool, now: () => clock,
-    config: { jwtSecret: 'synthetic-admin-gurus-secret-with-at-least-32-characters', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    db: database.db,
+    databasePool: database.pool,
+    now: () => clock,
+    config: {
+      jwtSecret: 'synthetic-admin-gurus-secret-with-at-least-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
   })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function account(role: 'ADMIN' | 'USER' = 'ADMIN') {
   const browser = new BrowserSession(baseUrl)
   const email = `${randomUUID()}@example.test`
   const password = 'synthetic-admin-password'
-  const result = await database.pool.query('insert into users(email,password,role) values ($1,$2,$3) returning id', [email, await bcrypt.hash(password, 4), role])
+  const result = await database.pool.query('insert into users(email,password,role) values ($1,$2,$3) returning id', [
+    email,
+    await bcrypt.hash(password, 4),
+    role,
+  ])
   expect((await browser.post('/api/auth/login', { email, password })).status).toBe(200)
   expect((await browser.request('/api/auth/me')).status).toBe(200)
   return { browser, id: String(result.rows[0].id) }
@@ -42,11 +60,20 @@ async function account(role: 'ADMIN' | 'USER' = 'ADMIN') {
 function input(slug = `synthetic-${randomUUID()}`, cik = String(nextCik++)): AdminGuruInput {
   return {
     profile: {
-      name: 'Synthetic Investor', managerName: 'Synthetic Fund', slug,
-      description: 'Editorial biography', investmentPhilosophy: 'Editorial investment approach',
-      styleTags: ['Value', 'Quality'], managerType: 'Hedge Fund', website: 'https://example.test/fund',
-      country: 'US', imageUrl: 'https://example.test/guru.png', securityNotes: 'Editorial class mapping note',
-      featured: false, active: true, directoryOrder: 0,
+      name: 'Synthetic Investor',
+      managerName: 'Synthetic Fund',
+      slug,
+      description: 'Editorial biography',
+      investmentPhilosophy: 'Editorial investment approach',
+      styleTags: ['Value', 'Quality'],
+      managerType: 'Hedge Fund',
+      website: 'https://example.test/fund',
+      country: 'US',
+      imageUrl: 'https://example.test/guru.png',
+      securityNotes: 'Editorial class mapping note',
+      featured: false,
+      active: true,
+      directoryOrder: 0,
     },
     manager: { cik },
   }
@@ -54,7 +81,8 @@ function input(slug = `synthetic-${randomUUID()}`, cik = String(nextCik++)): Adm
 
 function update(browser: BrowserSession, id: string, body: unknown) {
   return browser.request(`/api/admin/gurus/${id}`, {
-    method: 'PUT', headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! },
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', 'x-csrf-token': browser.cookies.get('csrf-token')! },
     body: JSON.stringify(body),
   })
 }
@@ -81,12 +109,28 @@ it('creates separated identity and editorial records, edits all fields, and pagi
   const list = await firstPage.json()
   expect(list.pagination).toEqual({ page: 1, limit: 1, total: 2, totalPages: 2 })
   expect(list.data.map((row: { id: string }) => row.id)).toEqual([second.id])
-  expect((await (await browser.request('/api/admin/gurus?search=SYNTHETIC%20FUND&limit=1&page=2')).json()).data[0].id).toBe(first.id)
+  expect(
+    (await (await browser.request('/api/admin/gurus?search=SYNTHETIC%20FUND&limit=1&page=2')).json()).data[0].id,
+  ).toBe(first.id)
   expect((await (await browser.request('/api/admin/gurus?search=%25')).json()).data).toEqual([])
 
   clock = new Date('2026-10-06T09:00:00.000Z')
   const edit = input(first.profile.slug, '123458')
-  edit.profile = { ...edit.profile, name: 'Edited Investor', managerName: 'Edited Fund', description: null, investmentPhilosophy: null, styleTags: ['Growth'], managerType: null, website: null, country: 'GB', imageUrl: null, securityNotes: null, featured: true, active: false }
+  edit.profile = {
+    ...edit.profile,
+    name: 'Edited Investor',
+    managerName: 'Edited Fund',
+    description: null,
+    investmentPhilosophy: null,
+    styleTags: ['Growth'],
+    managerType: null,
+    website: null,
+    country: 'GB',
+    imageUrl: null,
+    securityNotes: null,
+    featured: true,
+    active: false,
+  }
   const changed = await update(browser, first.id, edit)
   expect(changed.status).toBe(200)
   const saved = adminGuruResponseSchema.parse(await changed.json()).data
@@ -152,14 +196,22 @@ it('maps slug and canonical CIK conflicts safely, rolls back both tables, and to
   const { browser } = await account()
   const first = await created(browser, input(`conflict-${randomUUID()}`, '200001'))
   const second = await created(browser, input(`conflict-${randomUUID()}`, '200002'))
-  const before = await database.pool.query('select (select count(*)::int from gurus) as gurus, (select count(*)::int from institutional_managers) as managers')
+  const before = await database.pool.query(
+    'select (select count(*)::int from gurus) as gurus, (select count(*)::int from institutional_managers) as managers',
+  )
   const slugConflict = await browser.post('/api/admin/gurus', input(first.profile.slug, '200003'))
   expect(slugConflict.status).toBe(409)
   expect((await slugConflict.json()).data.code).toBe('GURU_SLUG_CONFLICT')
   const cikConflict = await browser.post('/api/admin/gurus', input(undefined, '0000200001'))
   expect(cikConflict.status).toBe(409)
   expect((await cikConflict.json()).data.code).toBe('GURU_CIK_CONFLICT')
-  expect((await database.pool.query('select (select count(*)::int from gurus) as gurus, (select count(*)::int from institutional_managers) as managers')).rows).toEqual(before.rows)
+  expect(
+    (
+      await database.pool.query(
+        'select (select count(*)::int from gurus) as gurus, (select count(*)::int from institutional_managers) as managers',
+      )
+    ).rows,
+  ).toEqual(before.rows)
 
   const updateSlugConflict = await update(browser, second.id, input(first.profile.slug, '200004'))
   expect(updateSlugConflict.status).toBe(409)
@@ -184,16 +236,35 @@ it('maps slug and canonical CIK conflicts safely, rolls back both tables, and to
   ])
   expect(cikResponses.map(response => response.status).sort()).toEqual([201, 409])
   expect((await cikResponses.find(response => response.status === 409)!.json()).data.code).toBe('GURU_CIK_CONFLICT')
-  expect((await database.pool.query('select count(*)::int as count from institutional_managers m left join gurus g on g.manager_id=m.id where g.id is null')).rows[0].count).toBe(0)
+  expect(
+    (
+      await database.pool.query(
+        'select count(*)::int as count from institutional_managers m left join gurus g on g.manager_id=m.id where g.id is null',
+      )
+    ).rows[0].count,
+  ).toBe(0)
 })
 
 it('enforces canonical identities, unique manager bindings, valid slugs and references at the PostgreSQL boundary', async () => {
   const { browser } = await account()
   const guru = await created(browser, input())
   for (const cik of ['0', '0000000000', '123', 'ABCDEFGHIJ']) {
-    await expect(database.pool.query('insert into institutional_managers(cik) values ($1)', [cik])).rejects.toMatchObject({ code: '23514' })
+    await expect(
+      database.pool.query('insert into institutional_managers(cik) values ($1)', [cik]),
+    ).rejects.toMatchObject({ code: '23514' })
   }
-  await expect(database.pool.query('update gurus set slug=$1 where id=$2', ['consensus', guru.id])).rejects.toMatchObject({ code: '23514' })
-  await expect(database.pool.query('insert into gurus(manager_id,slug,name,manager_name) values ($1,$2,$3,$4)', [guru.manager.id, `duplicate-${randomUUID()}`, 'Other', 'Other'])).rejects.toMatchObject({ code: '23505', constraint: 'gurus_manager_unique' })
-  await expect(database.pool.query('delete from institutional_managers where id=$1', [guru.manager.id])).rejects.toMatchObject({ code: '23503' })
+  await expect(
+    database.pool.query('update gurus set slug=$1 where id=$2', ['consensus', guru.id]),
+  ).rejects.toMatchObject({ code: '23514' })
+  await expect(
+    database.pool.query('insert into gurus(manager_id,slug,name,manager_name) values ($1,$2,$3,$4)', [
+      guru.manager.id,
+      `duplicate-${randomUUID()}`,
+      'Other',
+      'Other',
+    ]),
+  ).rejects.toMatchObject({ code: '23505', constraint: 'gurus_manager_unique' })
+  await expect(
+    database.pool.query('delete from institutional_managers where id=$1', [guru.manager.id]),
+  ).rejects.toMatchObject({ code: '23503' })
 })

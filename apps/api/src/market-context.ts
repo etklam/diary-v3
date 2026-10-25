@@ -37,16 +37,13 @@ export async function readPersistedMarketContext(
   asOfDate: string,
   marketStateOverride?: MarketState,
 ): Promise<PersistedMarketContext | null> {
-  const breadth = marketStateOverride === undefined
-    ? await getLatestBreadthSnapshot(db, 'SP500_NDX', asOfDate)
-    : null
+  const breadth = marketStateOverride === undefined ? await getLatestBreadthSnapshot(db, 'SP500_NDX', asOfDate) : null
   const marketState = marketStateOverride ?? breadth?.marketState ?? 'unknown'
   const selectedSnapshot = await readRotationScopeSnapshot(db, scope, asOfDate)
   if (!selectedSnapshot.window.latestDate || selectedSnapshot.rows.length === 0) return null
 
-  const sectorSnapshot = scope === 'sectors'
-    ? selectedSnapshot
-    : await readRotationScopeSnapshot(db, 'sectors', asOfDate)
+  const sectorSnapshot =
+    scope === 'sectors' ? selectedSnapshot : await readRotationScopeSnapshot(db, 'sectors', asOfDate)
   const rotationContext = buildMarketRotationContext({
     marketState,
     rows: selectedSnapshot.rows,
@@ -80,15 +77,18 @@ export async function readPortfolioMarketContext(
   db: Database,
   asOfDate: string,
 ): Promise<PortfolioMarketContext | null> {
-  return db.transaction(async tx => {
-    const context = await readPersistedMarketContext(tx, 'sectors', asOfDate)
-    if (!context) return null
-    return {
-      marketState: context.marketState,
-      betaAllocation: context.betaAllocation,
-      lastUpdated: context.selectedSnapshot.window.latestDate!,
-      marketStateAsOfDate: context.marketStateAsOfDate,
-      summaryAsOfDate: context.summaryAsOfDate!,
-    }
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+  return db.transaction(
+    async tx => {
+      const context = await readPersistedMarketContext(tx, 'sectors', asOfDate)
+      if (!context) return null
+      return {
+        marketState: context.marketState,
+        betaAllocation: context.betaAllocation,
+        lastUpdated: context.selectedSnapshot.window.latestDate!,
+        marketStateAsOfDate: context.marketStateAsOfDate,
+        summaryAsOfDate: context.summaryAsOfDate!,
+      }
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }

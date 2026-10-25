@@ -6,8 +6,14 @@ import {
   reportedValueUnitForFiledDate,
 } from '../../apps/api/src/institutional/13f-parser.js'
 
-const historicalXml = await readFile(new URL('../fixtures/guru-13f/historical-information-table.xml', import.meta.url), 'utf8')
-const currentXml = await readFile(new URL('../fixtures/guru-13f/current-information-table.xml', import.meta.url), 'utf8')
+const historicalXml = await readFile(
+  new URL('../fixtures/guru-13f/historical-information-table.xml', import.meta.url),
+  'utf8',
+)
+const currentXml = await readFile(
+  new URL('../fixtures/guru-13f/current-information-table.xml', import.meta.url),
+  'utf8',
+)
 
 describe('13F information-table parser', () => {
   it('keeps valid rows when one row is malformed and preserves identity and voting fields', () => {
@@ -44,12 +50,20 @@ describe('13F information-table parser', () => {
 
     expect(reportedValueUnitForFiledDate('2023-01-02')).toBe('THOUSANDS_USD')
     expect(reportedValueUnitForFiledDate('2023-01-03')).toBe('USD')
-    expect(parsed.holdings[0]).toMatchObject({ reportedValue: '85000000', reportedValueUnit: 'USD', quantityType: 'SH', putCall: 'CALL' })
+    expect(parsed.holdings[0]).toMatchObject({
+      reportedValue: '85000000',
+      reportedValueUnit: 'USD',
+      quantityType: 'SH',
+      putCall: 'CALL',
+    })
     expect(parsed.rejectedRows).toBe(0)
   })
 
   it('preserves SEC amendment metadata from the cover document', () => {
-    expect(parse13fAmendmentMetadata('<coverPage><amendmentNo>2</amendmentNo><amendmentType>RESTATEMENT</amendmentType></coverPage>'))
-      .toEqual({ amendmentNumber: 2, amendmentType: 'RESTATEMENT' })
+    expect(
+      parse13fAmendmentMetadata(
+        '<coverPage><amendmentNo>2</amendmentNo><amendmentType>RESTATEMENT</amendmentType></coverPage>',
+      ),
+    ).toEqual({ amendmentNumber: 2, amendmentType: 'RESTATEMENT' })
   })
 })

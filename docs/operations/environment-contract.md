@@ -12,8 +12,9 @@
 | `API_HOST`, `API_PORT` | Optional runtime settings | Default to `127.0.0.1`/`3101` outside production; production binds `0.0.0.0:3101`. |
 | `HOST`, `PORT` | Optional Web server settings | React Router server bind address and port. Production uses `0.0.0.0:3000`. |
 | `TRUST_X_FORWARDED_FOR` | Optional proxy setting | Set to `true` only behind a proxy that overwrites forwarded client addresses. Production Ingress is trusted. |
-| `RATE_LIMIT_BACKEND` | Optional runtime setting | `memory` (default) keeps limits process-local; `auto` uses Redis when available and falls back to bounded memory; `redis` requires Redis at startup and readiness. |
+| `RATE_LIMIT_BACKEND` | Optional runtime setting | `memory` (default) keeps limits process-local; `auto` uses Redis when available and falls back to bounded memory; `redis` requires Redis at startup and readiness. None of the three authorizes a second API replica — see [ADR-0020](../adr/0020-single-api-replica-boundary.md). |
 | `REDIS_URL` | Optional secret | Redis connection URL used only by `auto` or `redis`; required by `redis`. Use `rediss://` when the Redis endpoint requires TLS and never log the URL. |
+| `SEC_CACHE_MAX_BYTES` | Optional runtime setting | Ceiling on retained SEC metadata cache bytes across all four caches. Defaults to 64 MiB, chosen well under the 768 MiB pod limit; entry-count caps remain as secondary ceilings. Capacity evidence: [`sec-metadata-cache-2026-10-25.json`](../audits/sec-metadata-cache-2026-10-25.json). |
 | `MARKET_PROVIDER` | Optional provider setting | Defaults to the live provider. Set to `fixture` only in disposable test environments. |
 | `MIGRATIONS_FOLDER` | Optional migration setting | Directory containing the Drizzle migration journal and SQL. Production migration jobs use `/app/packages/db/migrations`. |
 | `AI_ENCRYPTION_KEYS` | Optional API secret; required by the AI/research/translation workers | JSON object mapping AI key versions to base64-encoded 32-byte keys. Use the same keyring in every workload that reads or writes encrypted AI data. |

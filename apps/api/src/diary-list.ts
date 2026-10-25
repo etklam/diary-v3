@@ -12,27 +12,41 @@ function diaryPageFilter(db: Database, userId: bigint, query: DiaryListQuery, no
   const predicates = [eq(diaries.userId, userId)]
   if (query.search) {
     const pattern = `%${query.search.replace(/[\\%_]/g, character => `\\${character}`)}%`
-    predicates.push(or(
-      sql`${diaries.title} ilike ${pattern} escape ${'\\'}`,
-      sql`${diaries.content} ilike ${pattern} escape ${'\\'}`,
-      sql`${diaries.thesis} ilike ${pattern} escape ${'\\'}`,
-      sql`${diaries.risk} ilike ${pattern} escape ${'\\'}`,
-      sql`${diaries.execution} ilike ${pattern} escape ${'\\'}`,
-      sql`array_to_string(${diaries.tags}, ' ') ilike ${pattern} escape ${'\\'}`,
-      // Uncorrelated on purpose: the matching symbols depend only on the
-      // pattern, so this resolves once against the small stock registry
-      // instead of re-running a correlated EXISTS for every scanned diary.
-      // Same shape, and the same result set, as the exact `symbol` filter.
-      inArray(diaries.id, db.select({ id: diaryStocks.diaryId }).from(diaryStocks)
-        .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
-        .where(sql`${stocks.symbol} ilike ${pattern} escape ${'\\'}`)),
-    )!)
+    predicates.push(
+      or(
+        sql`${diaries.title} ilike ${pattern} escape ${'\\'}`,
+        sql`${diaries.content} ilike ${pattern} escape ${'\\'}`,
+        sql`${diaries.thesis} ilike ${pattern} escape ${'\\'}`,
+        sql`${diaries.risk} ilike ${pattern} escape ${'\\'}`,
+        sql`${diaries.execution} ilike ${pattern} escape ${'\\'}`,
+        sql`array_to_string(${diaries.tags}, ' ') ilike ${pattern} escape ${'\\'}`,
+        // Uncorrelated on purpose: the matching symbols depend only on the
+        // pattern, so this resolves once against the small stock registry
+        // instead of re-running a correlated EXISTS for every scanned diary.
+        // Same shape, and the same result set, as the exact `symbol` filter.
+        inArray(
+          diaries.id,
+          db
+            .select({ id: diaryStocks.diaryId })
+            .from(diaryStocks)
+            .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
+            .where(sql`${stocks.symbol} ilike ${pattern} escape ${'\\'}`),
+        ),
+      )!,
+    )
   }
   if (query.symbol) {
     // Symbols persist normalized uppercase; exact match keeps the filter precise.
-    predicates.push(inArray(diaries.id, db.select({ id: diaryStocks.diaryId }).from(diaryStocks)
-      .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
-      .where(eq(stocks.symbol, query.symbol.toUpperCase()))))
+    predicates.push(
+      inArray(
+        diaries.id,
+        db
+          .select({ id: diaryStocks.diaryId })
+          .from(diaryStocks)
+          .innerJoin(stocks, eq(stocks.id, diaryStocks.stockId))
+          .where(eq(stocks.symbol, query.symbol.toUpperCase())),
+      ),
+    )
   }
   if (query.dateFrom) predicates.push(gte(diaries.date, query.dateFrom))
   if (query.dateTo) predicates.push(lte(diaries.date, query.dateTo))
@@ -49,110 +63,153 @@ export async function listDiaries(db: Database, userId: bigint, query: DiaryList
   const { where, order, direction } = diaryPageFilter(db, userId, query, now)
 
   // Count and page share a snapshot, including during concurrent creates/deletes.
-  return db.transaction(async tx => {
-    const [result] = await tx.select({ total: count() }).from(diaries).where(where)
-    const total = result!.total
-    const totalPages = Math.ceil(total / query.limit)
-    // Avoid an overflowing numeric offset for a valid but far-out page request.
-    const rows = query.page > totalPages ? [] : await tx.select().from(diaries)
-      .where(where).orderBy(order, direction(diaries.id))
-      .limit(query.limit).offset((query.page - 1) * query.limit)
-    return {
-      data: await projectDiaryListRows(tx, userId, rows),
-      pagination: { page: query.page, limit: query.limit, total, totalPages },
-    }
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+  return db.transaction(
+    async tx => {
+      const [result] = await tx.select({ total: count() }).from(diaries).where(where)
+      const total = result!.total
+      const totalPages = Math.ceil(total / query.limit)
+      // Avoid an overflowing numeric offset for a valid but far-out page request.
+      const rows =
+        query.page > totalPages
+          ? []
+          : await tx
+              .select()
+              .from(diaries)
+              .where(where)
+              .orderBy(order, direction(diaries.id))
+              .limit(query.limit)
+              .offset((query.page - 1) * query.limit)
+      return {
+        data: await projectDiaryListRows(tx, userId, rows),
+        pagination: { page: query.page, limit: query.limit, total, totalPages },
+      }
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }
 
 /** Bounded discovery feed for Library/Timeline/Overview. Content is read only
  * to build the excerpt inside the API process and is never serialized; counts
  * arrive as grouped SQL aggregates instead of full transaction/alert rows. */
-export async function listDiarySummaries(db: Database, userId: bigint, query: DiaryListQuery, now: Date, includeSearchSnippet = false) {
+export async function listDiarySummaries(
+  db: Database,
+  userId: bigint,
+  query: DiaryListQuery,
+  now: Date,
+  includeSearchSnippet = false,
+) {
   const { where, order, direction } = diaryPageFilter(db, userId, query, now)
 
   // Count and page share the same snapshot semantics as the full list.
-  return db.transaction(async tx => {
-    const [result] = await tx.select({ total: count() }).from(diaries).where(where)
-    const total = result!.total
-    const totalPages = Math.ceil(total / query.limit)
-    const searchFields = includeSearchSnippet && query.search ? {
-      contentForSearch: diaries.content,
-      thesisForSearch: diaries.thesis,
-      riskForSearch: diaries.risk,
-      executionForSearch: diaries.execution,
-    } : {
-      contentForSearch: sql<string | null>`null`,
-      thesisForSearch: sql<string | null>`null`,
-      riskForSearch: sql<string | null>`null`,
-      executionForSearch: sql<string | null>`null`,
-    }
-    const rows = query.page > totalPages ? [] : await tx.select({
-      id: diaries.id,
-      date: diaries.date,
-      title: diaries.title,
-      summaryExcerpt: diaries.summaryExcerpt,
-      contentForExcerpt: sql<string | null>`case
+  return db.transaction(
+    async tx => {
+      const [result] = await tx.select({ total: count() }).from(diaries).where(where)
+      const total = result!.total
+      const totalPages = Math.ceil(total / query.limit)
+      const searchFields =
+        includeSearchSnippet && query.search
+          ? {
+              contentForSearch: diaries.content,
+              thesisForSearch: diaries.thesis,
+              riskForSearch: diaries.risk,
+              executionForSearch: diaries.execution,
+            }
+          : {
+              contentForSearch: sql<string | null>`null`,
+              thesisForSearch: sql<string | null>`null`,
+              riskForSearch: sql<string | null>`null`,
+              executionForSearch: sql<string | null>`null`,
+            }
+      const rows =
+        query.page > totalPages
+          ? []
+          : await tx
+              .select({
+                id: diaries.id,
+                date: diaries.date,
+                title: diaries.title,
+                summaryExcerpt: diaries.summaryExcerpt,
+                contentForExcerpt: sql<string | null>`case
         when ${diaries.summaryExcerpt} is null
           or ${diaries.summaryExcerptContentHash} is null
         then ${diaries.content}
         else null
       end`,
-      tags: diaries.tags,
-      createdVia: diaries.createdVia,
-      reviewStatus: diaries.reviewStatus,
-      reviewDueAt: diaries.reviewDueAt,
-      reviewOutcome: diaries.reviewOutcome,
-      ...searchFields,
-    }).from(diaries).where(where).orderBy(order, direction(diaries.id))
-      .limit(query.limit).offset((query.page - 1) * query.limit)
-    const ids = rows.map(row => row.id)
-    const transactionCounts = new Map<bigint, number>()
-    const alertCounts = new Map<bigint, number>()
-    if (ids.length > 0) {
-      for (const row of await tx.select({ diaryId: transactions.diaryId, total: count() }).from(transactions)
-        .where(and(eq(transactions.userId, userId), inArray(transactions.diaryId, ids)))
-        .groupBy(transactions.diaryId)) transactionCounts.set(row.diaryId, row.total)
-      // Alerts carry no owner column; join diaries to keep the count owner-scoped.
-      for (const row of await tx.select({ diaryId: alerts.diaryId, total: count() }).from(alerts)
-        .innerJoin(diaries, eq(diaries.id, alerts.diaryId))
-        .where(and(eq(diaries.userId, userId), inArray(diaries.id, ids), eq(alerts.isDismissed, false)))
-        .groupBy(alerts.diaryId)) alertCounts.set(row.diaryId, row.total)
-    }
-    const stockRows = await listDiaryStocks(tx, userId, ids)
-    const stocksByDiary = new Map<bigint, string[]>()
-    for (const stock of stockRows) {
-      const group = stocksByDiary.get(stock.diaryId) ?? []
-      group.push(stock.symbol)
-      stocksByDiary.set(stock.diaryId, group)
-    }
-    return {
-      data: rows.map(row => diarySummarySchema.parse({
-        id: row.id.toString(),
-        date: row.date,
-        title: row.title,
-        // Content stays in this process: only the bounded excerpt is serialized.
-        excerpt: row.contentForExcerpt === null
-          ? row.summaryExcerpt ?? ''
-          : diaryExcerpt(row.contentForExcerpt, 240),
-        tags: row.tags.slice(0, 3),
-        stockSymbols: (stocksByDiary.get(row.id) ?? []).slice(0, 10),
-        createdVia: row.createdVia,
-        reviewStatus: row.reviewStatus,
-        reviewDueAt: row.reviewDueAt === null ? null : row.reviewDueAt.toISOString(),
-        reviewOutcome: row.reviewOutcome,
-        searchSnippet: includeSearchSnippet && query.search ? diarySearchSnippet([
-          { source: 'title', value: row.title },
-          { source: 'content', value: row.contentForSearch },
-          { source: 'thesis', value: row.thesisForSearch },
-          { source: 'risk', value: row.riskForSearch },
-          { source: 'execution', value: row.executionForSearch },
-          { source: 'tag', value: row.tags.join(' ') },
-          { source: 'symbol', value: (stocksByDiary.get(row.id) ?? []).join(' ') },
-        ], query.search) : undefined,
-        transactionCount: transactionCounts.get(row.id) ?? 0,
-        alertCount: alertCounts.get(row.id) ?? 0,
-      })),
-      pagination: { page: query.page, limit: query.limit, total, totalPages },
-    }
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+                tags: diaries.tags,
+                createdVia: diaries.createdVia,
+                reviewStatus: diaries.reviewStatus,
+                reviewDueAt: diaries.reviewDueAt,
+                reviewOutcome: diaries.reviewOutcome,
+                ...searchFields,
+              })
+              .from(diaries)
+              .where(where)
+              .orderBy(order, direction(diaries.id))
+              .limit(query.limit)
+              .offset((query.page - 1) * query.limit)
+      const ids = rows.map(row => row.id)
+      const transactionCounts = new Map<bigint, number>()
+      const alertCounts = new Map<bigint, number>()
+      if (ids.length > 0) {
+        for (const row of await tx
+          .select({ diaryId: transactions.diaryId, total: count() })
+          .from(transactions)
+          .where(and(eq(transactions.userId, userId), inArray(transactions.diaryId, ids)))
+          .groupBy(transactions.diaryId))
+          transactionCounts.set(row.diaryId, row.total)
+        // Alerts carry no owner column; join diaries to keep the count owner-scoped.
+        for (const row of await tx
+          .select({ diaryId: alerts.diaryId, total: count() })
+          .from(alerts)
+          .innerJoin(diaries, eq(diaries.id, alerts.diaryId))
+          .where(and(eq(diaries.userId, userId), inArray(diaries.id, ids), eq(alerts.isDismissed, false)))
+          .groupBy(alerts.diaryId))
+          alertCounts.set(row.diaryId, row.total)
+      }
+      const stockRows = await listDiaryStocks(tx, userId, ids)
+      const stocksByDiary = new Map<bigint, string[]>()
+      for (const stock of stockRows) {
+        const group = stocksByDiary.get(stock.diaryId) ?? []
+        group.push(stock.symbol)
+        stocksByDiary.set(stock.diaryId, group)
+      }
+      return {
+        data: rows.map(row =>
+          diarySummarySchema.parse({
+            id: row.id.toString(),
+            date: row.date,
+            title: row.title,
+            // Content stays in this process: only the bounded excerpt is serialized.
+            excerpt:
+              row.contentForExcerpt === null ? (row.summaryExcerpt ?? '') : diaryExcerpt(row.contentForExcerpt, 240),
+            tags: row.tags.slice(0, 3),
+            stockSymbols: (stocksByDiary.get(row.id) ?? []).slice(0, 10),
+            createdVia: row.createdVia,
+            reviewStatus: row.reviewStatus,
+            reviewDueAt: row.reviewDueAt === null ? null : row.reviewDueAt.toISOString(),
+            reviewOutcome: row.reviewOutcome,
+            searchSnippet:
+              includeSearchSnippet && query.search
+                ? diarySearchSnippet(
+                    [
+                      { source: 'title', value: row.title },
+                      { source: 'content', value: row.contentForSearch },
+                      { source: 'thesis', value: row.thesisForSearch },
+                      { source: 'risk', value: row.riskForSearch },
+                      { source: 'execution', value: row.executionForSearch },
+                      { source: 'tag', value: row.tags.join(' ') },
+                      { source: 'symbol', value: (stocksByDiary.get(row.id) ?? []).join(' ') },
+                    ],
+                    query.search,
+                  )
+                : undefined,
+            transactionCount: transactionCounts.get(row.id) ?? 0,
+            alertCount: alertCounts.get(row.id) ?? 0,
+          }),
+        ),
+        pagination: { page: query.page, limit: query.limit, total, totalPages },
+      }
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }

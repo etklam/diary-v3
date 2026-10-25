@@ -65,11 +65,16 @@ export async function readRotationScopeSnapshot(
   const universe = getUniverseForScope(scope)
   const symbols = universe.map(entry => entry.symbol)
   const names = new Map(universe.map(entry => [entry.symbol, entry]))
-  const stored = await db.select().from(marketRotationSnapshots).where(and(
-    eq(marketRotationSnapshots.rankScope, scope),
-    eq(marketRotationSnapshots.date, date),
-    inArray(marketRotationSnapshots.symbol, symbols),
-  ))
+  const stored = await db
+    .select()
+    .from(marketRotationSnapshots)
+    .where(
+      and(
+        eq(marketRotationSnapshots.rankScope, scope),
+        eq(marketRotationSnapshots.date, date),
+        inArray(marketRotationSnapshots.symbol, symbols),
+      ),
+    )
   return {
     window,
     rows: stored.flatMap(row => {
@@ -86,24 +91,29 @@ export async function readRotationComparisonSnapshots(
   comparisonDate: string,
 ): Promise<EnrichedSnapshotInput[]> {
   const symbols = getUniverseForScope(scope).map(entry => entry.symbol)
-  const stored = await db.select({
-    symbol: marketRotationSnapshots.symbol,
-    adjustedClose: marketRotationSnapshots.adjustedClose,
-    rsi14: marketRotationSnapshots.rsi14,
-    rsiPercentile: marketRotationSnapshots.rsiPercentile,
-    maScore: marketRotationSnapshots.maScore,
-    maScorePercentile: marketRotationSnapshots.maScorePercentile,
-    distanceFromHighScore: marketRotationSnapshots.distanceFromHighScore,
-    distanceFromHighScorePercentile: marketRotationSnapshots.distanceFromHighScorePercentile,
-    rotationScore: marketRotationSnapshots.rotationScore,
-    rotationRank: marketRotationSnapshots.rotationRank,
-    maStatus: marketRotationSnapshots.maStatus,
-    percentFromHigh: marketRotationSnapshots.percentFromHigh,
-  }).from(marketRotationSnapshots).where(and(
-    eq(marketRotationSnapshots.rankScope, scope),
-    eq(marketRotationSnapshots.date, comparisonDate),
-    inArray(marketRotationSnapshots.symbol, symbols),
-  ))
+  const stored = await db
+    .select({
+      symbol: marketRotationSnapshots.symbol,
+      adjustedClose: marketRotationSnapshots.adjustedClose,
+      rsi14: marketRotationSnapshots.rsi14,
+      rsiPercentile: marketRotationSnapshots.rsiPercentile,
+      maScore: marketRotationSnapshots.maScore,
+      maScorePercentile: marketRotationSnapshots.maScorePercentile,
+      distanceFromHighScore: marketRotationSnapshots.distanceFromHighScore,
+      distanceFromHighScorePercentile: marketRotationSnapshots.distanceFromHighScorePercentile,
+      rotationScore: marketRotationSnapshots.rotationScore,
+      rotationRank: marketRotationSnapshots.rotationRank,
+      maStatus: marketRotationSnapshots.maStatus,
+      percentFromHigh: marketRotationSnapshots.percentFromHigh,
+    })
+    .from(marketRotationSnapshots)
+    .where(
+      and(
+        eq(marketRotationSnapshots.rankScope, scope),
+        eq(marketRotationSnapshots.date, comparisonDate),
+        inArray(marketRotationSnapshots.symbol, symbols),
+      ),
+    )
 
   return stored.map(row => ({
     symbol: row.symbol,
@@ -131,19 +141,26 @@ export async function readRotationTrendPrices(
 ): Promise<Map<string, number | null>> {
   if (qualifiedDates.length === 0 || symbols.length === 0) return new Map()
 
-  const stored = await db.select({
-    symbol: marketRotationSnapshots.symbol,
-    date: marketRotationSnapshots.date,
-    adjustedClose: marketRotationSnapshots.adjustedClose,
-    lastPrice: marketRotationSnapshots.lastPrice,
-  }).from(marketRotationSnapshots).where(and(
-    eq(marketRotationSnapshots.rankScope, scope),
-    inArray(marketRotationSnapshots.date, qualifiedDates),
-    inArray(marketRotationSnapshots.symbol, symbols),
-  ))
+  const stored = await db
+    .select({
+      symbol: marketRotationSnapshots.symbol,
+      date: marketRotationSnapshots.date,
+      adjustedClose: marketRotationSnapshots.adjustedClose,
+      lastPrice: marketRotationSnapshots.lastPrice,
+    })
+    .from(marketRotationSnapshots)
+    .where(
+      and(
+        eq(marketRotationSnapshots.rankScope, scope),
+        inArray(marketRotationSnapshots.date, qualifiedDates),
+        inArray(marketRotationSnapshots.symbol, symbols),
+      ),
+    )
 
-  return new Map(stored.map(row => {
-    const value = row.adjustedClose ?? row.lastPrice
-    return [`${row.symbol}:${row.date}`, persistedNumber(value)] as const
-  }))
+  return new Map(
+    stored.map(row => {
+      const value = row.adjustedClose ?? row.lastPrice
+      return [`${row.symbol}:${row.date}`, persistedNumber(value)] as const
+    }),
+  )
 }

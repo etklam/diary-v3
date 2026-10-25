@@ -14,10 +14,18 @@
     align-items: start;
   }
 
-  .diary-record > header { grid-area: header; }
-  .diary-record > .diary-reading-body { grid-area: body; }
-  .diary-record > .diary-reading-aside { grid-area: aside; }
-  .diary-record > footer { grid-area: footer; }
+  .diary-record > header {
+    grid-area: header;
+  }
+  .diary-record > .diary-reading-body {
+    grid-area: body;
+  }
+  .diary-record > .diary-reading-aside {
+    grid-area: aside;
+  }
+  .diary-record > footer {
+    grid-area: footer;
+  }
 
   .diary-record > .diary-reading-aside > :first-child {
     margin-top: 0;

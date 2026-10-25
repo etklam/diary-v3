@@ -19,14 +19,21 @@ let clock = new Date('2026-09-26T12:00:00.000Z')
 let revokedUserIds: string[]
 const keyring = { activeVersion: 'test', keys: { test: Buffer.alloc(32, 23).toString('base64') } }
 
-beforeAll(async () => { database = await provisionTestDatabase('account_email_lifecycle') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('account_email_lifecycle')
+})
 beforeEach(async () => {
   clock = new Date('2026-09-26T12:00:00.000Z')
   revokedUserIds = []
   const app = createApp({
     db: database.db,
     databasePool: database.pool,
-    config: { jwtSecret: 'synthetic-account-email-lifecycle-secret-at-least-32-chars', nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1' },
+    config: {
+      jwtSecret: 'synthetic-account-email-lifecycle-secret-at-least-32-chars',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
     now: () => clock,
     smtpKeyring: keyring,
     onAccountRevoked: userId => revokedUserIds.push(userId),
@@ -35,22 +42,30 @@ beforeEach(async () => {
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function enableMail() {
-  await database.db.update(mailSettings).set({
-    enabled: true,
-    host: 'smtp.example.test',
-    port: 587,
-    security: 'starttls',
-    senderName: 'Trade basic',
-    senderEmail: 'noreply@example.test',
-    revision: 1,
-    lastTestedRevision: 1,
-    lastTestedAt: clock,
-    lastTestStatus: 'passed',
-  }).where(eq(mailSettings.singleton, 'default'))
+  await database.db
+    .update(mailSettings)
+    .set({
+      enabled: true,
+      host: 'smtp.example.test',
+      port: 587,
+      security: 'starttls',
+      senderName: 'Trade basic',
+      senderEmail: 'noreply@example.test',
+      revision: 1,
+      lastTestedRevision: 1,
+      lastTestedAt: clock,
+      lastTestStatus: 'passed',
+    })
+    .where(eq(mailSettings.singleton, 'default'))
 }
 
 async function tokenFromOutbox(outboxId: bigint): Promise<{ token: string; payload: string }> {
@@ -70,15 +85,25 @@ it('preserves direct signup while mail is off, then verifies new registrations w
   expect(capabilities.headers.get('cache-control')).toContain('no-store')
   expect(await capabilities.json()).toEqual({ registrationMode: 'direct', passwordRecoveryAvailable: false })
 
-  const unavailable = await browser.post('/api/auth/password-reset/request', { email: 'unknown@example.test', locale: 'en' })
+  const unavailable = await browser.post('/api/auth/password-reset/request', {
+    email: 'unknown@example.test',
+    locale: 'en',
+  })
   expect(unavailable.status).toBe(503)
   expect((await unavailable.json()).data.code).toBe('AUTH_EMAIL_SERVICE_DISABLED')
 
   const directEmail = `${randomUUID()}@example.test`
-  const direct = await browser.post('/api/auth/register', { email: directEmail, password: 'synthetic-direct-password', name: 'Direct user' })
+  const direct = await browser.post('/api/auth/register', {
+    email: directEmail,
+    password: 'synthetic-direct-password',
+    name: 'Direct user',
+  })
   expect(direct.status).toBe(200)
   await enableMail()
-  expect(await (await browser.request('/api/auth/capabilities')).json()).toEqual({ registrationMode: 'email', passwordRecoveryAvailable: true })
+  expect(await (await browser.request('/api/auth/capabilities')).json()).toEqual({
+    registrationMode: 'email',
+    passwordRecoveryAvailable: true,
+  })
 
   const email = `${randomUUID()}@example.test`
   const request = await browser.post('/api/auth/registration/request', { email, locale: 'en' })
@@ -89,13 +114,18 @@ it('preserves direct signup while mail is off, then verifies new registrations w
   const cooledDown = await browser.post('/api/auth/registration/request', { email, locale: 'en' })
   expect(cooledDown.status).toBe(429)
   expect(cooledDown.headers.get('retry-after')).toBe('60')
-  const unknown = await browser.post('/api/auth/registration/request', { email: `${randomUUID()}@example.test`, locale: 'en' })
+  const unknown = await browser.post('/api/auth/registration/request', {
+    email: `${randomUUID()}@example.test`,
+    locale: 'en',
+  })
   expect(unknown.status).toBe(200)
   expect(await unknown.json()).toEqual({ success: true })
 
-  const [tokenRow] = await database.db.select().from(accountEmailTokens).where(and(
-    eq(accountEmailTokens.normalizedEmail, email), eq(accountEmailTokens.purpose, 'registration'),
-  )).limit(1)
+  const [tokenRow] = await database.db
+    .select()
+    .from(accountEmailTokens)
+    .where(and(eq(accountEmailTokens.normalizedEmail, email), eq(accountEmailTokens.purpose, 'registration')))
+    .limit(1)
   expect(tokenRow).toBeTruthy()
   expect(tokenRow!.tokenDigest).toMatch(/^[a-f0-9]{64}$/)
   const [job] = await database.db.select().from(mailOutbox).where(eq(mailOutbox.tokenId, tokenRow!.id)).limit(1)
@@ -115,7 +145,11 @@ it('preserves direct signup while mail is off, then verifies new registrations w
   expect(created).toBeTruthy()
   expect(created!.name).toBe('Verified user')
   expect(await bcrypt.compare('synthetic-verified-password', created!.password)).toBe(true)
-  const [consumed] = await database.db.select().from(accountEmailTokens).where(eq(accountEmailTokens.id, tokenRow!.id)).limit(1)
+  const [consumed] = await database.db
+    .select()
+    .from(accountEmailTokens)
+    .where(eq(accountEmailTokens.id, tokenRow!.id))
+    .limit(1)
   expect(consumed!.consumedAt).toEqual(clock)
   const [finishedJob] = await database.db.select().from(mailOutbox).where(eq(mailOutbox.id, job!.id)).limit(1)
   expect(finishedJob).toMatchObject({ status: 'cancelled', encryptedPayload: null })
@@ -126,7 +160,11 @@ it('preserves direct signup while mail is off, then verifies new registrations w
     password: 'synthetic-verified-password',
   })
   expect(replay.status).toBe(401)
-  const bypass = await browser.post('/api/auth/register', { email: `${randomUUID()}@example.test`, password: 'synthetic-bypass-password', name: 'Bypass' })
+  const bypass = await browser.post('/api/auth/register', {
+    email: `${randomUUID()}@example.test`,
+    password: 'synthetic-bypass-password',
+    name: 'Bypass',
+  })
   expect(bypass.status).toBe(409)
   expect((await bypass.json()).data.code).toBe('AUTH_EMAIL_VERIFICATION_REQUIRED')
 })
@@ -140,11 +178,18 @@ it('resets passwords once, revokes Web and Native sessions, and does not enumera
   expect((await browser.post('/api/auth/login', { email, password: oldPassword })).status).toBe(200)
   const accessToken = browser.cookies.get(ACCESS_COOKIE)!
   const refreshToken = browser.cookies.get(REFRESH_COOKIE)!
-  const native = await browser.post('/api/auth/native/login', { email, password: oldPassword, deviceName: 'synthetic device' })
+  const native = await browser.post('/api/auth/native/login', {
+    email,
+    password: oldPassword,
+    deviceName: 'synthetic device',
+  })
   expect(native.status).toBe(200)
   const nativeRefresh = (await native.json()).data.refreshToken as string
 
-  const unknown = await browser.post('/api/auth/password-reset/request', { email: `${randomUUID()}@example.test`, locale: 'en' })
+  const unknown = await browser.post('/api/auth/password-reset/request', {
+    email: `${randomUUID()}@example.test`,
+    locale: 'en',
+  })
   const known = await browser.post('/api/auth/password-reset/request', { email, locale: 'en' })
   expect(unknown.status).toBe(200)
   expect(known.status).toBe(200)
@@ -152,16 +197,19 @@ it('resets passwords once, revokes Web and Native sessions, and does not enumera
   expect(known.headers.get('retry-after')).toBe('60')
   expect(await unknown.json()).toEqual(await known.json())
 
-  const [tokenRow] = await database.db.select().from(accountEmailTokens).where(and(
-    eq(accountEmailTokens.normalizedEmail, email), eq(accountEmailTokens.purpose, 'password_reset'),
-  )).limit(1)
+  const [tokenRow] = await database.db
+    .select()
+    .from(accountEmailTokens)
+    .where(and(eq(accountEmailTokens.normalizedEmail, email), eq(accountEmailTokens.purpose, 'password_reset')))
+    .limit(1)
   expect(tokenRow).toBeTruthy()
   const [job] = await database.db.select().from(mailOutbox).where(eq(mailOutbox.tokenId, tokenRow!.id)).limit(1)
   const { token } = await tokenFromOutbox(job!.id)
   const outcomes = await Promise.all([
     browser.post('/api/auth/password-reset/complete', { token, newPassword: 'synthetic-new-password' }),
     fetch(`${baseUrl}/api/auth/password-reset/complete`, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ token, newPassword: 'synthetic-new-password' }),
     }),
   ])
@@ -171,15 +219,27 @@ it('resets passwords once, revokes Web and Native sessions, and does not enumera
   expect(updated!.tokenVersion).toBe(1)
   expect(await bcrypt.compare('synthetic-new-password', updated!.password)).toBe(true)
   expect((await database.db.select().from(refreshTokens).where(eq(refreshTokens.userId, updated!.id))).length).toBe(0)
-  expect((await database.db.select().from(accountEmailTokens).where(and(
-    eq(accountEmailTokens.userId, updated!.id), eq(accountEmailTokens.purpose, 'password_reset'),
-  ))).every(row => row.consumedAt !== null || row.revokedAt !== null)).toBe(true)
+  expect(
+    (
+      await database.db
+        .select()
+        .from(accountEmailTokens)
+        .where(and(eq(accountEmailTokens.userId, updated!.id), eq(accountEmailTokens.purpose, 'password_reset')))
+    ).every(row => row.consumedAt !== null || row.revokedAt !== null),
+  ).toBe(true)
 
-  const oldWeb = await fetch(`${baseUrl}/api/auth/me`, { headers: { cookie: `${ACCESS_COOKIE}=${encodeURIComponent(accessToken)}; ${REFRESH_COOKIE}=${encodeURIComponent(refreshToken)}` } })
+  const oldWeb = await fetch(`${baseUrl}/api/auth/me`, {
+    headers: {
+      cookie: `${ACCESS_COOKIE}=${encodeURIComponent(accessToken)}; ${REFRESH_COOKIE}=${encodeURIComponent(refreshToken)}`,
+    },
+  })
   expect(oldWeb.status).toBe(401)
   const oldNative = await browser.post('/api/auth/native/refresh', { refreshToken: nativeRefresh })
   expect(oldNative.status).toBe(401)
   expect((await browser.post('/api/auth/login', { email, password: 'synthetic-new-password' })).status).toBe(200)
-  const notices = await database.db.select().from(mailOutbox).where(and(eq(mailOutbox.kind, 'password_changed'), eq(mailOutbox.recipientEmail, email)))
+  const notices = await database.db
+    .select()
+    .from(mailOutbox)
+    .where(and(eq(mailOutbox.kind, 'password_changed'), eq(mailOutbox.recipientEmail, email)))
   expect(notices).toHaveLength(1)
 })

@@ -34,7 +34,7 @@ async function startAccount(page: Page) {
 async function readDiary(page: Page, id: string): Promise<Diary> {
   const response = await page.request.get(`/api/diaries/${id}`)
   expect(response.status()).toBe(200)
-  return await response.json() as Diary
+  return (await response.json()) as Diary
 }
 
 async function capture(page: Page, name: string, width: number) {
@@ -82,7 +82,9 @@ for (const { width, height, date } of [
 
     await openQuickOptions(page)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Recent tag seed')
-    await page.getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true }).fill('design, review\ncontext')
+    await page
+      .getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true })
+      .fill('design, review\ncontext')
     await page.getByRole('button', { name: 'Create diary', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
     const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
@@ -99,14 +101,18 @@ for (const { width, height, date } of [
     await expect(recent).toHaveAttribute('aria-pressed', 'false')
     await capture(page, 'quick-recent-tags', width)
 
-    const me = await (await page.request.get('/api/auth/me')).json() as { data: { id: string } }
+    const me = (await (await page.request.get('/api/auth/me')).json()) as { data: { id: string } }
     const draftKey = `diary-quick-draft:${me.data.id}`
     const draftContent = 'Restore this unsaved Quick Diary draft.'
     await content.fill(draftContent)
-    await expect.poll(() => page.evaluate(key => {
-      const raw = localStorage.getItem(key)
-      return raw ? JSON.parse(raw).value?.content : null
-    }, draftKey)).toBe(draftContent)
+    await expect
+      .poll(() =>
+        page.evaluate(key => {
+          const raw = localStorage.getItem(key)
+          return raw ? JSON.parse(raw).value?.content : null
+        }, draftKey),
+      )
+      .toBe(draftContent)
 
     await page.goto('/diaries')
     await openCapture(page)

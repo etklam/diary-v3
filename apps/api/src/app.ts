@@ -1,26 +1,3 @@
-import {readRotationMonitor} from './rotation-monitor.js'
-import {marketRotationMonitorQuerySchema,marketRotationMonitorResponseSchema} from '@diary/contracts/rotation-monitor'
-import {registerMarketStateRoutes} from './market-state-routes.js'
-import {registerRotationAdmin} from './rotation-admin.js'
-import {runRotationBatch} from './rotation-batch.js'
-import { registerEtfProfileRoutes } from './etf-profile.js'
-import { registerEtfWatchlistRoutes } from './etf-watchlist.js'
-import { registerEtfAdminRoutes } from './etf-admin.js'
-import { registerAgentStockRoutes } from './agent-stocks.js'
-import { registerApiKeyRoutes } from './api-keys.js'
-import { registerPartnerRoutes } from './partners.js'
-import { registerDisciplineOg } from './discipline-og.js'
-import { registerDisciplineRoutes } from './discipline.js'
-import { registerPriceAlertRoutes } from './price-alerts.js'
-import { registerAlertRoutes } from './alerts.js'
-import { registerPerformanceRoute } from './performance.js'
-import { registerPortfolioAttentionRoutes } from './portfolio-attention.js'
-import { registerCompanyHubRoute } from './company-hub.js'
-import { registerPostRoutes } from './posts.js'
-import { registerAuthRoutes } from './auth-routes.js'
-import { registerDiaryRoutes } from './diary-routes.js'
-import { registerPortfolioRoutes } from './portfolio-routes.js'
-import { registerArticleTranslationRoutes } from './article-translations/routes.js'
 import { createHash, randomBytes, randomUUID as nodeRandomUUID } from 'node:crypto'
 import { apiErrorResponseSchema } from '@diary/contracts'
 import { apiKeyCredentials, users, type Database } from '@diary/db'
@@ -38,70 +15,67 @@ import {
 } from './auth-session.js'
 import { createMarketData, createYahooUpstream } from './market-data/index.js'
 import { safeErrorContext } from './diagnostics.js'
-import { registerMarketRoutes } from './market-routes.js'
-import { registerDiaryReviewRoutes } from './diary-review.js'
-import { registerReviewQueueRoute } from './review-queue.js'
-import { registerActivityTimelineRoute } from './activity-timeline.js'
-import { registerInvestmentThesisRoutes } from './investment-thesis.js'
-import { registerStockNoteRoutes } from './stock-notes.js'
-import { registerEvidenceRoutes } from './evidence.js'
-import { registerWatchlistRoutes } from './watchlist.js'
-import { registerDiarySavedViewRoutes } from './diary-saved-views.js'
-import { registerTradePlanRoutes } from './trade-plans.js'
-import { createNagerHolidayProvider, registerHolidayRoutes, type HolidayProvider } from './holidays.js'
-import { registerSecFilingRoutes } from './sec-filings.js'
-import { createSecEdgarService, type SecEdgarService } from './sec-edgar/service.js'
-import { createPostgresSecSharedScheduler } from './sec-edgar/postgres-scheduler.js'
-import { registerAdminUserRoutes } from './admin-users.js'
-import { registerAdminGuruRoutes } from './admin-gurus.js'
-import { registerGuruRoutes } from './gurus.js'
-import { registerGuruResearchRoutes } from './guru-research.js'
-import { registerGuruConsensusRoutes } from './guru-consensus-routes.js'
-import { registerGuruComparisonRoutes } from './guru-comparison-routes.js'
-import { registerAdminSecurityMappingRoutes } from './institutional/admin-security-mapping.js'
-import { registerGuruAnalysisRoutes } from './guru-analysis/routes.js'
-import { registerAdminInstitutionalOperationRoutes } from './institutional/admin-operations.js'
-import { registerGuruNotificationRoutes } from './guru-notifications/routes.js'
-import { registerAiReportRoutes } from './ai-reports/routes.js'
-import { registerAiAdminRoutes } from './ai-reports/admin-routes.js'
-import { registerSharedPromptRoutes } from './shared-prompts/routes.js'
-import { AiReportService } from './ai-reports/report-service.js'
+import { registerAuthRoutes } from './auth-routes.js'
+import { registerDiaryRoutes } from './diary-routes.js'
+import { registerPortfolioRoutes } from './portfolio-routes.js'
+import type { HolidayProvider } from './holidays.js'
+import type { SecEdgarService } from './sec-edgar/service.js'
 import type { AiTransport } from './ai-reports/outbound-policy.js'
-import { registerAchievementRoutes } from './achievements.js'
-import { registerGoalRoutes } from './goals.js'
-import { registerResearchRoutes } from './research-studio/routes.js'
-import type { ResearchEvidenceProvider, ResearchLatestCompletedSession, ResearchTransport } from './research-studio/service.js'
-import { createLatestCompletedUsEquitySessionResolver, createResearchEvidenceProvider, createTavilySearchProvider, createVerifiedUsEquityCalendarProvider } from './research-studio/sources.js'
+import type {
+  ResearchEvidenceProvider,
+  ResearchLatestCompletedSession,
+  ResearchTransport,
+} from './research-studio/service.js'
+import {
+  createLatestCompletedUsEquitySessionResolver,
+  createResearchEvidenceProvider,
+  createTavilySearchProvider,
+  createVerifiedUsEquityCalendarProvider,
+} from './research-studio/sources.js'
 import { createOpenRouterResearchTransport } from './research-studio/transport.js'
 import { TAVILY_SEARCH_POLICY } from './research-studio/source-policy.js'
 import type { OfficialResearchSourceInput } from './research-studio/sources.js'
 import { createPostgresTavilySearchBudget } from './research-studio/search-budget.js'
-import { registerAccountEmailPublicRoutes } from './account-email/public-routes.js'
-import { registerAccountEmailAdminRoutes } from './account-email/admin-routes.js'
 import type { SmtpKeyring } from './account-email/secrets.js'
 import type { SmtpTransportFactory } from './account-email/smtp.js'
-import { createMemoryRateLimitRuntime, RATE_LIMIT_POLICIES, RateLimitStoreUnavailableError, rateLimitKey } from './rate-limit/index.js'
+import {
+  createMemoryRateLimitRuntime,
+  RATE_LIMIT_POLICIES,
+  RateLimitStoreUnavailableError,
+  rateLimitKey,
+} from './rate-limit/index.js'
 import type { RateLimitPolicy, RateLimitResult, RateLimitRuntime } from './rate-limit/index.js'
 import { requestBodyLengthLimit, requestBodyLimit, RequestBodyLimitError } from './request-body-limit.js'
+import { responseCompression } from './response-compression.js'
+// Route surfaces, in the order the composition root registers them.
+import type { SurfaceContext } from './surfaces/context.js'
+import { registerMarketSurface } from './surfaces/market-surface.js'
+import { registerDiarySurface } from './surfaces/diary-surface.js'
+import { registerAccountSurface } from './surfaces/account-surface.js'
+import { registerPerformanceSurface } from './surfaces/performance-surface.js'
+import { registerPublishingSurface } from './surfaces/publishing-surface.js'
+import { registerAdminSurface } from './surfaces/admin-surface.js'
+import { registerGuruSurface } from './surfaces/guru-surface.js'
+import { registerInstitutionalSurface } from './surfaces/institutional-surface.js'
+import { registerAiSurface } from './surfaces/ai-surface.js'
+import { registerAccountEmailSurface } from './surfaces/account-email-surface.js'
+import { registerResearchSurface } from './surfaces/research-surface.js'
 import {
   ApiError,
   clientIp,
   CSRF_COOKIE,
   CSRF_HEADER,
   fail,
-  parseJson,
   PUBLIC_STATE_PATHS,
   safeEqual,
-  validationError,
   type ApiConfig,
   type AppEnv,
 } from './app-context.js'
-
 export { resolveClientIp } from './app-context.js'
 export type { ApiConfig, AppEnv } from './app-context.js'
 
 export interface AppDependencies {
-  databasePool?: Pick<import('pg').Pool,'connect'>
+  databasePool?: Pick<import('pg').Pool, 'connect'>
   onAccountRevoked?: (userId: string) => void
   db: Database
   config: ApiConfig
@@ -179,19 +153,25 @@ export function createApp({
     const logKey = `${policy.name}:${scope}`
     if (timestamp - (lastRateLimitLogAt.get(logKey) ?? Number.NEGATIVE_INFINITY) >= 60_000) {
       lastRateLimitLogAt.set(logKey, timestamp)
-      logger.info?.(JSON.stringify({
-        operation: 'rate_limit_rejected',
-        limiter: policy.name,
-        scopeType: scope,
-        requestId: context.get('requestId'),
-        backend: rateLimiter.backend,
-      }))
+      logger.info?.(
+        JSON.stringify({
+          operation: 'rate_limit_rejected',
+          limiter: policy.name,
+          scopeType: scope,
+          requestId: context.get('requestId'),
+          backend: rateLimiter.backend,
+        }),
+      )
     }
-    fail(429, 'AUTH_RATE_LIMITED', 'Too many requests. Please try again later.', [{ message: `Retry after ${retryAfterSeconds} seconds` }])
+    fail(429, 'AUTH_RATE_LIMITED', 'Too many requests. Please try again later.', [
+      { message: `Retry after ${retryAfterSeconds} seconds` },
+    ])
   }
 
   const findUserByEmail = async (email: string) => {
-    const [user] = await db.select().from(users)
+    const [user] = await db
+      .select()
+      .from(users)
       .where(sql`lower(${users.email}) = ${email.toLowerCase()}`)
       .limit(1)
     return user
@@ -221,6 +201,10 @@ export function createApp({
     deleteCookie(c, 'auth-token', { path: '/' })
   }
 
+  // Compression is transport-level, so it sits outside everything the
+  // application logs and serves.
+  app.use('*', responseCompression())
+
   app.use('*', async (c, next) => {
     const incoming = c.req.header('x-request-id')
     const requestId = incoming && /^[A-Za-z0-9._:-]{1,128}$/.test(incoming) ? incoming : randomUUID()
@@ -229,14 +213,16 @@ export function createApp({
     const startedAt = Date.now()
     await next()
     if (config.nodeEnv === 'production') {
-      logger.info?.(JSON.stringify({
-        operation: 'http_request',
-        requestId,
-        method: c.req.method,
-        path: c.req.path,
-        status: c.res.status,
-        durationMs: Date.now() - startedAt,
-      }))
+      logger.info?.(
+        JSON.stringify({
+          operation: 'http_request',
+          requestId,
+          method: c.req.method,
+          path: c.req.path,
+          status: c.res.status,
+          durationMs: Date.now() - startedAt,
+        }),
+      )
     }
   })
 
@@ -256,12 +242,15 @@ export function createApp({
     }
   })
 
-  app.use('/api/*', cors({
-    origin: config.webOrigin,
-    credentials: true,
-    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID', 'X-API-Key'],
-    allowMethods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  }))
+  app.use(
+    '/api/*',
+    cors({
+      origin: config.webOrigin,
+      credentials: true,
+      allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID', 'X-API-Key'],
+      allowMethods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    }),
+  )
 
   const authentication: MiddlewareHandler<AppEnv> = async (c, next) => {
     const authorization = c.req.header('authorization')
@@ -273,7 +262,21 @@ export function createApp({
       const token = apiKey !== undefined ? apiKey.trim() : match![1]!
       if (apiKey !== undefined || token.startsWith('dva_')) {
         if (!/^dva_[0-9a-f]{48}$/.test(token)) fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
-        const [credential] = await db.update(apiKeyCredentials).set({ lastUsedAt: now() }).where(and(eq(apiKeyCredentials.keyHash, createHash('sha256').update(token).digest('hex')), isNull(apiKeyCredentials.revokedAt))).returning({ id: apiKeyCredentials.id, userId: apiKeyCredentials.userId, label: apiKeyCredentials.label, scope: apiKeyCredentials.scope })
+        const [credential] = await db
+          .update(apiKeyCredentials)
+          .set({ lastUsedAt: now() })
+          .where(
+            and(
+              eq(apiKeyCredentials.keyHash, createHash('sha256').update(token).digest('hex')),
+              isNull(apiKeyCredentials.revokedAt),
+            ),
+          )
+          .returning({
+            id: apiKeyCredentials.id,
+            userId: apiKeyCredentials.userId,
+            label: apiKeyCredentials.label,
+            scope: apiKeyCredentials.scope,
+          })
         if (!credential) fail(401, 'AUTH_TOKEN_INVALID', 'Invalid token')
         c.set('apiKey', { ...credential, id: String(credential.id), userId: String(credential.userId) })
         c.set('authTransport', 'api-key')
@@ -341,7 +344,11 @@ export function createApp({
       return
     }
 
-    if (c.get('authTransport') === 'bearer' || c.get('authTransport') === 'api-key' || PUBLIC_STATE_PATHS.has(c.req.path)) {
+    if (
+      c.get('authTransport') === 'bearer' ||
+      c.get('authTransport') === 'api-key' ||
+      PUBLIC_STATE_PATHS.has(c.req.path)
+    ) {
       await next()
       return
     }
@@ -352,131 +359,86 @@ export function createApp({
   })
 
   app.use('/api/*', requestBodyLimit())
+  // --- Shared services ------------------------------------------------------
+  // Composed here because more than one surface needs them, or because they are
+  // injectable for tests. Anything a single surface owns is composed there.
 
   const market = marketData ?? createMarketData({ upstream: createYahooUpstream(), now })
   const researchCalendar = createVerifiedUsEquityCalendarProvider()
   const researchSearchBudget = createPostgresTavilySearchBudget(db)
-  const evidenceProvider = researchEvidenceProvider ?? createResearchEvidenceProvider({
-    market,
-    calendar: researchCalendar,
-    now,
-    officialSources: researchOfficialSources,
-    search: {
-      // A prepare makes one search call. Create its bounded adapter per call so
-      // the adapter-local maxCallsPerRun counter cannot leak across runs.
-      provider: {
-        search(query, signal) {
-          return createTavilySearchProvider({ apiKey: process.env.TAVILY_API_KEY, policy: TAVILY_SEARCH_POLICY, now, budget: researchSearchBudget }).search(query, signal)
+  const evidenceProvider =
+    researchEvidenceProvider ??
+    createResearchEvidenceProvider({
+      market,
+      calendar: researchCalendar,
+      now,
+      officialSources: researchOfficialSources,
+      search: {
+        // A prepare makes one search call. Create its bounded adapter per call so
+        // the adapter-local maxCallsPerRun counter cannot leak across runs.
+        provider: {
+          search(query, signal) {
+            return createTavilySearchProvider({
+              apiKey: process.env.TAVILY_API_KEY,
+              policy: TAVILY_SEARCH_POLICY,
+              now,
+              budget: researchSearchBudget,
+            }).search(query, signal)
+          },
         },
+        policy: TAVILY_SEARCH_POLICY,
+        query: instrument => `${instrument.symbol} ${instrument.name} recent official events and news`,
       },
-      policy: TAVILY_SEARCH_POLICY,
-      query: instrument => `${instrument.symbol} ${instrument.name} recent official events and news`,
-    },
-  })
-  const latestResearchSession = researchLatestCompletedSession ?? createLatestCompletedUsEquitySessionResolver(researchCalendar)
-  registerMarketRoutes(app, {
+    })
+  // Shared by the research and publishing surfaces: an article's figures are
+  // stated as of a completed session, not as of now.
+  const latestResearchSession =
+    researchLatestCompletedSession ?? createLatestCompletedUsEquitySessionResolver(researchCalendar)
+
+  const surface: SurfaceContext = {
+    db,
+    config,
+    now,
+    logger,
     market,
     consume: consumeRateLimit,
-    clientIp: (c) => clientIp(c, config.trustProxy),
-    fail,
-    validationError,
-  })
-  registerSecFilingRoutes(app, {
-    service: secFilings ?? createSecEdgarService(config.secUserAgent ?? '', undefined, createPostgresSecSharedScheduler(db)),
-    consume: consumeRateLimit,
-    clientIp: (c) => clientIp(c, config.trustProxy),
-    fail,
-    validationError,
-  })
+    clientIp: c => clientIp(c, config.trustProxy),
+  }
 
-  app.get('/api/market/rotation-monitor',async c=>{
-    c.header('Cache-Control','no-store');
-    const query=marketRotationMonitorQuerySchema.safeParse(c.req.query());if(!query.success)return validationError(query.error);
-    const context=await readRotationMonitor(db,query.data.scope,now().toISOString().slice(0,10));
-    if(!context)return fail(404,'SYS_NOT_FOUND','No qualified rotation snapshots available');
-    return c.json(marketRotationMonitorResponseSchema.parse(context.payload));
-  })
-  registerMarketStateRoutes(app, { db, fail, validationError })
-  registerRotationAdmin(app,{run:databasePool?scope=>runRotationBatch({db,pool:databasePool,market,now},scope):undefined,parseJson,fail})
-  registerEtfProfileRoutes(app, { market, now, validationError })
-  registerEtfWatchlistRoutes(app, { db, now, fail, validationError, parseJson })
-  registerEtfAdminRoutes(app, { db, now, market, fail, validationError, parseJson })
-  registerHolidayRoutes(app, { holidays: holidays ?? createNagerHolidayProvider(), fail, validationError })
-  registerDiaryReviewRoutes(app, { db, now, fail, validationError, parseJson })
-  registerDiarySavedViewRoutes(app, { db, now, fail, validationError, parseJson })
-  registerTradePlanRoutes(app, { db, now, fail, validationError, parseJson })
-  registerWatchlistRoutes(app, { db, now, fail, validationError, parseJson })
-  registerEvidenceRoutes(app, { db, now, fail, validationError, parseJson })
-  registerStockNoteRoutes(app, { db, now, fail, validationError, parseJson })
-  registerInvestmentThesisRoutes(app, { db, now, fail, validationError, parseJson })
-  registerReviewQueueRoute(app, { db, now, fail, validationError })
-  registerActivityTimelineRoute(app, { db, fail, validationError })
-  registerDisciplineOg(app)
-  registerAgentStockRoutes(app, { db, now, fail, validationError, parseJson })
-  registerApiKeyRoutes(app, { db, now, fail, validationError, parseJson, consume: consumeRateLimit })
-  registerPartnerRoutes(app, { db, now, fail, validationError, parseJson })
-  registerDisciplineRoutes(app, { db, now, fail, validationError, parseJson })
-  registerAchievementRoutes(app, { db, now, fail, validationError, parseJson })
-  registerGoalRoutes(app, { db, now, fail, validationError, parseJson })
-  registerPriceAlertRoutes(app, { db, now, fail, validationError, parseJson })
-  registerAlertRoutes(app, { db, now, fail, validationError, parseJson })
-  registerPerformanceRoute(app, { db, fail, validationError })
-  registerPortfolioAttentionRoutes(app, { db, now, market, fail, validationError, logger })
-  registerCompanyHubRoute(app, { db, now, market, fail, validationError })
-  registerPostRoutes(app, { db, now, latestCompletedSession: latestResearchSession, logger, fail, validationError, parseJson, consume: consumeRateLimit, clientIp: c => clientIp(c, config.trustProxy) })
-  registerArticleTranslationRoutes(app, { db, now, latestCompletedSession: latestResearchSession, fail, validationError, parseJson, consume: consumeRateLimit })
-  registerAdminUserRoutes(app, { db, now, onAccountRevoked, fail, validationError, parseJson })
-  registerAdminGuruRoutes(app, { db, now, fail, validationError, parseJson })
-  registerGuruResearchRoutes(app, { db, fail, validationError })
-  registerGuruConsensusRoutes(app, { db, fail, validationError })
-  registerGuruComparisonRoutes(app, { db, now, fail, validationError })
-  // Reserved Guru paths are registered before the slug route so a literal path
-  // can never be shadowed by a profile slug.
-  registerGuruNotificationRoutes(app, { db, now, fail, validationError, parseJson })
-  registerGuruAnalysisRoutes(app, { db, now, fail, validationError, parseJson })
-  registerGuruRoutes(app, { db, now, fail, validationError })
-  registerAdminSecurityMappingRoutes(app, { db, now, fail, validationError, parseJson })
-  registerAdminInstitutionalOperationRoutes(app, { db, now, fail, validationError, parseJson })
-  const aiReportService = new AiReportService({ db, now })
-  registerAiReportRoutes(app, { db, now, service: aiReportService, fail, validationError, parseJson, consume: consumeRateLimit })
-  registerAiAdminRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
-  registerSharedPromptRoutes(app, { db, now, transport: aiTransport, fail, validationError, parseJson })
-  const accountEmailLifecycle = registerAccountEmailPublicRoutes(app, {
-    db,
-    webOrigin: config.webOrigin,
-    now,
-    clientIp: context => clientIp(context, config.trustProxy),
-    fail,
-    parseJson,
+  // --- Route surfaces -------------------------------------------------------
+  // Hono matches in registration order, so this list is behaviour. Keep it in
+  // this order and keep each surface's internal order; the frozen surface in
+  // tests/unit/api-route-order.test.ts is what makes a reordering visible.
+
+  registerMarketSurface(app, surface, { secFilings, holidays, databasePool })
+  registerDiarySurface(app, surface)
+  registerAccountSurface(app, surface)
+  registerPerformanceSurface(app, surface)
+  registerPublishingSurface(app, surface, { latestCompletedSession: latestResearchSession })
+  registerAdminSurface(app, surface, { onAccountRevoked })
+  registerGuruSurface(app, surface)
+  registerInstitutionalSurface(app, surface)
+  registerAiSurface(app, surface, { aiTransport })
+  // Returns the lifecycle the auth surface needs, which is why it precedes it.
+  const accountEmailLifecycle = registerAccountEmailSurface(app, surface, {
+    databasePool,
     onAccountRevoked,
     clearAuthCookies,
-    ...(smtpKeyring ? { keyring: smtpKeyring } : {}),
+    smtpTransportFactory,
+    smtpKeyring,
+    smtpHostLookup,
+    smtpAllowedPrivateHosts,
   })
-  registerAccountEmailAdminRoutes(app, {
-    db,
-    ...(databasePool ? { pool: databasePool } : {}),
-    now,
-    fail,
-    parseJson,
-    ...(smtpTransportFactory ? { smtpTransportFactory } : {}),
-    ...(smtpKeyring ? { smtpKeyring } : {}),
-    ...(smtpHostLookup ? { smtpHostLookup } : {}),
-    ...(smtpAllowedPrivateHosts !== undefined ? { smtpAllowedPrivateHosts } : {}),
-  })
-  registerResearchRoutes(app, {
-    db,
-    now,
+  registerResearchSurface(app, surface, {
     transport: researchTransport ?? createOpenRouterResearchTransport(aiTransport),
     evidenceProvider,
     latestCompletedSession: latestResearchSession,
     allowSyntheticEvidence,
-    officialSourcePolicies: researchOfficialSources?.map(source => source.policy),
-    fail,
-    validationError,
-    parseJson,
-    consume: consumeRateLimit,
+    researchOfficialSources,
   })
 
+  // These three stay in the root: each closes over session state the root owns
+  // — the session service, the auth cookie writers, and the rate limiter.
   registerAuthRoutes(app, {
     db,
     config,
@@ -492,25 +454,31 @@ export function createApp({
     consume: consumeRateLimit,
   })
 
+  // Literal diary segments must register before the `:id` parameter route;
+  // diary-routes.ts:1-6 owns that constraint internally.
   registerDiaryRoutes(app, { db, now })
 
   registerPortfolioRoutes(app, { db, config, now, market, consume: consumeRateLimit })
 
-  app.notFound((c) => {
+  app.notFound(c => {
     const error = new ApiError(404, 'SYS_NOT_FOUND', 'Resource not found')
-    return c.json(apiErrorResponseSchema.parse({
-      statusCode: error.statusCode,
-      statusMessage: error.message,
-      data: { code: error.code, details: null, requestId: c.get('requestId') },
-    }), 404)
+    return c.json(
+      apiErrorResponseSchema.parse({
+        statusCode: error.statusCode,
+        statusMessage: error.message,
+        data: { code: error.code, details: null, requestId: c.get('requestId') },
+      }),
+      404,
+    )
   })
 
   app.onError((error, c) => {
-    const apiError = error instanceof RequestBodyLimitError
-      ? new ApiError(413, 'SYS_VALIDATION_ERROR', error.message)
-      : error instanceof ApiError
-      ? error
-      : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
+    const apiError =
+      error instanceof RequestBodyLimitError
+        ? new ApiError(413, 'SYS_VALIDATION_ERROR', error.message)
+        : error instanceof ApiError
+          ? error
+          : new ApiError(500, 'SYS_INTERNAL_ERROR', 'Internal server error')
     if (apiError.statusCode === 429 && apiError.code === 'AUTH_RATE_LIMITED') {
       c.header('Retry-After', String(c.get('rateLimitRetryAfterSeconds') ?? 60))
     }

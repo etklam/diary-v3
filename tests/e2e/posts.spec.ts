@@ -6,11 +6,16 @@ const adminEmail = 'etf-admin@example.test'
 const adminPassword = 'synthetic-etf-admin-password'
 
 async function signInAdmin(page: Page) {
-  expect((await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status()).toBe(200)
+  expect(
+    (await page.request.post('/api/auth/login', { data: { email: adminEmail, password: adminPassword } })).status(),
+  ).toBe(200)
   expect((await page.request.get('/api/auth/me')).status()).toBe(200)
 }
 
-test('admin authors a public article end to end without weakening public or role boundaries @webkit-critical', async ({ page, browser }) => {
+test('admin authors a public article end to end without weakening public or role boundaries @webkit-critical', async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(180_000)
   const title = `中文同名文章 ${randomUUID()}`
   await signInAdmin(page)
@@ -49,7 +54,11 @@ test('admin authors a public article end to end without weakening public or role
   await expect(page.getByText('Draft saved.', { exact: true })).toBeVisible()
   const id = page.url().match(/admin\/blog\/(\d+)\/edit$/)?.[1]
   expect(id).toBeTruthy()
-  const draft = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string; publishedAt: string | null }
+  const draft = (await (await page.request.get(`/api/blog/admin/${id}`)).json()) as {
+    slug: string
+    status: string
+    publishedAt: string | null
+  }
   expect(draft).toMatchObject({ status: 'DRAFT', publishedAt: null })
   await expect(page.getByRole('link', { name: 'View article', exact: true })).toHaveCount(0)
   await page.screenshot({ path: 'docs/design/evidence/article-publishing/editor-draft-1440.png', fullPage: true })
@@ -73,19 +82,28 @@ test('admin authors a public article end to end without weakening public or role
     const translationEditor = page.locator('.article-translation-edit')
     const englishTitle = `Synthetic English article ${title.slice('中文同名文章 '.length)}`
     await translationEditor.getByLabel('Title', { exact: true }).fill(englishTitle)
-    await translationEditor.getByLabel('Content', { exact: true }).fill('# Translated body\n\nA reviewed English **Markdown** paragraph.')
+    await translationEditor
+      .getByLabel('Content', { exact: true })
+      .fill('# Translated body\n\nA reviewed English **Markdown** paragraph.')
     await translationEditor.getByRole('button', { name: 'Save translation draft', exact: true }).click()
     await expect(englishRow.getByText('Pending review', { exact: true })).toBeVisible()
     await englishRow.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(page.locator('.article-translation-preview')).toContainText('A reviewed English Markdown paragraph.')
-    await page.locator('.article-translation-preview').getByRole('button', { name: 'Close preview', exact: true }).click()
+    await page
+      .locator('.article-translation-preview')
+      .getByRole('button', { name: 'Close preview', exact: true })
+      .click()
     await englishRow.getByRole('button', { name: 'Approve', exact: true }).click()
     await expect(englishRow.getByText('Approved · Ready to publish', { exact: true })).toBeVisible()
     await englishRow.getByRole('button', { name: 'Publish', exact: true }).click()
     await expect(englishRow.getByText('Published', { exact: true })).toBeVisible()
     const publicLink = page.getByRole('link', { name: 'View article', exact: true })
     await expect(publicLink).toBeVisible()
-    const published = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string; publishedAt: string | null }
+    const published = (await (await page.request.get(`/api/blog/admin/${id}`)).json()) as {
+      slug: string
+      status: string
+      publishedAt: string | null
+    }
     expect(published.status).toBe('PUBLISHED')
     expect(published.publishedAt).toBeTruthy()
     const management = await page.context().newPage()
@@ -94,7 +112,10 @@ test('admin authors a public article end to end without weakening public or role
     await management.getByLabel('Search title or author', { exact: true }).fill(adminEmail)
     await management.getByRole('button', { name: 'Apply', exact: true }).click()
     const managementRow = management.getByRole('row', { name: new RegExp(title) })
-    await expect(managementRow.getByRole('link', { name: 'View article', exact: true })).toHaveAttribute('href', `/articles/${encodeURIComponent(published.slug)}`)
+    await expect(managementRow.getByRole('link', { name: 'View article', exact: true })).toHaveAttribute(
+      'href',
+      `/articles/${encodeURIComponent(published.slug)}`,
+    )
     await expect(managementRow.locator('time')).not.toHaveText(/T\d{2}:\d{2}:\d{2}/)
     await management.close()
     await page.evaluate(() => scrollTo(0, 0))
@@ -123,7 +144,9 @@ test('admin authors a public article end to end without weakening public or role
     await expect(guest.getByText('A reviewed English Markdown paragraph.', { exact: true })).toBeVisible()
     await expect(guest.locator('html')).toHaveAttribute('lang', 'en')
     expect(await guest.locator('meta[property="og:title"]').getAttribute('content')).toBe(englishTitle)
-    expect(await guest.locator('link[rel="canonical"]').getAttribute('href')).toContain(`/articles/${encodeURIComponent(published.slug)}?lang=en`)
+    expect(await guest.locator('link[rel="canonical"]').getAttribute('href')).toContain(
+      `/articles/${encodeURIComponent(published.slug)}?lang=en`,
+    )
     const languageSelector = guest.locator('#article-language')
     await expect(languageSelector).toHaveValue('en')
     await languageSelector.selectOption('zh-TW')
@@ -147,37 +170,65 @@ test('admin authors a public article end to end without weakening public or role
 
     await publicLink.click()
     await expect(page.locator('.public-shell')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Edit article', exact: true })).toHaveAttribute('href', `/admin/blog/${id}/edit`)
+    await expect(page.getByRole('link', { name: 'Edit article', exact: true })).toHaveAttribute(
+      'href',
+      `/admin/blog/${id}/edit`,
+    )
     await page.evaluate(() => scrollTo(0, 0))
     await page.screenshot({ path: 'docs/design/evidence/article-publishing/detail-admin-1440.png', fullPage: true })
     await page.getByRole('link', { name: 'Edit article', exact: true }).click()
-    await expect(page.getByRole('link', { name: 'View article', exact: true })).toHaveAttribute('href', `/articles/${encodeURIComponent(published.slug)}`)
+    await expect(page.getByRole('link', { name: 'View article', exact: true })).toHaveAttribute(
+      'href',
+      `/articles/${encodeURIComponent(published.slug)}`,
+    )
     const content = page.locator('.article-editor-fields textarea').first()
     await expect(content).toBeVisible()
-    expect(await content.evaluate(element => ({ disabled: (element as HTMLTextAreaElement).disabled, fieldsetDisabled: element.closest('fieldset')?.disabled }))).toEqual({ disabled: false, fieldsetDisabled: false })
+    expect(
+      await content.evaluate(element => ({
+        disabled: (element as HTMLTextAreaElement).disabled,
+        fieldsetDisabled: element.closest('fieldset')?.disabled,
+      })),
+    ).toEqual({ disabled: false, fieldsetDisabled: false })
     await content.fill('# Updated body\n\nThe published content changed safely.')
     await page.locator('.article-editor-fields .title-input').press('Enter')
     await expect(page.getByText('Published article updated.', { exact: true })).toBeVisible()
-    const updated = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { slug: string; status: string; content: string }
-    expect(updated).toMatchObject({ status: 'PUBLISHED', content: '# Updated body\n\nThe published content changed safely.' })
+    const updated = (await (await page.request.get(`/api/blog/admin/${id}`)).json()) as {
+      slug: string
+      status: string
+      content: string
+    }
+    expect(updated).toMatchObject({
+      status: 'PUBLISHED',
+      content: '# Updated body\n\nThe published content changed safely.',
+    })
     await guest.goto(`/articles/${encodeURIComponent(updated.slug)}`)
     await expect(guest.getByText('The published content changed safely.', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Archive article', exact: true }).click()
     await expect(page.getByText('Article archived and no longer public.', { exact: true })).toBeVisible()
     expect((await page.request.get(`/api/blog/admin/${id}`)).status()).toBe(200)
-    const archived = await (await page.request.get(`/api/blog/admin/${id}`)).json() as { status: string }
+    const archived = (await (await page.request.get(`/api/blog/admin/${id}`)).json()) as { status: string }
     expect(archived.status).toBe('ARCHIVED')
     await expect(page.getByRole('link', { name: 'View article', exact: true })).toHaveCount(0)
     expect((await guest.goto(`/articles/${encodeURIComponent(updated.slug)}`))?.status()).toBe(404)
     await guest.goto('/articles')
     await expect(guest.getByRole('heading', { name: title, exact: true })).toHaveCount(0)
-    expect(await (await guest.request.get('/sitemap.xml')).text()).not.toContain(`/articles/${encodeURIComponent(updated.slug)}`)
+    expect(await (await guest.request.get('/sitemap.xml')).text()).not.toContain(
+      `/articles/${encodeURIComponent(updated.slug)}`,
+    )
 
-    const viewer = await (await page.request.get('/api/auth/me')).json() as { data: { id: string } }
+    const viewer = (await (await page.request.get('/api/auth/me')).json()) as { data: { id: string } }
     await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify({ at: Date.now(), value })), {
       key: `post-editor-draft:${viewer.data.id}:${id}`,
-      value: { title, content: 'Recovered stale published edit.', excerpt: 'Recovered excerpt.', coverImage: '/favicon.svg', category: 'market', tags: 'recovered', status: 'PUBLISHED' },
+      value: {
+        title,
+        content: 'Recovered stale published edit.',
+        excerpt: 'Recovered excerpt.',
+        coverImage: '/favicon.svg',
+        category: 'market',
+        tags: 'recovered',
+        status: 'PUBLISHED',
+      },
     })
     await page.reload()
     await expect(page.getByText('Unsaved edits were restored for this article.', { exact: true })).toBeVisible()
@@ -189,15 +240,33 @@ test('admin authors a public article end to end without weakening public or role
 
     await page.locator('.article-editor-fields textarea').first().fill('Retained after failed republish.')
     const postWriteRoute = (url: URL) => url.pathname === `/api/blog/${id}`
-    await page.route(postWriteRoute, route => route.request().method() === 'PUT' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'post-publish-failure' } }) }) : route.continue())
+    await page.route(postWriteRoute, route =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({
+            status: 500,
+            contentType: 'application/json',
+            body: JSON.stringify({ data: { code: 'SYS_INTERNAL_ERROR', requestId: 'post-publish-failure' } }),
+          })
+        : route.continue(),
+    )
     await page.getByRole('button', { name: 'Republish', exact: true }).click()
     await expect(page.getByTestId('request-id')).toHaveText('post-publish-failure')
-    await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue('Retained after failed republish.')
+    await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue(
+      'Retained after failed republish.',
+    )
     await expect(page.getByRole('link', { name: 'View article', exact: true })).toHaveCount(0)
 
     await page.unroute(postWriteRoute)
     await page.context().clearCookies()
-    await page.route(postWriteRoute, route => route.request().method() === 'PUT' ? route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'post-session-expired' } }) }) : route.continue())
+    await page.route(postWriteRoute, route =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({ data: { code: 'AUTH_UNAUTHORIZED', requestId: 'post-session-expired' } }),
+          })
+        : route.continue(),
+    )
     await page.getByRole('button', { name: 'Republish', exact: true }).click()
     await expect(page).toHaveURL(/\/login\?returnTo=/)
     expect(new URL(page.url()).searchParams.get('returnTo')).toBe(`/admin/blog/${id}/edit`)
@@ -206,7 +275,9 @@ test('admin authors a public article end to end without weakening public or role
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/admin/blog/${id}/edit$`))
     await expect(page.getByText('Unsaved edits were restored for this article.', { exact: true })).toBeVisible()
-    await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue('Retained after failed republish.')
+    await expect(page.locator('.article-editor-fields textarea').first()).toHaveValue(
+      'Retained after failed republish.',
+    )
     await page.unroute(postWriteRoute)
 
     page.once('dialog', dialog => dialog.accept())
@@ -218,14 +289,24 @@ test('admin authors a public article end to end without weakening public or role
     await expect(page.getByRole('link', { name: 'New article', exact: true })).toHaveCount(0)
     await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in', exact: true })).toBeVisible()
     await secondTab.close()
-  } finally { await guestContext.close() }
+  } finally {
+    await guestContext.close()
+  }
 
   const ordinaryContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
   try {
     const ordinary = await ordinaryContext.newPage()
     const email = `article-ordinary-${randomUUID()}@example.test`
-    expect((await ordinary.request.post('/api/auth/register', { data: { email, password: 'synthetic-ordinary-password' } })).status()).toBe(200)
-    expect((await ordinary.request.post('/api/auth/login', { data: { email, password: 'synthetic-ordinary-password' } })).status()).toBe(200)
+    expect(
+      (
+        await ordinary.request.post('/api/auth/register', { data: { email, password: 'synthetic-ordinary-password' } })
+      ).status(),
+    ).toBe(200)
+    expect(
+      (
+        await ordinary.request.post('/api/auth/login', { data: { email, password: 'synthetic-ordinary-password' } })
+      ).status(),
+    ).toBe(200)
     await ordinary.goto('/articles')
     await selectLocale(ordinary, 'en')
     await selectTheme(ordinary, 'dark')
@@ -250,8 +331,19 @@ test('admin authors a public article end to end without weakening public or role
     // settled rather than on the first resolve; `evaluateAll` does not wait.
     const toolLinks = publicMenu.locator('.public-menu-tools a')
     await expect(toolLinks.first()).toBeVisible()
-    await expect.poll(async () => toolLinks.evaluateAll(links => links.length > 0 && links.every(link => link.getBoundingClientRect().height >= 44))).toBe(true)
+    await expect
+      .poll(async () =>
+        toolLinks.evaluateAll(
+          links => links.length > 0 && links.every(link => link.getBoundingClientRect().height >= 44),
+        ),
+      )
+      .toBe(true)
     await publicMenu.press('Escape')
-    await ordinary.screenshot({ path: 'docs/design/evidence/article-publishing/list-user-390-dark.png', fullPage: true })
-  } finally { await ordinaryContext.close() }
+    await ordinary.screenshot({
+      path: 'docs/design/evidence/article-publishing/list-user-390-dark.png',
+      fullPage: true,
+    })
+  } finally {
+    await ordinaryContext.close()
+  }
 })

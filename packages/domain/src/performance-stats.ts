@@ -100,12 +100,9 @@ function buildAttributeBreakdown(
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
-export function computePerformanceStats(
-  rawTxs: RawTransactionRecord[],
-  config: PerformanceConfig,
-): PerformanceResult {
+export function computePerformanceStats(rawTxs: RawTransactionRecord[], config: PerformanceConfig): PerformanceResult {
   const closedTrades = matchTrades(
-    rawTxs.map((tx) => ({
+    rawTxs.map(tx => ({
       ...tx,
       id: tx.id.toString(),
       type: tx.type as 'BUY' | 'SELL',
@@ -124,20 +121,16 @@ export function computePerformanceStats(
   const monthlyReturnPcts = buildMonthlyReturnPcts(closedTrades)
   const sharpeResult = calcSharpe(monthlyReturnPcts)
 
-  const requestedGrouped =
-    config.period === 'month' ? grouped : groupByPeriod(closedTrades, config.period)
-  const requestedPeriodStats =
-    config.period === 'month'
-      ? periodStatsResult
-      : calcPeriodStats(requestedGrouped)
+  const requestedGrouped = config.period === 'month' ? grouped : groupByPeriod(closedTrades, config.period)
+  const requestedPeriodStats = config.period === 'month' ? periodStatsResult : calcPeriodStats(requestedGrouped)
 
   // Filter before slicing: slice(0,5).filter would drop the 6th-ranked winner
   // when a loss lands inside the top 5
   const sortedByPnL = [...closedTrades].sort((a, b) => b.realizedPnL - a.realizedPnL)
-  const topWins = sortedByPnL.filter((t) => t.realizedPnL > 0).slice(0, 5)
+  const topWins = sortedByPnL.filter(t => t.realizedPnL > 0).slice(0, 5)
   const topLosses = [...closedTrades]
     .sort((a, b) => a.realizedPnL - b.realizedPnL)
-    .filter((t) => t.realizedPnL < 0)
+    .filter(t => t.realizedPnL < 0)
     .slice(0, 5)
 
   const symbolMap = new Map<string, { realizedPnL: number; trades: ClosedTrade[] }>()
@@ -180,7 +173,9 @@ export function computePerformanceStats(
     emotionBreakdown,
     bestStrategy: strategyBreakdown[0] ?? null,
     worstStrategy: strategyBreakdown.length
-      ? [...strategyBreakdown].sort((a, b) => a.realizedPnL - b.realizedPnL || b.tradeCount - a.tradeCount || a.name.localeCompare(b.name))[0]!
+      ? [...strategyBreakdown].sort(
+          (a, b) => a.realizedPnL - b.realizedPnL || b.tradeCount - a.tradeCount || a.name.localeCompare(b.name),
+        )[0]!
       : null,
   }
 }

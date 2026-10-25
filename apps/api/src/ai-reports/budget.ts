@@ -2,15 +2,32 @@ import { sql } from 'drizzle-orm'
 import type { Database } from '@diary/db'
 
 type Executor = Pick<Database, 'execute'>
-export interface AiBudgetReservation { month: string; reservationCostCents: number }
+export interface AiBudgetReservation {
+  month: string
+  reservationCostCents: number
+}
 function validateReservation(input: AiBudgetReservation) {
-  if (!/^\d{4}-(?:0[1-9]|1[0-2])-01$/.test(input.month) || !Number.isSafeInteger(input.reservationCostCents) || input.reservationCostCents <= 0 || input.reservationCostCents > 2_147_483_647) throw new Error('AI_INVALID_BUDGET_RESERVATION')
+  if (
+    !/^\d{4}-(?:0[1-9]|1[0-2])-01$/.test(input.month) ||
+    !Number.isSafeInteger(input.reservationCostCents) ||
+    input.reservationCostCents <= 0 ||
+    input.reservationCostCents > 2_147_483_647
+  )
+    throw new Error('AI_INVALID_BUDGET_RESERVATION')
 }
 
 /** Call within a transaction after the global AI lock, before any owner lock. */
-export async function reserveGlobalAiBudget(tx: Executor, input: AiBudgetReservation & { monthlyBudgetCents: number }): Promise<boolean> {
+export async function reserveGlobalAiBudget(
+  tx: Executor,
+  input: AiBudgetReservation & { monthlyBudgetCents: number },
+): Promise<boolean> {
   validateReservation(input)
-  if (!Number.isSafeInteger(input.monthlyBudgetCents) || input.monthlyBudgetCents < 0 || input.monthlyBudgetCents > 2_147_483_647) throw new Error('AI_INVALID_BUDGET_RESERVATION')
+  if (
+    !Number.isSafeInteger(input.monthlyBudgetCents) ||
+    input.monthlyBudgetCents < 0 ||
+    input.monthlyBudgetCents > 2_147_483_647
+  )
+    throw new Error('AI_INVALID_BUDGET_RESERVATION')
   if (input.monthlyBudgetCents < input.reservationCostCents) return false
   await tx.execute(sql`insert into ai_usage_bucket (scope, user_id, bucket_month)
     values ('global', null, ${input.month}::date) on conflict do nothing`)
@@ -44,10 +61,18 @@ export async function consumeGlobalAiBudget(tx: Executor, input: AiBudgetReserva
 }
 
 /** Call once after an attempt-state CAS; only known cost adjusts the committed bound. */
-export async function settleGlobalAiBudget(tx: Executor, input: AiBudgetReservation & { actualCostCents: number | null; inputTokens: number | null; outputTokens: number | null }): Promise<void> {
+export async function settleGlobalAiBudget(
+  tx: Executor,
+  input: AiBudgetReservation & {
+    actualCostCents: number | null
+    inputTokens: number | null
+    outputTokens: number | null
+  },
+): Promise<void> {
   validateReservation(input)
   for (const value of [input.actualCostCents, input.inputTokens, input.outputTokens]) {
-    if (value !== null && (!Number.isSafeInteger(value) || value < 0 || value > 2_147_483_647)) throw new Error('AI_INVALID_USAGE')
+    if (value !== null && (!Number.isSafeInteger(value) || value < 0 || value > 2_147_483_647))
+      throw new Error('AI_INVALID_USAGE')
   }
   const adjustment = input.actualCostCents === null ? 0 : input.actualCostCents - input.reservationCostCents
   const result = await tx.execute(sql`update ai_usage_bucket

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { alignRelativeRatioHistory, calculateRelativeRatio, generateRelativePricePoints, parseRelativeTargetPrices, splitRelativeRatioSegments } from '../../packages/domain/src/relative-value'
+import {
+  alignRelativeRatioHistory,
+  calculateRelativeRatio,
+  generateRelativePricePoints,
+  parseRelativeTargetPrices,
+  splitRelativeRatioSegments,
+} from '../../packages/domain/src/relative-value'
 
 describe('relative value domain', () => {
   it('calculates ratio and rejects invalid or zero prices', () => {
@@ -17,14 +23,27 @@ describe('relative value domain', () => {
 
   it('joins historical closes by exact timestamps and excludes invalid denominators', () => {
     const points = alignRelativeRatioHistory(
-      [{ timestamp: 1, close: 100 }, { timestamp: 2, close: 110 }, { timestamp: 3, close: 0 }],
-      [{ timestamp: 1, close: 25 }, { timestamp: 3, close: 30 }],
+      [
+        { timestamp: 1, close: 100 },
+        { timestamp: 2, close: 110 },
+        { timestamp: 3, close: 0 },
+      ],
+      [
+        { timestamp: 1, close: 25 },
+        { timestamp: 3, close: 30 },
+      ],
     )
     expect(points).toEqual([
       { timestamp: 1, ratio: 4, primaryClose: 100, relativeClose: 25 },
       { timestamp: 2, ratio: null, primaryClose: 110, relativeClose: null },
       { timestamp: 3, ratio: null, primaryClose: null, relativeClose: 30 },
     ])
-    expect(splitRelativeRatioSegments([...points, { timestamp: 4, ratio: Number.NaN, primaryClose: null, relativeClose: null }, { timestamp: 5, ratio: 5, primaryClose: 100, relativeClose: 20 }]).map(segment => segment.length)).toEqual([1, 1])
+    expect(
+      splitRelativeRatioSegments([
+        ...points,
+        { timestamp: 4, ratio: Number.NaN, primaryClose: null, relativeClose: null },
+        { timestamp: 5, ratio: 5, primaryClose: 100, relativeClose: 20 },
+      ]).map(segment => segment.length),
+    ).toEqual([1, 1])
   })
 })

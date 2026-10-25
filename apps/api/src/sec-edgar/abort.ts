@@ -27,7 +27,10 @@ export function withAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise
     }
     const onAbort = () => finish(() => reject(cancelledSecRequest()))
     signal.addEventListener('abort', onAbort, { once: true })
-    promise.then(value => finish(() => resolve(value)), error => finish(() => reject(error)))
+    promise.then(
+      value => finish(() => resolve(value)),
+      error => finish(() => reject(error)),
+    )
     if (signal.aborted) onAbort()
   })
 }

@@ -6,18 +6,8 @@
  * Percentiles and ranks are computed at the batch/scope level, not here.
  */
 
-import {
-  calculateRsi,
-  calculateEma,
-  calculateSma,
-  calculateRollingHigh,
-  calculatePerformance,
-} from './indicators.js'
-import {
-  calculateMaScore,
-  calculateMaStatus,
-  calculateDistanceFromHigh,
-} from './calculations.js'
+import { calculateRsi, calculateEma, calculateSma, calculateRollingHigh, calculatePerformance } from './indicators.js'
+import { calculateMaScore, calculateMaStatus, calculateDistanceFromHigh } from './calculations.js'
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -30,13 +20,7 @@ export interface DailyPrice {
 export interface SnapshotMeta {
   symbol: string
   rankScope: 'sectors' | 'indexes' | 'core'
-  groupType:
-    | 'sector'
-    | 'index'
-    | 'core'
-    | 'core_etf'
-    | 'mega_cap'
-    | 'single_stock'
+  groupType: 'sector' | 'index' | 'core' | 'core_etf' | 'mega_cap' | 'single_stock'
   sectorName: string | null
 }
 
@@ -75,10 +59,7 @@ export interface SnapshotData {
  * @param prices  Historical daily prices, sorted ascending (oldest first).
  * @returns       SnapshotData with computed indicators, or null if prices is empty.
  */
-export function buildSnapshot(
-  meta: SnapshotMeta,
-  prices: DailyPrice[],
-): SnapshotData | null {
+export function buildSnapshot(meta: SnapshotMeta, prices: DailyPrice[]): SnapshotData | null {
   if (prices.length === 0) return null
 
   const latest = prices[prices.length - 1]

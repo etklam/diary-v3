@@ -2,9 +2,10 @@
 
 # [132] Rule on, and record, the single-replica assumption
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: decision
 Type: Operations
@@ -77,10 +78,10 @@ multi-replica implementation may relax that guard.
 
 ## Provisional acceptance criteria
 
-- [ ] A ruling (single-replica hard constraint, or multi-replica program) is recorded in the architecture/operations docs and an ADR.
-- [ ] A manifest or startup guard rejects more than one API replica regardless of rate-limit backend until scheduler/realtime scaling is independently accepted.
-- [ ] Every in-process scheduler's cross-replica behaviour is either stated as safe, stated as single-replica-only, or moved to a shared lease.
-- [ ] `docs/audits/project-cleanup-2026-09-27.md:88` references the ruling instead of leaving the boundary open.
+- [x] A ruling (single-replica hard constraint, or multi-replica program) is recorded in the architecture/operations docs and an ADR.
+- [x] A manifest or startup guard rejects more than one API replica regardless of rate-limit backend until scheduler/realtime scaling is independently accepted.
+- [x] Every in-process scheduler's cross-replica behaviour is either stated as safe, stated as single-replica-only, or moved to a shared lease.
+- [x] `docs/audits/project-cleanup-2026-09-27.md:88` references the ruling instead of leaving the boundary open.
 
 ## Related work
 
@@ -99,3 +100,40 @@ None. This is a decision ticket; the implementation follows the ruling.
 Filed 2026-10-16 from a repository quality audit. This is the only ticket in the 124–132 set
 whose first step is a choice rather than a task, and it should be triaged before the others
 so the guard's direction is known.
+
+### Acceptance — 2026-10-25
+
+**Ruling: option (a). Exactly one API process is authoritative**, recorded in
+[ADR-0020](../../../docs/adr/0020-single-api-replica-boundary.md) and referenced from
+`docs/architecture.md`, `docs/operations/environment-contract.md` and
+`ops/k8s/production/README.md`. `RATE_LIMIT_BACKEND=redis` explicitly does not lift it:
+Redis shares the abuse counters and not the reminder schedulers or the Socket.IO registry.
+
+Enforced where it can be broken. `scripts/validate-production-manifests.ts` rejects any
+`diary-v3-api` Deployment that does not declare `replicas: 1`, and `manifests:check`
+runs it in both workflows. Proven: rewriting `02-api.yaml` to `replicas: 2` fails with
+`diary-v3-api must declare replicas: 1, not 2 — in-process reminder schedulers and the
+process-local Socket.IO registry (ADR-0020)`; the file was restored and the check passes.
+`tests/unit/single-replica-guard.test.ts` (5 tests) covers that, an absent replica count,
+the reason appearing in the failure, and the workers staying unconstrained.
+
+Criterion 3 is answered per component, read off the source rather than inferred. The ADR
+tabulates what each does at N replicas: the memory limiter multiplies the effective limit;
+the Socket.IO registry leaves a revoked account's socket open on every other replica, which
+is the security-relevant one; reminder push read-amplifies and can double-deliver to a reader
+whose tabs land on different replicas; the price reminder check is **correct but wasteful**
+(`select … for update` plus the `isTriggered` re-check prevents a double trigger, but
+every quote is fetched again); the market cache multiplies upstream load. The SEC scheduler
+and the Tavily budget are **safe** — both coordinate through Postgres.
+
+One correction worth recording: the queue workers were initially assumed single-process and
+listed in the guard. Reading `account-email/worker.ts` showed `pg_advisory_xact_lock`
+plus `for update skip locked` and a lease token — a proper shared-lease design that is safe
+to run more than once. They were removed from the guard, and the absence is now commented so
+nobody re-adds them.
+
+Five prerequisites for scaling are listed in the ADR as a program rather than a flag flip.
+The audit's open boundary now references the ruling.
+
+**Not done.** This is a ruling, not capacity evidence: multi-replica capacity remains
+unestablished, and the live cluster's Redis state is unverified from this repository.

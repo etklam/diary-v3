@@ -1,27 +1,31 @@
 /** Calendar dates represent a day, never an instant in a local timezone. */
 export function currentUtcDate(now = new Date()): string {
-  return now.toISOString().slice(0, 10);
+  return now.toISOString().slice(0, 10)
 }
 
-export { calculateFinancialFreedom, calculateFireNumber, withdrawalRatePresets } from './fire';
-export type { FinancialFreedomInput, FinancialFreedomResult, YearlyProjection, WithdrawalRatePreset } from './fire';
-export { calendarDateInTimezone } from './calendar-date';
-export * from './ai-reports/period';
-export * from './ai-reports/context';
-export * from './us-equity-calendar';
-export * from './research-studio';
-export * from './guru-consensus';
+export { calculateFinancialFreedom, calculateFireNumber, withdrawalRatePresets } from './fire'
+export type { FinancialFreedomInput, FinancialFreedomResult, YearlyProjection, WithdrawalRatePreset } from './fire'
+export { calendarDateInTimezone } from './calendar-date'
+export * from './ai-reports/period'
+export * from './ai-reports/context'
+export * from './us-equity-calendar'
+export * from './research-studio'
+export * from './guru-consensus'
 
-export * from './quick-types';
-export * from './quick-localization';
-export * from './quick-template';
-export * from './quick-snippets';
-export { deriveQuickTitle, mergeQuickTemplate } from './quick-composer';
-export { mergeTimelineEntries,groupTimelineEntries,projectTimelineEntry,diaryExcerpt } from './timeline';
-export { mergeActivityEvents, groupActivityEvents, groupActivityDays } from './activity-timeline';
-export { calculatePositionSizing, positionSizingStrategies, validatePositionSizingRatios } from './position-sizing';
-export { calculateTradePlanExecution } from './trade-plan-execution';
-export type { TradePlanExecutionCalculation, TradePlanExecutionSnapshot, TradePlanExecutionTransaction } from './trade-plan-execution';
+export * from './quick-types'
+export * from './quick-localization'
+export * from './quick-template'
+export * from './quick-snippets'
+export { deriveQuickTitle, mergeQuickTemplate } from './quick-composer'
+export { mergeTimelineEntries, groupTimelineEntries, projectTimelineEntry, diaryExcerpt } from './timeline'
+export { mergeActivityEvents, groupActivityEvents, groupActivityDays } from './activity-timeline'
+export { calculatePositionSizing, positionSizingStrategies, validatePositionSizingRatios } from './position-sizing'
+export { calculateTradePlanExecution } from './trade-plan-execution'
+export type {
+  TradePlanExecutionCalculation,
+  TradePlanExecutionSnapshot,
+  TradePlanExecutionTransaction,
+} from './trade-plan-execution'
 export type {
   PositionSizingBatch,
   PositionSizingInput,
@@ -30,4 +34,4 @@ export type {
   PositionSizingStrategy,
   PositionSizingStrategyId,
   PositionSizingSummary,
-} from './position-sizing';
+} from './position-sizing'

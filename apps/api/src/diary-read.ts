@@ -54,15 +54,11 @@ async function collectDiaryAssociations(
   if (ids.length === 0) return associations
 
   if (projection.includeTransactions) {
-    const rows = await db.select().from(transactions)
-      .where(and(
-        eq(transactions.userId, userId),
-        inArray(transactions.diaryId, ids),
-      ))
-      .orderBy(
-        asc(transactions.tradeDate),
-        asc(transactions.id),
-      )
+    const rows = await db
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), inArray(transactions.diaryId, ids)))
+      .orderBy(asc(transactions.tradeDate), asc(transactions.id))
     for (const row of rows) pushGrouped(associations.transactionsByDiary, row)
   }
 
@@ -113,15 +109,31 @@ function serializeDiaryReview(
   tradePlanRows: readonly TradePlanRow[],
 ) {
   return diaryReviewResponseSchema.parse({
-    id: row.id.toString(), title: row.title, date: row.date, content: row.content, tags: row.tags,
-    thesis: row.thesis, risk: row.risk, execution: row.execution,
-    reviewDueAt: instant(row.reviewDueAt), reviewStatus: row.reviewStatus,
-    reviewedAt: instant(row.reviewedAt), reviewOutcome: row.reviewOutcome,
-    reviewSummary: row.reviewSummary, reviewLearning: row.reviewLearning, reviewAdjustment: row.reviewAdjustment,
+    id: row.id.toString(),
+    title: row.title,
+    date: row.date,
+    content: row.content,
+    tags: row.tags,
+    thesis: row.thesis,
+    risk: row.risk,
+    execution: row.execution,
+    reviewDueAt: instant(row.reviewDueAt),
+    reviewStatus: row.reviewStatus,
+    reviewedAt: instant(row.reviewedAt),
+    reviewOutcome: row.reviewOutcome,
+    reviewSummary: row.reviewSummary,
+    reviewLearning: row.reviewLearning,
+    reviewAdjustment: row.reviewAdjustment,
     transactions: transactionRows.map(transaction => ({
-      id: transaction.id.toString(), symbol: transaction.symbol, type: transaction.type,
-      quantity: transaction.quantity, price: transaction.price, tradeDate: transaction.tradeDate.toISOString(),
-      notes: transaction.notes, strategy: transaction.strategy, emotion: transaction.emotion,
+      id: transaction.id.toString(),
+      symbol: transaction.symbol,
+      type: transaction.type,
+      quantity: transaction.quantity,
+      price: transaction.price,
+      tradeDate: transaction.tradeDate.toISOString(),
+      notes: transaction.notes,
+      strategy: transaction.strategy,
+      emotion: transaction.emotion,
     })),
     tradePlans: tradePlanRows.map(serializeLinkedTradePlan),
   })
@@ -147,28 +159,27 @@ async function projectDiaryRow(
 }
 
 /** Full list projection owns its batched associations and serialization. */
-export async function projectDiaryListRows(
-  db: Database | DbTransaction,
-  userId: bigint,
-  rows: readonly DiaryRow[],
-) {
-  const associations = await collectDiaryAssociations(db, userId, rows.map(row => row.id), associationsFor('list'))
-  return rows.map(row => serializeDiary(
-    row,
-    false,
-    associations.transactionsByDiary.get(row.id) ?? [],
-    associations.tradePlansByDiary.get(row.id) ?? [],
-    associations.stockSymbolsByDiary.get(row.id) ?? [],
-    associations.alertsByDiary.get(row.id) ?? [],
-  ))
+export async function projectDiaryListRows(db: Database | DbTransaction, userId: bigint, rows: readonly DiaryRow[]) {
+  const associations = await collectDiaryAssociations(
+    db,
+    userId,
+    rows.map(row => row.id),
+    associationsFor('list'),
+  )
+  return rows.map(row =>
+    serializeDiary(
+      row,
+      false,
+      associations.transactionsByDiary.get(row.id) ?? [],
+      associations.tradePlansByDiary.get(row.id) ?? [],
+      associations.stockSymbolsByDiary.get(row.id) ?? [],
+      associations.alertsByDiary.get(row.id) ?? [],
+    ),
+  )
 }
 
 /** Review projection owns its private association set and serialization. */
-export async function projectDiaryReview(
-  db: Database | DbTransaction,
-  userId: bigint,
-  row: DiaryRow,
-) {
+export async function projectDiaryReview(db: Database | DbTransaction, userId: bigint, row: DiaryRow) {
   const associations = await collectDiaryAssociations(db, userId, [row.id], associationsFor('review'))
   return serializeDiaryReview(
     row,
@@ -177,20 +188,24 @@ export async function projectDiaryReview(
   )
 }
 
-async function readDiary(
-  db: Database,
-  userId: bigint,
-  selector: DiarySelector,
-  detail: boolean,
-) {
-  return db.transaction(async tx => {
-    const [row] = await tx.select().from(diaries).where(and(
-      eq(diaries.userId, userId),
-      'id' in selector ? eq(diaries.id, selector.id) : eq(diaries.date, selector.date),
-    )).limit(1)
-    if (!row) return null
-    return projectDiaryRow(tx, userId, row, detail ? 'detail' : 'byDate')
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+async function readDiary(db: Database, userId: bigint, selector: DiarySelector, detail: boolean) {
+  return db.transaction(
+    async tx => {
+      const [row] = await tx
+        .select()
+        .from(diaries)
+        .where(
+          and(
+            eq(diaries.userId, userId),
+            'id' in selector ? eq(diaries.id, selector.id) : eq(diaries.date, selector.date),
+          ),
+        )
+        .limit(1)
+      if (!row) return null
+      return projectDiaryRow(tx, userId, row, detail ? 'detail' : 'byDate')
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }
 
 export function readDiaryDetail(db: Database, id: bigint, userId: bigint) {
@@ -202,11 +217,16 @@ export function readDiaryByDate(db: Database, date: string, userId: bigint) {
 }
 
 export async function readDiaryReview(db: Database, id: bigint, userId: bigint) {
-  return db.transaction(async tx => {
-    const [row] = await tx.select().from(diaries).where(and(
-      eq(diaries.id, id), eq(diaries.userId, userId),
-    )).limit(1)
-    if (!row) return null
-    return projectDiaryReview(tx, userId, row)
-  }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
+  return db.transaction(
+    async tx => {
+      const [row] = await tx
+        .select()
+        .from(diaries)
+        .where(and(eq(diaries.id, id), eq(diaries.userId, userId)))
+        .limit(1)
+      if (!row) return null
+      return projectDiaryReview(tx, userId, row)
+    },
+    { isolationLevel: 'repeatable read', accessMode: 'read only' },
+  )
 }

@@ -18,13 +18,22 @@ let observedQueries: Array<{ query: string; params: unknown[] }>
 let quoteCalls: Map<string, number>
 let failedSymbols: Set<string>
 
-beforeAll(async () => { database = await provisionTestDatabase('portfolio_overview') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('portfolio_overview')
+})
 beforeEach(async () => {
   clock = new Date('2026-09-05T12:00:00.000Z')
   observedQueries = []
   quoteCalls = new Map()
   failedSymbols = new Set()
-  const db = drizzle(database.pool, { schema, logger: { logQuery(query, params) { observedQueries.push({ query, params }) } } })
+  const db = drizzle(database.pool, {
+    schema,
+    logger: {
+      logQuery(query, params) {
+        observedQueries.push({ query, params })
+      },
+    },
+  })
   const marketData = createMarketData({
     now: () => clock,
     timeoutMs: 100,
@@ -36,23 +45,36 @@ beforeEach(async () => {
           symbol,
           regularMarketPrice: symbol === 'MISSING' ? null : symbol === 'ZERO' ? 0 : 120,
           regularMarketPreviousClose: 100,
-          regularMarketTime: symbol === 'NOTIME' ? null : new Date(symbol === 'STALE' ? '2026-09-01T10:00:00.000Z' : clock),
+          regularMarketTime:
+            symbol === 'NOTIME' ? null : new Date(symbol === 'STALE' ? '2026-09-01T10:00:00.000Z' : clock),
           marketState: 'REGULAR',
         }
       },
       chart: async () => ({ quotes: [] }),
     },
   })
-  const app = createApp({ db, now: () => clock, marketData, config: {
-    jwtSecret: 'synthetic-overview-secret-with-at-least-32-characters',
-    nodeEnv: 'test', trustProxy: false, webOrigin: 'http://127.0.0.1',
-  } })
+  const app = createApp({
+    db,
+    now: () => clock,
+    marketData,
+    config: {
+      jwtSecret: 'synthetic-overview-secret-with-at-least-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
+  })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function login() {
   const browser = new BrowserSession(baseUrl)
@@ -63,11 +85,28 @@ async function login() {
   return browser
 }
 
-async function createDiary(browser: BrowserSession, date: string, symbols: string[] = [], extra: Record<string, unknown> = {}) {
+async function createDiary(
+  browser: BrowserSession,
+  date: string,
+  symbols: string[] = [],
+  extra: Record<string, unknown> = {},
+) {
   const response = await browser.post('/api/diaries', {
-    title: `Overview ${date}`, content: 'Synthetic overview fixture', date,
+    title: `Overview ${date}`,
+    content: 'Synthetic overview fixture',
+    date,
     ...extra,
-    ...(symbols.length ? { transactions: symbols.map(symbol => ({ symbol, type: 'BUY', quantity: '2', price: '100', tradeDate: `${date}T10:00:00.000Z` })) } : {}),
+    ...(symbols.length
+      ? {
+          transactions: symbols.map(symbol => ({
+            symbol,
+            type: 'BUY',
+            quantity: '2',
+            price: '100',
+            tradeDate: `${date}T10:00:00.000Z`,
+          })),
+        }
+      : {}),
   })
   expect(response.status).toBe(201)
   return response.json()
@@ -107,26 +146,58 @@ describe('Overview portfolio composition through real HTTP and PostgreSQL', () =
     const [firstResult, secondResult] = await Promise.all([overview(first), overview(second)])
     expect(firstResult.response.status).toBe(200)
     expect(secondResult.response.status).toBe(200)
-    expect(firstResult.body.valuation).toMatchObject({ status: 'ready', data: { holdings: [{ symbol: 'AAPL', quantity: 2 }] } })
-    expect(firstResult.body.attention.data.items.some((item: { reason: string; targetId: string }) => item.reason === 'missing_thesis' && item.targetId === 'AAPL')).toBe(true)
-    expect(secondResult.body.valuation).toMatchObject({ status: 'ready', data: { holdings: [{ symbol: 'MSFT', quantity: 2 }] } })
-    expect(secondResult.body.attention.data.items.some((item: { reason: string; targetId: string }) => item.reason === 'missing_thesis' && item.targetId === 'MSFT')).toBe(true)
+    expect(firstResult.body.valuation).toMatchObject({
+      status: 'ready',
+      data: { holdings: [{ symbol: 'AAPL', quantity: 2 }] },
+    })
+    expect(
+      firstResult.body.attention.data.items.some(
+        (item: { reason: string; targetId: string }) => item.reason === 'missing_thesis' && item.targetId === 'AAPL',
+      ),
+    ).toBe(true)
+    expect(secondResult.body.valuation).toMatchObject({
+      status: 'ready',
+      data: { holdings: [{ symbol: 'MSFT', quantity: 2 }] },
+    })
+    expect(
+      secondResult.body.attention.data.items.some(
+        (item: { reason: string; targetId: string }) => item.reason === 'missing_thesis' && item.targetId === 'MSFT',
+      ),
+    ).toBe(true)
     expect(fullLedgerReads()).toHaveLength(2)
-    expect(quoteCalls).toEqual(new Map([['AAPL', 1], ['MSFT', 1]]))
+    expect(quoteCalls).toEqual(
+      new Map([
+        ['AAPL', 1],
+        ['MSFT', 1],
+      ]),
+    )
 
     observedQueries.length = 0
     const firstRow = firstDiary.transactions[0]
     const changed = await update(first, firstDiary.id, {
-      title: firstDiary.title, content: 'Updated quantity',
-      transactions: [{
-        id: firstRow.id, symbol: firstRow.symbol, type: firstRow.type, quantity: '7', price: firstRow.price,
-        tradeDate: firstRow.tradeDate, notes: firstRow.notes, strategy: firstRow.strategy, emotion: firstRow.emotion,
-      }],
+      title: firstDiary.title,
+      content: 'Updated quantity',
+      transactions: [
+        {
+          id: firstRow.id,
+          symbol: firstRow.symbol,
+          type: firstRow.type,
+          quantity: '7',
+          price: firstRow.price,
+          tradeDate: firstRow.tradeDate,
+          notes: firstRow.notes,
+          strategy: firstRow.strategy,
+          emotion: firstRow.emotion,
+        },
+      ],
     })
     expect(changed.status).toBe(200)
     observedQueries.length = 0
     const reloaded = await overview(first)
-    expect(reloaded.body.valuation).toMatchObject({ status: 'ready', data: { holdings: [{ symbol: 'AAPL', quantity: 7 }] } })
+    expect(reloaded.body.valuation).toMatchObject({
+      status: 'ready',
+      data: { holdings: [{ symbol: 'AAPL', quantity: 7 }] },
+    })
     expect(fullLedgerReads()).toHaveLength(1)
   })
 
@@ -145,9 +216,15 @@ describe('Overview portfolio composition through real HTTP and PostgreSQL', () =
     expect(partial.response.status).toBe(200)
     expect(partial.body.valuation).toMatchObject({
       status: 'ready',
-      data: { valuation: { valuationStatus: 'partial', totalHoldings: 3, staleQuoteCount: 1 }, quoteErrors: ['MISSING'] },
+      data: {
+        valuation: { valuationStatus: 'partial', totalHoldings: 3, staleQuoteCount: 1 },
+        quoteErrors: ['MISSING'],
+      },
     })
-    expect(partial.body.attention).toMatchObject({ status: 'ready', data: { coverage: { complete: false, priced: 2, total: 3 } } })
+    expect(partial.body.attention).toMatchObject({
+      status: 'ready',
+      data: { coverage: { complete: false, priced: 2, total: 3 } },
+    })
   })
 
   it('keeps exchange quote time separate from provider freshness and counts incomplete time coverage', async () => {
@@ -167,9 +244,19 @@ describe('Overview portfolio composition through real HTTP and PostgreSQL', () =
         },
       },
     })
-    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL')).toMatchObject({ source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z', quoteAsOf: '2026-09-05T12:00:00.000Z' })
-    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'NOTIME')).toMatchObject({ source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
-    expect(initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'ZERO')).toMatchObject({ price: 0, source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
+    expect(
+      initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL'),
+    ).toMatchObject({
+      source: 'upstream',
+      fetchedAt: '2026-09-05T12:00:00.000Z',
+      quoteAsOf: '2026-09-05T12:00:00.000Z',
+    })
+    expect(
+      initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'NOTIME'),
+    ).toMatchObject({ source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
+    expect(
+      initial.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'ZERO'),
+    ).toMatchObject({ price: 0, source: 'upstream', fetchedAt: '2026-09-05T12:00:00.000Z' })
 
     clock = new Date(clock.getTime() + 86_401_000)
     failedSymbols.add('AAPL')
@@ -177,27 +264,46 @@ describe('Overview portfolio composition through real HTTP and PostgreSQL', () =
     expect(stale.body.valuation).toMatchObject({
       status: 'ready',
       data: {
-        valuation: { staleFallbackPositionCount: 1, staleQuoteCount: 1, unknownQuoteTimeCount: 1, valuationAsOf: '2026-09-01T10:00:00.000Z' },
+        valuation: {
+          staleFallbackPositionCount: 1,
+          staleQuoteCount: 1,
+          unknownQuoteTimeCount: 1,
+          valuationAsOf: '2026-09-01T10:00:00.000Z',
+        },
       },
     })
-    expect(stale.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL')).toMatchObject({ price: 120, source: 'stale', fetchedAt: '2026-09-05T12:00:00.000Z', quoteAsOf: '2026-09-05T12:00:00.000Z' })
+    expect(
+      stale.body.valuation.data.holdings.find((holding: { symbol: string }) => holding.symbol === 'AAPL'),
+    ).toMatchObject({
+      price: 120,
+      source: 'stale',
+      fetchedAt: '2026-09-05T12:00:00.000Z',
+      quoteAsOf: '2026-09-05T12:00:00.000Z',
+    })
   })
 
   it('reports a section failure without discarding valuation and succeeds on retry after correction', async () => {
     const browser = await login()
     const longTitle = 'Valid long Diary title '.repeat(14)
     const diary = await createDiary(browser, '2026-09-04', [], {
-      title: longTitle, reviewDueAt: '2026-09-01T00:00:00.000Z',
+      title: longTitle,
+      reviewDueAt: '2026-09-01T00:00:00.000Z',
     })
     const failed = await overview(browser)
     expect(failed.response.status).toBe(200)
     expect(failed.body.valuation).toMatchObject({ status: 'ready', data: { valuation: { valuationStatus: 'empty' } } })
-    expect(failed.body.attention).toMatchObject({ status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: expect.any(String) } })
+    expect(failed.body.attention).toMatchObject({
+      status: 'failed',
+      error: { code: 'SYS_INTERNAL_ERROR', requestId: expect.any(String) },
+    })
 
     const updated = await update(browser, diary.id, { title: 'Retry attention', content: diary.content })
     expect(updated.status).toBe(200)
     const retried = await overview(browser)
     expect(retried.body.valuation).toMatchObject({ status: 'ready', data: { valuation: { valuationStatus: 'empty' } } })
-    expect(retried.body.attention).toMatchObject({ status: 'ready', data: { items: [{ reason: 'overdue_diary_review' }] } })
+    expect(retried.body.attention).toMatchObject({
+      status: 'ready',
+      data: { items: [{ reason: 'overdue_diary_review' }] },
+    })
   })
 })

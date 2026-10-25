@@ -23,12 +23,7 @@ export type ReflectionMarketConditionKey =
   | 'stableIndexWeakStocks'
   | 'weakIndexStrongStocks'
 
-type ObservationTypeKey =
-  | 'sectorMomentum'
-  | 'individualStockTrend'
-  | 'marketNews'
-  | 'technicalAnalysis'
-  | 'other'
+type ObservationTypeKey = 'sectorMomentum' | 'individualStockTrend' | 'marketNews' | 'technicalAnalysis' | 'other'
 
 const reflectionMarketConditionGroups: Array<{
   label: LocalizedLabel
@@ -257,5 +252,5 @@ export function getQuickNoteObservationTypeLabel(value: string | undefined, loca
   if (!normalized) return value || ''
 
   const option = observationTypes.find(item => item.value === normalized)
-  return option ? getLocalizedLabel(option.label, locale) : (value || '')
+  return option ? getLocalizedLabel(option.label, locale) : value || ''
 }

@@ -32,30 +32,44 @@ test('new users can capture, save, refind and review a first workspace record', 
   const { headers } = await registerAndSignIn(page, context, 'daily-workspace-first-use')
   const firstUse = page.getByTestId('overview-first-use')
   await expect(firstUse).toBeVisible()
-  await expect(firstUse.getByRole('link', { name: 'Start recording', exact: true })).toHaveAttribute('href', '/diaries/quick')
+  await expect(firstUse.getByRole('link', { name: 'Start recording', exact: true })).toHaveAttribute(
+    'href',
+    '/diaries/quick',
+  )
   await expect(firstUse.getByRole('link', { name: 'Explore tools', exact: true })).toHaveAttribute('href', '/tools')
-  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }) })
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  })
   await selectTheme(page, 'light')
   await page.screenshot({ path: 'docs/design/evidence/daily-workspace/first-use-1440.png', fullPage: true })
 
   await page.setViewportSize({ width: 390, height: 844 })
   await selectTheme(page, 'dark')
   await expect(page.getByTestId('overview-first-use')).toBeVisible()
-  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo({ top: 0, behavior: 'instant' }) })
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  })
   await page.screenshot({ path: 'docs/design/evidence/daily-workspace/first-use-390.png', fullPage: true })
 
   await page.getByRole('link', { name: 'Start recording', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Quick diary', exact: true })).toBeVisible()
   await openQuickOptions(page)
   await page.getByLabel('Title', { exact: true }).fill('A first judgment to revisit')
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Synthetic evidence is still incomplete; revisit the decision after the next report.')
+  await page
+    .getByRole('textbox', { name: 'Content', exact: true })
+    .fill('Synthetic evidence is still incomplete; revisit the decision after the next report.')
   await page.getByRole('button', { name: 'Create diary', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
   const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
   expect(savedHref).toMatch(/^\/diaries\/\d+$/)
   const saved = await page.request.get(`/api${savedHref!}`)
   expect(saved.status()).toBe(200)
-  expect(await saved.json()).toMatchObject({ title: 'A first judgment to revisit', content: 'Synthetic evidence is still incomplete; revisit the decision after the next report.' })
+  expect(await saved.json()).toMatchObject({
+    title: 'A first judgment to revisit',
+    content: 'Synthetic evidence is still incomplete; revisit the decision after the next report.',
+  })
   await page.getByRole('link', { name: 'Open diary', exact: true }).click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
   await expect(page.getByRole('heading', { name: 'A first judgment to revisit', exact: true })).toBeVisible()
@@ -64,7 +78,10 @@ test('new users can capture, save, refind and review a first workspace record', 
   await expect(page.getByTestId('overview-first-use')).toHaveCount(0)
   await expect(page.getByTestId('overview-recent-item')).toContainText('A first judgment to revisit')
   await expect(page.getByTestId('overview-single-record-prompt')).toContainText('Keep this record easy to revisit.')
-  await page.getByTestId('overview-recent-item').getByRole('link', { name: 'A first judgment to revisit', exact: true }).click()
+  await page
+    .getByTestId('overview-recent-item')
+    .getByRole('link', { name: 'A first judgment to revisit', exact: true })
+    .click()
   await expect(page).toHaveURL(/\/diaries\/\d+$/)
   await page.goto('/')
 
@@ -109,15 +126,22 @@ test('failed workspace resources remain scoped until each retry succeeds', async
   await page.route('**/api/portfolio/overview', async route => {
     const response = await route.fetch()
     const body = await response.json()
-    await route.fulfill({ response, body: JSON.stringify({
-      ...body,
-      attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'daily-attention-retry' } },
-    }) })
+    await route.fulfill({
+      response,
+      body: JSON.stringify({
+        ...body,
+        attention: { status: 'failed', error: { code: 'SYS_INTERNAL_ERROR', requestId: 'daily-attention-retry' } },
+      }),
+    })
   })
   let releasePlans!: () => void
   let markPlansSeen!: () => void
-  const plansHeld = new Promise<void>(resolve => { releasePlans = resolve })
-  const plansSeen = new Promise<void>(resolve => { markPlansSeen = resolve })
+  const plansHeld = new Promise<void>(resolve => {
+    releasePlans = resolve
+  })
+  const plansSeen = new Promise<void>(resolve => {
+    markPlansSeen = resolve
+  })
   await page.route('**/api/trade-plans*', async route => {
     markPlansSeen()
     await plansHeld

@@ -1,19 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  ilike,
-  inArray,
-  isNotNull,
-  ne,
-  notInArray,
-  or,
-  sql,
-} from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNotNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import type { SQLWrapper } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import type { z } from 'zod'
@@ -34,12 +20,31 @@ import {
   type PostStatus,
 } from '@diary/contracts'
 import { articleLocaleSchema, type ArticleLocale } from '@diary/contracts'
-import { articleTranslationAiProfiles, articleTranslationAiSettings, articleTranslationRuntime, postTranslations, posts, researchArticleLinks, researchRuns, users, type Database } from '@diary/db'
+import {
+  articleTranslationAiProfiles,
+  articleTranslationAiSettings,
+  articleTranslationRuntime,
+  postTranslations,
+  posts,
+  researchArticleLinks,
+  researchRuns,
+  users,
+  type Database,
+} from '@diary/db'
 import { getCookie } from 'hono/cookie'
 import { resolveArticleReadAccess } from './article-policy.js'
-import { lockResearchMutation, researchPublicationIssue, type ResearchTransaction } from './research-studio/publication.js'
+import {
+  lockResearchMutation,
+  researchPublicationIssue,
+  type ResearchTransaction,
+} from './research-studio/publication.js'
 import type { ResearchLatestCompletedSession } from './research-studio/service.js'
-import { loadArticleTranslationSummaries, loadArticleTranslations, localizedPostFields, resolveArticleTranslation } from './article-translations/reader.js'
+import {
+  loadArticleTranslationSummaries,
+  loadArticleTranslations,
+  localizedPostFields,
+  resolveArticleTranslation,
+} from './article-translations/reader.js'
 import { enqueueArticleTranslationJob } from './article-translations/store.js'
 import type { AppEnv } from './app-context.js'
 import { RATE_LIMIT_POLICIES } from './rate-limit/policies.js'
@@ -55,7 +60,12 @@ const CATEGORY_ALIASES: Record<string, string[]> = {
   market: ['市场观察', '市場觀察', 'Market Watch'],
   strategy: ['投资策略', '投資策略', 'Investment Strategy'],
 }
-type PostFail = (status: number, code: ErrorCode, message: string, details?: { field?: string; message?: string }[] | null) => never
+type PostFail = (
+  status: number,
+  code: ErrorCode,
+  message: string,
+  details?: { field?: string; message?: string }[] | null,
+) => never
 
 function instant(value: Date | null): string | null {
   return value?.toISOString() ?? null
@@ -72,7 +82,9 @@ function excerptFromMarkdown(content: string): string {
 }
 
 function slugFromTitle(title: string): string {
-  const slug = title.toLowerCase().trim()
+  const slug = title
+    .toLowerCase()
+    .trim()
     .replace(/[^\p{Letter}\p{Number}\u4e00-\u9fff\s-]/gu, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
@@ -89,7 +101,8 @@ function parseId(value: string | undefined, validationError: (error: z.ZodError)
 function parseDate(value: string | undefined, field: string, fail: PostFail): Date | undefined {
   if (!value) return undefined
   const date = new Date(`${value}T00:00:00.000Z`)
-  if (Number.isNaN(date.getTime())) return fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field, message: 'Invalid date format' }])
+  if (Number.isNaN(date.getTime()))
+    return fail(400, 'SYS_VALIDATION_ERROR', 'Validation failed', [{ field, message: 'Invalid date format' }])
   return date
 }
 
@@ -100,13 +113,42 @@ function endOfDay(value: string | undefined, field: string, fail: PostFail): Dat
   return date
 }
 
-function publishedAtFor(_currentStatus: PostStatus, currentPublishedAt: Date | null, nextStatus: PostStatus, now: Date): Date | null {
+function publishedAtFor(
+  _currentStatus: PostStatus,
+  currentPublishedAt: Date | null,
+  nextStatus: PostStatus,
+  now: Date,
+): Date | null {
   // Publication provenance is immutable once assigned. Visibility is governed
   // by status; archiving must not erase the original publication instant.
   return currentPublishedAt ?? (nextStatus === 'PUBLISHED' ? now : null)
 }
 
-const SEARCH_STOPWORDS = new Set(['a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'with', 'about'])
+const SEARCH_STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'in',
+  'is',
+  'it',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'this',
+  'to',
+  'was',
+  'with',
+  'about',
+])
 
 type SearchTerm = { query: string; phrase: boolean; words: SearchWord[] }
 type SearchGroup = { required: SearchTerm[]; optional: SearchTerm[]; excluded: SearchTerm[] }
@@ -130,16 +172,19 @@ function parsePublicSearch(input: string): SearchGroup {
   const add = (marker: string, value: string, phrase: boolean, allowShortPrefix = false) => {
     const wordObjects = normalizeSearchWordObjects(value, allowShortPrefix)
     if (wordObjects.length === 0) return
-    const words = wordObjects.map(word => word.prefix ? `${word.value}:*` : word.value)
+    const words = wordObjects.map(word => (word.prefix ? `${word.value}:*` : word.value))
     const term = { query: phrase ? words.join(' <-> ') : words.join(' | '), phrase, words: wordObjects }
     if (marker === '-') groups.excluded.push(term)
     else if (marker === '+') groups.required.push(term)
     else groups.optional.push(term)
   }
-  const groupsRemoved = input.normalize('NFKC').replace(/~[^\s]+/gu, ' ').replace(/([+-])\(([^()]*)\)/gu, (_whole, marker: string, value: string) => {
-    add(marker, value, false, true)
-    return ' '
-  })
+  const groupsRemoved = input
+    .normalize('NFKC')
+    .replace(/~[^\s]+/gu, ' ')
+    .replace(/([+-])\(([^()]*)\)/gu, (_whole, marker: string, value: string) => {
+      add(marker, value, false, true)
+      return ' '
+    })
   const matcher = /([+-]?)(?:"([^"]+)"|([^\s]+))/gu
   let match: RegExpExecArray | null
   while ((match = matcher.exec(groupsRemoved)) !== null) {
@@ -189,15 +234,17 @@ function cjkMatch(term: SearchTerm, fields: SearchableFields): ReturnType<typeof
     const phrase = words.map(word => word.value).join('')
     return or(substringMatch(fields.title, phrase), substringMatch(fields.excerpt, phrase))
   }
-  return or(...words.flatMap(word => [substringMatch(fields.title, word.value), substringMatch(fields.excerpt, word.value)]))
+  return or(
+    ...words.flatMap(word => [substringMatch(fields.title, word.value), substringMatch(fields.excerpt, word.value)]),
+  )
 }
 
 function matchesTerm(term: SearchTerm, fields: SearchableFields) {
   const tokenMatch = term.phrase
     ? or(
-      sql`${textVector(fields.title)} @@ to_tsquery('simple', ${term.query})`,
-      sql`${textVector(fields.excerpt)} @@ to_tsquery('simple', ${term.query})`,
-    )
+        sql`${textVector(fields.title)} @@ to_tsquery('simple', ${term.query})`,
+        sql`${textVector(fields.excerpt)} @@ to_tsquery('simple', ${term.query})`,
+      )
     : sql`${combinedTextVector(fields)} @@ to_tsquery('simple', ${term.query})`
   const substring = cjkMatch(term, fields)
   return substring ? or(tokenMatch, substring) : tokenMatch
@@ -209,7 +256,8 @@ function fullText(query: string, fields: SearchableFields) {
   if (parsed.required.length > 0) clauses.push(and(...parsed.required.map(term => matchesTerm(term, fields))))
   else if (parsed.optional.length > 0) clauses.push(or(...parsed.optional.map(term => matchesTerm(term, fields))))
   else return sql`false`
-  if (parsed.excluded.length > 0) clauses.push(sql`not (${or(...parsed.excluded.map(term => matchesTerm(term, fields)))})`)
+  if (parsed.excluded.length > 0)
+    clauses.push(sql`not (${or(...parsed.excluded.map(term => matchesTerm(term, fields)))})`)
   return and(...clauses)
 }
 
@@ -220,7 +268,11 @@ const sourceSearchFields: SearchableFields = {
 
 const translationSearchFields: SearchableFields = {
   title: postTranslations.publishedTitle,
-  excerpt: searchableExcerpt({ access: posts.access, excerptAuthored: posts.excerptAuthored, excerpt: postTranslations.publishedExcerpt }),
+  excerpt: searchableExcerpt({
+    access: posts.access,
+    excerptAuthored: posts.excerptAuthored,
+    excerpt: postTranslations.publishedExcerpt,
+  }),
 }
 
 function currentTranslationWhere() {
@@ -242,8 +294,9 @@ function publicSearch(query: string) {
   )
 }
 
-type PostListProjection = Pick<typeof posts.$inferSelect,
-  'id'
+type PostListProjection = Pick<
+  typeof posts.$inferSelect,
+  | 'id'
   | 'title'
   | 'slug'
   | 'excerpt'
@@ -261,19 +314,26 @@ type PostListProjection = Pick<typeof posts.$inferSelect,
   | 'updatedAt'
 >
 
-function toPublicListItem(row: {
-  post: PostListProjection
-  author: { id: bigint; name: string | null }
-}, options: { redactProtectedExcerpt?: boolean; matchedTranslationLocale?: ArticleLocale | null } = {}) {
+function toPublicListItem(
+  row: {
+    post: PostListProjection
+    author: { id: bigint; name: string | null }
+  },
+  options: { redactProtectedExcerpt?: boolean; matchedTranslationLocale?: ArticleLocale | null } = {},
+) {
   const redactProtectedExcerpt = options.redactProtectedExcerpt ?? true
-  const excerpt = redactProtectedExcerpt && row.post.access === 'MEMBER' && !row.post.excerptAuthored
-    ? null
-    : row.post.excerpt
+  const excerpt =
+    redactProtectedExcerpt && row.post.access === 'MEMBER' && !row.post.excerptAuthored ? null : row.post.excerpt
   return {
-    id: String(row.post.id), title: row.post.title, slug: row.post.slug,
-    excerpt, coverImage: row.post.coverImage,
-    category: row.post.category, tags: row.post.tags,
-    publishedAt: instant(row.post.publishedAt), createdAt: row.post.createdAt.toISOString(),
+    id: String(row.post.id),
+    title: row.post.title,
+    slug: row.post.slug,
+    excerpt,
+    coverImage: row.post.coverImage,
+    category: row.post.category,
+    tags: row.post.tags,
+    publishedAt: instant(row.post.publishedAt),
+    createdAt: row.post.createdAt.toISOString(),
     updatedAt: row.post.updatedAt.toISOString(),
     access: row.post.access,
     membersOnly: row.post.access === 'MEMBER',
@@ -283,7 +343,9 @@ function toPublicListItem(row: {
     availableLocales: [row.post.sourceLocale as ArticleLocale],
     isFallback: false,
     fallbackReason: null,
-    ...(options.matchedTranslationLocale !== undefined ? { matchedTranslationLocale: options.matchedTranslationLocale } : {}),
+    ...(options.matchedTranslationLocale !== undefined
+      ? { matchedTranslationLocale: options.matchedTranslationLocale }
+      : {}),
     author: { id: String(row.author.id), name: row.author.name },
   }
 }
@@ -299,7 +361,9 @@ function toAdminListItem(row: {
   }
 }
 
-function toAdminDetail(row: typeof posts.$inferSelect & { author: { id: bigint; name: string | null; email: string } }) {
+function toAdminDetail(
+  row: typeof posts.$inferSelect & { author: { id: bigint; name: string | null; email: string } },
+) {
   return postAdminDetailSchema.parse({
     ...toAdminListItem({ post: row, author: row.author }),
     content: row.content,
@@ -327,17 +391,20 @@ function toPublicMetadata(row: typeof posts.$inferSelect & { author: { id: bigin
   return postPublicMetadataSchema.parse(toPublicListItem({ post: row, author: row.author }))
 }
 
-export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
-  db: Database
-  now: () => Date
-  logger?: { error(message: string, context: Record<string, unknown>): void }
-  latestCompletedSession?: ResearchLatestCompletedSession
-  consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
-  clientIp: (context: Context<AppEnv>) => string
-  fail: PostFail
-  validationError: (error: z.ZodError) => never
-  parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
-}) {
+export function registerPostRoutes(
+  app: Hono<AppEnv>,
+  dependencies: {
+    db: Database
+    now: () => Date
+    logger?: { error(message: string, context: Record<string, unknown>): void }
+    latestCompletedSession?: ResearchLatestCompletedSession
+    consume: (context: Context<AppEnv>, policy: RateLimitPolicy, scope: string, identity: string) => Promise<void>
+    clientIp: (context: Context<AppEnv>) => string
+    fail: PostFail
+    validationError: (error: z.ZodError) => never
+    parseJson: <T>(context: Context<AppEnv>, schema: z.ZodType<T>) => Promise<T>
+  },
+) {
   const { db, now, fail, validationError, parseJson, consume, clientIp } = dependencies
   const logger = dependencies.logger ?? console
   const admin = (c: Context<AppEnv>) => {
@@ -348,19 +415,31 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     return BigInt(user.id)
   }
   const readAdmin = async (id: bigint) => {
-    const [row] = await db.select({ post: posts, author: { id: users.id, name: users.name, email: users.email } })
-      .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(eq(posts.id, id)).limit(1)
+    const [row] = await db
+      .select({ post: posts, author: { id: users.id, name: users.name, email: users.email } })
+      .from(posts)
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .where(eq(posts.id, id))
+      .limit(1)
     return row
   }
   const readPublic = async (slug: string) => {
-    const [row] = await db.select({ post: posts, author: { id: users.id, name: users.name } })
-      .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(and(eq(posts.slug, slug), eq(posts.status, 'PUBLISHED'), isNotNull(posts.publishedAt))).limit(1)
+    const [row] = await db
+      .select({ post: posts, author: { id: users.id, name: users.name } })
+      .from(posts)
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .where(and(eq(posts.slug, slug), eq(posts.status, 'PUBLISHED'), isNotNull(posts.publishedAt)))
+      .limit(1)
     return row
   }
   const localePreference = async (c: Context<AppEnv>): Promise<ArticleLocale | null> => {
     const viewer = c.get('user')
     if (viewer) {
-      const [account] = await db.select({ locale: users.locale }).from(users).where(eq(users.id, BigInt(viewer.id))).limit(1)
+      const [account] = await db
+        .select({ locale: users.locale })
+        .from(users)
+        .where(eq(users.id, BigInt(viewer.id)))
+        .limit(1)
       const locale = articleLocaleSchema.safeParse(account?.locale)
       if (locale.success) return locale.data
     }
@@ -373,16 +452,34 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     if (!parsed.success) return validationError(parsed.error)
     return parsed.data
   }
-  const requestedLocaleForPost = async (c: Context<AppEnv>, post: typeof posts.$inferSelect, explicit?: ArticleLocale) =>
-    explicit ?? await localePreference(c) ?? post.sourceLocale as ArticleLocale
+  const requestedLocaleForPost = async (
+    c: Context<AppEnv>,
+    post: typeof posts.$inferSelect,
+    explicit?: ArticleLocale,
+  ) => explicit ?? (await localePreference(c)) ?? (post.sourceLocale as ArticleLocale)
   const uniqueSlug = async (title: string, excludeId?: bigint, connection: Database | ResearchTransaction = db) => {
     const base = slugFromTitle(title)
-    const [clash] = await connection.select({ id: posts.id }).from(posts)
-      .where(excludeId === undefined ? eq(posts.slug, base) : and(eq(posts.slug, base), sql`${posts.id} <> ${excludeId}`)).limit(1)
+    const [clash] = await connection
+      .select({ id: posts.id })
+      .from(posts)
+      .where(
+        excludeId === undefined ? eq(posts.slug, base) : and(eq(posts.slug, base), sql`${posts.id} <> ${excludeId}`),
+      )
+      .limit(1)
     return clash ? `${base}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}` : base
   }
-  const guardResearchPublication = async (tx: ResearchTransaction, postId: bigint, overrides?: { title?: string; content?: string }) => {
-    const problem = await researchPublicationIssue({ db: tx, postId, now: now(), latestCompletedSession: dependencies.latestCompletedSession, ...overrides })
+  const guardResearchPublication = async (
+    tx: ResearchTransaction,
+    postId: bigint,
+    overrides?: { title?: string; content?: string },
+  ) => {
+    const problem = await researchPublicationIssue({
+      db: tx,
+      postId,
+      now: now(),
+      latestCompletedSession: dependencies.latestCompletedSession,
+      ...overrides,
+    })
     if (problem) return fail(409, problem.code, problem.message)
   }
   const lockMutation = async (tx: ResearchTransaction, actorId: bigint) => {
@@ -390,28 +487,77 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId))
     if (actor?.role !== 'ADMIN') return fail(403, 'AUTH_FORBIDDEN', 'Admin access required')
   }
-  const queueAutomaticTranslations = async (post: typeof posts.$inferSelect, requestedBy: bigint, requestId?: string) => {
+  const queueAutomaticTranslations = async (
+    post: typeof posts.$inferSelect,
+    requestedBy: bigint,
+    requestId?: string,
+  ) => {
     if (post.status !== 'PUBLISHED' || !post.publishedAt || !post.autoTranslateEnabled) return null
     const provider = post.autoTranslateProvider
-    if (provider !== 'edge' && provider !== 'ai') return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
-    if (provider === 'edge' && post.access !== 'PUBLIC') return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+    if (provider !== 'edge' && provider !== 'ai')
+      return {
+        status: 'not_queued',
+        reason: 'provider_unavailable',
+        resumeAt: null,
+      } satisfies AutomaticTranslationAdmission
+    if (provider === 'edge' && post.access !== 'PUBLIC')
+      return {
+        status: 'not_queued',
+        reason: 'provider_unavailable',
+        resumeAt: null,
+      } satisfies AutomaticTranslationAdmission
     const targets = articleLocaleSchema.array().safeParse(post.autoTranslateLocales)
-    if (!targets.success) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+    if (!targets.success)
+      return {
+        status: 'not_queued',
+        reason: 'provider_unavailable',
+        resumeAt: null,
+      } satisfies AutomaticTranslationAdmission
     try {
       if (provider === 'edge') {
-        const [runtime] = await db.select({ edgeDisabledUntil: articleTranslationRuntime.edgeDisabledUntil })
-          .from(articleTranslationRuntime).where(eq(articleTranslationRuntime.singleton, 'default')).limit(1)
+        const [runtime] = await db
+          .select({ edgeDisabledUntil: articleTranslationRuntime.edgeDisabledUntil })
+          .from(articleTranslationRuntime)
+          .where(eq(articleTranslationRuntime.singleton, 'default'))
+          .limit(1)
         if (runtime?.edgeDisabledUntil && runtime.edgeDisabledUntil > now()) {
-          return { status: 'not_queued', reason: 'provider_circuit_open', resumeAt: runtime.edgeDisabledUntil.toISOString() } satisfies AutomaticTranslationAdmission
+          return {
+            status: 'not_queued',
+            reason: 'provider_circuit_open',
+            resumeAt: runtime.edgeDisabledUntil.toISOString(),
+          } satisfies AutomaticTranslationAdmission
         }
       }
       let aiProfile: typeof articleTranslationAiProfiles.$inferSelect | undefined
       if (provider === 'ai') {
-        const [settings] = await db.select().from(articleTranslationAiSettings).where(eq(articleTranslationAiSettings.singleton, 'default')).limit(1)
-        if (!settings?.defaultProfileId) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
-        const [profile] = await db.select().from(articleTranslationAiProfiles).where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId)).limit(1)
-        if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
-        if (post.access === 'MEMBER' && !profile.allowMemberArticles) return { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+        const [settings] = await db
+          .select()
+          .from(articleTranslationAiSettings)
+          .where(eq(articleTranslationAiSettings.singleton, 'default'))
+          .limit(1)
+        if (!settings?.defaultProfileId)
+          return {
+            status: 'not_queued',
+            reason: 'provider_unavailable',
+            resumeAt: null,
+          } satisfies AutomaticTranslationAdmission
+        const [profile] = await db
+          .select()
+          .from(articleTranslationAiProfiles)
+          .where(eq(articleTranslationAiProfiles.id, settings.defaultProfileId))
+          .limit(1)
+        if (!profile?.enabled || !profile.baseUrl || !profile.model || !profile.encryptedApiKey)
+          return {
+            status: 'not_queued',
+            reason: 'provider_unavailable',
+            resumeAt: null,
+          } satisfies AutomaticTranslationAdmission
+        if (post.access === 'MEMBER' && !profile.allowMemberArticles)
+          return {
+            status: 'not_queued',
+            reason: 'provider_unavailable',
+            resumeAt: null,
+          } satisfies AutomaticTranslationAdmission
         aiProfile = profile
       }
       let queued = 0
@@ -433,58 +579,122 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
         } catch (error) {
           failed += 1
           logger.error('Automatic article translation enqueue failed', {
-            operation: 'article_translation_enqueue', stage: 'enqueue', requestId,
-            postId: post.id.toString(), targetLocale, provider, ...safeErrorContext(error),
+            operation: 'article_translation_enqueue',
+            stage: 'enqueue',
+            requestId,
+            postId: post.id.toString(),
+            targetLocale,
+            provider,
+            ...safeErrorContext(error),
           })
         }
       }
-      if (failed > 0) return { status: queued > 0 ? 'partial' : 'not_queued', reason: 'queue_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+      if (failed > 0)
+        return {
+          status: queued > 0 ? 'partial' : 'not_queued',
+          reason: 'queue_unavailable',
+          resumeAt: null,
+        } satisfies AutomaticTranslationAdmission
       return queued > 0
-        ? { status: 'queued', reason: null, resumeAt: null } satisfies AutomaticTranslationAdmission
-        : { status: 'not_queued', reason: 'provider_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+        ? ({ status: 'queued', reason: null, resumeAt: null } satisfies AutomaticTranslationAdmission)
+        : ({
+            status: 'not_queued',
+            reason: 'provider_unavailable',
+            resumeAt: null,
+          } satisfies AutomaticTranslationAdmission)
     } catch (error) {
       logger.error('Automatic article translation admission failed', {
-        operation: 'article_translation_enqueue', stage: 'admission', requestId,
-        postId: post.id.toString(), provider, ...safeErrorContext(error),
+        operation: 'article_translation_enqueue',
+        stage: 'admission',
+        requestId,
+        postId: post.id.toString(),
+        provider,
+        ...safeErrorContext(error),
       })
-      return { status: 'not_queued', reason: 'settings_unavailable', resumeAt: null } satisfies AutomaticTranslationAdmission
+      return {
+        status: 'not_queued',
+        reason: 'settings_unavailable',
+        resumeAt: null,
+      } satisfies AutomaticTranslationAdmission
     }
   }
-  const listWhere = (query: { category?: string; tag?: string; search?: string; dateFrom?: string; dateTo?: string; status?: PostStatus; author?: string }, publicView: boolean) => {
+  const listWhere = (
+    query: {
+      category?: string
+      tag?: string
+      search?: string
+      dateFrom?: string
+      dateTo?: string
+      status?: PostStatus
+      author?: string
+    },
+    publicView: boolean,
+  ) => {
     const clauses = [
       publicView ? eq(posts.status, 'PUBLISHED') : query.status ? eq(posts.status, query.status) : undefined,
       publicView ? isNotNull(posts.publishedAt) : undefined,
-      query.category ? inArray(posts.category, [query.category, ...(CATEGORY_ALIASES[query.category] ?? [])]) : undefined,
+      query.category
+        ? inArray(posts.category, [query.category, ...(CATEGORY_ALIASES[query.category] ?? [])])
+        : undefined,
       query.tag ? ilike(posts.tags, `%${query.tag}%`) : undefined,
-      query.search ? publicView
-        ? publicSearch(query.search)
-        : or(ilike(posts.title, `%${query.search}%`), ilike(users.name, `%${query.search}%`), ilike(users.email, `%${query.search}%`))
+      query.search
+        ? publicView
+          ? publicSearch(query.search)
+          : or(
+              ilike(posts.title, `%${query.search}%`),
+              ilike(users.name, `%${query.search}%`),
+              ilike(users.email, `%${query.search}%`),
+            )
         : undefined,
       query.author ? or(ilike(users.name, `%${query.author}%`), ilike(users.email, `%${query.author}%`)) : undefined,
     ]
     const dateFrom = parseDate(query.dateFrom, 'dateFrom', fail)
     const dateTo = endOfDay(query.dateTo, 'dateTo', fail)
-    if (dateFrom || dateTo) clauses.push(and(dateFrom ? (publicView ? sql`${posts.publishedAt} >= ${dateFrom}` : sql`${posts.createdAt} >= ${dateFrom}`) : undefined, dateTo ? (publicView ? sql`${posts.publishedAt} <= ${dateTo}` : sql`${posts.createdAt} <= ${dateTo}`) : undefined))
+    if (dateFrom || dateTo)
+      clauses.push(
+        and(
+          dateFrom
+            ? publicView
+              ? sql`${posts.publishedAt} >= ${dateFrom}`
+              : sql`${posts.createdAt} >= ${dateFrom}`
+            : undefined,
+          dateTo
+            ? publicView
+              ? sql`${posts.publishedAt} <= ${dateTo}`
+              : sql`${posts.createdAt} <= ${dateTo}`
+            : undefined,
+        ),
+      )
     return and(...clauses)
   }
   const orderBy = (sortBy: string | undefined, publicView: boolean) => {
     const fallback = publicView ? 'publishedAt_desc' : 'createdAt_desc'
     switch (sortBy || fallback) {
-      case 'publishedAt_asc': return [asc(posts.publishedAt), asc(posts.id)]
-      case 'createdAt_asc': return [asc(posts.createdAt), asc(posts.id)]
-      case 'updatedAt_asc': return [asc(posts.updatedAt), asc(posts.id)]
-      case 'title_asc': return [asc(posts.title), asc(posts.id)]
-      case 'title_desc': return [desc(posts.title), desc(posts.id)]
-      case 'publishedAt_desc': return [desc(posts.publishedAt), desc(posts.id)]
-      case 'updatedAt_desc': return [desc(posts.updatedAt), desc(posts.id)]
+      case 'publishedAt_asc':
+        return [asc(posts.publishedAt), asc(posts.id)]
+      case 'createdAt_asc':
+        return [asc(posts.createdAt), asc(posts.id)]
+      case 'updatedAt_asc':
+        return [asc(posts.updatedAt), asc(posts.id)]
+      case 'title_asc':
+        return [asc(posts.title), asc(posts.id)]
+      case 'title_desc':
+        return [desc(posts.title), desc(posts.id)]
+      case 'publishedAt_desc':
+        return [desc(posts.publishedAt), desc(posts.id)]
+      case 'updatedAt_desc':
+        return [desc(posts.updatedAt), desc(posts.id)]
       case 'createdAt_desc':
-      default: return [desc(posts.createdAt), desc(posts.id)]
+      default:
+        return [desc(posts.createdAt), desc(posts.id)]
     }
   }
   async function list(c: Context<AppEnv>, publicView: boolean) {
     if (!publicView) admin(c)
     c.header('Cache-Control', 'no-store')
-    const parsed = (publicView ? postAdminListQuerySchema.omit({ status: true, author: true }) : postAdminListQuerySchema).safeParse(c.req.query())
+    const parsed = (
+      publicView ? postAdminListQuerySchema.omit({ status: true, author: true }) : postAdminListQuerySchema
+    ).safeParse(c.req.query())
     if (!parsed.success) return validationError(parsed.error)
     const query = parsed.data
     if (publicView && query.search?.trim()) {
@@ -515,11 +725,27 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       updatedAt: posts.updatedAt,
     } as const
     const rows = publicView
-      ? await db.select({ post: postProjection, author: { id: users.id, name: users.name } })
-        .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
-      : await db.select({ post: postProjection, author: { id: users.id, name: users.name, email: users.email } })
-        .from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where).orderBy(...orderBy(query.sortBy, publicView)).limit(limit).offset((page - 1) * limit)
-    const [totalRow] = await db.select({ total: count() }).from(posts).innerJoin(users, eq(users.id, posts.authorId)).where(where)
+      ? await db
+          .select({ post: postProjection, author: { id: users.id, name: users.name } })
+          .from(posts)
+          .innerJoin(users, eq(users.id, posts.authorId))
+          .where(where)
+          .orderBy(...orderBy(query.sortBy, publicView))
+          .limit(limit)
+          .offset((page - 1) * limit)
+      : await db
+          .select({ post: postProjection, author: { id: users.id, name: users.name, email: users.email } })
+          .from(posts)
+          .innerJoin(users, eq(users.id, posts.authorId))
+          .where(where)
+          .orderBy(...orderBy(query.sortBy, publicView))
+          .limit(limit)
+          .offset((page - 1) * limit)
+    const [totalRow] = await db
+      .select({ total: count() })
+      .from(posts)
+      .innerJoin(users, eq(users.id, posts.authorId))
+      .where(where)
     const total = Number(totalRow?.total ?? 0)
     let data: unknown[]
     if (publicView) {
@@ -529,14 +755,17 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       const translations = await loadArticleTranslationSummaries(db, accessiblePostIds)
       const matchedTranslationLocales = new Map<string, ArticleLocale[]>()
       if (query.search && accessiblePostIds.length > 0) {
-        const matches = await db.select({ postId: postTranslations.postId, locale: postTranslations.locale })
+        const matches = await db
+          .select({ postId: postTranslations.postId, locale: postTranslations.locale })
           .from(postTranslations)
           .innerJoin(posts, eq(posts.id, postTranslations.postId))
-          .where(and(
-            inArray(postTranslations.postId, accessiblePostIds),
-            currentTranslationWhere(),
-            fullText(query.search, translationSearchFields),
-          ))
+          .where(
+            and(
+              inArray(postTranslations.postId, accessiblePostIds),
+              currentTranslationWhere(),
+              fullText(query.search, translationSearchFields),
+            ),
+          )
           .orderBy(asc(postTranslations.postId), asc(postTranslations.locale))
         for (const match of matches) {
           const locale = articleLocaleSchema.safeParse(match.locale)
@@ -546,20 +775,27 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
         }
       }
       data = accessibleRows.map(row => {
-        const requested = explicitLang ?? preference ?? row.post.sourceLocale as ArticleLocale
+        const requested = explicitLang ?? preference ?? (row.post.sourceLocale as ArticleLocale)
         const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
         const translationMatches = matchedTranslationLocales.get(row.post.id.toString()) ?? []
-        const matchedTranslationLocale = translationMatches.find(locale => locale === requested) ?? translationMatches[0] ?? null
+        const matchedTranslationLocale =
+          translationMatches.find(locale => locale === requested) ?? translationMatches[0] ?? null
         return postPublicListResponseSchema.shape.data.element.parse({
           ...toPublicListItem(row, { matchedTranslationLocale }),
           ...localizedPostFields(row.post, resolution),
         })
       })
     } else {
-      data = rows.map(row => toAdminListItem(row as { post: PostListProjection; author: { id: bigint; name: string | null; email: string } }))
+      data = rows.map(row =>
+        toAdminListItem(
+          row as { post: PostListProjection; author: { id: bigint; name: string | null; email: string } },
+        ),
+      )
     }
     const response = { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
-    return c.json(publicView ? postPublicListResponseSchema.parse(response) : postAdminListResponseSchema.parse(response))
+    return c.json(
+      publicView ? postPublicListResponseSchema.parse(response) : postAdminListResponseSchema.parse(response),
+    )
   }
 
   app.get('/api/blog/admin', c => list(c, false))
@@ -583,11 +819,19 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
       if (status === 'PUBLISHED') await guardResearchPublication(tx, id)
       const timestamp = now()
-      await tx.update(posts).set({ status, publishedAt: publishedAtFor(post.status, post.publishedAt, status, timestamp), updatedAt: timestamp }).where(eq(posts.id, id))
+      await tx
+        .update(posts)
+        .set({
+          status,
+          publishedAt: publishedAtFor(post.status, post.publishedAt, status, timestamp),
+          updatedAt: timestamp,
+        })
+        .where(eq(posts.id, id))
     })
     const latest = await readAdmin(id)
     if (!latest) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    const admission = status === 'PUBLISHED' ? await queueAutomaticTranslations(latest.post, actorId, c.get('requestId')) : null
+    const admission =
+      status === 'PUBLISHED' ? await queueAutomaticTranslations(latest.post, actorId, c.get('requestId')) : null
     const response = toAdminDetail({ ...latest.post, author: latest.author })
     return c.json(admission ? { ...response, automaticTranslationAdmission: admission } : response)
   }
@@ -597,26 +841,56 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const ids = input.ids.map(BigInt)
     const result = await db.transaction(async tx => {
       await lockMutation(tx, actorId)
-      const rows = await tx.select({ id: posts.id, status: posts.status, publishedAt: posts.publishedAt }).from(posts).where(inArray(posts.id, ids)).orderBy(asc(posts.id)).for('update')
+      const rows = await tx
+        .select({ id: posts.id, status: posts.status, publishedAt: posts.publishedAt })
+        .from(posts)
+        .where(inArray(posts.id, ids))
+        .orderBy(asc(posts.id))
+        .for('update')
       for (const row of rows) await guardResearchPublication(tx, row.id)
-      for (const row of rows) await tx.update(posts).set({ status: 'PUBLISHED', publishedAt: publishedAtFor(row.status, row.publishedAt, 'PUBLISHED', now()), updatedAt: now() }).where(eq(posts.id, row.id))
+      for (const row of rows)
+        await tx
+          .update(posts)
+          .set({
+            status: 'PUBLISHED',
+            publishedAt: publishedAtFor(row.status, row.publishedAt, 'PUBLISHED', now()),
+            updatedAt: now(),
+          })
+          .where(eq(posts.id, row.id))
       return rows.length
     })
-    const publishedRows = await db.select().from(posts).where(and(inArray(posts.id, ids), eq(posts.status, 'PUBLISHED')))
-    const admissions = await Promise.all(publishedRows.map(post => queueAutomaticTranslations(post, actorId, c.get('requestId'))))
-    const warnings = admissions.flatMap(admission => admission && admission.status !== 'queued' ? [admission] : [])
-    const resumeAt = warnings.map(admission => admission.resumeAt).filter((value): value is string => value !== null).sort().at(-1) ?? null
-    return c.json(postBulkResponseSchema.parse({
-      count: result,
-      ...(warnings.length > 0 ? { automaticTranslationWarningCount: warnings.length, automaticTranslationResumeAt: resumeAt } : {}),
-    }))
+    const publishedRows = await db
+      .select()
+      .from(posts)
+      .where(and(inArray(posts.id, ids), eq(posts.status, 'PUBLISHED')))
+    const admissions = await Promise.all(
+      publishedRows.map(post => queueAutomaticTranslations(post, actorId, c.get('requestId'))),
+    )
+    const warnings = admissions.flatMap(admission => (admission && admission.status !== 'queued' ? [admission] : []))
+    const resumeAt =
+      warnings
+        .map(admission => admission.resumeAt)
+        .filter((value): value is string => value !== null)
+        .sort()
+        .at(-1) ?? null
+    return c.json(
+      postBulkResponseSchema.parse({
+        count: result,
+        ...(warnings.length > 0
+          ? { automaticTranslationWarningCount: warnings.length, automaticTranslationResumeAt: resumeAt }
+          : {}),
+      }),
+    )
   })
   app.post('/api/blog/admin/bulk-delete', async c => {
     const actorId = admin(c)
     const input = await parseJson(c, postBulkRequestSchema)
     const result = await db.transaction(async tx => {
       await lockMutation(tx, actorId)
-      return tx.delete(posts).where(inArray(posts.id, input.ids.map(BigInt))).returning({ id: posts.id })
+      return tx
+        .delete(posts)
+        .where(inArray(posts.id, input.ids.map(BigInt)))
+        .returning({ id: posts.id })
     })
     return c.json(postBulkResponseSchema.parse({ count: result.length }))
   })
@@ -631,10 +905,12 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const requested = await requestedLocaleForPost(c, row.post, explicitLocale(c.req.query('lang')))
     const translations = await loadArticleTranslations(db, [row.post.id])
     const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
-    return c.json(postPublicMetadataSchema.parse({
-      ...toPublicMetadata({ ...row.post, author: row.author }),
-      ...localizedPostFields(row.post, resolution),
-    }))
+    return c.json(
+      postPublicMetadataSchema.parse({
+        ...toPublicMetadata({ ...row.post, author: row.author }),
+        ...localizedPostFields(row.post, resolution),
+      }),
+    )
   })
   app.get('/api/blog/:slug', async c => {
     c.header('Cache-Control', 'no-store')
@@ -646,47 +922,67 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
     const requested = await requestedLocaleForPost(c, row.post, explicitLocale(c.req.query('lang')))
     const translations = await loadArticleTranslations(db, [row.post.id])
     const resolution = resolveArticleTranslation(row.post, translations.get(row.post.id) ?? [], requested)
-    return c.json(postPublicDetailSchema.parse({
-      ...toPublicDetail({ ...row.post, author: row.author }, { redactProtectedExcerpt: c.get('user') === undefined }),
-      ...localizedPostFields(row.post, resolution, { includeContent: true, redactProtectedExcerpt: c.get('user') === undefined }),
-    }))
+    return c.json(
+      postPublicDetailSchema.parse({
+        ...toPublicDetail({ ...row.post, author: row.author }, { redactProtectedExcerpt: c.get('user') === undefined }),
+        ...localizedPostFields(row.post, resolution, {
+          includeContent: true,
+          redactProtectedExcerpt: c.get('user') === undefined,
+        }),
+      }),
+    )
   })
   app.post('/api/blog', async c => {
     const authorId = admin(c)
     const input = await parseJson(c, postWriteRequestSchema)
-    if (input.autoTranslateEnabled && (input.autoTranslateProvider ?? 'edge') === 'edge' && (input.access ?? 'MEMBER') !== 'PUBLIC') {
-      return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'Automatic Microsoft Edge Translate can only process PUBLIC articles')
+    if (
+      input.autoTranslateEnabled &&
+      (input.autoTranslateProvider ?? 'edge') === 'edge' &&
+      (input.access ?? 'MEMBER') !== 'PUBLIC'
+    ) {
+      return fail(
+        409,
+        'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED',
+        'Automatic Microsoft Edge Translate can only process PUBLIC articles',
+      )
     }
     const timestamp = now()
     const excerptAuthored = typeof input.excerpt === 'string' && input.excerpt.length > 0
     const created = await db.transaction(async tx => {
       await lockMutation(tx, authorId)
-      const [post] = await tx.insert(posts).values({
-        authorId,
-        title: input.title,
-        slug: await uniqueSlug(input.title, undefined, tx),
-        content: input.content,
-        excerpt: input.excerpt || excerptFromMarkdown(input.content),
-        excerptAuthored,
-        coverImage: input.coverImage,
-        category: input.category,
-        tags: input.tags,
-        status: input.status,
-        access: input.access ?? 'MEMBER',
-        sourceLocale: input.sourceLocale ?? 'zh-TW',
-        autoTranslateEnabled: input.autoTranslateEnabled ?? false,
-        autoTranslateLocales: input.autoTranslateLocales ?? [],
-        autoTranslateProvider: input.autoTranslateEnabled === false ? null : input.autoTranslateProvider ?? (input.autoTranslateEnabled ? 'edge' : null),
-        publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }).returning()
+      const [post] = await tx
+        .insert(posts)
+        .values({
+          authorId,
+          title: input.title,
+          slug: await uniqueSlug(input.title, undefined, tx),
+          content: input.content,
+          excerpt: input.excerpt || excerptFromMarkdown(input.content),
+          excerptAuthored,
+          coverImage: input.coverImage,
+          category: input.category,
+          tags: input.tags,
+          status: input.status,
+          access: input.access ?? 'MEMBER',
+          sourceLocale: input.sourceLocale ?? 'zh-TW',
+          autoTranslateEnabled: input.autoTranslateEnabled ?? false,
+          autoTranslateLocales: input.autoTranslateLocales ?? [],
+          autoTranslateProvider:
+            input.autoTranslateEnabled === false
+              ? null
+              : (input.autoTranslateProvider ?? (input.autoTranslateEnabled ? 'edge' : null)),
+          publishedAt: input.status === 'PUBLISHED' ? timestamp : null,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+        .returning()
       if (!post) throw new Error('Post insert returned no row')
       if (input.status === 'PUBLISHED') await guardResearchPublication(tx, post.id)
       return post
     })
     if (!created) throw new Error('Post insert returned no row')
-    const admission = created.status === 'PUBLISHED' ? await queueAutomaticTranslations(created, authorId, c.get('requestId')) : null
+    const admission =
+      created.status === 'PUBLISHED' ? await queueAutomaticTranslations(created, authorId, c.get('requestId')) : null
     const row = await readAdmin(created.id)
     if (!row) throw new Error('Post read after insert returned no row')
     const response = toAdminDetail({ ...row.post, author: row.author })
@@ -701,22 +997,35 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
       const [post] = await tx.select().from(posts).where(eq(posts.id, id)).for('update')
       if (!post) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
       const existing = { post }
-      const [researchLink] = await tx.select().from(researchArticleLinks).where(eq(researchArticleLinks.postId, id)).for('update')
-      const researchContentChanged = Boolean(researchLink) && (input.title !== post.title || input.content !== post.content)
-      if (input.status === 'PUBLISHED' && !researchContentChanged) await guardResearchPublication(tx, id, { title: input.title, content: input.content })
+      const [researchLink] = await tx
+        .select()
+        .from(researchArticleLinks)
+        .where(eq(researchArticleLinks.postId, id))
+        .for('update')
+      const researchContentChanged =
+        Boolean(researchLink) && (input.title !== post.title || input.content !== post.content)
+      if (input.status === 'PUBLISHED' && !researchContentChanged)
+        await guardResearchPublication(tx, id, { title: input.title, content: input.content })
       const timestamp = now()
       const nextAccess = input.access ?? existing.post.access
       const nextAutoTranslateEnabled = input.autoTranslateEnabled ?? existing.post.autoTranslateEnabled
-      const nextAutoTranslateProvider = input.autoTranslateEnabled === false
-        ? null
-        : input.autoTranslateProvider ?? (input.autoTranslateEnabled ? existing.post.autoTranslateProvider ?? 'edge' : existing.post.autoTranslateProvider)
+      const nextAutoTranslateProvider =
+        input.autoTranslateEnabled === false
+          ? null
+          : (input.autoTranslateProvider ??
+            (input.autoTranslateEnabled
+              ? (existing.post.autoTranslateProvider ?? 'edge')
+              : existing.post.autoTranslateProvider))
       if (nextAutoTranslateEnabled && nextAutoTranslateProvider === 'edge' && nextAccess !== 'PUBLIC') {
-        return fail(409, 'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED', 'Automatic Microsoft Edge Translate can only process PUBLIC articles')
+        return fail(
+          409,
+          'ARTICLE_TRANSLATION_PRIVACY_RESTRICTED',
+          'Automatic Microsoft Edge Translate can only process PUBLIC articles',
+        )
       }
       const hasExcerptInput = input.excerpt !== undefined
-      const echoedDerivedExcerpt = !existing.post.excerptAuthored
-        && typeof input.excerpt === 'string'
-        && input.excerpt === existing.post.excerpt
+      const echoedDerivedExcerpt =
+        !existing.post.excerptAuthored && typeof input.excerpt === 'string' && input.excerpt === existing.post.excerpt
       const excerptAuthored = hasExcerptInput
         ? typeof input.excerpt === 'string' && input.excerpt.length > 0 && !echoedDerivedExcerpt
         : existing.post.excerptAuthored
@@ -726,34 +1035,45 @@ export function registerPostRoutes(app: Hono<AppEnv>, dependencies: {
           ? existing.post.excerpt
           : excerptFromMarkdown(input.content)
       // Existing derived excerpts cannot be proven safe after PUBLIC -> MEMBER.
-      const safeExcerpt = !excerptAuthored && (researchLink || (nextAccess === 'MEMBER' && existing.post.access !== 'MEMBER')) ? null : excerpt
-      const nextStatus = researchContentChanged ? 'DRAFT' as const : input.status
-      const [updated] = await tx.update(posts).set({
-        title: input.title,
-        slug: input.title === existing.post.title ? existing.post.slug : await uniqueSlug(input.title, id, tx),
-        content: input.content,
-        excerpt: safeExcerpt,
-        excerptAuthored,
-        coverImage: input.coverImage,
-        category: input.category,
-        tags: input.tags,
-        status: nextStatus,
-        access: nextAccess,
-        sourceLocale: input.sourceLocale ?? existing.post.sourceLocale,
-        autoTranslateEnabled: nextAutoTranslateEnabled,
-        autoTranslateLocales: input.autoTranslateLocales ?? existing.post.autoTranslateLocales,
-        autoTranslateProvider: nextAutoTranslateProvider,
-        publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, nextStatus, timestamp),
-        updatedAt: timestamp,
-      }).where(eq(posts.id, id)).returning()
+      const safeExcerpt =
+        !excerptAuthored && (researchLink || (nextAccess === 'MEMBER' && existing.post.access !== 'MEMBER'))
+          ? null
+          : excerpt
+      const nextStatus = researchContentChanged ? ('DRAFT' as const) : input.status
+      const [updated] = await tx
+        .update(posts)
+        .set({
+          title: input.title,
+          slug: input.title === existing.post.title ? existing.post.slug : await uniqueSlug(input.title, id, tx),
+          content: input.content,
+          excerpt: safeExcerpt,
+          excerptAuthored,
+          coverImage: input.coverImage,
+          category: input.category,
+          tags: input.tags,
+          status: nextStatus,
+          access: nextAccess,
+          sourceLocale: input.sourceLocale ?? existing.post.sourceLocale,
+          autoTranslateEnabled: nextAutoTranslateEnabled,
+          autoTranslateLocales: input.autoTranslateLocales ?? existing.post.autoTranslateLocales,
+          autoTranslateProvider: nextAutoTranslateProvider,
+          publishedAt: publishedAtFor(existing.post.status, existing.post.publishedAt, nextStatus, timestamp),
+          updatedAt: timestamp,
+        })
+        .where(eq(posts.id, id))
+        .returning()
       if (!updated) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
       if (researchContentChanged && researchLink) {
-        await tx.update(researchRuns).set({ reviewStatus: 'CHANGES_REQUIRED', version: sql`${researchRuns.version} + 1`, updatedAt: timestamp }).where(eq(researchRuns.id, researchLink.runId))
+        await tx
+          .update(researchRuns)
+          .set({ reviewStatus: 'CHANGES_REQUIRED', version: sql`${researchRuns.version} + 1`, updatedAt: timestamp })
+          .where(eq(researchRuns.id, researchLink.runId))
       }
     })
     const row = await readAdmin(id)
     if (!row) return fail(404, 'BLOG_NOT_FOUND', 'Post not found')
-    const admission = row.post.status === 'PUBLISHED' ? await queueAutomaticTranslations(row.post, actorId, c.get('requestId')) : null
+    const admission =
+      row.post.status === 'PUBLISHED' ? await queueAutomaticTranslations(row.post, actorId, c.get('requestId')) : null
     const response = toAdminDetail({ ...row.post, author: row.author })
     return c.json(admission ? { ...response, automaticTranslationAdmission: admission } : response)
   })

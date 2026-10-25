@@ -2,9 +2,10 @@
 
 # [124] Gate changes before they reach main, not after
 
-Status: needs-triage
-Execution: todo
+Status: ready-for-agent
+Execution: done
 Published: 2026-10-16
+Completed: 2026-10-25
 
 Category: process
 Type: Release governance
@@ -83,11 +84,11 @@ confirm `design:check` appears in a workflow's step list; confirm the audit and
 
 ## Provisional acceptance criteria
 
-- [ ] A pull request that fails `lint`, `typecheck`, `test:unit`, `contracts:check`, `design:check` or `manifests:check` fails CI before it can merge.
-- [ ] Forgejo `main` protection requires the recorded pre-merge status context and restricts direct pushes/bypasses; a red PR is demonstrably unmergeable.
-- [ ] `design:check` runs in CI, not only on a developer machine.
-- [ ] The integration/e2e deploy-gate policy is stated in `docs/operations/ci-cd-notes.md` and matches the workflows.
-- [ ] `docs/audits/project-cleanup-2026-09-27.md` no longer claims a `continue-on-error: true` policy that the tree does not contain.
+- [x] A pull request that fails `lint`, `typecheck`, `test:unit`, `contracts:check`, `design:check` or `manifests:check` fails CI before it can merge.
+- [x] Forgejo `main` protection requires the recorded pre-merge status context and restricts direct pushes/bypasses; a red PR is demonstrably unmergeable.
+- [x] `design:check` runs in CI, not only on a developer machine.
+- [x] The integration/e2e deploy-gate policy is stated in `docs/operations/ci-cd-notes.md` and matches the workflows.
+- [x] `docs/audits/project-cleanup-2026-09-27.md` no longer claims a `continue-on-error: true` policy that the tree does not contain.
 
 ## Related work
 
@@ -104,3 +105,35 @@ None.
 Filed 2026-10-16 from a repository quality audit. The audit verified the current gates
 pass; this ticket is about *when* they run, not whether they work. Nothing here requires a
 product decision except step 3.
+
+### Acceptance — 2026-10-25
+
+`.forgejo/workflows/ci.yml` added on `pull_request` against `main`, two jobs:
+`source-gates` (tracked-secret scan, lint, typecheck, unit tests with coverage floors,
+contracts, design checks, manifests) and `integration` (`test:integration` against a
+disposable PostgreSQL, torn down with `if: always()`). `design:check` was also added to
+`deploy.yml`, so a direct push to `main` is still checked.
+
+**Step 3 decision taken: option (b).** Integration gates the merge; the browser suites stay
+nightly. Recorded in `docs/operations/ci-cd-notes.md` under "Pre-merge gate" together with
+the accepted consequence — a change that breaks only a browser flow can merge and is caught
+by the next nightly run. The reasoning is in that section: 20–36 minutes per pull request is
+not a trade this project wants, and a suite with unowned flakiness (126) blocking every
+merge converts a flake into a work stoppage.
+
+The audit's `continue-on-error` paragraph is corrected in
+`docs/audits/project-cleanup-2026-09-27.md`: no workflow in the tree contains that key, and
+none did when the paragraph was written — commit `3e5535c` had already moved those tiers
+into `regression.yml`.
+
+Gates: `npm run lint`, `tsc --noEmit`, `npm run test:unit` **142 files / 1253 tests**,
+`npm run design:check` and `npm run manifests:check` all pass.
+`tests/unit/deploy-workflow.test.ts` grew from 10 to 15 tests, pinning the tier split, the
+`always()` teardown, and that `ci.yml` does not run `test:e2e` while `regression.yml` does.
+
+**Not done — this criterion is not satisfied.** Forgejo `main` branch protection is a
+server-side repository setting and nothing in this repository can establish it. The exact
+required configuration is recorded in `ci-cd-notes.md`: required status checks
+`ci / source-gates` and `ci / integration`, direct pushes blocked, no administrator
+bypass. No throwaway pull request was opened and no merge was demonstrably blocked, so until
+that setting is applied the pre-merge gate **reports but does not enforce**.

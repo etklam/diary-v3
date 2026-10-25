@@ -34,7 +34,7 @@ export type RelativeRatioPoint = {
 }
 
 export const relativeHistoryRanges = ['1mo', '3mo', '6mo', '1y', '5y', 'max'] as const
-export type RelativeHistoryRange = typeof relativeHistoryRanges[number]
+export type RelativeHistoryRange = (typeof relativeHistoryRanges)[number]
 export const maxGeneratedPricePoints = 50
 
 const aliases: Record<string, string> = {
@@ -106,12 +106,15 @@ export function generateRelativePricePoints(
 
 export function parseRelativeTargetPrices(input: string) {
   if (!input.trim()) return []
-  const values = input.split(/[,\n\s]+/u).filter(Boolean).map(value => {
-    if (!/^\+?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(value)) throw new Error('Invalid target price')
-    const parsed = Number(value)
-    if (!Number.isFinite(parsed) || parsed <= 0) throw new Error('Invalid target price')
-    return parsed
-  })
+  const values = input
+    .split(/[,\n\s]+/u)
+    .filter(Boolean)
+    .map(value => {
+      if (!/^\+?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(value)) throw new Error('Invalid target price')
+      const parsed = Number(value)
+      if (!Number.isFinite(parsed) || parsed <= 0) throw new Error('Invalid target price')
+      return parsed
+    })
   return [...new Set(values)].sort((a, b) => a - b)
 }
 
@@ -122,9 +125,16 @@ export function alignRelativeRatioHistory(primary: readonly HistoricalClose[], r
   return timestamps.map(timestamp => {
     const primaryClose = primaryByTimestamp.get(timestamp)
     const relativeClose = relativeByTimestamp.get(timestamp)
-    const validPrimary = primaryClose !== undefined && Number.isFinite(primaryClose) && primaryClose > 0 ? primaryClose : null
-    const validRelative = relativeClose !== undefined && Number.isFinite(relativeClose) && relativeClose > 0 ? relativeClose : null
-    return { timestamp, ratio: validPrimary !== null && validRelative !== null ? validPrimary / validRelative : null, primaryClose: validPrimary, relativeClose: validRelative }
+    const validPrimary =
+      primaryClose !== undefined && Number.isFinite(primaryClose) && primaryClose > 0 ? primaryClose : null
+    const validRelative =
+      relativeClose !== undefined && Number.isFinite(relativeClose) && relativeClose > 0 ? relativeClose : null
+    return {
+      timestamp,
+      ratio: validPrimary !== null && validRelative !== null ? validPrimary / validRelative : null,
+      primaryClose: validPrimary,
+      relativeClose: validRelative,
+    }
   })
 }
 

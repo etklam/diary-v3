@@ -70,10 +70,15 @@ test('a route change shows an indicator that costs no layout and announces its d
   // region must hold its position at both edges of the indicator's life.
   // Document-relative, not viewport-relative: a navigation resets scroll, and
   // `boundingBox()` would report that as the content region having moved.
-  const box = () => main.evaluate(element => {
-    const rect = element.getBoundingClientRect()
-    return { x: Math.round(rect.x + window.scrollX), y: Math.round(rect.y + window.scrollY), width: Math.round(rect.width) }
-  })
+  const box = () =>
+    main.evaluate(element => {
+      const rect = element.getBoundingClientRect()
+      return {
+        x: Math.round(rect.x + window.scrollX),
+        y: Math.round(rect.y + window.scrollY),
+        width: Math.round(rect.width),
+      }
+    })
   await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }))
   const resting = await box()
   await page.getByRole('search').locator('input[name="search"]').fill('synthetic-no-match')
@@ -94,7 +99,7 @@ test('a fast route change never flashes the indicator', async ({ page }) => {
   // Sample across the whole navigation rather than once: an indicator that
   // appeared for a single frame would still be a flash.
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    seen.push(await page.getByTestId('route-progress').count() > 0)
+    seen.push((await page.getByTestId('route-progress').count()) > 0)
     await page.waitForTimeout(20)
   }
   await expect(page).toHaveURL(/\/calendar$/)
@@ -121,19 +126,27 @@ test('an in-flight submit keeps the control at the same width', async ({ page })
     const button = document.querySelector<HTMLButtonElement>('.settings-actions button')
     if (!button) throw new Error('save control not found')
     const log: Array<{ busy: string | null; width: number; text: string }> = []
-    const record = () => log.push({
-      busy: button.getAttribute('aria-busy'),
-      width: button.getBoundingClientRect().width,
-      text: button.textContent ?? '',
-    })
+    const record = () =>
+      log.push({
+        busy: button.getAttribute('aria-busy'),
+        width: button.getBoundingClientRect().width,
+        text: button.textContent ?? '',
+      })
     record()
-    new MutationObserver(record).observe(button, { attributes: true, childList: true, subtree: true, characterData: true })
+    new MutationObserver(record).observe(button, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
     ;(window as unknown as { pendingLog: typeof log }).pendingLog = log
   })
   await save.click()
   await expect(page.getByText('Preferences saved.', { exact: true })).toBeVisible()
 
-  const log = await page.evaluate(() => (window as unknown as { pendingLog: Array<{ busy: string | null; width: number; text: string }> }).pendingLog)
+  const log = await page.evaluate(
+    () => (window as unknown as { pendingLog: Array<{ busy: string | null; width: number; text: string }> }).pendingLog,
+  )
   expect(log.length).toBeGreaterThan(1)
   // It did go in flight…
   expect(log.some(entry => entry.busy === 'true')).toBe(true)

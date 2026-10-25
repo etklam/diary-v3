@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatAmount,
+  formatCompactUsd,
   formatSignedAmount,
   formatDay,
   formatInstantIn,
@@ -129,5 +130,58 @@ describe('instant display', () => {
     expect(formatInstantUtc('en-US', undefined)).toBe('—')
     expect(formatInstantUtc('en-US', 'not-a-date')).toBe('—')
     expect(formatInstantIn('en-US', '', 'UTC')).toBe('—')
+  })
+})
+
+// These formatters cache their Intl objects, because building one costs about
+// thirty times formatting through one and a holdings table prints a figure per
+// cell. A cache is only safe if a key it does not distinguish cannot exist, so
+// each of these interleaves the variants that share a function.
+describe('formatter reuse', () => {
+  it("does not carry one locale's conventions into the next", () => {
+    // de-DE inverts both separators against en-US, so leakage in either
+    // direction is visible without depending on an invisible space character.
+    const order = ['en-US', 'de-DE', 'en-US', 'de-DE', 'zh-TW'] as const
+    const expected = {
+      'en-US': { amount: '2,918.40', neutral: '1,234.5', signed: '+12.50' },
+      'de-DE': { amount: '2.918,40', neutral: '1.234,5', signed: '+12,50' },
+      'zh-TW': { amount: '2,918.40', neutral: '1,234.5', signed: '+12.50' },
+    }
+    for (const locale of order) {
+      expect(formatAmount(locale, '2918.4')).toBe(expected[locale].amount)
+      expect(formatNeutralValue(locale, 1234.5)).toBe(expected[locale].neutral)
+      expect(formatMarketValue(locale, 12.5)).toBe(expected[locale].signed)
+    }
+  })
+
+  it('keeps one digit count from answering for another', () => {
+    const signed: Record<number, string> = { 0: '+13', 2: '+12.50', 4: '+12.5000' }
+    const neutral: Record<number, string> = { 0: '1,235', 2: '1,234.57', 4: '1,234.5679' }
+    for (const count of [2, 4, 0, 2, 4, 0]) {
+      expect(formatMarketValue('en-US', 12.5, count)).toBe(signed[count])
+      expect(formatNeutralValue('en-US', 1234.56789, count)).toBe(neutral[count])
+    }
+  })
+
+  it('keeps one time zone from answering for another', () => {
+    const instant = '2026-09-04T15:00:00.000Z'
+    const zones = ['UTC', 'Asia/Taipei', 'America/New_York', 'UTC', 'Asia/Taipei'] as const
+    const expected = {
+      UTC: 'Sep 4, 2026, 3:00 PM',
+      'Asia/Taipei': 'Sep 4, 2026, 11:00 PM',
+      'America/New_York': 'Sep 4, 2026, 11:00 AM',
+    }
+    for (const zone of zones) expect(formatInstantIn('en-US', instant, zone)).toBe(expected[zone])
+    // The UTC role appends its own zone label; the cached formatter must not
+    // have been handed the device zone by the call before it.
+    expect(formatInstantUtc('en-US', instant)).toBe('Sep 4, 2026, 3:00 PM UTC')
+  })
+
+  it('returns the same string on a repeat call', () => {
+    for (let index = 0; index < 3; index += 1) {
+      expect(formatAmount('zh-TW', '2918.4')).toBe('2,918.40')
+      expect(formatCompactUsd('en-US', 1284003117)).toBe('$1.3B')
+      expect(formatQuantity('en-US', '1.23456')).toBe('1.2346')
+    }
   })
 })

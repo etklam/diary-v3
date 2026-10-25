@@ -250,7 +250,7 @@
   .watch-meta,
   .watch-summary,
   .watch-actions,
-  .watch-row > [role="alert"] {
+  .watch-row > [role='alert'] {
     grid-column: 1 / -1;
   }
 

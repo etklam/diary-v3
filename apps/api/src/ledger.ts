@@ -12,7 +12,10 @@ import { LedgerValidationError, replayLedger, roundDecimalString } from '@diary/
 import { and, asc, eq, ne, notInArray, sql } from 'drizzle-orm'
 
 export type LedgerTransactionRow = typeof transactions.$inferSelect
-type LedgerReplayRow = Pick<LedgerTransactionRow, 'id' | 'symbol' | 'type' | 'quantity' | 'price' | 'tradeDate' | 'strategy' | 'emotion'>
+type LedgerReplayRow = Pick<
+  LedgerTransactionRow,
+  'id' | 'symbol' | 'type' | 'quantity' | 'price' | 'tradeDate' | 'strategy' | 'emotion'
+>
 type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 export { LedgerValidationError }
 
@@ -48,50 +51,64 @@ export async function insertLedgerTransactions(
   inputs: readonly LedgerTransactionInput[],
 ) {
   if (inputs.length === 0) return []
-  return tx.insert(transactions).values(inputs.map(input => ({
-    diaryId,
-    userId,
-    symbol: input.symbol,
-    type: input.type,
-    quantity: input.quantity,
-    price: input.price,
-    tradeDate: new Date(input.tradeDate),
-    notes: input.notes ?? null,
-    strategy: input.strategy ?? null,
-    emotion: input.emotion ?? null,
-  }))).returning()
+  return tx
+    .insert(transactions)
+    .values(
+      inputs.map(input => ({
+        diaryId,
+        userId,
+        symbol: input.symbol,
+        type: input.type,
+        quantity: input.quantity,
+        price: input.price,
+        tradeDate: new Date(input.tradeDate),
+        notes: input.notes ?? null,
+        strategy: input.strategy ?? null,
+        emotion: input.emotion ?? null,
+      })),
+    )
+    .returning()
 }
 
-export async function readUserLedger(
-  db: Database | DbTransaction,
-  userId: bigint,
-  excludeDiaryId?: bigint,
-) {
-  return db.select({
-    id: transactions.id,
-    symbol: transactions.symbol,
-    type: transactions.type,
-    quantity: transactions.quantity,
-    price: transactions.price,
-    tradeDate: transactions.tradeDate,
-    strategy: transactions.strategy,
-    emotion: transactions.emotion,
-  }).from(transactions).where(and(
-    eq(transactions.userId, userId),
-    ...(excludeDiaryId === undefined ? [] : [ne(transactions.diaryId, excludeDiaryId)]),
-  )).orderBy(asc(transactions.tradeDate), asc(transactions.id))
+export async function readUserLedger(db: Database | DbTransaction, userId: bigint, excludeDiaryId?: bigint) {
+  return db
+    .select({
+      id: transactions.id,
+      symbol: transactions.symbol,
+      type: transactions.type,
+      quantity: transactions.quantity,
+      price: transactions.price,
+      tradeDate: transactions.tradeDate,
+      strategy: transactions.strategy,
+      emotion: transactions.emotion,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        ...(excludeDiaryId === undefined ? [] : [ne(transactions.diaryId, excludeDiaryId)]),
+      ),
+    )
+    .orderBy(asc(transactions.tradeDate), asc(transactions.id))
 }
 
 function replayRows(
   rows: readonly LedgerReplayRow[],
   additions: readonly (LedgerTransactionInput & { id?: string })[] = [],
 ) {
-  let nextOrder = [...rows.map(row => row.id), ...additions.flatMap(input => input.id ? [BigInt(input.id)] : [])]
-    .reduce((highest, id) => id > highest ? id : highest, 0n)
+  let nextOrder = [
+    ...rows.map(row => row.id),
+    ...additions.flatMap(input => (input.id ? [BigInt(input.id)] : [])),
+  ].reduce((highest, id) => (id > highest ? id : highest), 0n)
   return replayLedger([
     ...rows.map(row => ({
-      id: row.id.toString(), symbol: row.symbol, type: row.type,
-      quantity: row.quantity, price: row.price, tradeDate: row.tradeDate, order: row.id,
+      id: row.id.toString(),
+      symbol: row.symbol,
+      type: row.type,
+      quantity: row.quantity,
+      price: row.price,
+      tradeDate: row.tradeDate,
+      order: row.id,
     })),
     ...additions.map(input => ({
       ...input,
@@ -130,35 +147,40 @@ export async function replaceDiaryTransactions(
   // history before deleting or changing a persisted row.
   replayRows(await readUserLedger(tx, userId, diaryId), inputs)
 
-  const retainedIds = inputs.flatMap(input => input.id === undefined ? [] : [BigInt(input.id)])
+  const retainedIds = inputs.flatMap(input => (input.id === undefined ? [] : [BigInt(input.id)]))
   if (retainedIds.length === 0) {
-    await tx.delete(transactions).where(and(
-      eq(transactions.diaryId, diaryId), eq(transactions.userId, userId),
-    ))
+    await tx.delete(transactions).where(and(eq(transactions.diaryId, diaryId), eq(transactions.userId, userId)))
   } else {
-    await tx.delete(transactions).where(and(
-      eq(transactions.diaryId, diaryId), eq(transactions.userId, userId),
-      notInArray(transactions.id, retainedIds),
-    ))
+    await tx
+      .delete(transactions)
+      .where(
+        and(
+          eq(transactions.diaryId, diaryId),
+          eq(transactions.userId, userId),
+          notInArray(transactions.id, retainedIds),
+        ),
+      )
   }
 
   for (const input of inputs) {
     if (input.id === undefined) continue
-    const [updated] = await tx.update(transactions).set({
-      userId,
-      symbol: input.symbol,
-      type: input.type,
-      quantity: input.quantity,
-      price: input.price,
-      tradeDate: new Date(input.tradeDate),
-      notes: input.notes ?? null,
-      strategy: input.strategy ?? null,
-      emotion: input.emotion ?? null,
-    }).where(and(
-      eq(transactions.id, BigInt(input.id)),
-      eq(transactions.diaryId, diaryId),
-      eq(transactions.userId, userId),
-    )).returning({ id: transactions.id })
+    const [updated] = await tx
+      .update(transactions)
+      .set({
+        userId,
+        symbol: input.symbol,
+        type: input.type,
+        quantity: input.quantity,
+        price: input.price,
+        tradeDate: new Date(input.tradeDate),
+        notes: input.notes ?? null,
+        strategy: input.strategy ?? null,
+        emotion: input.emotion ?? null,
+      })
+      .where(
+        and(eq(transactions.id, BigInt(input.id)), eq(transactions.diaryId, diaryId), eq(transactions.userId, userId)),
+      )
+      .returning({ id: transactions.id })
     if (!updated) throw new LedgerValidationError(input.symbol, `Transaction ${input.id} was not found in this diary`)
   }
 
@@ -170,7 +192,9 @@ export async function replaceDiaryTransactions(
 }
 
 export function listDiaryTransactions(db: Database | DbTransaction, diaryId: bigint, userId: bigint) {
-  return db.select().from(transactions)
+  return db
+    .select()
+    .from(transactions)
     .where(and(eq(transactions.diaryId, diaryId), eq(transactions.userId, userId)))
     .orderBy(asc(transactions.tradeDate), asc(transactions.id))
 }
@@ -179,25 +203,27 @@ export async function getHoldings(db: Database | DbTransaction, userId: bigint) 
   return holdingsResponseSchema.parse((await readLedgerSnapshot(db, userId)).holdings)
 }
 
-export async function getRecentClosedTrades(
-  db: Database,
-  userId: bigint,
-  query: RecentClosedTradesQuery,
-  now: Date,
-) {
+export async function getRecentClosedTrades(db: Database, userId: bigint, query: RecentClosedTradesQuery, now: Date) {
   return recentClosedTradesFromSnapshot(await readLedgerSnapshot(db, userId), query, now)
 }
 
 export async function readLedgerSnapshot(db: Database | DbTransaction, userId: bigint) {
   const rows = await readUserLedger(db, userId)
-  const revision = createHash('sha256').update(JSON.stringify(rows, (_key, value) => typeof value === 'bigint' ? String(value) : value)).digest('hex')
+  const revision = createHash('sha256')
+    .update(JSON.stringify(rows, (_key, value) => (typeof value === 'bigint' ? String(value) : value)))
+    .digest('hex')
   return { ...replayRows(rows), revision }
 }
 
-export function recentClosedTradesFromSnapshot(snapshot: Awaited<ReturnType<typeof readLedgerSnapshot>>, query: RecentClosedTradesQuery, now: Date) {
+export function recentClosedTradesFromSnapshot(
+  snapshot: Awaited<ReturnType<typeof readLedgerSnapshot>>,
+  query: RecentClosedTradesQuery,
+  now: Date,
+) {
   const cutoff = new Date(now.getTime() - query.days * 86_400_000)
   const { closedTrades } = snapshot
-  const trades = closedTrades.filter(trade => trade.sellDate >= cutoff)
+  const trades = closedTrades
+    .filter(trade => trade.sellDate >= cutoff)
     .sort((left, right) => {
       const dateDifference = right.sellDate.getTime() - left.sellDate.getTime()
       if (dateDifference !== 0) return dateDifference

@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
-import { expect, openQuickDestination, openQuickOptions, selectAccountLocale, selectLocale, signOut, test } from '../support/e2e'
+import {
+  expect,
+  openQuickDestination,
+  openQuickOptions,
+  selectAccountLocale,
+  selectLocale,
+  signOut,
+  test,
+} from '../support/e2e'
 
 const password = 'synthetic-quick-authoring-follow-up-password'
 const evidenceDir = 'docs/design/evidence/convenience-follow-up'
@@ -49,13 +57,13 @@ async function csrf(page: Page) {
 async function createDiary(page: Page, input: Record<string, unknown>): Promise<Diary> {
   const response = await page.request.post('/api/diaries', { headers: await csrf(page), data: input })
   expect(response.status()).toBe(201)
-  return await response.json() as Diary
+  return (await response.json()) as Diary
 }
 
 async function readDiary(page: Page, id: string): Promise<Diary> {
   const response = await page.request.get(`/api/diaries/${id}`)
   expect(response.status()).toBe(200)
-  return await response.json() as Diary
+  return (await response.json()) as Diary
 }
 
 async function capture(page: Page, name: string, width: number) {
@@ -75,7 +83,9 @@ test('Quick lookup ignores a stale date response and keeps the append target aut
   let releaseOld!: () => void
   let oldRequested = false
   let holdFirstOld = true
-  const oldGate = new Promise<void>(resolve => { releaseOld = resolve })
+  const oldGate = new Promise<void>(resolve => {
+    releaseOld = resolve
+  })
   await page.route('**/api/diaries/by-date?*', async route => {
     const date = new URL(route.request().url()).searchParams.get('date')
     if (date === oldDate && holdFirstOld) {
@@ -139,10 +149,16 @@ test('Quick uncertain append is durable, inspectable and never replayed after re
   await expect(page.getByRole('button', { name: 'Append to date', exact: true })).toBeDisabled()
   expect(postCount).toBe(1)
   expect((await readDiary(page, existing.id)).content).toBe('Original body')
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some(key => {
-    const raw = localStorage.getItem(key)
-    return key.startsWith('diary-quick-draft:') && raw ? JSON.parse(raw).value?.uncertain === true : false
-  }))).toBe(true)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Object.keys(localStorage).some(key => {
+          const raw = localStorage.getItem(key)
+          return key.startsWith('diary-quick-draft:') && raw ? JSON.parse(raw).value?.uncertain === true : false
+        }),
+      ),
+    )
+    .toBe(true)
   await page.reload()
   await expect(page.getByRole('button', { name: 'Restore saved draft', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Restore saved draft', exact: true }).click()
@@ -164,8 +180,12 @@ test('Quick in-flight append keeps its marker across reload without replay', asy
   let postCount = 0
   let started!: () => void
   let release!: () => void
-  const requestStarted = new Promise<void>(resolve => { started = resolve })
-  const responseGate = new Promise<void>(resolve => { release = resolve })
+  const requestStarted = new Promise<void>(resolve => {
+    started = resolve
+  })
+  const responseGate = new Promise<void>(resolve => {
+    release = resolve
+  })
   await page.route('**/api/diaries', async route => {
     if (route.request().method() !== 'POST') {
       await route.continue()
@@ -174,7 +194,11 @@ test('Quick in-flight append keeps its marker across reload without replay', asy
     postCount += 1
     started()
     await responseGate
-    try { await route.abort('failed') } catch { /* Reload may already have cancelled the request. */ }
+    try {
+      await route.abort('failed')
+    } catch {
+      /* Reload may already have cancelled the request. */
+    }
   })
   await page.getByRole('button', { name: 'Append to date', exact: true }).click()
   await requestStarted
@@ -197,7 +221,11 @@ test('Quick definite append validation clears the lock without retrying the writ
   await page.route('**/api/diaries', async route => {
     if (route.request().method() === 'POST') {
       postCount += 1
-      await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ data: { code: 'SYS_VALIDATION_ERROR', requestId: 'quick-definite-4xx' } }) })
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { code: 'SYS_VALIDATION_ERROR', requestId: 'quick-definite-4xx' } }),
+      })
       return
     }
     await route.continue()
@@ -247,11 +275,17 @@ for (const width of [1440, 390]) {
     await openQuickOptions(page)
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Tag source')
     await page.getByRole('textbox', { name: 'Content', exact: true }).fill('Tag source body')
-    await page.getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true }).fill('research, evidence\nlong horizon')
+    await page
+      .getByRole('textbox', { name: 'Tags (one per line or comma)', exact: true })
+      .fill('research, evidence\nlong horizon')
     await page.getByRole('button', { name: 'Create diary', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
     const firstHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
-    expect((await readDiary(page, firstHref!.split('/').at(-1)!)).tags).toEqual(['research', 'evidence', 'long horizon'])
+    expect((await readDiary(page, firstHref!.split('/').at(-1)!)).tags).toEqual([
+      'research',
+      'evidence',
+      'long horizon',
+    ])
     await capture(page, 'quick-recent-tags', width)
 
     await page.goto(`/diaries/quick?date=${secondDate}`)
@@ -292,8 +326,14 @@ for (const width of [1440, 390]) {
     const saved = page.getByRole('status', { name: 'Saved diary', exact: true })
     const firstHref = await saved.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
     expect(firstHref).toMatch(/^\/diaries\/\d+$/)
-    await expect(saved.getByRole('link', { name: 'Edit details', exact: true })).toHaveAttribute('href', `${firstHref}/edit`)
-    await expect(saved.getByRole('link', { name: 'Return to company research', exact: true })).toHaveAttribute('href', '/stocks/NVDA')
+    await expect(saved.getByRole('link', { name: 'Edit details', exact: true })).toHaveAttribute(
+      'href',
+      `${firstHref}/edit`,
+    )
+    await expect(saved.getByRole('link', { name: 'Return to company research', exact: true })).toHaveAttribute(
+      'href',
+      '/stocks/NVDA',
+    )
     await capture(page, 'quick-saved-actions', width)
 
     await saved.getByRole('button', { name: 'New note', exact: true }).click()
@@ -307,7 +347,10 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
     await page.getByRole('link', { name: 'Open diary', exact: true }).click()
     await expect(page).toHaveURL(/\/diaries\/\d+$/)
-    await expect(page.getByRole('link', { name: 'Return to NVDA research', exact: true })).toHaveAttribute('href', '/stocks/NVDA')
+    await expect(page.getByRole('link', { name: 'Return to NVDA research', exact: true })).toHaveAttribute(
+      'href',
+      '/stocks/NVDA',
+    )
     await expect(page.getByRole('link', { name: 'Edit diary', exact: true })).toBeVisible()
   })
 }
@@ -318,7 +361,10 @@ test('a submit arriving during the destination lookup is queued, not swallowed',
   await expect(content).toBeVisible()
   // The lookup note states why save is unavailable, and clears when it resolves.
   await expect(page.getByText('Checking this date for an existing diary…', { exact: true })).toHaveCount(0)
-  await page.route('**/api/diaries/by-date?*', async route => { await new Promise(resolve => setTimeout(resolve, 2000)); await route.continue() })
+  await page.route('**/api/diaries/by-date?*', async route => {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    await route.continue()
+  })
   await page.reload()
   await content.fill('Queued save during the date lookup.')
   await page.keyboard.press('Control+Enter')
@@ -334,13 +380,21 @@ test('a submit arriving during the destination lookup is queued, not swallowed',
  */
 async function holdAccountRead(page: Page) {
   let release = () => {}
-  const held = new Promise<void>(resolve => { release = resolve })
+  const held = new Promise<void>(resolve => {
+    release = resolve
+  })
   // The page issues more than one account read, and the ones still parked when
   // the test releases the hold can outlive the navigation that follows. A
   // continue on a route whose request has gone throws "Route is already
   // handled"; that is the handler's own race, not a product failure.
-  await page.route('**/api/auth/me', async route => { await held; await route.continue().catch(() => {}) })
-  return async () => { release(); await page.unroute('**/api/auth/me').catch(() => {}) }
+  await page.route('**/api/auth/me', async route => {
+    await held
+    await route.continue().catch(() => {})
+  })
+  return async () => {
+    release()
+    await page.unroute('**/api/auth/me').catch(() => {})
+  }
 }
 
 test('a cold Quick load is typable before the account read and keeps what was typed', async ({ page }) => {
@@ -368,7 +422,7 @@ test('a cold Quick load is typable before the account read and keeps what was ty
   const href = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
   expect((await readDiary(page, href!.split('/').at(-1)!)).content).toBe(marker)
   // The date still comes from the account timezone once the read confirms.
-  const settings = await (await page.request.get('/api/user/settings')).json() as { settings: { timezone: string } }
+  const settings = (await (await page.request.get('/api/user/settings')).json()) as { settings: { timezone: string } }
   expect(settings.settings.timezone).toBeTruthy()
 })
 
@@ -378,11 +432,30 @@ test('a cold Quick load is typable before the account read and keeps what was ty
  * device key holds them, and neither may be dropped without the author saying so.
  */
 async function seedStoredDraft(page: Page, content: string) {
-  const id = (await (await page.request.get('/api/auth/me')).json() as { data: { id: string } }).data.id
-  await page.evaluate(([key, body]) => localStorage.setItem(key, JSON.stringify({
-    at: Date.now(),
-    value: { date: '2026-10-08', title: 'Stored draft', content: body, tags: '', stockSymbols: '', kind: 'blank', data: {}, mode: 'create', titleTouched: true, contentTouched: true, applied: '' },
-  })), [`diary-quick-draft:${id}`, content] as const)
+  const id = ((await (await page.request.get('/api/auth/me')).json()) as { data: { id: string } }).data.id
+  await page.evaluate(
+    ([key, body]) =>
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          at: Date.now(),
+          value: {
+            date: '2026-10-08',
+            title: 'Stored draft',
+            content: body,
+            tags: '',
+            stockSymbols: '',
+            kind: 'blank',
+            data: {},
+            mode: 'create',
+            titleTouched: true,
+            contentTouched: true,
+            applied: '',
+          },
+        }),
+      ),
+    [`diary-quick-draft:${id}`, content] as const,
+  )
 }
 
 test('restoring a stored draft over writing typed before the account confirmed asks first', async ({ page }) => {
@@ -461,7 +534,9 @@ test('tag suggestions follow the account to a device that never wrote a diary', 
     await signIn(second, email)
     await second.goto('/diaries/quick?date=2026-10-27')
     await openQuickOptions(second)
-    expect(await second.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-recent-tags:')).length)).toBeGreaterThanOrEqual(0)
+    expect(
+      await second.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('diary-recent-tags:')).length),
+    ).toBeGreaterThanOrEqual(0)
     await expect(second.getByRole('button', { name: 'portfolio', exact: true })).toBeVisible()
     await expect(second.getByRole('button', { name: 'conviction', exact: true })).toBeVisible()
     // A failed suggestions read leaves writing and saving usable.

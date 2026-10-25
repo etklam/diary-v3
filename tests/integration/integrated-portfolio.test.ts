@@ -21,8 +21,12 @@ const config = {
   webOrigin: 'http://127.0.0.1',
 }
 
-beforeAll(async () => { database = await provisionTestDatabase('integrated_portfolio') })
-afterAll(async () => { await database?.dispose() })
+beforeAll(async () => {
+  database = await provisionTestDatabase('integrated_portfolio')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 type Observation = {
   queries: string[]
@@ -34,7 +38,14 @@ type Observation = {
 async function startObservedApp(): Promise<Observation> {
   const queries: string[] = []
   const quoteCalls = new Map<string, number>()
-  const db = drizzle(database.pool, { schema, logger: { logQuery(query) { queries.push(query) } } })
+  const db = drizzle(database.pool, {
+    schema,
+    logger: {
+      logQuery(query) {
+        queries.push(query)
+      },
+    },
+  })
   const marketData = createMarketData({
     now: () => clock,
     timeoutMs: 100,
@@ -82,12 +93,15 @@ async function register(baseUrl: string) {
 }
 
 async function seedLedger(userId: bigint, holdingCount: number, transactionCount: number) {
-  const [diary] = await database.db.insert(diaries).values({
-    userId,
-    title: `${holdingCount} holding portfolio`,
-    content: 'Synthetic integrated portfolio fixture',
-    date: holdingCount === 20 ? '2026-08-20' : '2026-08-21',
-  }).returning({ id: diaries.id })
+  const [diary] = await database.db
+    .insert(diaries)
+    .values({
+      userId,
+      title: `${holdingCount} holding portfolio`,
+      content: 'Synthetic integrated portfolio fixture',
+      date: holdingCount === 20 ? '2026-08-20' : '2026-08-21',
+    })
+    .returning({ id: diaries.id })
   if (!diary) throw new Error('Synthetic diary was not created')
   const perHolding = transactionCount / holdingCount
   const rows = Array.from({ length: transactionCount }, (_, index) => {
@@ -98,7 +112,7 @@ async function seedLedger(userId: bigint, holdingCount: number, transactionCount
       diaryId: diary.id,
       userId,
       symbol: `S${symbolIndex.toString().padStart(3, '0')}`,
-      type: buy ? 'BUY' as const : 'SELL' as const,
+      type: buy ? ('BUY' as const) : ('SELL' as const),
       quantity: buy ? '2' : '1',
       price: buy ? '100' : '110',
       tradeDate: new Date(Date.UTC(2026, 7, 20, 0, 0, index)),
@@ -134,7 +148,11 @@ async function sample(browser: BrowserSession, paths: readonly string[]) {
   for (const response of responses) expect(response.status).toBe(200)
   const texts = await Promise.all(responses.map(response => response.text()))
   const elapsedMs = performance.now() - started
-  return { elapsedMs, bytes: texts.reduce((total, text) => total + Buffer.byteLength(text), 0), bodies: texts.map(text => JSON.parse(text)) }
+  return {
+    elapsedMs,
+    bytes: texts.reduce((total, text) => total + Buffer.byteLength(text), 0),
+    bodies: texts.map(text => JSON.parse(text)),
+  }
 }
 
 function median(values: readonly number[]) {
@@ -145,48 +163,68 @@ function median(values: readonly number[]) {
 it.each([
   { holdings: 20, transactions: 1_000 },
   { holdings: 100, transactions: 10_000 },
-])('preserves five-endpoint payloads with two ledger replays for $holdings holdings and $transactions transactions', async fixture => {
-  const bootstrap = await startObservedApp()
-  const owner = await register(bootstrap.baseUrl)
-  await seedLedger(owner.userId, fixture.holdings, fixture.transactions)
-  const cookies = new Map(owner.browser.cookies)
-  await close(bootstrap.server)
+])(
+  'preserves five-endpoint payloads with two ledger replays for $holdings holdings and $transactions transactions',
+  async fixture => {
+    const bootstrap = await startObservedApp()
+    const owner = await register(bootstrap.baseUrl)
+    await seedLedger(owner.userId, fixture.holdings, fixture.transactions)
+    const cookies = new Map(owner.browser.cookies)
+    await close(bootstrap.server)
 
-  const baseline = await startObservedApp()
-  const baselineBrowser = sessionAt(baseline.baseUrl, cookies)
-  await sample(baselineBrowser, baselinePaths)
-  baseline.queries.length = 0
-  const baselineSamples = []
-  for (let index = 0; index < 5; index++) baselineSamples.push(await sample(baselineBrowser, baselinePaths))
-  await close(baseline.server)
+    const baseline = await startObservedApp()
+    const baselineBrowser = sessionAt(baseline.baseUrl, cookies)
+    await sample(baselineBrowser, baselinePaths)
+    baseline.queries.length = 0
+    const baselineSamples = []
+    for (let index = 0; index < 5; index++) baselineSamples.push(await sample(baselineBrowser, baselinePaths))
+    await close(baseline.server)
 
-  const integrated = await startObservedApp()
-  const integratedBrowser = sessionAt(integrated.baseUrl, cookies)
-  await sample(integratedBrowser, integratedPaths)
-  integrated.queries.length = 0
-  const integratedSamples = []
-  for (let index = 0; index < 5; index++) integratedSamples.push(await sample(integratedBrowser, integratedPaths))
-  await close(integrated.server)
+    const integrated = await startObservedApp()
+    const integratedBrowser = sessionAt(integrated.baseUrl, cookies)
+    await sample(integratedBrowser, integratedPaths)
+    integrated.queries.length = 0
+    const integratedSamples = []
+    for (let index = 0; index < 5; index++) integratedSamples.push(await sample(integratedBrowser, integratedPaths))
+    await close(integrated.server)
 
-  const [holdings, attention, valuation, exposure, recent] = baselineSamples[0]!.bodies
-  const [ledger, overview] = integratedSamples[0]!.bodies
-  expect(ledger).toMatchObject({ holdings, recent, exposure: { status: 'ready', data: exposure } })
-  expect(overview).toMatchObject({
-    valuation: { status: 'ready', data: valuation },
-    attention: { status: 'ready', data: attention },
-  })
-  expect(fullLedgerReadCount(baseline.queries)).toBe(25)
-  expect(fullLedgerReadCount(integrated.queries)).toBe(10)
-  expect([...baseline.quoteCalls.values()].reduce((sum, count) => sum + count, 0)).toBe(fixture.holdings)
-  expect([...integrated.quoteCalls.values()].reduce((sum, count) => sum + count, 0)).toBe(fixture.holdings)
+    const [holdings, attention, valuation, exposure, recent] = baselineSamples[0]!.bodies
+    const [ledger, overview] = integratedSamples[0]!.bodies
+    expect(ledger).toMatchObject({ holdings, recent, exposure: { status: 'ready', data: exposure } })
+    expect(overview).toMatchObject({
+      valuation: { status: 'ready', data: valuation },
+      attention: { status: 'ready', data: attention },
+    })
+    expect(fullLedgerReadCount(baseline.queries)).toBe(25)
+    expect(fullLedgerReadCount(integrated.queries)).toBe(10)
+    expect([...baseline.quoteCalls.values()].reduce((sum, count) => sum + count, 0)).toBe(fixture.holdings)
+    expect([...integrated.quoteCalls.values()].reduce((sum, count) => sum + count, 0)).toBe(fixture.holdings)
 
-  const evidence = {
-    ...fixture,
-    baseline: { requestsPerLoad: 5, ledgerReplaysPerLoad: 5, medianMs: median(baselineSamples.map(entry => entry.elapsedMs)), p95Ms: Math.max(...baselineSamples.map(entry => entry.elapsedMs)), payloadBytes: baselineSamples[0]!.bytes, sqlStatementsPerLoad: baseline.queries.length / 5, upstreamQuoteCallsIncludingWarmup: fixture.holdings },
-    integrated: { requestsPerLoad: 2, ledgerReplaysPerLoad: 2, medianMs: median(integratedSamples.map(entry => entry.elapsedMs)), p95Ms: Math.max(...integratedSamples.map(entry => entry.elapsedMs)), payloadBytes: integratedSamples[0]!.bytes, sqlStatementsPerLoad: integrated.queries.length / 5, upstreamQuoteCallsIncludingWarmup: fixture.holdings },
-  }
-  console.info('integrated portfolio evidence', evidence)
-  const directory = '.scratch/trade-basic-integrated-improvements/evidence'
-  await mkdir(directory, { recursive: true })
-  await writeFile(`${directory}/portfolio-${fixture.holdings}.json`, JSON.stringify(evidence, null, 2))
-}, 120_000)
+    const evidence = {
+      ...fixture,
+      baseline: {
+        requestsPerLoad: 5,
+        ledgerReplaysPerLoad: 5,
+        medianMs: median(baselineSamples.map(entry => entry.elapsedMs)),
+        p95Ms: Math.max(...baselineSamples.map(entry => entry.elapsedMs)),
+        payloadBytes: baselineSamples[0]!.bytes,
+        sqlStatementsPerLoad: baseline.queries.length / 5,
+        upstreamQuoteCallsIncludingWarmup: fixture.holdings,
+      },
+      integrated: {
+        requestsPerLoad: 2,
+        ledgerReplaysPerLoad: 2,
+        medianMs: median(integratedSamples.map(entry => entry.elapsedMs)),
+        p95Ms: Math.max(...integratedSamples.map(entry => entry.elapsedMs)),
+        payloadBytes: integratedSamples[0]!.bytes,
+        sqlStatementsPerLoad: integrated.queries.length / 5,
+        upstreamQuoteCallsIncludingWarmup: fixture.holdings,
+      },
+    }
+    console.info('integrated portfolio evidence', evidence)
+    const directory = '.scratch/trade-basic-integrated-improvements/evidence'
+    await mkdir(directory, { recursive: true })
+    await writeFile(`${directory}/portfolio-${fixture.holdings}.json`, JSON.stringify(evidence, null, 2))
+  },
+  120_000,
+)

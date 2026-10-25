@@ -29,7 +29,10 @@ export type ReportPeriodErrorCode =
   | 'AI_REPORT_INVALID_TIMEZONE'
 
 class ReportPeriodError extends Error {
-  constructor(readonly code: ReportPeriodErrorCode, message: string) {
+  constructor(
+    readonly code: ReportPeriodErrorCode,
+    message: string,
+  ) {
     super(message)
     this.name = 'ReportPeriodError'
   }
@@ -119,11 +122,21 @@ export function canonicalizeReportPeriod(input: BuildReportPeriodInput): Canonic
   if (input.periodType !== 'weekly' && input.periodType !== 'monthly') {
     throw new ReportPeriodError('AI_REPORT_INVALID_PERIOD', 'Unsupported report period type')
   }
-  const periodEndExclusive = input.periodType === 'weekly'
-    ? addDays(periodStart, 7)
-    : startParts.day === 1
-      ? dateFromParts({ year: startParts.month === 12 ? startParts.year + 1 : startParts.year, month: startParts.month === 12 ? 1 : startParts.month + 1, day: 1 })
-      : (() => { throw new ReportPeriodError('AI_REPORT_INVALID_PERIOD', 'monthly periodStart must be the first day of a month') })()
+  const periodEndExclusive =
+    input.periodType === 'weekly'
+      ? addDays(periodStart, 7)
+      : startParts.day === 1
+        ? dateFromParts({
+            year: startParts.month === 12 ? startParts.year + 1 : startParts.year,
+            month: startParts.month === 12 ? 1 : startParts.month + 1,
+            day: 1,
+          })
+        : (() => {
+            throw new ReportPeriodError(
+              'AI_REPORT_INVALID_PERIOD',
+              'monthly periodStart must be the first day of a month',
+            )
+          })()
 
   if (input.periodType === 'weekly' && !isMonday(periodStart)) {
     throw new ReportPeriodError('AI_REPORT_INVALID_PERIOD', 'weekly periodStart must be a Monday')
@@ -152,8 +165,12 @@ export function canonicalizeReportPeriod(input: BuildReportPeriodInput): Canonic
   }
 }
 
-export function calendarDaysInReportPeriod(period: Pick<CanonicalReportPeriod, 'periodStart' | 'periodEndExclusive'>): number {
+export function calendarDaysInReportPeriod(
+  period: Pick<CanonicalReportPeriod, 'periodStart' | 'periodEndExclusive'>,
+): number {
   const start = parseDate(period.periodStart)
   const end = parseDate(period.periodEndExclusive)
-  return Math.round((Date.UTC(end.year, end.month - 1, end.day) - Date.UTC(start.year, start.month - 1, start.day)) / 86_400_000)
+  return Math.round(
+    (Date.UTC(end.year, end.month - 1, end.day) - Date.UTC(start.year, start.month - 1, start.day)) / 86_400_000,
+  )
 }

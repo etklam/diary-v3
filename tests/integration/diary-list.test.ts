@@ -16,18 +16,31 @@ let database: Awaited<ReturnType<typeof provisionTestDatabase>>
 let server: ReturnType<typeof serve>
 let baseUrl: string
 const now = new Date('2026-09-05T12:00:00Z')
-beforeAll(async () => { database = await provisionTestDatabase('diary_list') })
+beforeAll(async () => {
+  database = await provisionTestDatabase('diary_list')
+})
 beforeEach(async () => {
-  const app = createApp({ db: database.db, now: () => now, config: {
-    jwtSecret: 'test-only-diary-list-secret-with-32-characters', nodeEnv: 'test',
-    trustProxy: false, webOrigin: 'http://127.0.0.1',
-  } })
+  const app = createApp({
+    db: database.db,
+    now: () => now,
+    config: {
+      jwtSecret: 'test-only-diary-list-secret-with-32-characters',
+      nodeEnv: 'test',
+      trustProxy: false,
+      webOrigin: 'http://127.0.0.1',
+    },
+  })
   server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 })
   await once(server, 'listening')
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 })
-afterEach(async () => { server.close(); await once(server, 'close') })
-afterAll(async () => { await database?.dispose() })
+afterEach(async () => {
+  server.close()
+  await once(server, 'close')
+})
+afterAll(async () => {
+  await database?.dispose()
+})
 
 async function owner() {
   const browser = new BrowserSession(baseUrl)
@@ -46,7 +59,8 @@ async function page(browser: BrowserSession, query = '') {
 
 describe('Diary list through HTTP and PostgreSQL ICU', () => {
   it('isolates owners and performs literal mixed-language title/content contains', async () => {
-    const a = await owner(), b = await owner()
+    const a = await owner(),
+      b = await owner()
     await database.db.insert(diaries).values([
       { userId: a.userId, date: '2026-01-01', title: 'Alpha investment', content: '投資策略 mixed' },
       { userId: a.userId, date: '2026-01-02', title: '100%_literal', content: 'path\\segment' },
@@ -59,7 +73,9 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
       expect(result.pagination.total).toBe(1)
     }
     for (const search of ['%_', '\\segment']) {
-      expect((await page(a.browser, new URLSearchParams({ search }).toString())).data.map(row => row.title)).toEqual(['100%_literal'])
+      expect((await page(a.browser, new URLSearchParams({ search }).toString())).data.map(row => row.title)).toEqual([
+        '100%_literal',
+      ])
     }
     expect((await page(a.browser)).pagination.total).toBe(3)
     expect((await page(b.browser)).pagination.total).toBe(1)
@@ -69,14 +85,20 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
 
   it('folds case and accents for title order and uses same-direction ID ties across pages', async () => {
     const { browser, userId } = await owner()
-    const inserted = await database.db.insert(diaries).values([
-      { userId, date: '2026-01-01', title: 'alpha', content: 'first' },
-      { userId, date: '2026-01-02', title: 'Álpha', content: 'second' },
-      { userId, date: '2026-01-03', title: 'Alpha', content: 'third' },
-      { userId, date: '2026-01-04', title: 'Beta', content: 'fourth' },
-    ]).returning({ id: diaries.id })
+    const inserted = await database.db
+      .insert(diaries)
+      .values([
+        { userId, date: '2026-01-01', title: 'alpha', content: 'first' },
+        { userId, date: '2026-01-02', title: 'Álpha', content: 'second' },
+        { userId, date: '2026-01-03', title: 'Alpha', content: 'third' },
+        { userId, date: '2026-01-04', title: 'Beta', content: 'fourth' },
+      ])
+      .returning({ id: diaries.id })
     const expected = inserted.map(row => row.id.toString())
-    for (const [sortBy, ids] of [['title-asc', expected], ['title-desc', [...expected].reverse()]] as const) {
+    for (const [sortBy, ids] of [
+      ['title-asc', expected],
+      ['title-desc', [...expected].reverse()],
+    ] as const) {
       const first = await page(browser, `sortBy=${sortBy}&limit=2&page=1`)
       const second = await page(browser, `sortBy=${sortBy}&limit=2&page=2`)
       expect([...first.data, ...second.data].map(row => row.id)).toEqual(ids)
@@ -89,15 +111,34 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
   it('includes date endpoints and only due pending reviews using the captured instant', async () => {
     const { browser, userId } = await owner()
     await database.db.insert(diaries).values([
-      { userId, date: '2026-01-01', title: 'Before', content: 'x', reviewStatus: 'pending', reviewDueAt: new Date(now.getTime() - 1) },
+      {
+        userId,
+        date: '2026-01-01',
+        title: 'Before',
+        content: 'x',
+        reviewStatus: 'pending',
+        reviewDueAt: new Date(now.getTime() - 1),
+      },
       { userId, date: '2026-01-02', title: 'Boundary', content: 'x', reviewStatus: 'pending', reviewDueAt: now },
-      { userId, date: '2026-01-03', title: 'Future', content: 'x', reviewStatus: 'pending', reviewDueAt: new Date(now.getTime() + 1) },
+      {
+        userId,
+        date: '2026-01-03',
+        title: 'Future',
+        content: 'x',
+        reviewStatus: 'pending',
+        reviewDueAt: new Date(now.getTime() + 1),
+      },
       { userId, date: '2026-01-04', title: 'Unscheduled', content: 'x', reviewStatus: 'pending' },
       { userId, date: '2026-01-05', title: 'Reviewed', content: 'x', reviewStatus: 'reviewed', reviewDueAt: now },
       { userId, date: '2026-01-06', title: 'None', content: 'x' },
     ])
-    expect((await page(browser, 'reviewStatus=pending&sortBy=date-asc')).data.map(row => row.title)).toEqual(['Before', 'Boundary'])
-    expect((await page(browser, 'dateFrom=2026-01-02&dateTo=2026-01-03&sortBy=date-asc')).data.map(row => row.title)).toEqual(['Boundary', 'Future'])
+    expect((await page(browser, 'reviewStatus=pending&sortBy=date-asc')).data.map(row => row.title)).toEqual([
+      'Before',
+      'Boundary',
+    ])
+    expect(
+      (await page(browser, 'dateFrom=2026-01-02&dateTo=2026-01-03&sortBy=date-asc')).data.map(row => row.title),
+    ).toEqual(['Boundary', 'Future'])
     expect((await page(browser, 'reviewStatus=reviewed')).data.map(row => row.title)).toEqual(['Reviewed'])
     expect((await page(browser, 'reviewStatus=none')).data.map(row => row.title)).toEqual(['None'])
   })
@@ -109,7 +150,21 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
     const huge = await page(browser, 'page=9007199254740991&limit=100')
     expect(huge.data).toEqual([])
     expect(huge.pagination.page).toBe(Number.MAX_SAFE_INTEGER)
-    for (const query of ['page=0', 'page=1.1', 'limit=101', 'limit=0', 'sortBy=date_desc', 'tag=x', 'tags=x', 'days=3', 'search=%20', 'symbol=%20', 'dateFrom=2026-02-30', 'dateFrom=2026-03-01&dateTo=2026-02-01', 'reviewStatus=unknown']) {
+    for (const query of [
+      'page=0',
+      'page=1.1',
+      'limit=101',
+      'limit=0',
+      'sortBy=date_desc',
+      'tag=x',
+      'tags=x',
+      'days=3',
+      'search=%20',
+      'symbol=%20',
+      'dateFrom=2026-02-30',
+      'dateFrom=2026-03-01&dateTo=2026-02-01',
+      'reviewStatus=unknown',
+    ]) {
       const response = await browser.request(`/api/diaries?${query}`)
       expect(response.status, query).toBe(400)
       expect((await response.json()).data.code).toBe('SYS_VALIDATION_ERROR')
@@ -117,28 +172,61 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
   })
 
   it('filters by exact normalized symbol and searches reasoning fields and tags', async () => {
-    const a = await owner(), b = await owner()
-    const inserted = await database.db.insert(diaries).values([
-      { userId: a.userId, date: '2026-02-01', title: 'Thesis note', content: 'plain', thesis: 'AI demand stays intact' },
-      { userId: a.userId, date: '2026-02-02', title: 'Risk note', content: 'plain', risk: 'Valuation is stretched' },
-      { userId: a.userId, date: '2026-02-03', title: 'Execution note', content: 'plain', execution: 'Add on strength' },
-      { userId: a.userId, date: '2026-02-04', title: 'Tagged note', content: 'plain', tags: ['earnings'] },
-      { userId: a.userId, date: '2026-02-05', title: 'Symbol note', content: 'plain' },
-      { userId: b.userId, date: '2026-02-06', title: 'Other owner', content: 'plain' },
-    ]).returning({ id: diaries.id })
-    const [stock] = await database.db.insert(stocks).values({ symbol: 'ZZTEST' }).onConflictDoNothing().returning({ id: stocks.id })
-    const stockId = stock?.id ?? (await database.db.select({ id: stocks.id }).from(stocks).where(eq(stocks.symbol, 'ZZTEST')))[0]!.id
+    const a = await owner(),
+      b = await owner()
+    const inserted = await database.db
+      .insert(diaries)
+      .values([
+        {
+          userId: a.userId,
+          date: '2026-02-01',
+          title: 'Thesis note',
+          content: 'plain',
+          thesis: 'AI demand stays intact',
+        },
+        { userId: a.userId, date: '2026-02-02', title: 'Risk note', content: 'plain', risk: 'Valuation is stretched' },
+        {
+          userId: a.userId,
+          date: '2026-02-03',
+          title: 'Execution note',
+          content: 'plain',
+          execution: 'Add on strength',
+        },
+        { userId: a.userId, date: '2026-02-04', title: 'Tagged note', content: 'plain', tags: ['earnings'] },
+        { userId: a.userId, date: '2026-02-05', title: 'Symbol note', content: 'plain' },
+        { userId: b.userId, date: '2026-02-06', title: 'Other owner', content: 'plain' },
+      ])
+      .returning({ id: diaries.id })
+    const [stock] = await database.db
+      .insert(stocks)
+      .values({ symbol: 'ZZTEST' })
+      .onConflictDoNothing()
+      .returning({ id: stocks.id })
+    const stockId =
+      stock?.id ?? (await database.db.select({ id: stocks.id }).from(stocks).where(eq(stocks.symbol, 'ZZTEST')))[0]!.id
     await database.db.insert(diaryStocks).values([
       { diaryId: inserted[4]!.id, stockId },
       { diaryId: inserted[5]!.id, stockId },
     ])
-    for (const [search, title] of [['demand', 'Thesis note'], ['stretched', 'Risk note'], ['strength', 'Execution note'], ['earnings', 'Tagged note'], ['zztest', 'Symbol note']] as const) {
+    for (const [search, title] of [
+      ['demand', 'Thesis note'],
+      ['stretched', 'Risk note'],
+      ['strength', 'Execution note'],
+      ['earnings', 'Tagged note'],
+      ['zztest', 'Symbol note'],
+    ] as const) {
       const result = await page(a.browser, new URLSearchParams({ search }).toString())
-      expect(result.data.map(row => row.title), search).toEqual([title])
+      expect(
+        result.data.map(row => row.title),
+        search,
+      ).toEqual([title])
     }
     for (const symbol of ['zztest', 'ZZTEST']) {
       const filtered = await page(a.browser, new URLSearchParams({ symbol }).toString())
-      expect(filtered.data.map(row => row.title), symbol).toEqual(['Symbol note'])
+      expect(
+        filtered.data.map(row => row.title),
+        symbol,
+      ).toEqual(['Symbol note'])
       expect(filtered.pagination.total).toBe(1)
     }
     expect((await page(a.browser, 'symbol=NOPE')).data).toEqual([])
@@ -149,7 +237,12 @@ describe('Diary list through HTTP and PostgreSQL ICU', () => {
 it('keeps legacy strict summaries unchanged and bounds opt-in late search matches', async () => {
   const { browser, userId } = await owner()
   const query = 'q'.repeat(500)
-  await database.db.insert(diaries).values({ userId, date: '2026-02-01', title: 'Synthetic snippet', content: 'prefix '.repeat(100) + query + '🙂'.repeat(100) })
+  await database.db.insert(diaries).values({
+    userId,
+    date: '2026-02-01',
+    title: 'Synthetic snippet',
+    content: 'prefix '.repeat(100) + query + '🙂'.repeat(100),
+  })
   const path = `/api/diaries/summary?${new URLSearchParams({ search: query })}`
   const legacy = await (await browser.request(path)).json()
   expect(legacy.data).toHaveLength(1)
@@ -161,6 +254,8 @@ it('keeps legacy strict summaries unchanged and bounds opt-in late search matche
   expect(result.searchSnippet?.source).toBe('content')
   expect(result.searchSnippet?.text.slice(result.searchSnippet.matchStart, result.searchSnippet.matchEnd)).toBe(query)
   expect(result.searchSnippet!.text.length).toBeLessThanOrEqual(502)
-  const unfiltered = await (await browser.request('/api/diaries/summary', { headers: { 'x-diary-search-snippet': '1' } })).json()
+  const unfiltered = await (
+    await browser.request('/api/diaries/summary', { headers: { 'x-diary-search-snippet': '1' } })
+  ).json()
   expect(unfiltered.data[0]).not.toHaveProperty('searchSnippet')
 })
