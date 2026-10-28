@@ -24,6 +24,12 @@ describe('production delivery safety', () => {
     expect(workflow).toContain('cancel-in-progress: false')
   })
 
+  it('uses the fleet SSH port for production deployment and rollback', () => {
+    expect(workflow).toContain('DEPLOY_SSH_PORT: 14500')
+    expect(workflow).toContain('SSH_OPTS="-p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes')
+    expect(workflow).toContain('SCP_OPTS="-P $DEPLOY_SSH_PORT -o StrictHostKeyChecking=yes')
+  })
+
   it('runs blocking source and image gates before production mutation', () => {
     const mutation = stepIndex(deploySteps, 'Apply production foundation and run migrations')
     const gates = [
@@ -229,6 +235,12 @@ describe('staging delivery safety', () => {
     expect(stagingWorkflow).toContain('STAGING_SSH_KEY')
     expect(stagingWorkflow).not.toContain('DEPLOY_SSH_KEY')
     expect(stagingWorkflow).not.toContain('DEPLOY_HOST')
+  })
+
+  it('uses the fleet SSH port for isolated staging deployment', () => {
+    expect(stagingWorkflow).toContain('STAGING_SSH_PORT: 14500')
+    expect(stagingWorkflow).toContain('SSH_OPTS=(-p "$STAGING_SSH_PORT"')
+    expect(stagingWorkflow).toContain('SCP_OPTS=(-P "$STAGING_SSH_PORT"')
   })
 
   it('checks environment secrets, pauses scheduled market work and runs an HTTPS smoke', () => {
