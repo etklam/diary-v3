@@ -445,3 +445,23 @@
     min-width: 44px;
   }
 }
+
+/* Ticket 137. The account timezone decides which day an entry is filed under.
+   It states the fact first and only produces a control when the device
+   disagrees, so the common case costs one quiet line and no decision. */
+.overview-first-use-timezone {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.overview-first-use-timezone p {
+  margin-bottom: 0;
+  font-size: var(--text-sm);
+}
+
+.overview-first-use-timezone .error {
+  flex-basis: 100%;
+}

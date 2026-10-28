@@ -1,7 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useId, useState } from 'react'
+import { Link, useOutletContext } from 'react-router'
 import { z } from 'zod'
-import { authUserResponseSchema } from '@diary/contracts'
 import { diarySummaryListResponseSchema, type DiarySummary } from '@diary/contracts/diary-summary'
 import { portfolioAttentionResponseSchema } from '@diary/contracts/portfolio-attention'
 import { portfolioValuationResponseSchema } from '@diary/contracts/portfolio'
@@ -13,13 +12,16 @@ import {
 import { reviewGroupsResponseSchema, type ReviewGroups } from '@diary/contracts/review-queue'
 import { tradePlanListResponseSchema } from '@diary/contracts/trade-plan'
 import { stockWatchlistResponseSchema } from '@diary/contracts/watchlist'
-import { api, useUi } from './ui'
+import { ActionButton, api, useUi } from './ui'
 import { apiFailure, FailureNotice, type Failure } from './api-error'
 import { useSessionState } from './session'
+import type { ShellOutletContext } from './root'
 import { formatAmount, formatInstantIn, formatPercent as sharedFormatPercent } from './market-display'
 import { Icon } from './icons'
 import { CaveatMark, CaveatNote, CaveatNotes, figureCaveat } from './figure-caveat'
 import { buildOverviewAttentionRows, isOverviewFirstUse, type OverviewAttentionRow } from './overview-logic'
+import { overviewCopy, type OverviewCopy as OverviewCopyShape } from './overview-copy'
+import type { Locale } from './locale-copy'
 import {
   attentionBandLabel,
   bandFromOverviewPriority,
@@ -28,303 +30,8 @@ import {
 } from './attention-display'
 import './overview.css'
 
-type OverviewLocale = 'en' | 'zh-TW' | 'zh-CN'
-type OverviewCopy = Record<string, string>
-function tx(c: OverviewCopy, key: string): string {
-  return c[key] ?? key
-}
-
-const copy: Record<OverviewLocale, OverviewCopy> = {
-  en: {
-    title: "Today's workspace",
-    hint: 'See what needs attention, then keep the reasoning close.',
-    quick: 'Quick diary',
-    writeDiary: 'Write diary',
-    captureOptions: 'More ways to record',
-    followUp: 'Follow-up actions',
-    attention: 'Needs your attention',
-    reviewQueue: 'Review queue',
-    recent: 'Recent decisions',
-    plans: 'Trade plans',
-    portfolio: 'Portfolio context',
-    watchlist: 'Tracked companies',
-    research: 'Research',
-    tools: 'Tools',
-    destinations: 'Continue elsewhere',
-    viewAll: 'View all',
-    diaryLibrary: 'Diary library',
-    emptyAttention: 'No risk or review actions need attention right now.',
-    emptyReviews: 'No pending reviews. Recent decisions remain below.',
-    emptyRecent: 'No diary decisions yet. Start with one entry.',
-    emptyPlans: 'No trade plans yet.',
-    emptyWatchlist: 'No tracked companies yet.',
-    noCurrentActions: 'No current actions.',
-    overdue: 'Overdue',
-    today: 'Today',
-    upcoming: 'Upcoming',
-    unscheduled: 'Unscheduled',
-    review: 'Review',
-    diary: 'Diary',
-    thesis: 'Investment thesis',
-    reviewed: 'Reviewed',
-    pendingReview: 'Review pending',
-    original: 'Original decision',
-    status: 'Status',
-    draft: 'Draft',
-    active: 'Active',
-    closed: 'Closed',
-    cancelled: 'Cancelled',
-    reviewIntact: 'Intact',
-    reviewPartial: 'Partially confirmed',
-    reviewInvalidated: 'Invalidated',
-    reviewUnclear: 'Unclear',
-    sourceWeb: 'Web',
-    sourceApiKey: 'API',
-    sourceTelegram: 'Telegram',
-    currentValue: 'Priced market value',
-    coverage: 'Quote coverage',
-    unpriced: 'Unpriced cost basis',
-    largest: 'Largest priced position',
-    topThree: 'Top three concentration',
-    marketState: 'Market state',
-    riskOn: 'Risk-on',
-    riskOff: 'Risk-off',
-    regular: 'Regular',
-    neutral: 'Neutral',
-    concentration: 'Concentration is elevated.',
-    stale: 'Stale quotes',
-    complete: 'Complete',
-    partial: 'Partial',
-    unavailable: 'Unavailable',
-    emptyPortfolio: 'No open positions yet. Record a purchase to see portfolio context.',
-    firstDiary: 'Write your first diary',
-    records: 'records',
-    source: 'Source',
-    lastUpdated: 'Updated',
-    retry: 'Try again',
-    failed: 'This section could not load.',
-    hintLoading: 'Loading…',
-    timezoneLoading: 'Loading account timezone…',
-    timezoneFailed: 'Account timezone could not load.',
-    date: 'Date',
-    due: 'Due',
-    plan: 'Plan',
-    reviewStatus: 'Review status',
-    portfolioError: 'Portfolio context could not load.',
-    attentionPartial:
-      'Some quotes are missing; concentration uses priced positions while reminders still include active holdings.',
-    recentHint: 'Three recent decisions; open a record for the full reasoning.',
-    singleRecordPrompt: 'Keep this record easy to revisit.',
-    arrangeReview: 'Arrange a later review',
-    firstUseTitle: 'Record a judgment you may want to revisit.',
-    startRecording: 'Start recording',
-    firstUseCopy: 'It can be an observation, a question, or a trade idea you haven’t acted on.',
-    exploreTools: 'Explore tools',
-    firstDiaryPrompt: 'No diary is recorded yet. Start one when you are ready.',
-    watchlistHint: 'Open a tracked company to continue its research record.',
-    unavailableValue: 'Unavailable',
-    asOf: 'As of',
-    unknown: 'Unknown',
-    noSummary: 'No latest research record.',
-    invalidated_thesis_while_held: 'Thesis invalidated while held',
-    overdue_thesis_review: 'Thesis review overdue',
-    overdue_diary_review: 'Diary review overdue',
-    position_concentration: 'Position concentration',
-    missing_thesis: 'Missing thesis',
-  },
-  'zh-TW': {
-    title: '今日工作區',
-    hint: '先看需要留意的事項，再把判斷脈絡留在身邊。',
-    quick: '快速記錄',
-    writeDiary: '寫日記',
-    captureOptions: '其他記錄方式',
-    followUp: '待跟進事項',
-    attention: '需要留意',
-    reviewQueue: '複盤隊列',
-    recent: '近期判斷',
-    plans: '交易計劃',
-    portfolio: '持倉背景',
-    watchlist: '追蹤中的公司',
-    research: '研究',
-    tools: '工具',
-    destinations: '繼續前往',
-    viewAll: '查看全部',
-    diaryLibrary: '日記庫',
-    emptyAttention: '目前沒有需要處理的風險或複盤事項。',
-    emptyReviews: '目前沒有待複盤項目；近期判斷仍列在下方。',
-    emptyRecent: '尚未有日記判斷，先記錄一篇。',
-    emptyPlans: '尚未有交易計劃。',
-    emptyWatchlist: '尚未有追蹤中的公司。',
-    noCurrentActions: '目前沒有需要處理的事項。',
-    overdue: '逾期',
-    today: '今天',
-    upcoming: '即將到期',
-    unscheduled: '未排程',
-    review: '複盤',
-    diary: '日記',
-    thesis: '投資論點',
-    reviewed: '已複盤',
-    pendingReview: '待複盤',
-    original: '原始判斷',
-    status: '狀態',
-    draft: '草稿',
-    active: '啟用中',
-    closed: '已結束',
-    cancelled: '已取消',
-    reviewIntact: '已確認',
-    reviewPartial: '部分確認',
-    reviewInvalidated: '已失效',
-    reviewUnclear: '未能確認',
-    sourceWeb: '網頁',
-    sourceApiKey: 'API',
-    sourceTelegram: 'Telegram',
-    currentValue: '已報價持倉市值',
-    coverage: '報價覆蓋率',
-    unpriced: '未估值成本',
-    largest: '最大已報價持倉',
-    topThree: '前三持倉集中度',
-    marketState: '市場狀態',
-    riskOn: '風險偏好',
-    riskOff: '風險收縮',
-    regular: '一般',
-    neutral: '中性',
-    concentration: '集中度偏高。',
-    stale: '過期報價',
-    complete: '完整',
-    partial: '部分',
-    unavailable: '暫不可用',
-    emptyPortfolio: '尚無未平倉部位。記錄一筆買入後即可查看持倉背景。',
-    firstDiary: '寫第一篇日記',
-    records: '筆記錄',
-    source: '來源',
-    lastUpdated: '更新時間',
-    retry: '重試',
-    failed: '此區段暫時無法載入。',
-    hintLoading: '載入中…',
-    timezoneLoading: '正在載入帳戶時區…',
-    timezoneFailed: '無法載入帳戶時區。',
-    date: '日期',
-    due: '到期',
-    plan: '計劃',
-    reviewStatus: '複盤狀態',
-    portfolioError: '持倉背景暫時無法載入。',
-    attentionPartial: '部分持倉缺報價；集中度只涵蓋已有報價部位，但提醒仍涵蓋所有活躍持倉。',
-    recentHint: '顯示三筆近期判斷；開啟記錄查看完整脈絡。',
-    singleRecordPrompt: '讓這筆記錄日後更容易回看。',
-    arrangeReview: '安排稍後複盤',
-    firstUseTitle: '記下一個日後可能想回看的判斷。',
-    startRecording: '開始記錄',
-    firstUseCopy: '可以是觀察、疑問，或者暫時未打算執行的交易想法。',
-    exploreTools: '探索工具',
-    firstDiaryPrompt: '尚未記錄日記，準備好時就開始一篇。',
-    watchlistHint: '開啟追蹤中的公司，繼續研究記錄。',
-    unavailableValue: '暫不可用',
-    asOf: '截至',
-    unknown: '未知',
-    noSummary: '尚未有最新研究記錄。',
-    invalidated_thesis_while_held: '持有期間論點失效',
-    overdue_thesis_review: '論點複盤逾期',
-    overdue_diary_review: '日記複盤逾期',
-    position_concentration: '持倉集中度',
-    missing_thesis: '缺少投資論點',
-  },
-  'zh-CN': {
-    title: '今日工作区',
-    hint: '先看需要留意的事项，再把判断脉络留在身边。',
-    quick: '快速记录',
-    writeDiary: '写日记',
-    captureOptions: '其他记录方式',
-    followUp: '待跟进事项',
-    attention: '需要留意',
-    reviewQueue: '复盘队列',
-    recent: '近期判断',
-    plans: '交易计划',
-    portfolio: '持仓背景',
-    watchlist: '追踪中的公司',
-    research: '研究',
-    tools: '工具',
-    destinations: '继续前往',
-    viewAll: '查看全部',
-    diaryLibrary: '日记库',
-    emptyAttention: '目前没有需要处理的风险或复盘事项。',
-    emptyReviews: '目前没有待复盘项目；近期判断仍列在下方。',
-    emptyRecent: '尚未有日记判断，先记录一篇。',
-    emptyPlans: '尚未有交易计划。',
-    emptyWatchlist: '尚未有追踪中的公司。',
-    noCurrentActions: '目前没有需要处理的事项。',
-    overdue: '逾期',
-    today: '今天',
-    upcoming: '即将到期',
-    unscheduled: '未排程',
-    review: '复盘',
-    diary: '日记',
-    thesis: '投资论点',
-    reviewed: '已复盘',
-    pendingReview: '待复盘',
-    original: '原始判断',
-    status: '状态',
-    draft: '草稿',
-    active: '启用中',
-    closed: '已结束',
-    cancelled: '已取消',
-    reviewIntact: '已确认',
-    reviewPartial: '部分确认',
-    reviewInvalidated: '已失效',
-    reviewUnclear: '未能确认',
-    sourceWeb: '网页',
-    sourceApiKey: 'API',
-    sourceTelegram: 'Telegram',
-    currentValue: '已报价持仓市值',
-    coverage: '报价覆盖率',
-    unpriced: '未估值成本',
-    largest: '最大已报价持仓',
-    topThree: '前三持仓集中度',
-    marketState: '市场状态',
-    riskOn: '风险偏好',
-    riskOff: '风险收缩',
-    regular: '一般',
-    neutral: '中性',
-    concentration: '集中度偏高。',
-    stale: '过期报价',
-    complete: '完整',
-    partial: '部分',
-    unavailable: '暂不可用',
-    emptyPortfolio: '尚无未平仓部位。记录一笔买入后即可查看持仓背景。',
-    firstDiary: '写第一篇日记',
-    records: '条记录',
-    source: '来源',
-    lastUpdated: '更新时间',
-    retry: '重试',
-    failed: '此区段暂时无法加载。',
-    hintLoading: '加载中…',
-    timezoneLoading: '正在加载账户时区…',
-    timezoneFailed: '无法加载账户时区。',
-    date: '日期',
-    due: '到期',
-    plan: '计划',
-    reviewStatus: '复盘状态',
-    portfolioError: '持仓背景暂时无法加载。',
-    attentionPartial: '部分持仓缺报价；集中度只涵盖已有报价部位，但提醒仍涵盖所有活跃持仓。',
-    recentHint: '显示三条近期判断；打开记录查看完整脉络。',
-    singleRecordPrompt: '让这条记录日后更容易回看。',
-    arrangeReview: '安排稍后复盘',
-    firstUseTitle: '记录一个日后可能想回看的判断。',
-    startRecording: '开始记录',
-    firstUseCopy: '可以是观察、疑问，或者暂时未打算执行的交易想法。',
-    exploreTools: '探索工具',
-    firstDiaryPrompt: '尚未记录日记，准备好时就开始一篇。',
-    watchlistHint: '打开追踪中的公司，继续研究记录。',
-    unavailableValue: '暂不可用',
-    asOf: '截至',
-    unknown: '未知',
-    noSummary: '尚未有最新研究记录。',
-    invalidated_thesis_while_held: '持有期间论点失效',
-    overdue_thesis_review: '论点复盘逾期',
-    overdue_diary_review: '日记复盘逾期',
-    position_concentration: '持仓集中度',
-    missing_thesis: '缺少投资论点',
-  },
-}
+type OverviewLocale = Locale
+type OverviewCopy = OverviewCopyShape
 
 type ResourceName = 'portfolioOverview' | 'reviews' | 'recent' | 'plans' | 'watchlist'
 type ResourceResult = { response: Response; data?: unknown; error?: unknown }
@@ -388,11 +95,7 @@ function formatPercent(value: number | null | undefined, locale: string) {
 }
 
 function sourceLabel(value: DiarySummary['createdVia'], c: OverviewCopy) {
-  return value === 'API_KEY'
-    ? tx(c, 'sourceApiKey')
-    : value === 'TELEGRAM_BOT'
-      ? tx(c, 'sourceTelegram')
-      : tx(c, 'sourceWeb')
+  return value === 'API_KEY' ? c.sourceApiKey : value === 'TELEGRAM_BOT' ? c.sourceTelegram : c.sourceWeb
 }
 
 function FailureSection({
@@ -452,13 +155,7 @@ function PortfolioSection({
         </h2>
         <Link to="/stocks">{c.viewAll}</Link>
       </header>
-      <FailureSection
-        state={state}
-        retry={retry}
-        copy={c}
-        errorId="overview-portfolio-error"
-        label={tx(c, 'portfolio')}
-      />
+      <FailureSection state={state} retry={retry} copy={c} errorId="overview-portfolio-error" label={c.portfolio} />
       {state.data &&
         (state.data.valuation.valuationStatus === 'empty' ? (
           <p>
@@ -503,7 +200,7 @@ function PortfolioSection({
               <CaveatNote id={portfolioQuoteAgeNote} mark="†" testId="quote-age-note">
                 {c.stale}: {state.data.valuation.staleQuoteCount} · {c.asOf}:{' '}
                 {state.data.valuation.valuationAsOf
-                  ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, tx(c, 'unknown'))
+                  ? formatInstant(state.data.valuation.valuationAsOf, locale, timezone, c.unknown)
                   : c.unavailableValue}
               </CaveatNote>
               {state.data.valuation.concentrationWarning && (
@@ -536,13 +233,7 @@ function WatchlistSection({
         </h2>
         <Link to="/stocks/watchlist">{c.viewAll}</Link>
       </header>
-      <FailureSection
-        state={state}
-        retry={retry}
-        copy={c}
-        errorId="overview-watchlist-error"
-        label={tx(c, 'watchlist')}
-      />
+      <FailureSection state={state} retry={retry} copy={c} errorId="overview-watchlist-error" label={c.watchlist} />
       {state.data?.items.length ? (
         <ul className="overview-watchlist">
           {state.data.items.slice(0, 3).map(item => (
@@ -665,14 +356,14 @@ function WorkspaceAttentionSection({
         retry={retryAttention}
         copy={c}
         errorId="overview-attention-error"
-        label={tx(c, 'attention')}
+        label={c.attention}
       />
       <FailureSection
         state={reviews}
         retry={retryReviews}
         copy={c}
         errorId="overview-reviews-error"
-        label={tx(c, 'reviewQueue')}
+        label={c.reviewQueue}
       />
       {attention.data && !attention.data.coverage.complete && (
         <p className="overview-partial" role="status">
@@ -706,7 +397,7 @@ function WorkspaceAttentionSection({
                       )}
                       {first.dueAt && (
                         <time dateTime={first.dueAt}>
-                          {c.due}: {formatInstant(first.dueAt, locale, timezone, tx(c, 'unknown'))}
+                          {c.due}: {formatInstant(first.dueAt, locale, timezone, c.unknown)}
                         </time>
                       )}
                     </Link>
@@ -801,7 +492,7 @@ function WorkspaceRecentSection({
         </h2>
         <Link to="/diaries">{c.diaryLibrary}</Link>
       </header>
-      <FailureSection state={state} retry={retry} copy={c} errorId="overview-recent-error" label={tx(c, 'recent')} />
+      <FailureSection state={state} retry={retry} copy={c} errorId="overview-recent-error" label={c.recent} />
       {state.data?.data.length ? (
         <>
           <ol className="overview-recent-list">
@@ -821,7 +512,82 @@ function WorkspaceRecentSection({
   )
 }
 
-function FirstUseSection({ c }: { c: OverviewCopy }) {
+/**
+ * The account timezone decides which calendar day an entry is filed under, and
+ * it defaults to `Asia/Taipei` without ever being stated (ticket 137). This is
+ * the one screen that renders exactly once per account, before the first entry
+ * exists, so it is where the fact is cheapest to state and cheapest to correct.
+ *
+ * It states, then offers. A reader whose device already agrees sees one quiet
+ * sentence and no decision; only a mismatch produces a control.
+ */
+function FirstUseTimezone({ c, timezone, onChanged }: { c: OverviewCopy; timezone: string; onChanged: () => void }) {
+  const [device] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || null
+    } catch {
+      return null
+    }
+  })
+  const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const differs = Boolean(device && device !== timezone)
+
+  async function useDevice() {
+    if (!device) return
+    setPending(true)
+    setFailed(false)
+    try {
+      // `/api/user/settings` replaces the whole record, so the current one is
+      // read first rather than guessing at the fields this screen never shows.
+      const current = await api.GET('/api/user/settings')
+      if (!current.response.ok || !current.data) throw new Error('settings unavailable')
+      const result = await api.PUT('/api/user/settings', {
+        body: { ...current.data.settings, timezone: device },
+      })
+      if (!result.response.ok) throw new Error('settings rejected')
+      onChanged()
+    } catch {
+      setFailed(true)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <div className="overview-first-use-timezone">
+      <p>
+        {c.timezoneStatement} <span className="figure">{timezone}</span>
+        {differs && (
+          <>
+            {' · '}
+            {c.timezoneDiffers} <span className="figure">{device}</span>
+          </>
+        )}
+      </p>
+      {differs && (
+        <ActionButton type="button" className="quiet-button button-compact" pending={pending} onClick={useDevice}>
+          {c.useDeviceTimezone}
+        </ActionButton>
+      )}
+      {failed && (
+        <p className="error" role="alert">
+          {c.timezoneSaveFailed}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function FirstUseSection({
+  c,
+  timezone,
+  onTimezoneChanged,
+}: {
+  c: OverviewCopy
+  timezone: string | null
+  onTimezoneChanged: () => void
+}) {
   return (
     <section className="overview-first-use" data-testid="overview-first-use" aria-labelledby="overview-first-use-title">
       <h2 id="overview-first-use-title">{c.firstUseTitle}</h2>
@@ -834,6 +600,7 @@ function FirstUseSection({ c }: { c: OverviewCopy }) {
           {c.exploreTools}
         </Link>
       </div>
+      {timezone && <FirstUseTimezone c={c} timezone={timezone} onChanged={onTimezoneChanged} />}
     </section>
   )
 }
@@ -857,13 +624,7 @@ function DestinationsSection({
             {c.plans}
           </Link>
           {(plans.loading || plans.error) && (
-            <FailureSection
-              state={plans}
-              retry={retryPlans}
-              copy={c}
-              errorId="overview-plans-error"
-              label={tx(c, 'plans')}
-            />
+            <FailureSection state={plans} retry={retryPlans} copy={c} errorId="overview-plans-error" label={c.plans} />
           )}
         </li>
         <li>
@@ -886,80 +647,45 @@ function DestinationsSection({
 export default function Overview() {
   const { locale } = useUi()
   const session = useSessionState()
-  const c = copy[locale]
-  const [timezone, setTimezone] = useState<string | null>(null)
-  const [timezoneError, setTimezoneError] = useState(false)
-  const [timezoneAttempt, setTimezoneAttempt] = useState(0)
+  const c = overviewCopy[locale]
+  // The shell already holds this response; Overview used to fetch it again and
+  // gate its first-use screen on the second copy (ticket 136).
+  const { viewer, viewerError, refreshViewer } = useOutletContext<ShellOutletContext>()
+  const timezone = viewer?.timezone ?? null
+  const timezoneError = viewerError
   const [portfolioOverview, retryPortfolioOverview] = useResource(
     'portfolioOverview',
     portfolioOverviewResponseSchema,
     session.revision,
-    tx(c, 'failed'),
+    c.failed,
   )
-  const attention = portfolioSectionState(portfolioOverview, portfolioOverview.data?.attention, tx(c, 'failed'))
-  const valuation = portfolioSectionState(portfolioOverview, portfolioOverview.data?.valuation, tx(c, 'failed'))
+  const attention = portfolioSectionState(portfolioOverview, portfolioOverview.data?.attention, c.failed)
+  const valuation = portfolioSectionState(portfolioOverview, portfolioOverview.data?.valuation, c.failed)
   const retryAttention = retryPortfolioOverview
   const retryValuation = retryPortfolioOverview
-  const [reviews, retryReviews] = useResource('reviews', reviewGroupsResponseSchema, session.revision, tx(c, 'failed'))
-  const [recent, retryRecent] = useResource('recent', diarySummaryListResponseSchema, session.revision, tx(c, 'failed'))
-  const [plans, retryPlans] = useResource('plans', tradePlanListResponseSchema, session.revision, tx(c, 'failed'))
-  const [watchlist, retryWatchlist] = useResource(
-    'watchlist',
-    stockWatchlistResponseSchema,
-    session.revision,
-    tx(c, 'failed'),
-  )
-
-  const timezoneRevision = useRef(session.revision)
-  useEffect(() => {
-    const controller = new AbortController()
-    if (timezoneRevision.current !== session.revision) {
-      setTimezone(null)
-      timezoneRevision.current = session.revision
-    }
-    setTimezoneError(false)
-    api
-      .GET('/api/auth/me', { signal: controller.signal })
-      .then(result => {
-        if (controller.signal.aborted) return
-        const parsed = authUserResponseSchema.safeParse(result.data)
-        if (result.response.ok && parsed.success) {
-          setTimezone(parsed.data.data.timezone)
-          setTimezoneError(false)
-        } else {
-          if ([401, 403].includes(result.response.status)) setTimezone(null)
-          setTimezoneError(true)
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setTimezoneError(true)
-      })
-    return () => controller.abort()
-  }, [session.revision, timezoneAttempt])
+  const [reviews, retryReviews] = useResource('reviews', reviewGroupsResponseSchema, session.revision, c.failed)
+  const [recent, retryRecent] = useResource('recent', diarySummaryListResponseSchema, session.revision, c.failed)
+  const [plans, retryPlans] = useResource('plans', tradePlanListResponseSchema, session.revision, c.failed)
+  const [watchlist, retryWatchlist] = useResource('watchlist', stockWatchlistResponseSchema, session.revision, c.failed)
 
   const accountDate = timezone
     ? new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: timezone }).format(new Date())
     : null
-  const allResourcesReady = Boolean(
-    timezone &&
-    !timezoneError &&
-    loaded(attention) &&
-    loaded(reviews) &&
-    loaded(recent) &&
-    loaded(valuation) &&
-    loaded(plans) &&
-    loaded(watchlist),
-  )
-  const firstUse =
-    allResourcesReady &&
-    isOverviewFirstUse({
-      attention: attention.data!,
-      reviews: reviews.data!,
-      recent: recent.data!,
-      valuation: valuation.data!,
-      plans: plans.data!,
-      watchlist: watchlist.data!,
-    })
+  // Ticket 136: first use is decided by the diary count, which is the smallest
+  // of the six queries and the only one that answers "is this a new account".
+  // The other five answer "is this account empty in every dimension", which is
+  // a different question — they still refine the answer, but a section that is
+  // slow or broken no longer suppresses the welcome, and neither does the
+  // account timezone. A resource that has not resolved is not evidence of
+  // content, so it reads as unknown rather than as a reason to wait.
+  const firstUse = isOverviewFirstUse({
+    recent: recent.data,
+    attention: attention.data,
+    reviews: reviews.data,
+    valuation: valuation.data,
+    plans: plans.data,
+    watchlist: watchlist.data,
+  })
   const showPortfolio =
     valuation.loading ||
     Boolean(valuation.error) ||
@@ -975,11 +701,7 @@ export default function Overview() {
             </p>
             {timezoneError && accountDate && <span role="status">{c.timezoneFailed}</span>}
             {timezoneError && (
-              <button
-                type="button"
-                className="secondary overview-retry"
-                onClick={() => setTimezoneAttempt(value => value + 1)}
-              >
+              <button type="button" className="secondary overview-retry" onClick={refreshViewer}>
                 {c.retry}
               </button>
             )}
@@ -998,7 +720,43 @@ export default function Overview() {
     dashboard is not a dead end with only one action. */}
       {firstUse ? (
         <>
-          <FirstUseSection c={c} />
+          <FirstUseSection c={c} timezone={timezone} onTimezoneChanged={refreshViewer} />
+          {attention.error && (
+            <FailureSection
+              state={attention}
+              retry={retryAttention}
+              copy={c}
+              errorId="overview-attention-error"
+              label={c.attention}
+            />
+          )}
+          {reviews.error && (
+            <FailureSection
+              state={reviews}
+              retry={retryReviews}
+              copy={c}
+              errorId="overview-reviews-error"
+              label={c.reviewQueue}
+            />
+          )}
+          {valuation.error && (
+            <FailureSection
+              state={valuation}
+              retry={retryValuation}
+              copy={c}
+              errorId="overview-portfolio-error"
+              label={c.portfolio}
+            />
+          )}
+          {watchlist.error && (
+            <FailureSection
+              state={watchlist}
+              retry={retryWatchlist}
+              copy={c}
+              errorId="overview-watchlist-error"
+              label={c.watchlist}
+            />
+          )}
           <DestinationsSection c={c} plans={plans} retryPlans={retryPlans} />
         </>
       ) : (

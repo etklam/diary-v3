@@ -92,7 +92,7 @@ export const workspaceCopy = {
 export type Locale = keyof typeof workspaceCopy
 export type Destination = { path: string; label: string; icon: IconName; admin?: true }
 
-const extraCopy = {
+export const extraCopy = {
   'zh-TW': {
     performance: '策略表現',
     etfWatchlist: 'ETF 關注清單',

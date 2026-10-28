@@ -99,16 +99,9 @@ test('desktop workspace navigation keeps capture direct, keyboard capture indepe
   await expect(sidebar).toHaveAttribute('data-scroll-more', 'true')
   await expect(page.getByTestId('quick-entry')).toHaveAttribute('href', '/diaries/quick')
 
-  const disclosure = page.locator('.desktop-quick-entry .quick-capture-disclosure')
-  await expect(disclosure.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
-  await disclosure.locator('summary').click()
-  await expect(disclosure.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveAttribute(
-    'href',
-    '/diaries/new',
-  )
+  await expect(page.getByTestId('capture-full-editor')).toHaveAttribute('href', '/diaries/new')
 
   await page.getByTestId('quick-entry').focus()
-  await expect(disclosure.getByRole('link', { name: 'Write a full diary', exact: true })).toHaveCount(0)
   await page.keyboard.press('Control+j')
   const captureDialog = page.getByRole('dialog')
   await expect(captureDialog).toBeVisible()

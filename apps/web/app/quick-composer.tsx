@@ -160,6 +160,10 @@ export function readDraft(key: string): Draft | null {
     return null
   }
 }
+/** What the saved state needs: the id and revision to schedule a review against,
+ *  and the account zone the resolved day is named in (ticket 135). */
+export type SavedDiary = { id: string; revision: number; timezone: string | null }
+
 export function QuickComposer({
   onSaved,
   onNavigate,
@@ -169,7 +173,7 @@ export function QuickComposer({
   share,
   autoFocusContent = false,
 }: {
-  onSaved?: (id: string, captureContext?: CaptureContext | null) => void
+  onSaved?: (diary: SavedDiary, captureContext?: CaptureContext | null) => void
   onNavigate?: () => void
   initialDate?: string
   captureContext?: CaptureContext | null
@@ -178,7 +182,7 @@ export function QuickComposer({
   autoFocusContent?: boolean
 }) {
   const { t } = useUi()
-  const [account, setAccount] = useState<{ id: string; date: string } | null>(null),
+  const [account, setAccount] = useState<{ id: string; date: string; timezone: string } | null>(null),
     [error, setError] = useState(false),
     [attempt, setAttempt] = useState(0)
   const session = useSessionState(),
@@ -217,7 +221,11 @@ export function QuickComposer({
             setGeneration(value => value + 1)
           }
           confirmedId.current = id
-          setAccount({ id, date: initialDate ?? calendarDateInTimezone(new Date(), result.data.data.timezone) })
+          setAccount({
+            id,
+            date: initialDate ?? calendarDateInTimezone(new Date(), result.data.data.timezone),
+            timezone: result.data.data.timezone,
+          })
         } else setError(true)
       })
       .catch(() => {
@@ -261,6 +269,7 @@ export function QuickComposer({
         key={generation}
         accountId={account?.id ?? null}
         accountDate={account?.date ?? null}
+        accountTimezone={account?.timezone ?? null}
         deviceDate={deviceDate}
         onTyped={() => {
           typed.current = true
@@ -276,13 +285,114 @@ export function QuickComposer({
     </>
   )
 }
+const REVIEW_PRESETS = [
+  { key: 'week', days: 7, label: 'reviewWeek' },
+  { key: 'month', days: 30, label: 'reviewMonth' },
+  { key: 'quarter', days: 90, label: 'reviewQuarter' },
+] as const
+
+/**
+ * Schedule the review, from the saved state, in one click.
+ *
+ * Quick capture could not set `reviewDueAt` at all, and every entry point in
+ * the product leads here — so an account captured this way had a permanently
+ * empty review queue and the third of the product's three steps never
+ * happened (ticket 135).
+ *
+ * It asks *after* the save, never before: low-friction capture is what this
+ * surface is for, and a required decision ahead of submit would cost exactly
+ * what it exists to save. Afterwards the reader still holds the judgment in
+ * mind and can answer "how long until this is testable?" at its cheapest.
+ *
+ * The presets are durations rather than calendar dates. A duration is exact
+ * without any zone or DST reasoning, it is the honest unit for "come back to
+ * this", and the confirmation still names the resolved day in the account's
+ * own calendar so the reader sees what the duration became.
+ */
+function QuickReviewSchedule({
+  id,
+  revision,
+  timezone,
+  c,
+}: {
+  id: string
+  revision: number
+  timezone: string | null
+  c: (typeof quickCopy)['en']
+}) {
+  const [pending, setPending] = useState<string | null>(null)
+  const [scheduled, setScheduled] = useState<string | null>(null)
+  const [failure, setFailure] = useState<Failure | null>(null)
+
+  async function schedule(preset: (typeof REVIEW_PRESETS)[number]) {
+    setPending(preset.key)
+    setFailure(null)
+    const dueAt = new Date(Date.now() + preset.days * 86400000)
+    try {
+      const result = await api.PATCH('/api/diaries/{id}/review-schedule', {
+        params: { path: { id } },
+        body: { reviewDueAt: dueAt.toISOString(), expectedRevision: revision },
+      })
+      if (!result.response.ok) {
+        setFailure(apiFailure(result.error, c.reviewScheduleFailed))
+        return
+      }
+      setScheduled(timezone ? calendarDateInTimezone(dueAt, timezone) : calendarDateInTimezone(dueAt, deviceTimezone()))
+    } catch {
+      setFailure(apiFailure(null, c.reviewScheduleFailed))
+    } finally {
+      setPending(null)
+    }
+  }
+
+  if (scheduled)
+    return (
+      <p className="quick-saved-review-done" role="status" data-testid="quick-review-scheduled">
+        {c.reviewScheduled} <time dateTime={scheduled}>{scheduled}</time>
+      </p>
+    )
+  return (
+    <div className="quick-saved-review">
+      <p id="quick-review-label">{c.reviewSchedulePrompt}</p>
+      <div className="actions" role="group" aria-labelledby="quick-review-label">
+        {REVIEW_PRESETS.map(preset => (
+          <ActionButton
+            key={preset.key}
+            type="button"
+            className="quiet-button button-compact"
+            data-testid={`quick-review-${preset.key}`}
+            pending={pending === preset.key}
+            disabled={pending !== null && pending !== preset.key}
+            onClick={() => void schedule(preset)}
+          >
+            {c[preset.label]}
+          </ActionButton>
+        ))}
+      </div>
+      <FailureNotice failure={failure} id="quick-review-error" />
+    </div>
+  )
+}
+
+function deviceTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
 export function QuickSavedState({
   id,
+  revision,
+  timezone,
   captureContext,
   onNew,
   onNavigate,
 }: {
   id: string
+  revision: number
+  timezone: string | null
   captureContext?: CaptureContext | null
   onNew: () => void
   onNavigate?: () => void
@@ -321,6 +431,7 @@ export function QuickSavedState({
           </Link>
         )}
       </div>
+      <QuickReviewSchedule id={id} revision={revision} timezone={timezone} c={c} />
     </section>
   )
 }
@@ -414,6 +525,7 @@ function SnippetManager({
 function Composer({
   accountId,
   accountDate,
+  accountTimezone,
   deviceDate,
   onTyped,
   share,
@@ -426,13 +538,14 @@ function Composer({
 }: {
   accountId: string | null
   accountDate: string | null
+  accountTimezone: string | null
   deviceDate: string
   onTyped: () => void
   share?: CaptureShare
   initialDate?: string
   captureContext?: CaptureContext | null
   captureIssue?: CaptureContextIssue | null
-  onSaved?: (id: string, captureContext?: CaptureContext | null) => void
+  onSaved?: (diary: SavedDiary, captureContext?: CaptureContext | null) => void
   onNavigate?: () => void
   autoFocusContent?: boolean
 }) {
@@ -821,7 +934,8 @@ function Composer({
         setForm(empty(incomingDate))
         setSavedDraft(false)
         setLookupAttempt(value => value + 1)
-        if (onSaved) onSaved(result.data.id, captureRef.current)
+        if (onSaved)
+          onSaved({ id: result.data.id, revision: result.data.revision, timezone: accountTimezone }, captureRef.current)
         else navigate(`/diaries/${result.data.id}`, { state: { saved: true, captureContext: captureRef.current } })
       } else {
         const failure = apiFailure(result.error, t('failed'))
@@ -1107,6 +1221,16 @@ function Composer({
                 </div>
                 {currentDestination && <p className="muted">{c.createBlocked}</p>}
               </Disclosure>
+              {/* The account timezone, not the device, decides which day this is
+                filed under, and it silently rewrites the field above once the
+                account resolves. Stating it permanently is the project's own
+                caveat idiom: no hover, no title attribute, works on touch
+                (ticket 137). */}
+              {accountTimezone && (
+                <p className="muted quick-timezone-note" data-testid="quick-timezone-note">
+                  {c.timezoneNote} <span className="figure">{accountTimezone}</span>
+                </p>
+              )}
               {currentDestination && (
                 <p className="muted quick-existing" data-testid="quick-existing-destination">
                   {c.exists} <span>{c.titleLocked}</span>{' '}

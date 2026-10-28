@@ -1,72 +1,54 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { QuickComposer, QuickSavedState } from './quick-composer'
+import { QuickComposer, QuickSavedState, type SavedDiary } from './quick-composer'
 import { useSessionState } from './session'
-import { Disclosure, DisclosureSummary, useUi } from './ui'
+import { useUi } from './ui'
 import { Icon } from './icons'
 import type { CaptureContext } from './capture-context'
 
 type Locale = 'zh-TW' | 'zh-CN' | 'en'
-const captureCopy: Record<Locale, { more: string; write: string }> = {
-  'zh-TW': { more: '其他記錄方式', write: '寫完整日記' },
-  'zh-CN': { more: '其他记录方式', write: '写完整日记' },
-  en: { more: 'More ways to record', write: 'Write a full diary' },
+const captureCopy: Record<Locale, { write: string }> = {
+  'zh-TW': { write: '寫完整日記' },
+  'zh-CN': { write: '写完整日记' },
+  en: { write: 'Write a full diary' },
 }
 
+/**
+ * The two capture paths, both named.
+ *
+ * The full editor — thesis, risk, execution, transactions, reminders, review
+ * scheduling — used to sit behind an empty disclosure summary: a 44px chevron with an
+ * `aria-label` and no visible text, holding exactly one link. Screen readers
+ * were served and sighted readers saw a triangle, so the more complete of the
+ * two paths was the one nobody could name (ticket 139).
+ *
+ * A disclosure holding one item saves nothing. Quick capture stays the one
+ * filled action because it is the right default; the editor is simply a quiet
+ * link under it, which also retires the popover and its dismiss handling.
+ */
 export function CaptureChoices({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { locale, t } = useUi()
   const c = captureCopy[locale]
-  const disclosure = useRef<HTMLDetailsElement>(null)
-  function closeDisclosure(focus = false) {
-    disclosure.current?.removeAttribute('open')
-    if (focus) disclosure.current?.querySelector<HTMLElement>('summary')?.focus()
-  }
-  useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => {
-      if (!disclosure.current?.contains(event.target as Node)) closeDisclosure()
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [])
-  const navigate = () => {
-    closeDisclosure()
-    onNavigate?.()
-  }
   return (
     <>
       <Link
         className="button quick-capture-primary"
         data-testid={mobile ? 'mobile-quick-entry' : 'quick-entry'}
         to="/diaries/quick"
-        onClick={navigate}
+        onClick={onNavigate}
       >
         {t('quick')}
       </Link>
       {!mobile && (
-        <Disclosure
-          ref={disclosure}
-          className="quick-capture-disclosure"
-          onKeyDown={event => {
-            if (event.key === 'Escape' && disclosure.current?.open) {
-              event.preventDefault()
-              closeDisclosure(true)
-            }
-          }}
-          onBlur={event => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeDisclosure()
-          }}
-          onClick={event => {
-            if (event.target instanceof Element && event.target.closest('a')) closeDisclosure()
-          }}
+        <Link
+          className="quick-capture-secondary"
+          data-testid="capture-full-editor"
+          to="/diaries/new"
+          onClick={onNavigate}
         >
-          <DisclosureSummary aria-label={c.more}></DisclosureSummary>
-          <div className="quick-capture-options">
-            <Link to="/diaries/new" onClick={navigate}>
-              <Icon name="pen" />
-              {c.write}
-            </Link>
-          </div>
-        </Disclosure>
+          <Icon name="pen" size={16} />
+          {c.write}
+        </Link>
       )}
     </>
   )
@@ -77,7 +59,7 @@ export function QuickEntry() {
     session = useSessionState(),
     location = useLocation()
   const [open, setOpen] = useState(false),
-    [saved, setSaved] = useState<{ id: string; captureContext: CaptureContext | null } | null>(null),
+    [saved, setSaved] = useState<{ diary: SavedDiary; captureContext: CaptureContext | null } | null>(null),
     [focusContent, setFocusContent] = useState(false),
     [reset, setReset] = useState(0)
   const dialog = useRef<HTMLDialogElement>(null),
@@ -157,15 +139,17 @@ export function QuickEntry() {
             key={reset}
             autoFocusContent={focusContent}
             onNavigate={() => setOpen(false)}
-            onSaved={(id, captureContext) => {
-              setSaved({ id, captureContext: captureContext ?? null })
+            onSaved={(diary, captureContext) => {
+              setSaved({ diary, captureContext: captureContext ?? null })
               setFocusContent(false)
             }}
           />
         )}
         {open && saved && (
           <QuickSavedState
-            id={saved.id}
+            id={saved.diary.id}
+            revision={saved.diary.revision}
+            timezone={saved.diary.timezone}
             captureContext={saved.captureContext}
             onNavigate={() => setOpen(false)}
             onNew={() => {

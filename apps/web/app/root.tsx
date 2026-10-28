@@ -15,6 +15,7 @@ import {
   isRouteErrorResponse,
   type MetaFunction,
 } from 'react-router'
+import { authUserResponseSchema } from '@diary/contracts'
 import { clearPrivateSession, completeSignOut, signInPath, useSessionState } from './session'
 import { ActionButton, api, ConfirmProvider, Disclosure, DisclosureSummary, UiProvider, useUi } from './ui'
 import { BrandMark } from './icons'
@@ -176,30 +177,50 @@ function Shell() {
   const sessionRevision = useRef(session.revision)
   const [logoutPending, setLogoutPending] = useState(false)
   const [logoutError, setLogoutError] = useState(false)
-  const [viewer, setViewer] = useState<{ id: string; role: 'USER' | 'ADMIN' } | null>(null)
+  const [viewer, setViewer] = useState<Viewer | null>(null)
+  // Ticket 136: Overview used to fetch `/api/auth/me` a second time for the
+  // account timezone alone, and gated its first-use screen on that fetch. The
+  // shell already has the response, so it now carries the timezone, its own
+  // failure state, and a way to ask again.
+  const [viewerError, setViewerError] = useState(false)
+  const [viewerAttempt, setViewerAttempt] = useState(0)
   const sidebar = useScrollAffordance()
   const routePath = location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : location.pathname
   const wideDiaryBrowsePath = ['/diaries', '/timeline', '/calendar'].includes(routePath)
   useEffect(() => {
     if (session.authenticated === false) {
       setViewer(null)
+      setViewerError(false)
       return
     }
     let active = true
+    setViewerError(false)
     void api
       .GET('/api/auth/me')
       .then(result => {
-        if (active)
-          setViewer(result.response.ok && result.data ? { id: result.data.data.id, role: result.data.data.role } : null)
+        if (!active) return
+        const parsed = authUserResponseSchema.safeParse(result.data)
+        if (result.response.ok && parsed.success) {
+          setViewer({ id: parsed.data.data.id, role: parsed.data.data.role, timezone: parsed.data.data.timezone })
+          setViewerError(false)
+        } else {
+          setViewer(null)
+          setViewerError(true)
+        }
       })
       .catch(() => {
-        if (active) setViewer(null)
+        if (!active) return
+        setViewer(null)
+        setViewerError(true)
       })
     return () => {
       active = false
     }
     // Role only changes at session boundaries; page navigations must not refetch it.
-  }, [session.authenticated, session.revision])
+    // `viewerAttempt` is the explicit retry. Both writers of the account
+    // timezone — the Settings form and the first-use block — bump it on
+    // success, so the shell never serves a value the reader just changed.
+  }, [session.authenticated, session.revision, viewerAttempt])
   useEffect(() => {
     if (session.revision === sessionRevision.current) return
     sessionRevision.current = session.revision
@@ -467,7 +488,15 @@ function Shell() {
         >
           {!publicChrome && <ForegroundReminders />}
           <PwaStatus />
-          <Outlet context={{ authenticated: session.authenticated, viewer }} key={session.identity} />
+          <Outlet
+            context={{
+              authenticated: session.authenticated,
+              viewer,
+              viewerError,
+              refreshViewer: () => setViewerAttempt(value => value + 1),
+            }}
+            key={session.identity}
+          />
         </main>
         {publicChrome ? (
           <footer className="public-footer">
@@ -496,9 +525,15 @@ function Shell() {
   )
 }
 
+export type Viewer = { id: string; role: 'USER' | 'ADMIN'; timezone: string }
+
 export type ShellOutletContext = {
   authenticated: boolean | null
-  viewer: { id: string; role: 'USER' | 'ADMIN' } | null
+  viewer: Viewer | null
+  /** The viewer request failed. Distinct from a signed-out `viewer: null`. */
+  viewerError: boolean
+  /** Ask for the viewer again — retry after a failure, or re-read after a write. */
+  refreshViewer: () => void
 }
 
 export default function App() {

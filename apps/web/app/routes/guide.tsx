@@ -1,5 +1,6 @@
 import { Link, type MetaFunction } from 'react-router'
 import { useUi } from '../ui'
+import { useSessionState } from '../session'
 import '../public.css'
 
 export const meta: MetaFunction = () => [
@@ -50,6 +51,9 @@ const copy = {
       },
     ],
     closing: 'Private work begins after sign-in. New here?',
+    signedInIntro:
+      'Use the workbench in the order that fits the decision. Each step below opens the surface that does it.',
+    signedInClosing: 'Everything here is reachable from the sidebar once you know its name.',
     register: 'Create an account',
   },
   'zh-TW': {
@@ -89,6 +93,8 @@ const copy = {
       },
     ],
     closing: '登入後即可開始私人工作。還沒有帳戶？',
+    signedInIntro: '按最適合這個決策的順序使用工作台。下面每一步都會直接開啟負責它的介面。',
+    signedInClosing: '知道名字之後，這裡每一項都可以從側欄直接到達。',
     register: '建立帳戶',
   },
   'zh-CN': {
@@ -128,18 +134,25 @@ const copy = {
       },
     ],
     closing: '登录后即可开始私人工作。还没有账户？',
+    signedInIntro: '按最适合这个决策的顺序使用工作台。下面每一步都会直接打开负责它的界面。',
+    signedInClosing: '知道名字之后，这里每一项都可以从侧栏直接到达。',
     register: '创建账户',
   },
 } as const
 
 export default function Guide() {
   const { locale } = useUi()
+  const session = useSessionState()
   const c = copy[locale]
+  // Signed in, the sign-in caveat and the create-account closing are noise:
+  // the reader is already past both, and this page now renders inside the
+  // workspace shell they are being taught to use (ticket 139).
+  const signedIn = session.authenticated === true
   return (
     <article className="public-page public-reading">
       <header>
         <h1>{c.title}</h1>
-        <p className="lede">{c.intro}</p>
+        <p className="lede">{signedIn ? c.signedInIntro : c.intro}</p>
       </header>
       <ol className="public-guide-list">
         {c.tasks.map(task => (
@@ -155,15 +168,21 @@ export default function Guide() {
         ))}
       </ol>
       <section className="public-closing">
-        <p>{c.closing}</p>
-        <div className="actions">
-          <Link className="button secondary" to="/login">
-            {c.signIn}
-          </Link>
-          <Link className="button" to="/register">
-            {c.register}
-          </Link>
-        </div>
+        {signedIn ? (
+          <p>{c.signedInClosing}</p>
+        ) : (
+          <>
+            <p>{c.closing}</p>
+            <div className="actions">
+              <Link className="button secondary" to="/login">
+                {c.signIn}
+              </Link>
+              <Link className="button" to="/register">
+                {c.register}
+              </Link>
+            </div>
+          </>
+        )}
       </section>
     </article>
   )

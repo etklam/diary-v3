@@ -6,7 +6,7 @@ import { BrandMark, Icon, type IconName } from './icons'
 import { TOOLS } from './tool-shell'
 import { CaptureChoices } from './quick-entry'
 import { CommandPaletteTrigger } from './command-palette'
-import { workspaceCopy } from './destinations'
+import { extraCopy, workspaceCopy } from './destinations'
 import { useReviewCount } from './use-review-count'
 import { usePendingPathname } from './navigation-progress'
 
@@ -135,6 +135,7 @@ export type NavigationOwner =
   | 'tools'
   | 'articles'
   | 'achievements'
+  | 'guide'
   | 'settings'
   | 'adminBlog'
   | 'adminUsers'
@@ -167,6 +168,7 @@ export function navigationOwner(pathname: string): NavigationOwner {
   if (path === '/articles' || path.startsWith('/articles/')) return 'articles'
   if (path === '/settings' || path.startsWith('/settings/')) return 'settings'
   if (path === '/achievements') return 'achievements'
+  if (path === '/guide') return 'guide'
   if (path === '/admin/blog' || path.startsWith('/admin/blog/')) return 'adminBlog'
   if (path === '/admin/users' || path.startsWith('/admin/users/')) return 'adminUsers'
   if (path === '/admin/gurus' || path.startsWith('/admin/gurus/')) return 'adminGurus'
@@ -330,6 +332,7 @@ export function NavigationLinks({
         <section className="nav-group nav-account" aria-labelledby={`${idPrefix}-account`}>
           <h2 id={`${idPrefix}-account`}>{sections.account}</h2>
           <div className="nav-group-links">
+            {link('/guide', extraCopy[locale].guide, 'compass', 'guide')}
             {link('/achievements', c.achievements, 'target', 'achievements')}
             {link('/settings', c.settings, 'settings', 'settings')}
           </div>
@@ -396,6 +399,7 @@ export function AccountLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { locale } = useUi()
   const location = useLocation()
   const c = workspaceCopy[locale]
+  const e = extraCopy[locale]
   const owner = navigationOwner(location.pathname)
   const pendingPath = usePendingPathname()
   const pendingOwner = pendingPath === null ? null : navigationOwner(pendingPath)
@@ -403,6 +407,20 @@ export function AccountLinks({ onNavigate }: { onNavigate?: () => void }) {
     pendingOwner === destination && owner !== destination ? 'true' : undefined
   return (
     <>
+      {/* The guide used to leave the product at sign-in: it rendered in the
+        public header, drawer and footer, and nowhere in the workspace. For a
+        product this dense with terms a new investor has to learn, that is the
+        wrong way round. It joins the pinned block rather than the scrolling
+        list so it cannot fall below the fold (ticket 139). */}
+      <Link
+        to="/guide"
+        onClick={onNavigate}
+        aria-current={owner === 'guide' ? 'page' : undefined}
+        data-nav-pending={pending('guide')}
+      >
+        <Icon name="compass" />
+        {e.guide}
+      </Link>
       <Link
         to="/achievements"
         onClick={onNavigate}

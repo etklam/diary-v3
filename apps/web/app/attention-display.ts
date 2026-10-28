@@ -20,10 +20,12 @@ const bandCopy = {
 /**
  * The band, as a word.
  *
- * The visible carrier is the weight of the rule at the row's leading edge,
- * which a screen reader cannot see any more than it can see row order — the
- * other half of the same defect. This word is rendered visually hidden at the
- * head of each row so the band is in the reading order too.
+ * Ticket 119 drew the band as the weight of the rule at each row's leading
+ * edge and added this word so a screen reader got it too. Ticket 140 found the
+ * drawn half carried nothing — 1px against 3px of low-chroma grey, on rows
+ * rarely adjacent in the same band — and retired it. This word stays, and is
+ * now the only carrier besides the row label and the ordering: linear reading
+ * cannot see order, which was always the real gap.
  */
 export function attentionBandLabel(band: AttentionBand, locale: string): string {
   return (bandCopy[locale as keyof typeof bandCopy] ?? bandCopy.en)[band]

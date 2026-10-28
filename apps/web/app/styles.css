@@ -526,14 +526,13 @@ a.attention-row:hover strong {
   text-decoration: underline;
 }
 
-.attention-list > li[data-attention-band='high'] > .attention-row {
-  border-inline-start-width: 3px;
-  border-inline-start-color: var(--rule-strong);
-}
-
-.attention-list > li[data-attention-band='medium'] > .attention-row {
-  border-inline-start-width: 2px;
-}
+/* The band is no longer drawn. Ticket 119 encoded it as the width of this
+   rule — 1px, 2px, 3px of low-chroma grey — which is a real distinction the
+   eye cannot make across rows that are never adjacent in the same band. The
+   information was always carried twice over: the row label names the reason
+   or the bucket in words, and the ordering is the ranking. What the sighted
+   reader was missing is nothing; what a screen reader was missing is the
+   order, and the `sr-only` band word still says it (ticket 140). */
 
 .attention-row > span,
 .attention-row > time {
@@ -1212,8 +1211,7 @@ button.is-pending::after,
 
 .quick-entry-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  justify-items: start;
   gap: var(--space-2);
 }
 
@@ -1221,80 +1219,28 @@ button.is-pending::after,
   width: 100%;
 }
 
-.quick-entry-shortcut {
-  grid-column: 1 / -1;
-  color: var(--muted);
-  font-size: var(--text-2xs);
-  text-align: center;
-}
-
-.quick-capture-disclosure {
-  position: relative;
-}
-
-.quick-capture-disclosure > summary {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  min-height: 44px;
-  border: 1px solid var(--control);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  list-style: none;
-  transition:
-    border-color var(--dur-1) var(--ease-out),
-    color var(--dur-1) var(--ease-out),
-    background-color var(--dur-1) var(--ease-out);
-}
-
-.quick-capture-disclosure > summary::-webkit-details-marker {
-  display: none;
-}
-
-.quick-capture-disclosure > summary:hover {
-  border-color: var(--text);
-  color: var(--text);
-}
-
-.quick-capture-disclosure[open] > summary {
-  border-color: var(--action);
-  background: var(--action-tint);
-  color: var(--action);
-}
-
-/* An overlay, so it is one of the few things in this system that earns a
-   shadow. Positioned fixed-adjacent inside a non-clipping parent. */
-.quick-capture-options {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  right: 0;
-  z-index: var(--z-dropdown);
-  min-width: 190px;
-  padding: var(--space-1);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-card);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-pop);
-}
-
-.quick-capture-options a {
-  display: flex;
+/* The second capture path, named rather than hidden behind a chevron
+   (ticket 139). Quiet weight keeps the filled action unambiguous. */
+.quick-capture-secondary {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 36px;
+  padding: 0 var(--space-1);
   border-radius: var(--radius-control);
-  color: var(--text);
+  color: var(--action);
   font-size: var(--text-sm);
   text-decoration: none;
   transition: background-color var(--dur-1) var(--ease-out);
 }
 
-.quick-capture-options a:hover {
-  background: var(--selected);
-  color: var(--text);
+.quick-capture-secondary:hover {
+  background: var(--action-tint);
+}
+
+.quick-entry-shortcut {
+  color: var(--muted);
+  font-size: var(--text-2xs);
 }
 
 /* ---- Navigation --------------------------------------------------------- */

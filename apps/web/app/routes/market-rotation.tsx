@@ -912,17 +912,23 @@ export default function MarketRotation() {
     try {
       const css = getComputedStyle(document.documentElement)
       const paletteValue = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
+      // Fallbacks for an export that runs before the stylesheet resolves. They
+      // are the sRGB of the light-theme tokens they stand in for, recomputed
+      // 2026-10-29: every one had drifted from its token, and `--border` had
+      // drifted far enough that the design detector reported it as an
+      // undocumented colour (ticket 140). Recompute these whenever tokens.css
+      // moves — they are a copy of the token layer, not a second opinion on it.
       const palette = {
-        canvas: paletteValue('--canvas', '#f5f6f8'),
+        canvas: paletteValue('--canvas', '#f9fafd'),
         surface: paletteValue('--surface', '#ffffff'),
-        mutedSurface: paletteValue('--muted-surface', '#eef0f3'),
-        text: paletteValue('--text', '#20242a'),
-        muted: paletteValue('--muted', '#59616c'),
-        border: paletteValue('--border', '#cbd0d7'),
-        series1: paletteValue('--series-1', '#3569c8'),
-        marketUp: paletteValue('--market-up', '#167044'),
-        marketDown: paletteValue('--market-down', '#b62e3c'),
-        marketFlat: paletteValue('--market-flat', '#59616c'),
+        mutedSurface: paletteValue('--muted-surface', '#eff0f6'),
+        text: paletteValue('--text', '#222430'),
+        muted: paletteValue('--muted', '#616472'),
+        border: paletteValue('--border', '#dedfe5'),
+        series1: paletteValue('--series-1', '#00728a'),
+        marketUp: paletteValue('--market-up', '#1b763a'),
+        marketDown: paletteValue('--market-down', '#b72c2f'),
+        marketFlat: paletteValue('--market-flat', '#686a74'),
       }
       const directionColor = (value: number | null | undefined) => {
         const direction = marketDirection(value)

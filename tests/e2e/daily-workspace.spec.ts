@@ -64,6 +64,13 @@ test('new users can capture, save, refind and review a first workspace record', 
   await expect(page.getByRole('heading', { name: 'Saved diary', exact: true })).toBeVisible()
   const savedHref = await page.getByRole('link', { name: 'Open diary', exact: true }).getAttribute('href')
   expect(savedHref).toMatch(/^\/diaries\/\d+$/)
+  await page.getByTestId('quick-review-week').click()
+  await expect(page.getByTestId('quick-review-scheduled')).toBeVisible()
+  const queue = await page.request.get('/api/reviews')
+  expect(queue.ok()).toBe(true)
+  expect((await queue.json()).upcoming).toEqual(
+    expect.arrayContaining([expect.objectContaining({ id: savedHref!.split('/').at(-1), targetType: 'diary' })]),
+  )
   const saved = await page.request.get(`/api${savedHref!}`)
   expect(saved.status()).toBe(200)
   expect(await saved.json()).toMatchObject({
@@ -154,7 +161,7 @@ test('failed workspace resources remain scoped until each retry succeeds', async
   await page.goto('/')
   await plansSeen
   await expect(page.getByRole('navigation', { name: 'Continue elsewhere', exact: true })).toContainText('Loading…')
-  await expect(page.getByTestId('overview-first-use')).toHaveCount(0)
+  await expect(page.getByTestId('overview-first-use')).toBeVisible()
   await expect(page.getByTestId('overview-no-current-actions')).toHaveCount(0)
   releasePlans()
   await expect(page.locator('#overview-attention-error')).toContainText('daily-attention-retry')
@@ -162,8 +169,8 @@ test('failed workspace resources remain scoped until each retry succeeds', async
 
   await page.unroute('**/api/portfolio/overview')
   await page.locator('#overview-attention-error').getByRole('button', { name: 'Try again', exact: true }).click()
-  await expect(page.getByTestId('overview-no-current-actions')).toBeVisible()
-  await expect(page.getByTestId('overview-first-use')).toHaveCount(0)
+  await expect(page.locator('#overview-attention-error')).toHaveCount(0)
+  await expect(page.getByTestId('overview-first-use')).toBeVisible()
 
   await page.unroute('**/api/trade-plans*')
   await page.locator('#overview-plans-error').getByRole('button', { name: 'Try again', exact: true }).click()

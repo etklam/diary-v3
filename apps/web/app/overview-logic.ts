@@ -135,22 +135,36 @@ export function buildOverviewAttentionRows(
   })
 }
 
+/**
+ * Does this account have nothing yet?
+ *
+ * The diary count is decisive and required: it is the product's own content,
+ * it is the smallest of the six queries, and it is the only one that answers
+ * "is this a new account" rather than "is this account empty in every
+ * dimension". Until it has resolved there is no answer, so the caller shows
+ * the dashboard — a count that failed to load is not evidence of emptiness.
+ *
+ * The other five refine it and are each optional. A resource that is still in
+ * flight or that failed is *unknown*, not empty, so it neither suppresses the
+ * welcome nor claims there is something to show. Before ticket 136 all six
+ * were required, which meant one slow or broken section hid the welcome
+ * screen from exactly the accounts it exists for.
+ */
 export function isOverviewFirstUse(input: {
-  attention: PortfolioAttentionResponse
-  reviews: ReviewGroups
-  recent: DiarySummaryListResponse
-  valuation: PortfolioValuationResponse
-  plans: TradePlanListResponse
-  watchlist: StockWatchlistResponse
+  recent: DiarySummaryListResponse | null
+  attention?: PortfolioAttentionResponse | null
+  reviews?: ReviewGroups | null
+  valuation?: PortfolioValuationResponse | null
+  plans?: TradePlanListResponse | null
+  watchlist?: StockWatchlistResponse | null
 }): boolean {
   const { attention, reviews, recent, valuation, plans, watchlist } = input
+  if (!recent || recent.pagination.total !== 0) return false
   return (
-    attention.items.length === 0 &&
-    Object.values(reviews.counts).every(count => count === 0) &&
-    recent.pagination.total === 0 &&
-    plans.pagination.total === 0 &&
-    valuation.valuation.valuationStatus === 'empty' &&
-    valuation.valuation.totalHoldings === 0 &&
-    watchlist.items.length === 0
+    (!attention || attention.items.length === 0) &&
+    (!reviews || Object.values(reviews.counts).every(count => count === 0)) &&
+    (!plans || plans.pagination.total === 0) &&
+    (!valuation || (valuation.valuation.valuationStatus === 'empty' && valuation.valuation.totalHoldings === 0)) &&
+    (!watchlist || watchlist.items.length === 0)
   )
 }

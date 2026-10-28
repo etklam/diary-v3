@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PortfolioAttentionItem, PortfolioAttentionResponse } from '@diary/contracts/portfolio-attention'
 import type { PortfolioValuationResponse } from '@diary/contracts/portfolio'
 import type { ReviewGroups, ReviewItem } from '@diary/contracts/review-queue'
+import type { StockWatchlistResponse } from '@diary/contracts/watchlist'
 import { buildOverviewAttentionRows, isOverviewFirstUse } from '../../apps/web/app/overview-logic'
 
 const attentionItem = (overrides: Partial<PortfolioAttentionItem> = {}): PortfolioAttentionItem =>
@@ -162,6 +163,17 @@ describe('overview attention projection', () => {
 })
 
 describe('overview first-use projection', () => {
+  const watchItem = {
+    id: 'w1',
+    status: 'WATCHING',
+    sortOrder: 0,
+    pinned: false,
+    updatedAt: '2026-09-12T00:00:00Z',
+    stock: { symbol: 'AAPL', name: null },
+    recordCount: 0,
+    latestRecord: null,
+  } as StockWatchlistResponse['items'][number]
+
   const emptyInput = {
     attention: attentionResponse([]),
     reviews: emptyReviews,
@@ -179,5 +191,51 @@ describe('overview first-use projection', () => {
         reviews: { ...emptyReviews, counts: { ...emptyReviews.counts, completed: 1 } },
       }),
     ).toBe(false)
+  })
+
+  // Ticket 136. Before it, every one of the six had to have resolved, so a slow
+  // or failed section hid the welcome screen from the accounts it exists for.
+  describe('with resources that have not resolved', () => {
+    it('answers from the diary count alone when nothing else has arrived', () => {
+      expect(isOverviewFirstUse({ recent: emptyInput.recent })).toBe(true)
+    })
+
+    it('treats an unresolved supporting resource as unknown, not as content', () => {
+      for (const absent of ['attention', 'reviews', 'valuation', 'plans', 'watchlist'] as const) {
+        expect(isOverviewFirstUse({ ...emptyInput, [absent]: null })).toBe(true)
+      }
+    })
+
+    it('still defers to a resolved resource that holds content', () => {
+      expect(
+        isOverviewFirstUse({
+          ...emptyInput,
+          attention: null,
+          watchlist: { items: [watchItem] },
+        }),
+      ).toBe(false)
+      expect(
+        isOverviewFirstUse({
+          ...emptyInput,
+          reviews: null,
+          plans: { data: [], pagination: { page: 1, limit: 5, total: 2, totalPages: 1 } },
+        }),
+      ).toBe(false)
+    })
+
+    // A count that never arrived is not evidence of an empty account; showing
+    // the welcome there would claim something the page does not know.
+    it('is false while the diary count is unresolved', () => {
+      expect(isOverviewFirstUse({ recent: null })).toBe(false)
+      expect(isOverviewFirstUse({ ...emptyInput, recent: null })).toBe(false)
+    })
+
+    it('is false once the diary count reports an entry, whatever else is unknown', () => {
+      expect(
+        isOverviewFirstUse({
+          recent: { data: [], pagination: { page: 1, limit: 3, total: 1, totalPages: 1 } },
+        }),
+      ).toBe(false)
+    })
   })
 })

@@ -374,3 +374,32 @@
     min-height: min(42dvh, 360px);
   }
 }
+
+/* Ticket 137: a permanent statement of the zone the capture date resolves in,
+   sitting under the destination region it qualifies rather than inside it. */
+.quick-timezone-note {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Ticket 135: the review scheduler closes the loop at the one moment the
+   reader still holds the judgment. It sits under the action row and stays
+   quiet — the saved state keeps exactly one filled action, which is Open. */
+.quick-saved-review {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.quick-saved-review p {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.quick-saved-review-done {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}

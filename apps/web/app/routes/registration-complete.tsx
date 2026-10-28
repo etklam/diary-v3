@@ -2,7 +2,7 @@ import { registrationCompleteRequestSchema } from '@diary/contracts'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { apiFailure, FailureNotice, type Failure } from '../api-error'
-import { api, useUi } from '../ui'
+import { ActionButton, api, useUi } from '../ui'
 import { AuthPage } from '../auth-page'
 import { authAsideCopy } from '../auth-copy'
 import './registration-complete.css'
@@ -185,9 +185,14 @@ export default function RegistrationComplete() {
               failure={failure}
               messageOverride={failure?.fields.includes('confirm') ? c.mismatch : undefined}
             />
-            <button type="submit" disabled={pending}>
-              {pending ? '…' : c.create}
-            </button>
+            {/* A control in flight keeps its label: swapping it changes the
+                control's width mid-submit and reflows the row the reader is
+                watching. `ActionButton` owns pending, aria-busy and the
+                in-flight rule — the sibling sign-in form already uses it
+                (ticket 140). */}
+            <ActionButton type="submit" pending={pending}>
+              {c.create}
+            </ActionButton>
           </form>
           <p className="form-alternate">
             <Link to="/login">{c.back}</Link>

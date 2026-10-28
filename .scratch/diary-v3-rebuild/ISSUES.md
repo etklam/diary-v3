@@ -569,3 +569,107 @@ before changing pagination or projections. Filing it on a static read alone woul
 that policy, so it stays unfiled until a 5,000-diary / 20,000-transaction fixture and an
 `explain (analyze)` baseline exist. The same applies to the portfolio snapshot recomputation,
 the connection-pool defaults, the public/private shell split, and the price-alert sweep.
+
+## First-run and onboarding critique follow-up (135–140)
+
+Filed 2026-10-29 from a UI/UX critique of the first-run path — public home → registration →
+workspace Overview → quick capture → review — archived at
+`.impeccable/critique/2026-10-28T16-54-37Z__apps-web-app-onboarding-and-first-run-surfaces.md`.
+It scored the app **27/40** on Nielsen's heuristics. The craft axes score where this project
+usually scores (`check-design-contrast.mjs` passes 74 pairs in each theme,
+`check-native-edges.mjs` passes 204 files), and the two axes that drag the total are the two
+that only a new reader experiences: **Help and Documentation 1/4** and **Recognition rather
+than Recall 2/4**. The gap between those and the rest is the finding.
+
+| Ticket | Type | Recorded state | Issue file |
+|---|---|---|---|
+| 135 — Close the capture loop: schedule a review from quick capture | Activation defect (P0) | accepted; Execution: done 2026-10-29 | [135-schedule-a-review-from-quick-capture.md](issues/135-schedule-a-review-from-quick-capture.md) |
+| 136 — First use is decided by seven requests | Activation defect | accepted; Execution: done 2026-10-29 | [136-first-use-detection-is-all-or-nothing.md](issues/136-first-use-detection-is-all-or-nothing.md) |
+| 137 — Every account defaults to Asia/Taipei silently | Data correctness / onboarding | accepted; Execution: done 2026-10-29 | [137-account-timezone-is-never-confirmed.md](issues/137-account-timezone-is-never-confirmed.md) |
+| 138 — Overview prompt renders a link with no name; its copy object cannot catch that | Defect / type safety | accepted; Execution: done 2026-10-29 | [138-core-empty-states-are-dead-ends.md](issues/138-core-empty-states-are-dead-ends.md) |
+| 139 — Help leaves the product at sign-in | Discoverability | accepted; Execution: done 2026-10-29 | [139-workspace-help-and-capture-paths.md](issues/139-workspace-help-and-capture-paths.md) |
+| 140 — Four consistency defects on the first-run path | Consistency | accepted; Execution: done 2026-10-29 | [140-first-run-consistency-defects.md](issues/140-first-run-consistency-defects.md) |
+
+**[135](issues/135-schedule-a-review-from-quick-capture.md) is the only P0 and it is a seam,
+not a feature gap.** Every capture entry point in the product — the mobile bottom bar, ⌘J,
+the sidebar's filled action, both Overview calls to action — leads to the quick composer, and
+the quick composer cannot set `reviewDueAt`. An account captured entirely through the
+recommended path therefore has an empty review queue permanently, so the third of the
+product's three advertised steps never happens and the one event this product raises on its
+own never fires. The endpoint it needs,
+`PATCH /api/diaries/:id/review-schedule`, already exists and is already used by the review
+page; nothing in the API, the contracts or the schema changes.
+
+**The critique's empty-state findings did not survive verification and are withdrawn.** It
+reported `/diaries` and `/stocks` as first-run dead ends. Both already carry their starting
+point — `routes/diary-list.tsx:846` and `routes/holdings.tsx:293`. The holdings action reads
+as ninety lines distant in source, but everything between it and the empty sentence is
+`data &&`-guarded and does not render on an empty account, so on screen they are adjacent.
+[138](issues/138-core-empty-states-are-dead-ends.md) was rewritten before any code changed
+and now covers only the defect that held: the unnamed `<Link>`.
+
+The cause of both errors is worth recording, because it is a method fault rather than a
+reading slip: findings were written from narrow windows of a branchy render without working
+out which branches a first-run account reaches. The Aesthetic (8) and Help (10) scores in the
+critique are unaffected; nothing else in it rested on those two claims.
+
+**Two findings are about mechanisms this project already built and did not finish applying.**
+[138](issues/138-core-empty-states-are-dead-ends.md) found an empty `<Link>` on Overview —
+`c.open` is declared in none of the three locales, so it renders with no accessible name —
+and it survived because `overview.tsx` types its copy as `Record<string, string>` instead of
+using `defineCopy`, which [130](issues/130-locale-copy-parity.md) built to make exactly this
+a compile error. `check-locale-parity.mjs` passes on it correctly: all three locales are
+equally missing the key, and parity is not completeness.
+[139](issues/139-workspace-help-and-capture-paths.md) is the same shape — `/guide` is in
+`destinations.ts` and reachable by command palette, but no visible workspace link points at
+it, so the only path to it is recall.
+
+**[140](issues/140-first-run-consistency-defects.md) item 4 is a decision, not a defect.**
+The attention-band severity encoding from [119](issues/119-attention-list-priority.md) is
+faithfully implemented; the critique's evidence is that a 1-to-3px difference in a
+low-chroma grey does not carry at that width, while the `sr-only` word it already emits does.
+That is new evidence about an old ruling and should be ruled on in `DESIGN.md` rather than
+quietly changed.
+
+**Not filed, deliberately.** The critique noted that the quick composer's writing area has no
+placeholder and that the template chooser — the real scaffolding — defaults to `blank` and is
+named for its mechanism. Adding a default prompt would help a first-timer and would cost
+every subsequent capture a deletion, which trades against the low-friction principle this
+surface was built on. It needs a ruling on which reader the empty box serves before any edit,
+and that ruling belongs with a decision ticket rather than inside an onboarding fix.
+
+**Progress — 2026-10-29. 135–140 are all done.** Taken in dependency order: 138 first,
+because migrating the Overview copy to `defineCopy` had to land before 136 and 137 edited the
+same file; then 136, 137, 135, 139, 140.
+
+Four things are worth reading before picking up whatever comes next.
+
+- **Two of the critique's six findings did not survive verification.** Both were empty-state
+  "dead ends" that already had their action. The method fault was writing findings from narrow
+  windows of a branchy render without evaluating which branches a first-run account reaches —
+  `/stocks` looked like ninety lines of distance between the sentence and the action, and on
+  the actual empty screen they are adjacent because everything between is `data &&`-guarded.
+  138 was rewritten to its one surviving defect before any code changed.
+- **The guide needed a shell change before a link to it was worth adding.** `/guide` was
+  `isPublicContentPath`, so a signed-in reader following a sidebar link to it would have lost
+  the sidebar the guide explains. Moving it to `isGuestPublicPath` is the whole fix and
+  `shell-chrome.test.ts`'s 32 cases passed unchanged.
+- **The `#cbd0d7` finding was one of nine.** It is not rendered drift — it is a
+  `getComputedStyle` fallback in the market-rotation export. But recomputing all ten fallbacks
+  against `tokens.css` showed nine had drifted; the detector saw the one that had drifted
+  furthest. A copy of the token layer will always drift, so the corrected block now says so in
+  a comment.
+- **140 reversed its own recommendation after reading the code.** The ticket proposed promoting
+  the `sr-only` band word to a visible label. The code showed `rowLabel` already names the
+  bucket or the reason in words on every row, so the visible half needed nothing — the ruling
+  became a deletion of the undrawable 1/2/3px encoding instead.
+
+**Not run: anything needing PostgreSQL.** Two acceptance criteria stay open for that reason and
+are marked in their tickets — that a quick-scheduled diary actually reaches `/api/reviews`
+(135), and the real first-paint sequence on a new account (136). Both rest on code and unit
+tests. Gates that did run: `tsc --noEmit`, `eslint .`, `prettier --check .`, the unit suite
+(142 files / 1258 tests), all five `design:check` scripts, and `vite build apps/web`.
+
+**Review verification — 2026-10-29.** The daily-workspace browser suite passed 4/4 with
+disposable PostgreSQL, including the quick-schedule-to-review-queue path. The real first-paint
+ordering in 136 remains unverified. First-use resource failures now retain their retry controls.

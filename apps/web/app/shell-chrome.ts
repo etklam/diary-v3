@@ -13,7 +13,6 @@ export type ShellChrome = 'public' | 'private' | 'pending'
 export function isPublicContentPath(pathname: string) {
   return (
     pathname === '/about' ||
-    pathname === '/guide' ||
     pathname === '/articles' ||
     pathname.startsWith('/articles/') ||
     pathname === '/blog' ||
@@ -25,6 +24,11 @@ export function isPublicContentPath(pathname: string) {
 export function isGuestPublicPath(pathname: string) {
   return (
     pathname === '/' ||
+    // The guide is instructions *about* the private workspace. It was public
+    // content, so a signed-in reader following it lost the sidebar they were
+    // being taught to use — which is also why no workspace link pointed at it
+    // (ticket 139). A guest still reads it in the public shell.
+    pathname === '/guide' ||
     pathname === '/login' ||
     pathname === '/register' ||
     pathname === '/register/complete' ||

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useOutletContext } from 'react-router'
 import { ActionButton, api, useUi } from '../ui'
 import { apiFailure, FailureNotice, invalidField, type Failure } from '../api-error'
 import { signInPath, useSessionState } from '../session'
+import type { ShellOutletContext } from '../root'
 import './settings.css'
 
 const copy = {
@@ -102,6 +103,7 @@ type FormValues = {
 
 export default function Settings() {
   const { locale, t, applyLocale } = useUi()
+  const { refreshViewer } = useOutletContext<ShellOutletContext>()
   const text = copy[locale]
   const session = useSessionState()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -170,6 +172,9 @@ export default function Settings() {
           expectedMonthlyTrades: String(settings.expectedMonthlyTrades),
         })
         applyLocale(settings.locale)
+        // The shell holds the account timezone now and only re-reads it at
+        // session boundaries, so a save here has to tell it (ticket 136).
+        refreshViewer()
         setSaved(true)
       } else setFailure(apiFailure(result.error, t('failed')))
     } catch {
