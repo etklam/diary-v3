@@ -24,6 +24,29 @@ function images(value: unknown): string[] {
 }
 
 describe('release manifest rendering', () => {
+  it('allows a missing Redis URL while retaining auto mode in production and staging', () => {
+    for (const target of ['production', 'staging'] as const) {
+      const resources = documents(
+        renderReleaseManifests({
+          target,
+          apiImage,
+          webImage,
+          ...(target === 'staging' ? { hostname: 'staging.example.invalid' } : {}),
+        }),
+      )
+      const api = resources.find(
+        resource => resource.kind === 'Deployment' && (resource.metadata as { name: string }).name === 'diary-v3-api',
+      )
+      const spec = api?.spec as { template: { spec: { containers: Array<{ name: string; env: unknown[] }> } } }
+      const env = spec.template.spec.containers.find(container => container.name === 'api')?.env
+      expect(env).toContainEqual({ name: 'RATE_LIMIT_BACKEND', value: 'auto' })
+      expect(env).toContainEqual({
+        name: 'REDIS_URL',
+        valueFrom: { secretKeyRef: { name: 'diary-v3-app', key: 'REDIS_URL', optional: true } },
+      })
+    }
+  })
+
   it('keeps production namespace and ingress while pinning application images', () => {
     const files = renderReleaseManifests({ target: 'production', apiImage, webImage })
     const resources = documents(files)

@@ -20,7 +20,7 @@ The Admin user list's correlated Diary count resolves an unqualified `id` to the
 
 ## Evidence
 
-The original observed failure is recorded in [the UI consistency defect note](../../ui-consistency/admin-users-diary-count-mismatch.md).
+The original observation survives in [the UI consistency review](../../../docs/design/ui-consistency-review.md); the separate defect note is no longer present. The review recorded the mismatch before its root cause was established; this ticket records the subsequent diagnosis and acceptance.
 
 ## Execution — 2026-09-25
 

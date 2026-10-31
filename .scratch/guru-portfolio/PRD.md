@@ -5,6 +5,8 @@ Date: 2026-10-06
 Source: user-provided “Diary-v3 | Guru Portfolio Module Final Form”
 Tracker: Local Markdown under .scratch/guru-portfolio/
 
+The status above records the 2026-10-06 planning checkpoint. Subsequent implementation and acceptance are tracked in [ISSUES.md](ISSUES.md), which records all 13 slices as done with evidence in their tickets; this note does not establish production release.
+
 This is a separately approved extension to diary-v3. The parent rebuild PRD remains immutable. The SEC filing browser remains a separate research tool; Guru Portfolio is an investment research product built from institutional holdings data, deterministic analytics, consensus, and clearly separated AI interpretation.
 
 ## Product outcome

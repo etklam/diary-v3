@@ -12,7 +12,7 @@ Reviewed against repository source on 2026-09-27. The product is **Trade basic**
 | Implement or review the UI | [Current design system](../DESIGN.md), [scoped design records](design/), and the [design changelog](design/CHANGELOG.md) |
 | Understand accepted technical decisions | [ADRs](adr/) |
 | Configure and operate a deployment | [Environment contract](operations/environment-contract.md), [CI/CD](operations/ci-cd-notes.md), and [K3s guide](../ops/k8s/README.md) |
-| Check the latest local engineering evidence | [2026-09-27 cleanup, performance, and security audit](audits/project-cleanup-2026-09-27.md) |
+| Check local engineering evidence | [2026-09-27 cleanup audit](audits/project-cleanup-2026-09-27.md), [2026-10-23 code-review corrections](audits/code-review-fixes-2026-10-23.md), [2026-10-25 coverage baseline](audits/coverage-baseline-2026-10-25.md) |
 
 ## Document authority and status
 
@@ -21,7 +21,7 @@ Reviewed against repository source on 2026-09-27. The product is **Trade basic**
 - **Dated evidence:** acceptance reports, audit reports, design reviews, smoke logs, and screenshots prove only their recorded revision, environment, and scope. Preserve results and limitations; link newer evidence instead of replacing old counts.
 - **Frozen parity inputs:** the [sanitized source archive and manifest](parity/README.md) are the reference for ordinary parity work. Do not substitute the live diary-vue checkout or silently refresh the baseline.
 
-The original core rebuild and subsequent numbered tickets have local acceptance. This does not authorize a production cutover or resolve every extension's release gate. In particular, AI Reports beta readiness, Research Studio live sources/full-report publication, native device delivery, and hosted deployment evidence remain separately scoped. Pull requests are gated on the source checks and the integration suite; the browser suites stay nightly by a recorded decision. See the [gate policy](operations/ci-cd-notes.md).
+The original core rebuild and subsequent numbered tickets have local acceptance. This does not authorize a production cutover or resolve every extension's release gate. In particular, AI Reports beta readiness, Research Studio live sources/full-report publication, native device delivery, and hosted deployment evidence remain separately scoped. Pull-request workflows run source checks and the integration suite; enforcement requires Forgejo branch protection, whose configuration cannot be established by this repository. Browser suites stay nightly by a recorded decision. See the [gate policy](operations/ci-cd-notes.md).
 
 ## Feature guides
 
@@ -65,6 +65,7 @@ Operational instructions describe what to run; dated smoke reports below describ
 | Record | What it establishes |
 | --- | --- |
 | [2026-09-27 project audit](audits/project-cleanup-2026-09-27.md) | Later local security/resource fixes, dependency checks, test results, restore, synthetic performance, and remaining capacity/CI limits |
+| [2026-10-23 code-review corrections](audits/code-review-fixes-2026-10-23.md), [2026-10-25 coverage baseline](audits/coverage-baseline-2026-10-25.md) | Scoped follow-up corrections and measured unit-only coverage floors; neither is a current verification run |
 | [2026-09-25 all-ticket acceptance](features/all-tickets-acceptance-2026-09-25.md) | Core and follow-up ticket execution, with AI/Research external gates kept separate |
 | [Original core release report](parity/final-release-report.md) | 2026-09-06 core rebuild and frozen performance checkpoints |
 | [Frozen baseline](parity/README.md) and [performance record](parity/performance-baseline.md) | Reproducible source inputs and original workload evidence |

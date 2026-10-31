@@ -1,5 +1,7 @@
 # diary-v3 Visual and Interaction Implementation Brief
 
+> Historical pre-implementation intent from 2026-09-05. The status, navigation, tokens and proposed interactions below describe that checkpoint, not current delivery or rules. See [DESIGN.md](../../DESIGN.md) for current design authority and [the built design record](documentation-note.md) for the later checkpoint.
+
 Status: pre-implementation design decisions, not yet validated by screen acceptance; this document cannot be used to mark ticket 03 complete.
 Date: 2026-09-05. The user authorized autonomous design and parallel implementation while away. This direction is the agent's design judgment; the user did not pick through colors or layout item by item.
 

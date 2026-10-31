@@ -4,18 +4,24 @@
 set -euo pipefail
 
 HOST="${DEPLOY_HOST:-root@82.22.63.196}"
+PORT="${DEPLOY_SSH_PORT:-14500}"
 NAMESPACE="diary-v3"
+
+if [[ ! "$PORT" =~ ^[0-9]{1,5}$ ]] || (( 10#$PORT < 1 || 10#$PORT > 65535 )); then
+  echo 'DEPLOY_SSH_PORT must be an integer between 1 and 65535' >&2
+  exit 1
+fi
 
 DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD}"
 JWT_SECRET="${JWT_SECRET:?Set JWT_SECRET (>=32 random bytes)}"
 SEC_USER_AGENT="${SEC_USER_AGENT:?Set SEC_USER_AGENT per https://www.sec.gov/os/accessing-edgar-data}"
 
-ssh "$HOST" "kubectl get ns diary-v3 >/dev/null 2>&1 || kubectl create ns diary-v3"
+ssh -p "$PORT" -- "$HOST" "kubectl get ns diary-v3 >/dev/null 2>&1 || kubectl create ns diary-v3"
 
 emit_secret() {
   local kind="$1"
   SECRET_KIND="$kind" DB_PASSWORD="$DB_PASSWORD" JWT_SECRET="$JWT_SECRET" SEC_USER_AGENT="$SEC_USER_AGENT" \
-    node --input-type=module <<'NODE' | ssh "$HOST" "kubectl -n diary-v3 create -f - >/dev/null"
+    node --input-type=module <<'NODE' | ssh -p "$PORT" -- "$HOST" "kubectl -n diary-v3 create -f - >/dev/null"
 const kind = process.env.SECRET_KIND
 const required = name => {
   const value = process.env[name]
@@ -55,7 +61,7 @@ NODE
 ensure_secret() {
   local name="$1"
   local kind="$2"
-  if ssh "$HOST" "kubectl -n diary-v3 get secret '$name' >/dev/null 2>&1"; then
+  if ssh -p "$PORT" -- "$HOST" "kubectl -n diary-v3 get secret '$name' >/dev/null 2>&1"; then
     echo "$name already exists; retaining existing values."
   else
     emit_secret "$kind"

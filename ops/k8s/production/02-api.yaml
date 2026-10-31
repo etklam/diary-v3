@@ -102,6 +102,7 @@ spec:
                 secretKeyRef:
                   name: diary-v3-app
                   key: REDIS_URL
+                  optional: true
           ports:
             - name: http
               containerPort: 3101

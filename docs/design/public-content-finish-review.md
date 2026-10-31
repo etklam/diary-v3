@@ -1,5 +1,7 @@
 # Public content finish review
 
+> Later status: [tickets 54](../../.scratch/diary-v3-rebuild/issues/54-article-drafts.md), [55](../../.scratch/diary-v3-rebuild/issues/55-article-management.md), and [56](../../.scratch/diary-v3-rebuild/issues/56-public-articles.md) record acceptance of the scoped PostgreSQL/browser evidence, source review, and desktop/mobile captures. The in-progress and pending-review statements below describe earlier checkpoints.
+
 Ticket 54–56 implementation is in progress. The bounded vertical slice now has a PostgreSQL `posts` table and migration, shared Zod contracts, admin/public HTTP routes, safe Markdown rendering, SSR article routes, `/blog` compatibility redirects, and a public sitemap response. Admin responses include the author email only inside the role-protected surface; public list/detail responses contain only the public author identity.
 
 The API keeps the source boundary measured in `docs/parity/post-fulltext-probe.json` and `docs/parity/post-fulltext-boolean-probe.json`: public search reads title and excerpt through a combined vector, excludes content, preserves Boolean required/optional/excluded terms, keeps quoted phrases inside one field, and applies the observed short-word, prefix, stop-word and accent behavior. Admin title/author filters remain substring filters.

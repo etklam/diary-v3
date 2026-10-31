@@ -56,7 +56,7 @@ without opening anything.
 
 **1. Put the guide in the pinned account block.** `AccountLinks` (`nav.tsx:395`) renders
 into `.desktop-preferences`, pinned to the foot of the sidebar and always visible —
-[116](issues/116-sidebar-account-pinning.md) put it there precisely so these links never fall
+[116](116-sidebar-navigation-depth.md) put it there precisely so these links never fall
 below the fold. Add the guide above Achievements, with the `compass` icon
 `destinations.ts:187` already assigns it. Add it to `MobileMenu` through the same
 `NavigationLinks` path so the drawer matches.
@@ -101,7 +101,7 @@ two existing surfaces visible, not adding a layer over them.
 - `apps/web/app/quick-entry.tsx:16-73` — `CaptureChoices` and the empty summary at `:62`.
 - `apps/web/app/routes/guide.tsx` — the page and its guest-shaped copy.
 - `apps/web/app/destinations.ts:187` — `/guide` already in the palette, with its icon.
-- [116](116-sidebar-account-pinning.md) — why the pinned block exists.
+- [116](116-sidebar-navigation-depth.md) — why the pinned block exists.
 - [94](94-quick-diary-button-consistency.md) — prior work on this same control.
 
 ## Blocked by
@@ -131,7 +131,7 @@ guest, workspace chrome once signed in. `tests/unit/shell-chrome.test.ts` passes
 (32 cases).
 
 The link sits in `AccountLinks` — the block pinned to the foot of the sidebar by
-[116](116-sidebar-account-pinning.md), so it cannot fall below the fold — and in the mobile
+[116](116-sidebar-navigation-depth.md), so it cannot fall below the fold — and in the mobile
 drawer's Account group. `navigationOwner` learned `/guide` so it takes the selection
 treatment. The page's intro and closing now differ for a signed-in reader; the five tasks do
 not.

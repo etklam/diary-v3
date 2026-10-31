@@ -44,6 +44,8 @@ A review of input cost across `/diaries/quick` and `/diaries/new` produced eleve
 these are the ones judged worth scheduling. Seven are specified and unimplemented, and one is a
 design question that refines already-accepted work rather than reporting a defect.
 
+This is the 2026-10-04 planning snapshot; the completion records in the table below and the [main index](ISSUES.md#capture-cost-follow-ups-8491) supersede its implementation status.
+
 Two findings were deliberately not filed, and should not be revived without new evidence:
 loosening the submit lock on the destination lookup, and removing the create/append `<select>`.
 Both sit inside the uncertain-append state machine guarded by

@@ -1,5 +1,7 @@
 # Admin users implementation review
 
+> Later status: [ticket 57 acceptance](../../.scratch/diary-v3-rebuild/issues/57-admin-users.md) records root acceptance of the HTTP and browser evidence and inspection of desktop/mobile captures. The pending-review statements below describe the earlier checkpoint.
+
 Status: implementation and controlled acceptance evidence recorded; parent/root review remains required.
 
 The admin surface is `/admin/users`. It keeps account management behind the fresh server-side ADMIN check, presents system counts and recent Diary activity, uses explicit role Save and delete confirmation controls, and disables self role/delete actions after reading the current account from `/api/auth/me`. The admin Diary projection intentionally omits private Review fields.

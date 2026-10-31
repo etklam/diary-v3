@@ -1,6 +1,6 @@
 # diary-v3 實作 tickets
 
-Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are indexed below and in the linked follow-up index. Per-ticket status and acceptance evidence remain authoritative; `ready-for-agent` means the specification is ready, not that implementation or blockers are complete. See the [all-ticket acceptance inventory](../../docs/features/all-tickets-acceptance-2026-09-25.md).
+Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–83 are indexed below and in the linked follow-up index. Per-ticket status and acceptance evidence remain authoritative; `ready-for-agent` means the specification is ready, not that implementation or blockers are complete. See the [all-ticket acceptance inventory](../../docs/features/all-tickets-acceptance-2026-09-25.md).
 
 | Ticket | Type | Blocked by | 發佈狀態 |
 | --- | --- | --- | --- |
@@ -66,7 +66,7 @@ Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are 
 | [60 備份還原 PostgreSQL 並驗證產品流程](issues/60-backup-restore.md) | AFK | 59 | ready-for-agent |
 | [61 完成全功能對等與跨裝置發布驗收](issues/61-final-verification.md) | AFK | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60 | ready-for-agent |
 
-## Follow-up and tracker additions (62–82)
+## Follow-up and tracker additions (62–83)
 
 | Ticket | Type | Recorded state | Issue file |
 | --- | --- | --- | --- |
@@ -74,6 +74,7 @@ Tickets 01–61 cover the PRD's 114 user stories. Follow-up tickets 62–82 are 
 | 63 — Research to Diary context handoff | Follow-up | Execution: done | [63-research-diary-handoff.md](issues/63-research-diary-handoff.md) |
 | 64–81 — Convenience and architecture follow-ups | Follow-up | All record Execution: done; see the index for each ticket | [Follow-up issues](FOLLOW-UP-ISSUES.md) |
 | 82 — Return exact per-user Diary counts in Admin inventory | Bug | done; focused HTTP and Admin browser reruns passed | [82-admin-users-diary-count.md](issues/82-admin-users-diary-count.md); [final verification](../../docs/features/all-tickets-acceptance-2026-09-25.md) |
+| 83 — Phase 1 Stability Repairs | AFK | done; verification recorded in ticket | [83-phase1-stability-repairs.md](issues/83-phase1-stability-repairs.md) |
 
 ## Capture-cost follow-ups (84–91)
 
@@ -81,7 +82,7 @@ Published 2026-10-04 from a review of input cost across the two authoring paths
 (`/diaries/quick` and `/diaries/new`). All of them are implemented; the rows below were
 reconciled with the tickets themselves on 2026-10-08, having been left at
 `ready-for-agent; Execution: todo` long after each ticket recorded its own completion.
-Ticket 83 predates this set and is not indexed above.
+Ticket 83 predates this set and is indexed above.
 
 | Ticket | Type | Recorded state | Issue file |
 | --- | --- | --- | --- |
@@ -440,9 +441,10 @@ suite now runs **333 passed, 5 failed**, up from 325/13.
   acceptance** — and two of the four Quick cold-start cases, where the spec's own
   account-read hold helper was throwing.
 
-The 101–114 set from the 2026-10-06 page score is now complete. What remains open from
-that review is the "Scored but not filed" list below, plus [115](issues/115-duplicate-quick-diary-action.md)
-and [116](issues/116-sidebar-navigation-depth.md), and the stale-test list above.
+The following is the earlier review checkpoint: the 101–114 set was complete, while the
+"Scored but not filed" list, [115](issues/115-duplicate-quick-diary-action.md),
+[116](issues/116-sidebar-navigation-depth.md), and the stale-test list remained open.
+The sixth-pass update above supersedes that status for 115 and 116.
 
 ### Scored but not filed
 
@@ -454,13 +456,15 @@ specify a ticket honestly: `/admin/research/:id` (67), `/admin/etf` (66),
 formatting is in 101). These need a closer pass before they become tickets rather than
 being invented now.
 
-Two findings were deliberately left unfiled pending a ruling and are recorded in
+At the review checkpoint, two findings were deliberately left unfiled pending a ruling and are recorded in
 [112](issues/112-empty-states-and-list-sections.md)'s Observation: the duplicate
 "Quick diary" primary action, which may be intentional and may already belong to
 [94](issues/94-quick-diary-button-consistency.md); and navigation depth, where the sidebar
 holds 1,745px of content and leaves Settings, Sign out and Preferences below its own fold
 at 1440×1080 — an IA question that interacts with the standing capture → read → review
 priority.
+
+That checkpoint was superseded: the findings were filed and completed as [115](issues/115-duplicate-quick-diary-action.md) and [116](issues/116-sidebar-navigation-depth.md), respectively.
 
 ## Engineering quality hardening follow-up (124–132)
 

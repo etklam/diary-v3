@@ -18,22 +18,25 @@ The commands below are the reproducible shape of the rehearsal. The password
 and JWT values are throwaway local values; keep them in the shell environment,
 never in a committed file.
 
-## Current release gate
+## Current regression rehearsal
 
-The repeatable release gate is `npm run db:restore-smoke`. It owns a disposable
+The repeatable regression rehearsal is `npm run db:restore-smoke`. It owns a disposable
 `postgres:17.6-alpine` container, derives schema N from the penultimate entry in
 the repository migration journal, and requires N→N+1 to be exactly one
 migration. It loads [`scripts/restore-smoke-fixture.sql`](../../scripts/restore-smoke-fixture.sql),
 then runs the N+1 and full-backup restore plus failed-backup checks. It removes
-its container and temporary dumps on exit. Forgejo runs it after source-manifest
-validation and before integration tests. The runner shares the job container's
-network namespace and uses its private port 5432; local runs use the dedicated
-host port 55435. A failed restore prevents image publication and deployment.
+its container and temporary dumps on exit. Forgejo runs it in the nightly/manual
+`regression.yml` workflow, not the production deploy workflow. A failure fails
+that regression run but does not automatically prevent image publication or
+deployment. The runner shares the job container's network namespace and uses
+its private port 5432; local runs use the dedicated host port 55435. Operators
+requiring restore evidence for a release must verify a passing rehearsal for the
+relevant revision separately.
 
 ## Historical shell sequence
 
 The shell sequence below records the initial ticket-60 rehearsal at
-migration 0019. The current release gate selects its N migration from the
+migration 0019. The current rehearsal selects its N migration from the
 current journal automatically.
 
 ```sh

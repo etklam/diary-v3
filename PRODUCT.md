@@ -29,7 +29,7 @@ The rebuild preserves valid feature intent while correcting documented legacy bu
 - Desktop and mobile browsers share a responsive Web app with zh-TW, zh-CN, and English interface copy, light/dark/system themes, and user timezone settings.
 - The private workspace includes Diary library, Quick Diary, Timeline, Calendar, Review queue, Trade Plans, Portfolio, Company Hub, Watchlists, reminders, Trading principles, partner sharing, personal achievements and goals, and scoped Agent API access.
 - Public surfaces include the home page, guide, About, tools, and article discovery/reading. Public article content supports SSR and SEO; protected content is authorized by the API.
-- Administration covers articles, users, ETF definitions, AI configuration, Research Studio, and optional account email.
+- Administration covers articles, users and the read-only Diary inventory, guru portfolios and institutional mappings/filings, ETF definitions, AI configuration, Research Studio, and optional account email. Admin Diary projections exclude private review text.
 - PWA support covers installation and updates. Private API responses and navigations are not an offline personal-data store.
 
 ## Capabilities and Constraints

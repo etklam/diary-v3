@@ -42,6 +42,20 @@ describe('rate-limit backend selection', () => {
     await runtime.close()
   })
 
+  it('starts ready with memory limits when auto mode has no Redis URL', async () => {
+    const redisFactory = vi.fn(async () => memoryStore())
+    const runtime = await createRateLimitRuntime(parseRateLimitConfig({ RATE_LIMIT_BACKEND: 'auto' }), { redisFactory })
+    expect(runtime).toMatchObject({ mode: 'auto', backend: 'memory', degraded: true, ready: true })
+    await expect(runtime.consume('client', { limit: 1, windowMs: 100, now: 0 })).resolves.toMatchObject({
+      allowed: true,
+    })
+    await expect(runtime.consume('client', { limit: 1, windowMs: 100, now: 1 })).resolves.toMatchObject({
+      allowed: false,
+    })
+    expect(redisFactory).not.toHaveBeenCalled()
+    await runtime.close()
+  })
+
   it('fails closed at startup when redis mode cannot connect', async () => {
     await expect(
       createRateLimitRuntime(

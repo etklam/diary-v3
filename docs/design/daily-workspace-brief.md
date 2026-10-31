@@ -3,6 +3,10 @@
 Status: implementation brief approved by Astra, 2026-09-12.
 Mode: Operate. This bounded refinement follows DESIGN.md and the user's phase proposal.
 
+> Historical design intent and acceptance criteria for the 2026-09-12 slice. Later navigation and first-use behavior supersede the descriptions below; use [DESIGN.md](../../DESIGN.md) for current design rules and `apps/web/app/overview-logic.ts` for the current predicate. The original criteria remain here as evidence, not a claim of current behavior.
+
+Current first-use clarification (2026-10-30): a successfully loaded Diary count of zero is required. Other loaded resources can disqualify first use when they show content, but a pending or failed optional resource is unknown and does not by itself suppress the prompt. This supersedes the blanket statement below that every failed or loading resource prevents first use; scoped errors and retries remain relevant. See `apps/web/app/overview.tsx` and `apps/web/app/overview-logic.ts`.
+
 ## Outcome and boundaries
 
 Make capture, finding a Diary, and completing a due Review immediately understandable after sign-in. Preserve existing routes, APIs, ownership rules, date semantics, Quick Diary saving and appending, and public Tools access. No wizard, onboarding persistence, new dashboard, new market data, or research-to-editor handoff is included.

@@ -1,5 +1,7 @@
 # Whole-app UI score — second pass
 
+> Historical assessment and remediation record from 2026-10-09. Measurements and pass counts below apply to that tree and do not certify current compliance; [DESIGN.md](../../DESIGN.md) remains the design authority.
+
 Date: 2026-10-09. Re-score of every route state in `apps/web/app/routes.ts` against
 `DESIGN.md` ("The Ledger") and `PRODUCT.md`, three days after
 [the first pass](ui-page-score-2026-10-06.md) and after tickets **101–116** were closed.

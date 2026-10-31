@@ -34,8 +34,9 @@ const fakeSsh = `#!/usr/bin/env node
 const { readFileSync, appendFileSync } = require('node:fs')
 const { spawnSync } = require('node:child_process')
 
-const [host, command] = process.argv.slice(2)
-appendFileSync(process.env.FAKE_SSH_LOG, JSON.stringify({ host, command }) + '\\n')
+const [flag, port, separator, host, command] = process.argv.slice(2)
+if (flag !== '-p' || separator !== '--') process.exit(2)
+appendFileSync(process.env.FAKE_SSH_LOG, JSON.stringify({ port, host, command }) + '\\n')
 const kubectl = process.env.FAKE_KUBECTL
 const invoke = (args, input) => spawnSync(process.execPath, [kubectl, ...args], { input, encoding: 'utf8' })
 if (command.includes('get ns diary-v3')) process.exit(invoke(['get', 'ns', 'diary-v3']).status)
@@ -65,7 +66,11 @@ async function setupFakes() {
   return { root, bin, fakeKubectlPath, statePath, sshLogPath, kubectlLogPath }
 }
 
-function runScript(fake: Awaited<ReturnType<typeof setupFakes>>, values: { db: string; jwt: string; sec: string }) {
+function runScript(
+  fake: Awaited<ReturnType<typeof setupFakes>>,
+  values: { db: string; jwt: string; sec: string },
+  port?: string,
+) {
   return spawnSync('bash', [scriptPath], {
     cwd: process.cwd(),
     encoding: 'utf8',
@@ -74,6 +79,7 @@ function runScript(fake: Awaited<ReturnType<typeof setupFakes>>, values: { db: s
       ...process.env,
       PATH: `${fake.bin}:${process.env.PATH ?? ''}`,
       DEPLOY_HOST: 'fake-host',
+      DEPLOY_SSH_PORT: port,
       DB_PASSWORD: values.db,
       JWT_SECRET: values.jwt,
       SEC_USER_AGENT: values.sec,
@@ -108,6 +114,12 @@ it('provisions special-character secrets without shell evaluation and retains ex
     expect(created.stdout).not.toContain(first.jwt)
     expect(created.stdout).not.toContain(first.sec)
     const sshLog = await readFile(fake.sshLogPath, 'utf8')
+    expect(
+      sshLog
+        .trim()
+        .split('\n')
+        .every(line => JSON.parse(line).port === '14500'),
+    ).toBe(true)
     expect(sshLog).not.toContain(first.db)
     expect(sshLog).not.toContain(first.jwt)
     expect(sshLog).not.toContain(first.sec)
@@ -117,7 +129,7 @@ it('provisions special-character secrets without shell evaluation and retains ex
       jwt: 'replacement\nsecret',
       sec: 'Replacement contact@example.test',
     }
-    const retained = runScript(fake, second)
+    const retained = runScript(fake, second, '2222')
     expect(retained.status).toBe(0)
     expect(JSON.parse(await readFile(fake.statePath, 'utf8'))).toEqual(stateAfterCreate)
     const kubectlEntries = (await readFile(fake.kubectlLogPath, 'utf8'))
@@ -126,6 +138,15 @@ it('provisions special-character secrets without shell evaluation and retains ex
       .filter(Boolean)
       .map(line => JSON.parse(line) as { args: string[] })
     expect(kubectlEntries.filter(entry => entry.args[0] === 'create')).toHaveLength(2)
+    const entries = (await readFile(fake.sshLogPath, 'utf8'))
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+    expect(entries.slice(-3).every(entry => entry.port === '2222')).toBe(true)
+    for (const port of ['0', '65536', '-1', '22;touch bad', '123456']) {
+      expect(runScript(fake, second, port).status).not.toBe(0)
+    }
+    expect((await readFile(fake.sshLogPath, 'utf8')).trim().split('\n')).toHaveLength(entries.length)
     await expect(readFile(sentinel, 'utf8')).rejects.toThrow()
   } finally {
     await rm(fake.root, { recursive: true, force: true })

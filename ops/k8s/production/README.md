@@ -8,11 +8,10 @@ Release path:
 
 1. A push to `main` starts `.forgejo/workflows/deploy.yml` on the `hk` runner.
    Blocking checks include tracked-secret scanning, lint, typecheck, unit tests,
-   contracts, source-manifest validation, PostgreSQL backup/restore smoke, and
-   the production build. API integration, full Chromium, WebKit critical path,
-   and release artifact acceptance are currently advisory
-   (`continue-on-error: true`); their failures remain visible but do not stop
-   the later deploy steps.
+   contracts, design and source-manifest validation, and a smoke test of the
+   built images. The PostgreSQL restore rehearsal, integration and broader
+   browser suites run in the separate nightly/manual regression workflow; they
+   do not block this production workflow. See [CI/CD notes](../../../docs/operations/ci-cd-notes.md).
 2. CI builds the API and Web images, verifies the tested image IDs are unchanged,
    pushes them, resolves immutable digests, and validates rendered manifests
    before any remote mutation.
@@ -20,7 +19,9 @@ Release path:
    `diary-v3-db` and `diary-v3-app` when those Secrets do not exist. CI does not
    run this script or rotate secrets; it assumes the required Secrets already
    exist. The script requires `DB_PASSWORD`, a 32-byte-or-longer `JWT_SECRET`,
-   and `SEC_USER_AGENT`, and retains complete existing Secrets.
+   and `SEC_USER_AGENT`, and retains existing Secrets without modifying them.
+   `DEPLOY_SSH_PORT` defaults to the fleet port `14500` and accepts a port from
+   1 through 65535; `DEPLOY_HOST` overrides the SSH destination.
 4. CI reconciles `00-namespace.yaml` and `01-postgres.yaml`, then runs the
    standalone migrate Job (`node dist/api/migrate.js`) and idempotent system
    seed Job (`node dist/api/seed-system.js`). Migrations must remain
@@ -59,7 +60,9 @@ source SHA from the successful production build, the matching immutable API and
 Web digests, and a non-production HTTPS hostname. It validates the existing
 staging namespace and Secrets, renders the production-shaped manifests into the
 `diary-v3-staging` namespace, pauses the market CronJob, and runs
-`scripts/staging-smoke.sh`. It does not accept the production hostname and does
+`scripts/staging-smoke.sh` (the automated HTTP and Socket.IO probe only).
+The remaining [application checklist](../../../docs/operations/staging-smoke.md)
+requires a separate manual run. It does not accept the production hostname and does
 not use the production SSH credentials.
 
 Layout notes:
@@ -221,18 +224,18 @@ the API and restores or removes the worker if a release rollout fails.
 Redis is not created by the normal release manifests. The separate
 [`ops/k8s/optional/redis.yaml`](../optional/redis.yaml) manifest runs one
 authenticated, ClusterIP-only Redis Pod and permits ingress only from API Pods.
-The API Deployment enables the `auto` backend via the `RATE_LIMIT_BACKEND`
-env var and an authenticated `REDIS_URL` key in the `diary-v3-app` Secret;
-the operator-provisioned `diary-v3-redis` Secret holds `REDIS_PASSWORD`.
+The API Deployment selects `auto` and references the optional `REDIS_URL` key in
+`diary-v3-app`. A fresh Secret without that key starts with local memory limits;
+existing configured URLs continue to be used. The optional Redis Pod requires
+an operator-provisioned `diary-v3-redis` Secret holding `REDIS_PASSWORD`.
 
-For a deliberate enablement, provision that Secret through the environment's
-approved secret manager, review and apply the optional Redis manifest, then
-add an authenticated `REDIS_URL` key and `RATE_LIMIT_BACKEND=auto` to the API
-Deployment through the normal reviewed release process. The Redis URL belongs
-in the existing `diary-v3-app` Secret and must URL-encode special password
-characters. Choose `redis` only when Redis should be a readiness requirement.
-The standard production manifests, secret script and CI release workflow do
-not enable or provision Redis. See the [rate-limiting runbook](../../../docs/runbooks/rate-limiting.md)
-for behavior, local testing, limits and recovery semantics. This is
+For deliberate enablement, provision that Secret through the environment's
+approved secret manager, review and apply the optional Redis manifest, and add
+an authenticated, URL-encoded `REDIS_URL` to `diary-v3-app`. Restart the API
+through the reviewed release process to load the new Secret value. Select
+`redis` in the Deployment only when Redis should be a readiness requirement;
+`auto` falls back to memory. The standard release does not provision Redis.
+See the [rate-limiting runbook](../../../docs/runbooks/rate-limiting.md) for
+behavior, local testing, limits and recovery semantics. This is
 application-layer abuse protection and does not replace edge or ingress DDoS
 controls.

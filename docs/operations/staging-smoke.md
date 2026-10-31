@@ -10,8 +10,9 @@ real diary text, portfolio details, credentials, or tokens into staging.
 The deployment is the manual `.forgejo/workflows/staging.yml` workflow. Supply
 the full source SHA, the matching digest references from the successful
 production workflow, and the isolated staging hostname. The workflow uses the
-`diary-v3-staging` namespace, pauses its market CronJob, and runs this checklist
-after the API, mail worker, Web, and Ingress become ready. It requires staging
+`diary-v3-staging` namespace, pauses its market CronJob, and runs only the automated HTTP and Socket.IO
+probe after the API, mail worker, Web, and Ingress become ready. An operator
+must separately complete the manual checklist below. It requires staging
 SSH credentials and existing staging Secrets; it does not provision production
 Secrets.
 

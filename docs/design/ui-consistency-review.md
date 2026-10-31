@@ -132,7 +132,7 @@ One additional admin-users case remains failing: its synthetic diary creation
 returns 201 and appears in recent diaries, but the account row reports a diary
 count of 0 rather than the expected 1. Its assertion is retained. The root cause
 was not established; this is not classified as a CSS regression or a confirmed
-pre-existing defect. See [observed mismatch](../../.scratch/ui-consistency/admin-users-diary-count-mismatch.md).
+pre-existing defect. The separate defect note is no longer present; the later diagnosis and acceptance are recorded in [ticket 82](../../.scratch/diary-v3-rebuild/issues/82-admin-users-diary-count.md).
 The role-selection test race was fixed independently by waiting for the initial
 settings response. No backend workaround or weakened count assertion was added. No backend, contracts, database,
 permissions, or transaction-calculation files were changed. No deployment was

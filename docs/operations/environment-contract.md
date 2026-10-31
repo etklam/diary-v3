@@ -14,7 +14,7 @@
 | `TRUST_X_FORWARDED_FOR` | Optional proxy setting | Set to `true` only behind a proxy that overwrites forwarded client addresses. Production Ingress is trusted. |
 | `RATE_LIMIT_BACKEND` | Optional runtime setting | `memory` (default) keeps limits process-local; `auto` uses Redis when available and falls back to bounded memory; `redis` requires Redis at startup and readiness. None of the three authorizes a second API replica — see [ADR-0020](../adr/0020-single-api-replica-boundary.md). |
 | `REDIS_URL` | Optional secret | Redis connection URL used only by `auto` or `redis`; required by `redis`. Use `rediss://` when the Redis endpoint requires TLS and never log the URL. |
-| `SEC_CACHE_MAX_BYTES` | Optional runtime setting | Ceiling on retained SEC metadata cache bytes across all four caches. Defaults to 64 MiB, chosen well under the 768 MiB pod limit; entry-count caps remain as secondary ceilings. Capacity evidence: [`sec-metadata-cache-2026-10-25.json`](../audits/sec-metadata-cache-2026-10-25.json). |
+| `SEC_CACHE_MAX_BYTES` | Optional runtime setting | Positive finite approximate serialized-byte budget for SEC metadata caches in the API process; defaults to 64 MiB. Each cache retains at least one entry, so the shared total can exceed the budget; entry-count caps remain as secondary limits. This is not a heap or RSS ceiling. The API reads this variable at startup; the Guru SEC discovery worker creates its own cache using the default. Capacity evidence: [`sec-metadata-cache-2026-10-25.json`](../audits/sec-metadata-cache-2026-10-25.json). |
 | `MARKET_PROVIDER` | Optional provider setting | Defaults to the live provider. Set to `fixture` only in disposable test environments. |
 | `MIGRATIONS_FOLDER` | Optional migration setting | Directory containing the Drizzle migration journal and SQL. Production migration jobs use `/app/packages/db/migrations`. |
 | `AI_ENCRYPTION_KEYS` | Optional API secret; required by the AI/research/translation workers | JSON object mapping AI key versions to base64-encoded 32-byte keys. Use the same keyring in every workload that reads or writes encrypted AI data. |
@@ -29,7 +29,12 @@
 | `AI_WORKER_ID`, `AI_WORKER_INTERVAL_MS` | Optional AI worker settings | Worker label and poll interval. The interval defaults to 1000 ms; `AI_WORKER_ID` defaults to a process-specific value when omitted. |
 | `RESEARCH_WORKER_ID`, `RESEARCH_WORKER_POLL_MS` | Optional Research Studio worker settings | Worker label and poll interval. Polling must be an integer from 250 through 60000 ms; the default is 1000 ms. |
 | `ARTICLE_TRANSLATION_WORKER_ID`, `ARTICLE_TRANSLATION_WORKER_POLL_MS` | Optional article translation worker settings | Worker label and poll interval. Polling must be an integer from 250 through 60000 ms; the default is 1000 ms. |
+| `GURU_ANALYSIS_WORKER_ID`, `GURU_ANALYSIS_POLL_MS` | Optional Guru analysis worker settings | Process-specific worker label by default; poll interval is an integer from 250 through 60000 ms, default 2000 ms. |
+| `GURU_SEC_DISCOVERY_WORKER_ID`, `GURU_SEC_DISCOVERY_POLL_MS`, `GURU_SEC_DISCOVERY_INTERVAL_HOURS` | Optional Guru SEC discovery worker settings | Process-specific worker label by default; poll interval is 250–60000 ms (default 5000), discovery interval is 1–168 hours (default 24), both integers. This worker requires `DATABASE_URL` and a `SEC_USER_AGENT` containing a contact email. |
 | `RESEARCH_PREPARATION_RETENTION_DAYS` | Optional maintenance setting | Enables the research-preparation retention CLI when set. Without it, the CLI logs that retention is disabled and exits without opening the database. |
+
+`DEPLOY_HOST` and `DEPLOY_SSH_PORT` configure the one-off production secret
+provisioning script; its SSH port defaults to `14500` and must be 1–65535.
 
 `POSTGRES_PASSWORD` and `DB_PASSWORD` are database bootstrap/provisioning
 inputs, not API variables. The local and production secret scripts use them to

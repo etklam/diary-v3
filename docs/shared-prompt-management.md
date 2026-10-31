@@ -20,7 +20,7 @@ Tests use the existing published provider, transport, concurrent-call limit, con
 
 ## Adding a module
 
-Add the key to the shared contract and register an exhaustive `PromptDriver` in `apps/api/src/shared-prompts/registry.ts`. The driver owns its immutable definition, variable validation, rendered messages, registered synthetic input, and schema-validating test. The optional `legacyReportType` bridge is reserved for Weekly and Monthly AI Reports; other modules persist shared versions without creating legacy report prompts. Guru/quarter selection and structured context are ticket 11 scope.
+Add the key to the shared contract and register an exhaustive `PromptDriver` in `apps/api/src/shared-prompts/registry.ts`. The driver owns its immutable definition, variable validation, rendered messages, registered synthetic input, and schema-validating test. The optional `legacyReportType` bridge is reserved for Weekly and Monthly AI Reports; other modules persist shared versions without creating legacy report prompts. Guru analysis has its own registered driver and structured manager/quarter context; see [Guru analysis](guru-analysis.md). The playground continues to use the driver's registered synthetic input rather than a user-selected live Guru or quarter.
 
 ## Acceptance evidence
 

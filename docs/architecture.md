@@ -59,7 +59,7 @@ Initialization runs migrations followed by the repeatable [static system seed](.
 
 ## Workers and external services
 
-The API image contains ten built entrypoints: `server`, `ai-worker`, `research-worker`, `article-translation-worker`, `mail-worker`, `research-retention`, `rotation`, `market-state`, `migrate`, and `seed-system`. Packaging a worker does not enable or schedule it. Deployment configuration and feature settings determine which processes run.
+The API image contains twelve built entrypoints: `server`, `ai-worker`, `research-worker`, `article-translation-worker`, `guru-13f-worker`, `guru-analysis-worker`, `mail-worker`, `research-retention`, `rotation`, `market-state`, `migrate`, and `seed-system`. Packaging a worker does not enable or schedule it. Deployment configuration and feature settings determine which processes run.
 
 | Work | Guide |
 | --- | --- |
@@ -67,6 +67,7 @@ The API image contains ten built entrypoints: `server`, `ai-worker`, `research-w
 | Manual AI report generation | [Feature](features/ai-reports-v1.md) and [operator runbook](runbooks/ai-reports.md) |
 | Admin Research Studio and retention | [Feature and worker settings](features/research-studio.md), [source policy](research-method/source-policy-review.md) |
 | Article translation | [Translation guide](article-translations.md) |
+| Guru filing discovery and analysis | [Institutional operations](institutional-operations.md) and [Guru analysis](guru-analysis.md) |
 | Verification and recovery email | [Account-email runbook](runbooks/account-email.md) |
 
 Provider credentials remain server-side and stored AI/SMTP secrets are encrypted. AI Reports and Research Studio use deployment-controlled recipient allowlists; article translation profiles configure their own HTTPS endpoints with public-address checks. SMTP permits relays that resolve to public addresses; trusted private relays additionally require an exact `SMTP_ALLOWED_HOSTS` entry. Research fetches apply the documented outbound policy, DNS/IP validation, redirect controls, and deadlines. Source rights and live-provider acceptance remain distinct from successful synthetic tests.
@@ -75,7 +76,7 @@ Provider credentials remain server-side and stored AI/SMTP secrets are encrypted
 
 The [request-body wrapper](../apps/api/src/request-body-limit.ts) caps serialized bodies at 8 MiB while allowing authentication and route rate limiting to run before lazy body consumption. [Rate limiting](runbooks/rate-limiting.md) uses memory by default or configured Redis.
 
-SEC downloads and bundles stage files on disk and stream responses under byte limits, cancellation, deadlines, and a two-slot heavy-response gate. The [2026-09-27 audit](audits/project-cleanup-2026-09-27.md) records the synthetic memory improvement and a remaining capacity limit: metadata caches bound entry counts rather than retained bytes. Local RSS measurements are not container-memory guarantees.
+SEC downloads and bundles stage files on disk and stream responses under byte limits, cancellation, deadlines, and a two-slot heavy-response gate. The four metadata caches share a default 64 MiB approximate serialized-byte eviction budget in addition to entry-count caps. The inserting cache retains at least one entry, so the total can exceed that budget; serialized bytes do not measure heap or RSS. See the [2026-10-25 capacity evidence](audits/sec-metadata-cache-2026-10-25.json). Local RSS measurements are not container-memory guarantees.
 
 [Web SSR](../apps/web/app/entry.server.tsx) sets same-origin framing, MIME-sniffing protection, and a default referrer policy, preserving stricter route policies. These headers are not a comprehensive script-source CSP. Current implementation and regression evidence are linked from the audit rather than represented as a complete security certification.
 

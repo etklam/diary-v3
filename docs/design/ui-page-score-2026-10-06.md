@@ -1,5 +1,7 @@
 # Whole-app UI score — which pages need a redesign
 
+> Historical assessment of the 2026-10-06 tree. Scores, route counts and verification results below are evidence for that date, not a current audit. See [DESIGN.md](../../DESIGN.md) for current design rules and [the later score](ui-page-score-2026-10-09.md) for subsequent findings and fixes.
+
 Date: 2026-10-06. Reviewer pass over every route in `apps/web/app/routes.ts` (69 reachable
 page states), scored against `DESIGN.md` ("The Ledger") and the product principles in
 `PRODUCT.md`.

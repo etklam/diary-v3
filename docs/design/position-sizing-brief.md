@@ -1,5 +1,7 @@
 # Position sizing — Astra direction
 
+> Later status: [the finish review](position-sizing-finish-review.md) records acceptance of ticket 47 on 2026-09-06, including the inspected captures and domain/browser evidence. The pending-implementation statement below is historical intent.
+
 2026-09-06. Mode: Operate. Ticket 47 implementation remains pending. Luna owns implementation; Astra owns composition and acceptance. Reuse DESIGN.md and the accepted FIRE calculator's input/result rhythm.
 
 The user is deciding how to split an intended position into batches and then record that intention. Use one heading and a compact explanation, followed by an input column and a wider results column. At tablet/mobile widths stack inputs, results, then handoff actions. Inputs use native labelled controls: available capital, intended stock price, reserve percentage, one of the four existing strategies and rounding mode. Optional symbol/context needed by handoff belongs beside those inputs. Do not imply a live quote lookup if only a hypothetical price was entered.

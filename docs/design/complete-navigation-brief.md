@@ -1,5 +1,7 @@
 # Complete workspace navigation — Astra direction
 
+> Historical navigation brief from 2026-09-06. Its group names, dimensions and mobile arrangement describe the intended slice at that time; [DESIGN.md](../../DESIGN.md) and `apps/web/app/nav.tsx` describe the later shell.
+
 2026-09-06. Mode: Operate. Implement alongside the installed/mobile shell in ticket 58, before final cross-device acceptance. This extends the initial shell direction as the real module count grows; it does not change authorization or remove routes.
 
 The current mobile shell wraps twenty navigation links and account preferences above the page title, using more than a screen of vertical space. The completed workspace must reveal the current task promptly while keeping every implemented destination reachable.

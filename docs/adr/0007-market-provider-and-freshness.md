@@ -20,3 +20,7 @@ The installed Yahoo SDK owns the cookie/crumb protocol. Tests inject an upstream
 ## SPX session classification
 
 The authenticated SPX helper reuses the provider queue and a five-minute intraday cache. It retains the frozen classification precedence and unrounded thresholds. Intraday bars are sorted and matched to the quote's America/New_York trading date, permitting the latest matching closed session over weekends. Missing prior close, quote time or matching bars produces the canonical unavailable error; no synthetic range-bound classification is substituted. The response preserves the full summary, including open, high, low and percentage components. Tests cover exact boundaries, gaps/recovery/fade/choppiness, missing inputs and authenticated HTTP/cache behavior.
+
+## Addendum — current queue bounds (2026-10-30)
+
+The original decision above records the earlier queue behavior. `apps/api/src/market-data/queue.ts` now defaults to two active jobs, 256 waiting jobs and 256 consumers per deduplicated job. The default deadlines are 10 seconds per attempt, 10 seconds waiting in the queue and 45 seconds overall per job, including retries and waiting. These are separate bounds; configuration can override the deadlines. This corrects the earlier statement that there is no total queue-wait deadline without changing the original freshness decision.

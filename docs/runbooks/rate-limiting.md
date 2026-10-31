@@ -23,10 +23,12 @@ Only the API's abuse counters use Redis. Sessions, application cache, queues, pu
 
 `memory` is process-local and works without Redis. Use it for development, tests and a single API replica. `redis` requires a valid `redis://` or `rediss://` URL and a healthy Redis connection at startup. If Redis later becomes unavailable, readiness fails and requests fail closed with a generic service-unavailable response. `auto` uses Redis when healthy and otherwise applies the same bounded local memory limiter while the API remains ready. `auto` probes for recovery no more often than once every 15 seconds while serving requests.
 
-The checked-in production API manifest enables the `auto` backend against the
-optional in-cluster Redis (see below). If that Redis Pod is removed later,
-remove `RATE_LIMIT_BACKEND` and `REDIS_URL` from the API Deployment in the same
-change so a normal release keeps using the process-local `memory` backend.
+The checked-in production API manifest selects `auto` with an optional
+`REDIS_URL` Secret key. If the key is absent, the API starts with memory limits;
+if configured, it uses Redis when healthy and falls back when unavailable.
+Secret environment values are loaded at Pod startup, so restart the API after
+adding, changing or removing the URL. Removing the optional Redis Pod alone
+leaves `auto` in memory fallback until Redis recovers or the URL is removed.
 
 Redis recovery cannot merge the local fallback history with counters already stored in Redis. A transition may therefore grant a process a fresh local or distributed window. This is an availability tradeoff; endpoint-specific PostgreSQL budgets remain in force where they already exist.
 
@@ -91,6 +93,6 @@ Rate-limit rejection responses remain HTTP 429 with `AUTH_RATE_LIMITED` and a ca
 
 `ops/k8s/optional/redis.yaml` provides one authenticated, non-persistent Redis instance with a ClusterIP Service, resource bounds, probes and an ingress NetworkPolicy allowing only API pods. It is intentionally excluded from the normal production release bundle.
 
-An operator who wants distributed limits must create the `diary-v3-redis` Secret with `REDIS_PASSWORD`, apply that optional manifest, and separately opt the API into `auto` or `redis`. The in-cluster URL has the shape `redis://:<password>@diary-v3-redis:6379/0`; URL-encode special characters in the password. Put the authenticated value in the existing `diary-v3-app` Secret, add `RATE_LIMIT_BACKEND=auto` (or `redis`) and a Secret reference for `REDIS_URL` to the API Deployment, then deploy through the reviewed operational process. Do not add Redis settings to the production Secret or Deployment merely by applying the normal release manifests. Choose `auto` when bounded process-local fallback is acceptable; choose `redis` when readiness must require Redis. Either choice leaves the single-process scheduler constraint unchanged.
+An operator who wants distributed limits must create the `diary-v3-redis` Secret with `REDIS_PASSWORD`, apply that optional manifest, and put the authenticated URL in the existing `diary-v3-app` Secret. The in-cluster URL has the shape `redis://:<password>@diary-v3-redis:6379/0`; URL-encode special characters in the password. The checked-in Deployment already selects `auto` and references the optional key; restart the API through the reviewed release process to load it. Choose `redis` in the Deployment instead when readiness must require Redis. The normal release does not provision Redis or its URL. Either choice leaves the single-process scheduler constraint unchanged.
 
 The included Redis Pod has no public Service and no persistent volume. Rate-limit state resets after a Redis restart, which is equivalent to an empty limiter window. The API remains single-replica by default; enabling this optional service does not itself authorize scaling or a production cutover.

@@ -1,5 +1,7 @@
 # PWA and complete navigation finish review
 
+> Later status: [ticket 58](../../.scratch/diary-v3-rebuild/issues/58-pwa.md) records acceptance of the scoped PWA and navigation evidence and inspection of desktop/mobile captures. The pending-root-acceptance statement below describes the earlier checkpoint.
+
 ## Scope
 
 Ticket 58 adds install metadata, an explicit service-worker update boundary, a static-resource cache, and the compact mobile navigation described in [complete-navigation-brief.md](./complete-navigation-brief.md). The worker does not cache SSR documents, `/api/**`, or Socket.IO requests. Logout sends a private-cache-clear message; no private cache namespace is populated by the static strategy.

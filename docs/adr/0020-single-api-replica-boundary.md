@@ -67,3 +67,9 @@ Verified locally on 2026-10-25:
 
 No production rollout or cluster change is included in this ruling. The live cluster's
 Redis state is unverified from this repository and is not evidence either way.
+
+## Addendum — market queue correction (2026-10-30)
+
+The table's "three-way concurrency limit" is an error: the current market queue permits
+two active jobs per API runtime, as recorded in the current queue bounds addendum in [ADR 0007](0007-market-provider-and-freshness.md) and `apps/api/src/market-data/queue.ts`.
+The per-process cache and deduplication and the single-replica decision remain unchanged.

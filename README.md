@@ -2,7 +2,7 @@
 
 Trade basic is an investment decision diary built with React, Hono, PostgreSQL, and Drizzle. It connects diaries, trades, research, reminders, and reviews, with public tools and articles alongside a private workspace.
 
-The core rebuild and subsequent local feature acceptance are recorded in the [acceptance report](docs/features/all-tickets-acceptance-2026-09-25.md). The [2026-09-27 audit](docs/audits/project-cleanup-2026-09-27.md) records the latest cleanup, security, performance, and verification results. These are local evidence checkpoints, not production cutover approval. Research Studio live-source acceptance, AI Reports beta release, and native device delivery have separate gates.
+The core rebuild and subsequent local feature acceptance are recorded in the [acceptance report](docs/features/all-tickets-acceptance-2026-09-25.md). The [2026-09-27 audit](docs/audits/project-cleanup-2026-09-27.md), [2026-10-23 code-review corrections](docs/audits/code-review-fixes-2026-10-23.md), and [2026-10-25 coverage baseline](docs/audits/coverage-baseline-2026-10-25.md) record separate local evidence checkpoints, not production cutover approval. Research Studio live-source acceptance, AI Reports beta release, and native device delivery have separate gates.
 
 Start with the [documentation index](docs/README.md), [product scope](PRODUCT.md), or [current architecture](docs/architecture.md).
 

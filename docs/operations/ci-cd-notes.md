@@ -12,7 +12,7 @@ only tier that can block a change before it lands. Two jobs:
 
 | Job | Runs | Why this tier |
 | --- | --- | --- |
-| `source-gates` | tracked-secret scan, `lint`, `typecheck`, `test:unit`, `contracts:check`, `design:check`, `manifests:check` | Seconds to a couple of minutes, no services, deterministic. |
+| `source-gates` | tracked-secret scan, `lint`, `typecheck`, `test:coverage` (unit suite and measured coverage floors), `contracts:check`, `design:check`, `manifests:check` | Seconds to a couple of minutes, no services, deterministic. |
 | `integration` | `test:integration` against a disposable PostgreSQL | A few minutes, and the higher-value half of the slow tiers. |
 
 **Tier policy — the deliberate choice.** Integration gates the merge; the

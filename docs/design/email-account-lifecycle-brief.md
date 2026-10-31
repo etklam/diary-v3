@@ -1,5 +1,7 @@
 # Optional SMTP and account email lifecycle
 
+> Later status: [the SMTP account lifecycle PRD](../../.scratch/smtp-account-lifecycle/PRD.md) records implementation completion and visual acceptance on 2026-09-26, with synthetic capture and test evidence. The pending-acceptance status and future-facing packet below are historical direction.
+
 Mode: Operate
 Direction owner: Astra
 Implementation owner: Luna

@@ -1,5 +1,7 @@
 # Price reminder UI — author verification
 
+> Later status: [ticket 34](../../.scratch/diary-v3-rebuild/issues/34-price-alerts.md) records acceptance with ticket 33 after the realtime completion gate was satisfied. The author-only and pending-gate statements below describe earlier checkpoints; the independent UI acceptance is recorded below.
+
 The `/stocks/alerts` form and list extend the established green/neutral interface. Company pages can prefill a symbol. Editing focuses the threshold field; ordinary edits preserve trigger state, and a separate Monitor again action explicitly rearms. The page states the latest-100 cap and five-minute checks, with account-timezone trigger dates and three locales.
 
 Author inspected `evidence/price-alerts/1440.png` (light) and `390.png` (dark): labels and decimal values are readable, message wraps, controls fit the mobile column, and row actions wrap without horizontal overflow. Existing CRUD browser evidence: `tests/e2e/price-alerts.spec.ts`, two passing cases at 1440px and 390px, including all four condition choices, signed-percent and completed-session-period copy, MA direction, focused MA-period and percent edits that preserve triggered state, explicit rearm, delete, locales and sign-out.

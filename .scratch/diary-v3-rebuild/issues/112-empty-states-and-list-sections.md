@@ -196,3 +196,5 @@ removes or relocates a control on five pages, and because two findings were deli
 left unfiled pending a ruling — the duplicate Quick diary button, which may be
 intentional, and navigation depth, which is an IA question rather than a consistency one.
 Both are recorded in the Observation so they are not lost.
+
+This publication checkpoint is historical: both findings were subsequently filed and completed as [115](115-duplicate-quick-diary-action.md) and [116](116-sidebar-navigation-depth.md).
